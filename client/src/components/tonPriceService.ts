@@ -1,0 +1,73 @@
+/**
+ * Client-side TON price service.
+ *
+ * Fetches the live TON/USD price from the backend (/api/ton-price) which
+ * aggregates CoinGecko → Binance → OKX with a 60-second server-side cache.
+ * The client also keeps a 30-second local cache to avoid redundant requests.
+ *
+ * Fixed constants (must match server/tonPriceService.ts):
+ *   10,000,000 Gold = 1 TON (fixed ratio)
+ */
+
+export const GEMS_PER_TON = 10_000_000; // 10M Gold = 1 TON — fixed ratio
+
+interface CachedPrice {
+  price: number;
+  source: string;
+  fetchedAt: number;
+}
+
+let clientCache: CachedPrice | null = null;
+const CLIENT_CACHE_MS = 30_000; // 30-second local cache
+
+/**
+ * Returns live TON/USD price.
+ * Fetches from /api/ton-price (server aggregates multiple exchanges + caches).
+ * Falls back to local cache, then to a conservative default (5.5) if offline.
+ */
+export async function getTONPrice(): Promise<number> {
+  const now = Date.now();
+
+  // Serve local cache if still fresh
+  if (clientCache && now - clientCache.fetchedAt < CLIENT_CACHE_MS) {
+    return clientCache.price;
+  }
+
+  try {
+    const res = await fetch('/api/ton-price', {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`/api/ton-price returned ${res.status}`);
+    const data: { price: number; source: string; fetchedAt: number } = await res.json();
+    if (typeof data.price !== 'number' || data.price <= 0) throw new Error('Invalid price in response');
+
+    clientCache = { price: data.price, source: data.source, fetchedAt: now };
+    return data.price;
+  } catch (err) {
+    console.warn('[TON price client] Fetch failed:', err);
+
+    // Use local cache even if stale
+    if (clientCache) return clientCache.price;
+
+    // Last-resort default — will self-correct on next successful fetch
+    return 5.5;
+  }
+}
+
+/**
+ * Returns a complete rate snapshot for display purposes.
+ * All values are calculated from the live TON/USD price.
+ */
+export function calculateConversions(tonPriceUSD: number) {
+  const gemsPerTon = GEMS_PER_TON;
+
+  return {
+    tonPriceUSD:   Number(tonPriceUSD.toFixed(4)),
+    gemsPerTon:    gemsPerTon,
+    tonPerGem:     Number((1 / gemsPerTon).toFixed(12)),
+    usdPerTon:     Number(tonPriceUSD.toFixed(4)),
+    tonPerUsd:     Number((1 / tonPriceUSD).toFixed(8)),
+    gemsPerDollar: Number((gemsPerTon / tonPriceUSD).toFixed(0)),
+  };
+}

@@ -1,0 +1,4105 @@
+import {
+  users,
+  earnings,
+  referrals,
+  referralCommissions,
+  promoCodes,
+  promoCodeUsage,
+  withdrawals,
+  userBalances,
+  transactions,
+  dailyTasks,
+  advertiserTasks,
+  taskClicks,
+  adminSettings,
+  type User,
+  type UpsertUser,
+  type InsertEarning,
+  type Earning,
+  type Referral,
+  type InsertReferral,
+  type ReferralCommission,
+  type InsertReferralCommission,
+  type PromoCode,
+  type InsertPromoCode,
+  type PromoCodeUsage,
+  type InsertPromoCodeUsage,
+  type Withdrawal,
+  type InsertWithdrawal,
+  type UserBalance,
+  type InsertUserBalance,
+  type Transaction,
+  type InsertTransaction,
+  type DailyTask,
+  type InsertDailyTask,
+  promotions,
+  promotionClaims,
+  taskStatuses,
+  dailyTaskCompletions,
+  taskCompletions,
+  banLogs,
+  type TaskStatus,
+  type Promotion,
+} from "../shared/schema";
+import { db } from "./db";
+import { eq, desc, and, gte, lt, sql, inArray } from "drizzle-orm";
+import crypto from "crypto";
+import { getResetPeriodKey, getPeriodStart } from "./resetPeriod";
+
+function getISOWeek(): string {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const startOfYear = new Date(Date.UTC(year, 0, 1));
+  const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / 86400000);
+  const week = Math.ceil((dayOfYear + startOfYear.getUTCDay() + 1) / 7);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+// Payment system configuration
+export interface PaymentSystem {
+  id: string;
+  name: string;
+  emoji: string;
+  minWithdrawal: number;
+  fee: number;
+}
+
+export const PAYMENT_SYSTEMS: PaymentSystem[] = [
+  { id: 'telegram_stars', name: 'Telegram Stars', emoji: '⭐', minWithdrawal: 1.00, fee: 0.0 },
+  { id: 'tether_polygon', name: 'Tether (Polygon POS)', emoji: '🌐', minWithdrawal: 0.01, fee: 0.0 },
+  { id: 'ton_coin', name: 'TON', emoji: '💎', minWithdrawal: 0.5, fee: 0.0 },
+  { id: 'litecoin', name: 'Litecoin', emoji: '⏺', minWithdrawal: 0.35, fee: 0.0 }
+];
+
+// Interface for storage operations
+export interface IStorage {
+  // User operations (mandatory for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<{ user: User; isNewUser: boolean }>;
+  
+  // Earnings operations
+  addEarning(earning: InsertEarning): Promise<Earning>;
+  getUserEarnings(userId: string, limit?: number): Promise<Earning[]>;
+  getUserStats(userId: string): Promise<{
+    todayEarnings: string;
+    weekEarnings: string;
+    monthEarnings: string;
+    totalEarnings: string;
+  }>;
+  
+  // Language operations
+  updateUserLanguage(userId: string, language: string): Promise<void>;
+
+  // Balance operations
+  updateUserBalance(userId: string, amount: string): Promise<void>;
+  
+  // Streak operations
+  updateUserStreak(userId: string): Promise<{ newStreak: number; rewardEarned: string }>;
+  
+  // Ads tracking
+  incrementAdsWatched(userId: string): Promise<void>;
+  incrementExtraAdsWatched(userId: string): Promise<void>;
+  resetDailyAdsCount(userId: string): Promise<void>;
+  canWatchAd(userId: string): Promise<boolean>;
+  canWatchExtraAd(userId: string): Promise<boolean>;
+  
+  // Withdrawal operations
+  createWithdrawal(withdrawal: InsertWithdrawal): Promise<Withdrawal>;
+  getUserWithdrawals(userId: string): Promise<Withdrawal[]>;
+  
+  // Admin withdrawal operations
+  getAllPendingWithdrawals(): Promise<Withdrawal[]>;
+  getAllWithdrawals(): Promise<Withdrawal[]>;
+  updateWithdrawalStatus(withdrawalId: string, status: string, transactionHash?: string, adminNotes?: string): Promise<Withdrawal>;
+  
+  // Referral operations
+  createReferral(referrerId: string, referredId: string): Promise<Referral>;
+  getUserReferrals(userId: string): Promise<Referral[]>;
+  
+  // Generate referral code
+  generateReferralCode(userId: string): Promise<string>;
+  getUserByReferralCode(referralCode: string): Promise<User | null>;
+  
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  updateUserBanStatus(userId: string, banned: boolean, reason?: string, adminUserId?: string): Promise<void>;
+
+  // Promotion / task system operations (legacy references)
+  getPromotion(promotionId: string): Promise<Promotion | undefined>;
+  createPromotion(data: any): Promise<Promotion | undefined>;
+  syncFriendsInvitedCounts(): Promise<void>;
+  hasUserClickedTask(taskId: string, userId: string): Promise<boolean>;
+  hasUserCompletedTask(promotionId: string, userId: string): Promise<boolean>;
+  completeTask(promotionId: string, userId: string, rewardAmount: string): Promise<{ success: boolean; message: string; rewardAmount?: string; newBalance?: string }>;
+  claimPromotionReward(userId: string, promotionId: string): Promise<{ success: boolean; message: string; rewardAmount?: string; newBalance?: string }>;
+  hasUserCompletedDailyTask(promotionId: string, userId: string): Promise<boolean>;
+  
+  // Telegram user operations
+  getUserByTelegramId(telegramId: string): Promise<User | undefined>;
+  upsertTelegramUser(telegramId: string, userData: Omit<UpsertUser, 'id' | 'telegramId'>): Promise<{ user: User; isNewUser: boolean }>;
+  
+  
+  // Daily reset system
+  performDailyReset(): Promise<void>;
+  checkAndPerformDailyReset(): Promise<void>;
+  
+  // User balance operations
+  getUserBalance(userId: string): Promise<UserBalance | undefined>;
+  createOrUpdateUserBalance(userId: string, balance?: string): Promise<UserBalance>;
+  deductBalance(userId: string, amount: string): Promise<{ success: boolean; message: string }>;
+  addBalance(userId: string, amount: string): Promise<void>;
+  
+  // Admin/Statistics operations
+  getAppStats(): Promise<{
+    totalUsers: number;
+    activeUsersToday: number;
+    totalInvites: number;
+    totalEarnings: string;
+    totalReferralEarnings: string;
+    totalPayouts: string;
+    newUsersLast24h: number;
+  }>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // User operations (mandatory for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async updateUserVerificationStatus(userId: string, isVerified: boolean): Promise<void> {
+    await db.update(users)
+      .set({ 
+        isChannelGroupVerified: isVerified,
+        lastMembershipCheck: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserByTelegramId(telegramId: string): Promise<User | undefined> {
+    try {
+      // Use raw SQL to avoid Drizzle ORM issues
+      const result = await db.execute(sql`
+        SELECT * FROM users WHERE telegram_id = ${telegramId} LIMIT 1
+      `);
+      const user = result.rows[0] as User | undefined;
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByTelegramId:', error);
+      throw error;
+    }
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<{ user: User; isNewUser: boolean }> {
+    // Check if user already exists
+    const existingUser = await this.getUser(userData.id!);
+    const isNewUser = !existingUser;
+    
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          // IMPORTANT: only update safe profile/identity fields on conflict.
+          // Never spread ...userData here — it would overwrite cumulative
+          // counters (balance, adsWatched, totalEarned, etc.) with the
+          // zeroed values passed in by the auth layer, erasing all history.
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          username: userData.username,
+          profileImageUrl: userData.profileImageUrl,
+          personalCode: userData.personalCode,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    
+    // Auto-generate referral code for new users if they don't have one
+    if (isNewUser && !user.referralCode) {
+      try {
+        await this.generateReferralCode(user.id);
+      } catch (error) {
+        console.error('Failed to generate referral code for new user:', error);
+      }
+    }
+    
+    // Auto-create balance record for new users
+    if (isNewUser) {
+      try {
+        await this.createOrUpdateUserBalance(user.id, '0');
+        console.log(`✅ Created balance record for new user: ${user.id}`);
+      } catch (error) {
+        console.error('Failed to create balance record for new user:', error);
+      }
+    }
+    
+    return { user, isNewUser };
+  }
+
+  async upsertTelegramUser(telegramId: string, userData: Omit<UpsertUser, 'id' | 'telegramId'>): Promise<{ user: User; isNewUser: boolean }> {
+    // Sanitize user data to prevent SQL issues
+    const sanitizedData = {
+      ...userData,
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          username: userData.username || null,
+          profileImageUrl: userData.profileImageUrl || '',
+          personalCode: userData.personalCode || telegramId,
+      withdrawBalance: userData.withdrawBalance || '0',
+      totalEarnings: userData.totalEarnings || '0',
+      adsWatched: userData.adsWatched || 0,
+      dailyAdsWatched: userData.dailyAdsWatched || 0,
+      dailyEarnings: userData.dailyEarnings || '0',
+      level: userData.level || 1,
+      flagged: userData.flagged || false,
+      banned: userData.banned || false
+      // NOTE: Don't generate referral code here - it will be handled separately for new users only
+    };
+    
+    // Check if user already exists by Telegram ID
+    let existingUser = await this.getUserByTelegramId(telegramId);
+    
+    // If not found by telegram_id, check if user exists by personal_code (for migration scenarios)
+    if (!existingUser && sanitizedData.personalCode) {
+      const result = await db.execute(sql`
+        SELECT * FROM users WHERE personal_code = ${sanitizedData.personalCode} LIMIT 1
+      `);
+      const userByPersonalCode = result.rows[0] as User | undefined;
+      
+      if (userByPersonalCode) {
+        // User exists but doesn't have telegram_id set - update it
+        const updateResult = await db.execute(sql`
+          UPDATE users 
+          SET telegram_id = ${telegramId},
+              first_name = ${sanitizedData.firstName}, 
+              last_name = ${sanitizedData.lastName}, 
+              username = ${sanitizedData.username},
+              profile_image_url = ${sanitizedData.profileImageUrl},
+              updated_at = NOW()
+          WHERE personal_code = ${sanitizedData.personalCode}
+          RETURNING *
+        `);
+        const user = updateResult.rows[0] as User;
+        return { user, isNewUser: false };
+      }
+    }
+    
+    const isNewUser = !existingUser;
+    
+    if (existingUser) {
+      // For existing users, update fields and ensure referral code exists
+      const result = await db.execute(sql`
+        UPDATE users 
+        SET first_name = ${sanitizedData.firstName}, 
+            last_name = ${sanitizedData.lastName}, 
+            username = ${sanitizedData.username},
+            profile_image_url = ${sanitizedData.profileImageUrl},
+            updated_at = NOW()
+        WHERE telegram_id = ${telegramId}
+        RETURNING *
+      `);
+      const user = result.rows[0] as User;
+
+      // db.execute() returns raw snake_case column names from PostgreSQL,
+      // so we must check both camelCase (Drizzle ORM) and snake_case (raw SQL).
+      const existingReferralCode = user.referralCode ?? (user as any).referral_code;
+
+      // Ensure existing user has referral code
+      if (!existingReferralCode) {
+        console.log('🔄 Generating missing referral code for existing user:', user.id);
+        try {
+          await this.generateReferralCode(user.id);
+          // Fetch updated user with referral code
+          const updatedUser = await this.getUser(user.id);
+          return { user: updatedUser || user, isNewUser };
+        } catch (error) {
+          console.error('Failed to generate referral code for existing user:', error);
+          return { user, isNewUser };
+        }
+      }
+
+      return { user, isNewUser };
+    } else {
+      // For new users, check if email already exists
+      // If it does, we'll create a unique email by appending the telegram ID
+      let finalEmail = userData.email;
+      try {
+        // Try to create with the provided email first
+        const result = await db.execute(sql`
+          INSERT INTO users (
+            telegram_id, email, first_name, last_name, username, profile_image_url, personal_code, 
+            withdraw_balance, total_earnings, ads_watched, daily_ads_watched, 
+            daily_earnings, level, flagged, banned, referred_by
+          )
+          VALUES (
+            ${telegramId}, ${finalEmail}, ${sanitizedData.firstName}, ${sanitizedData.lastName}, 
+            ${sanitizedData.username}, ${sanitizedData.profileImageUrl}, ${sanitizedData.personalCode}, ${sanitizedData.withdrawBalance}, 
+            ${sanitizedData.totalEarnings}, ${sanitizedData.adsWatched}, ${sanitizedData.dailyAdsWatched}, 
+            ${sanitizedData.dailyEarnings}, ${sanitizedData.level}, ${sanitizedData.flagged}, 
+            ${sanitizedData.banned}, ${ (userData as any).referredBy || (userData as any).referred_by || null }
+          )
+          RETURNING *
+        `);
+        const user = result.rows[0] as User;
+        
+        // Auto-generate referral code for new users
+        try {
+          await this.generateReferralCode(user.id);
+        } catch (error) {
+          console.error('Failed to generate referral code for new Telegram user:', error);
+        }
+        
+        // Auto-create balance record for new users
+        try {
+          await this.createOrUpdateUserBalance(user.id, '0');
+          console.log(`✅ Created balance record for new Telegram user: ${user.id}`);
+        } catch (error) {
+          console.error('Failed to create balance record for new Telegram user:', error);
+        }
+        
+        // Fetch updated user with referral code
+        const updatedUser = await this.getUser(user.id);
+        return { user: updatedUser || user, isNewUser };
+      } catch (error: any) {
+        // Handle unique constraint violations
+        if (error.code === '23505') {
+          if (error.constraint === 'users_email_unique') {
+            finalEmail = `${telegramId}@telegram.user`;
+          } else if (error.constraint === 'users_personal_code_unique') {
+            // If personal_code conflict, use telegram ID as personal code
+            sanitizedData.personalCode = `tg_${telegramId}`;
+          }
+          
+          // Try again with modified data
+          const result = await db.execute(sql`
+            INSERT INTO users (
+              telegram_id, email, first_name, last_name, username, profile_image_url, personal_code, 
+              withdraw_balance, total_earnings, ads_watched, daily_ads_watched, 
+              daily_earnings, level, flagged, banned, referred_by
+            )
+            VALUES (
+              ${telegramId}, ${finalEmail}, ${sanitizedData.firstName}, ${sanitizedData.lastName}, 
+              ${sanitizedData.username}, ${sanitizedData.profileImageUrl}, ${sanitizedData.personalCode}, ${sanitizedData.withdrawBalance}, 
+              ${sanitizedData.totalEarnings}, ${sanitizedData.adsWatched}, ${sanitizedData.dailyAdsWatched}, 
+              ${sanitizedData.dailyEarnings}, ${sanitizedData.level}, ${sanitizedData.flagged}, 
+              ${sanitizedData.banned}, ${ (userData as any).referredBy || (userData as any).referred_by || null }
+            )
+            RETURNING *
+          `);
+          const user = result.rows[0] as User;
+          
+          // Auto-generate referral code for new users
+          try {
+            await this.generateReferralCode(user.id);
+          } catch (error) {
+            console.error('Failed to generate referral code for new Telegram user:', error);
+          }
+          
+          // Auto-create balance record for new users
+          try {
+            await this.createOrUpdateUserBalance(user.id, '0');
+            console.log(`✅ Created balance record for new Telegram user: ${user.id}`);
+          } catch (error) {
+            console.error('Failed to create balance record for new Telegram user:', error);
+          }
+          
+          // Fetch updated user with referral code
+          const updatedUser = await this.getUser(user.id);
+          return { user: updatedUser || user, isNewUser };
+        } else {
+          throw error;
+        }
+      }
+    }
+  }
+
+  // Transaction operations
+  async addTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [newTransaction] = await db
+      .insert(transactions)
+      .values(transaction)
+      .returning();
+    
+    console.log(`📊 Transaction recorded: ${transaction.type} of $${transaction.amount} for user ${transaction.userId} - ${transaction.source}`);
+    return newTransaction;
+  }
+
+  // Helper function to log transactions for referral system
+  async logTransaction(transactionData: InsertTransaction): Promise<Transaction> {
+    return this.addTransaction(transactionData);
+  }
+
+  // Earnings operations
+  async addEarning(earning: InsertEarning & { diamondAmount?: number }): Promise<Earning> {
+    const [newEarning] = await db
+      .insert(earnings)
+      .values({
+        userId: earning.userId,
+        amount: earning.amount,
+        source: earning.source,
+        description: earning.description,
+      })
+      .returning();
+    
+    // Log transaction for security and tracking
+    await this.logTransaction({
+      userId: earning.userId,
+      amount: earning.amount,
+      type: 'addition',
+      source: earning.source,
+      description: earning.description || `${earning.source} earning`,
+      metadata: { earningId: newEarning.id }
+    });
+    
+    // Update canonical user_balances table and keep users table in sync
+    // All earnings contribute to available balance
+    if (parseFloat(earning.amount) !== 0) {
+      try {
+        // Ensure user has a balance record first with improved error handling
+        await this.createOrUpdateUserBalance(earning.userId);
+        
+        // Update canonical user_balances table
+        await db
+          .update(userBalances)
+          .set({
+            balance: sql`COALESCE(${userBalances.balance}, 0) + ${earning.amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(userBalances.userId, earning.userId));
+      } catch (balanceError) {
+        console.error('Error updating user balance in addEarning:', balanceError);
+        // Auto-create the record if it doesn't exist instead of throwing error
+        try {
+          console.log('🔄 Attempting to auto-create missing balance record...');
+          await this.createOrUpdateUserBalance(earning.userId, '0');
+          // Retry the balance update
+          await db
+            .update(userBalances)
+            .set({
+              balance: sql`COALESCE(${userBalances.balance}, 0) + ${earning.amount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(userBalances.userId, earning.userId));
+          console.log('✅ Successfully recovered from balance error');
+        } catch (recoveryError) {
+          console.error('❌ Failed to recover from balance error:', recoveryError);
+          // Continue with the function - don't let balance errors block earnings
+        }
+      }
+      
+      try {
+        // Keep users table in sync for compatibility
+        await db
+          .update(users)
+          .set({
+            balance: sql`COALESCE(${users.balance}, 0) + ${earning.amount}`,
+            withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${earning.amount}`,
+            totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${earning.amount}`,
+            totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${earning.amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, earning.userId));
+      } catch (userUpdateError) {
+        console.error('Error updating users table in addEarning:', userUpdateError);
+        // Don't throw - the earning was already recorded
+      }
+
+      // Diamond is a separate progress currency: ad watches or tasks award Diamonds.
+      // Default to 1 if not specified for backward compatibility.
+      if (earning.source === 'ad_watch' || earning.source === 'mission_ad' || earning.source === 'task_completion' || earning.source === 'daily_task_completion') {
+        const diamondAward = earning.diamondAmount !== undefined ? earning.diamondAmount : 1;
+        if (diamondAward > 0) {
+          await db.update(users).set({
+            diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + ${diamondAward}`,
+            updatedAt: new Date(),
+          }).where(eq(users.id, earning.userId));
+        }
+      }
+
+      // NOTE: The former "balance integrity guard" that synced users.balance FROM
+      // user_balances has been intentionally removed. That check treated user_balances
+      // as the canonical source, which caused it to silently revert legitimate admin
+      // balance adjustments the next time a user watched an ad:
+      //   1. Admin sets users.balance = 50 000 and user_balances.balance = 50 000.
+      //   2. If user_balances had no row yet, the admin UPDATE hit 0 rows.
+      //   3. addEarning created a fresh user_balances row at 0, then += reward.
+      //   4. Drift check: |reward − 50 000| > 1  →  overwrote users.balance with reward.
+      // Both tables are updated additively above, so they stay in sync naturally.
+      // users.balance is the authoritative value; user_balances is a shadow copy.
+    }
+    
+    // NOTE: Referral bonus activation is handled by the /api/ads/watch route handler
+    // (server/routes.ts) which also pushes WebSocket updates to referrers.
+    // Do NOT call checkAndActivateReferralBonus here to avoid double-activation
+    // race conditions when two concurrent ad watches hit addEarning simultaneously.
+    
+    // NOTE: Referral commissions are processed by the /api/ads/watch route handler
+    // using admin-configured L1/L2 rates. Do NOT call processReferralCommission here
+    // to avoid double-paying commission on every ad watch.
+    
+    return newEarning;
+  }
+
+  async getUserEarnings(userId: string, limit: number = 20): Promise<Earning[]> {
+    return db
+      .select()
+      .from(earnings)
+      .where(eq(earnings.userId, userId))
+      .orderBy(desc(earnings.createdAt))
+      .limit(limit);
+  }
+
+  async getUserStats(userId: string): Promise<{
+    todayEarnings: string;
+    weekEarnings: string;
+    monthEarnings: string;
+    totalEarnings: string;
+  }> {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+
+    const [todayResult] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${earnings.amount}), 0)`,
+      })
+      .from(earnings)
+      .where(
+        and(
+          eq(earnings.userId, userId),
+          gte(earnings.createdAt, today),
+          sql`${earnings.source} <> 'withdrawal'`
+        )
+      );
+
+    const [weekResult] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${earnings.amount}), 0)`,
+      })
+      .from(earnings)
+      .where(
+        and(
+          eq(earnings.userId, userId),
+          gte(earnings.createdAt, weekAgo),
+          sql`${earnings.source} <> 'withdrawal'`
+        )
+      );
+
+    const [monthResult] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${earnings.amount}), 0)`,
+      })
+      .from(earnings)
+      .where(
+        and(
+          eq(earnings.userId, userId),
+          gte(earnings.createdAt, monthAgo),
+          sql`${earnings.source} <> 'withdrawal'`
+        )
+      );
+
+    const [totalResult] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${earnings.amount}), 0)`,
+      })
+      .from(earnings)
+      .where(
+        and(
+          eq(earnings.userId, userId),
+          sql`${earnings.source} <> 'withdrawal'`
+        )
+      );
+
+    return {
+      todayEarnings: todayResult.total,
+      weekEarnings: weekResult.total,
+      monthEarnings: monthResult.total,
+      totalEarnings: totalResult.total,
+    };
+  }
+
+  async updateUserBalance(userId: string, amount: string): Promise<void> {
+    // Ensure user has a balance record first
+    await this.createOrUpdateUserBalance(userId);
+    
+    // Update the canonical user_balances table
+    await db
+      .update(userBalances)
+      .set({
+        balance: sql`${userBalances.balance} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(userBalances.userId, userId));
+  }
+
+  // Helper function to get the correct day bucket start (12:00 PM UTC)
+  private getDayBucketStart(date: Date): Date {
+    const bucketStart = new Date(date);
+    bucketStart.setUTCHours(12, 0, 0, 0);
+    
+    // If the event occurred before 12:00 PM UTC on its calendar day,
+    // it belongs to the previous day's bucket
+    if (date.getTime() < bucketStart.getTime()) {
+      bucketStart.setUTCDate(bucketStart.getUTCDate() - 1);
+    }
+    
+    return bucketStart;
+  }
+
+  async updateUserStreak(userId: string): Promise<{ newStreak: number; rewardEarned: string; isBonusDay: boolean }> {
+    // FIX: previously read lastStreakDate, checked the 5-minute cooldown in JS,
+    // then updated afterward — classic check-then-write race. Firing several
+    // concurrent requests let every one of them see "cooldown passed" before
+    // any of them recorded the new lastStreakDate, so a user could claim the
+    // bonus far more often than once per 5 minutes (unlimited SWAG farming via
+    // concurrency). Now the cooldown check and the update happen in a single
+    // atomic conditional UPDATE — it only matches (and only then do we award
+    // anything) if lastStreakDate is still null or more than 5 minutes old at
+    // the moment the database applies it, so concurrent requests can no longer
+    // all pass at once.
+    const [updated] = await db
+      .update(users)
+      .set({
+        currentStreak: sql`COALESCE(${users.currentStreak}, 0) + 1`,
+        lastStreakDate: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(users.id, userId),
+        sql`(${users.lastStreakDate} IS NULL OR ${users.lastStreakDate} <= NOW() - INTERVAL '5 minutes')`,
+      ))
+      .returning({ currentStreak: users.currentStreak });
+
+    if (!updated) {
+      // Either user doesn't exist, or the 5-minute cooldown hasn't passed yet.
+      const [user] = await db.select({ currentStreak: users.currentStreak }).from(users).where(eq(users.id, userId));
+      if (!user) {
+        throw new Error("User not found");
+      }
+      return { newStreak: user.currentStreak || 0, rewardEarned: "0", isBonusDay: false };
+    }
+
+    const rewardEarned = "1";
+    await this.addEarning({
+      userId,
+      amount: rewardEarned,
+      source: 'bonus_claim',
+      description: `Bonus claim - earned 1 Gems`,
+    });
+
+    return { newStreak: updated.currentStreak ?? 0, rewardEarned, isBonusDay: false };
+  }
+
+  async incrementExtraAdsWatched(userId: string): Promise<void> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return;
+    const now = new Date();
+    await db.update(users).set({
+      extraAdsWatchedToday: sql`${users.extraAdsWatchedToday} + 1`,
+      lastExtraAdDate: now,
+      updatedAt: now,
+    }).where(eq(users.id, userId));
+  }
+
+  async canWatchExtraAd(userId: string): Promise<boolean> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return false;
+    const now = new Date();
+    const lastAdDate = user.lastExtraAdDate;
+    const isSameDay = lastAdDate && 
+      lastAdDate.getUTCFullYear() === now.getUTCFullYear() &&
+      lastAdDate.getUTCMonth() === now.getUTCMonth() &&
+      lastAdDate.getUTCDate() === now.getUTCDate();
+    
+    if (!isSameDay) {
+      await db.update(users).set({ extraAdsWatchedToday: 0, lastExtraAdDate: now }).where(eq(users.id, userId));
+      return true;
+    }
+
+    return (user.extraAdsWatchedToday || 0) < 100;
+  }
+
+  // Helper function for consistent 18:30 UTC (12:00 AM IST) reset date calculation
+  /**
+   * Returns a unique string identifying the current ad-reset period.
+   * Ads reset TWICE daily at 12:00 AM IST and 12:00 PM IST:
+   *   12:00 AM IST = 18:30 UTC  → start of "am" half of that IST date
+   *   12:00 PM IST = 06:30 UTC  → start of "pm" half of that IST date
+   *
+   * Period identifiers:
+   *   "YYYY-MM-DD-am" → IST midnight (18:30 UTC) to IST noon  (06:29 UTC next)
+   *   "YYYY-MM-DD-pm" → IST noon    (06:30 UTC)  to IST midnight (18:29 UTC)
+   *
+   * YYYY-MM-DD is the IST calendar date (not UTC date) for both periods.
+   */
+  getResetPeriod(date = new Date()): string {
+    const m = date.getUTCHours() * 60 + date.getUTCMinutes();
+    // 06:30 UTC = 390 min  (IST noon — start of "pm" period)
+    // 18:30 UTC = 1110 min (IST midnight — start of next "am" period)
+    if (m >= 390 && m < 1110) {
+      // Between IST noon and IST midnight → "pm" period, same UTC date
+      return date.toISOString().split('T')[0] + '-pm';
+    } else if (m >= 1110) {
+      // After IST midnight (18:30 UTC) but still same UTC day → "am" of NEXT UTC date
+      const next = new Date(date);
+      next.setUTCDate(next.getUTCDate() + 1);
+      return next.toISOString().split('T')[0] + '-am';
+    } else {
+      // Before IST noon (00:00–06:29 UTC) → "am" period of current UTC date
+      return date.toISOString().split('T')[0] + '-am';
+    }
+  }
+
+  /** @deprecated Use getResetPeriod — kept for any callsites that relied on the old name */
+  private getResetDate(date = new Date()): string {
+    return this.getResetPeriod(date);
+  }
+
+  async incrementAdsWatched(userId: string): Promise<void> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (!user) return;
+
+    const now = new Date();
+    const currentResetDate = this.getResetDate(now); // 12 PM UTC reset boundary
+
+    // Check if last ad was watched in the same reset period
+    let adsCount = 1; // Default for first ad of the period
+    
+    if (user.lastAdDate) {
+      const lastAdResetDate = this.getResetDate(user.lastAdDate); // Use same 12 PM reset logic
+      
+      // If same reset period, increment current count
+      if (lastAdResetDate === currentResetDate) {
+        adsCount = (user.adsWatchedToday || 0) + 1;
+      }
+    }
+
+    console.log(`📊 ADS_COUNT_DEBUG: User ${userId}, Reset Date: ${currentResetDate}, New Count: ${adsCount}, Previous Count: ${user.adsWatchedToday || 0}`);
+
+    await db
+      .update(users)
+      .set({
+        adsWatchedToday: adsCount,
+        adsWatched: sql`COALESCE(${users.adsWatched}, 0) + 1`, // Increment total ads watched
+        lastAdDate: now,
+        updatedAt: now,
+      })
+      .where(eq(users.id, userId));
+
+    // NEW: Update task progress for the new task system
+    await this.updateTaskProgress(userId, adsCount);
+  }
+
+  async resetDailyAdsCount(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        adsWatchedToday: 0,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async canWatchAd(userId: string): Promise<boolean> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return false;
+    
+    const now = new Date();
+    const currentResetDate = this.getResetDate(now);
+
+    let currentCount = 0;
+    
+    if (user.lastAdDate) {
+      const lastAdResetDate = this.getResetDate(user.lastAdDate);
+      
+      // If same reset period, use current count
+      if (lastAdResetDate === currentResetDate) {
+        currentCount = user.adsWatchedToday || 0;
+      }
+    }
+    
+    return currentCount < 160; // Daily limit of 160 ads
+  }
+
+
+  async createReferral(referrerId: string, referredId: string): Promise<Referral> {
+    // Validate inputs
+    if (!referrerId || !referredId) {
+      throw new Error(`Invalid referral parameters: referrerId=${referrerId}, referredId=${referredId}`);
+    }
+    
+    // Prevent self-referrals
+    if (referrerId === referredId) {
+      throw new Error('Users cannot refer themselves');
+    }
+    
+    // Verify both users exist
+    const referrer = await this.getUser(referrerId);
+    const referred = await this.getUser(referredId);
+    
+    if (!referrer) {
+      throw new Error(`Referrer user not found: ${referrerId}`);
+    }
+    
+    if (!referred) {
+      throw new Error(`Referred user not found: ${referredId}`);
+    }
+    
+    // Check if referral already exists (same pair)
+    const existingReferral = await db
+      .select()
+      .from(referrals)
+      .where(and(
+        eq(referrals.referrerId, referrerId),
+        eq(referrals.refereeId, referredId)
+      ))
+      .limit(1);
+    
+    if (existingReferral.length > 0) {
+      throw new Error('Referral relationship already exists');
+    }
+
+    // Prevent re-referral: if the referee already has ANY referrer (different person),
+    // do not allow a second referrer to claim them.
+    const anyExistingReferral = await db
+      .select({ id: referrals.id })
+      .from(referrals)
+      .where(eq(referrals.refereeId, referredId))
+      .limit(1);
+
+    if (anyExistingReferral.length > 0) {
+      throw new Error('User already has a referrer — cannot be referred by a different user');
+    }
+
+    // Also check the referred_by field on the user as a secondary guard
+    if (referred.referredBy && referred.referredBy !== '') {
+      throw new Error('User already has a referral code set — re-referral not allowed');
+    }
+    
+    // Create the referral relationship (initially pending)
+    const [referral] = await db
+      .insert(referrals)
+      .values({
+        referrerId,
+        refereeId: referredId,
+        rewardAmount: "0.01",
+        status: 'pending', // Pending until friend watches 10 ads
+      })
+      .returning();
+    
+    // CRITICAL: Also update the referred user's referred_by field with the referrer's referral code
+    // This ensures both the referrals table and the user's referred_by field are synchronized
+    await db
+      .update(users)
+      .set({
+        referredBy: referrer.referralCode, // Store the referrer's referral code, not their ID
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, referredId));
+    
+    console.log(`✅ Referral relationship created (pending): ${referrerId} referred ${referredId}, referred_by updated to: ${referrer.referralCode}`);
+
+    // Immediate activation: if the referee has already watched enough ads, activate right now.
+    // This handles the race condition where a referral is created after the friend's first ad.
+    try {
+      await this.checkAndActivateReferralBonus(referredId);
+    } catch (e) {
+      console.warn('⚠️ Immediate referral activation check failed (non-critical):', e);
+    }
+
+    return referral;
+  }
+
+  // Get app setting from admin_settings table
+  async getAppSetting(key: string, defaultValue: string | number = ''): Promise<string> {
+    try {
+      const [setting] = await db
+        .select({ settingValue: adminSettings.settingValue })
+        .from(adminSettings)
+        .where(eq(adminSettings.settingKey, key))
+        .limit(1);
+      
+      if (setting && setting.settingValue) {
+        return setting.settingValue;
+      }
+      return String(defaultValue);
+    } catch (error) {
+      console.error(`Error getting app setting ${key}:`, error);
+      return String(defaultValue);
+    }
+  }
+
+  // Check and activate referral bonus when friend watches required number of ads (SWAG + USD rewards)
+  // Uses admin-configured 'referral_ads_required' setting instead of hardcoded value
+  // Returns list of referrer IDs that received rewards (so caller can push WebSocket updates)
+  async checkAndActivateReferralBonus(userId: string): Promise<string[]> {
+    const activatedReferrerIds: string[] = [];
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) return activatedReferrerIds;
+
+      // Only activate the DIRECT L1 referral — the referrer whose referral_code
+      // matches this user's referred_by field. Never give the 0.03 bonus to L2/L3.
+      const directReferrerId = user.referredBy
+        ? await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.referralCode, user.referredBy))
+            .limit(1)
+            .then(rows => rows[0]?.id ?? null)
+        : null;
+
+      const pendingReferrals = directReferrerId
+        ? await db
+            .select()
+            .from(referrals)
+            .where(and(
+              eq(referrals.refereeId, userId),
+              eq(referrals.referrerId, directReferrerId),
+              eq(referrals.status, 'pending')
+            ))
+        : [];
+
+      // Get admin-configured referral ads requirement (default 10 — must watch 10 ads to activate)
+      const referralAdsRequired = parseInt(await this.getAppSetting('referral_ads_required', '10'));
+
+      // Count ads watched by this user (from earnings table so timing is always accurate)
+      const [adCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(earnings)
+        .where(and(
+          eq(earnings.userId, userId),
+          eq(earnings.source, 'ad_watch')
+        ));
+      const adsWatched = Number(adCount?.count || 0);
+
+      // Mark first ad watched if not already done
+      if (!user.firstAdWatched && adsWatched >= 1) {
+        await db
+          .update(users)
+          .set({ firstAdWatched: true })
+          .where(eq(users.id, userId));
+      }
+
+      // No pending referrals — nothing to credit
+      if (pendingReferrals.length === 0) return activatedReferrerIds;
+
+      // Not enough ads watched yet — check against admin-configured threshold
+      if (adsWatched < referralAdsRequired) return activatedReferrerIds;
+
+      // Get referral reward settings from admin (no hardcoded values)
+      // FIX: User wants Gems rewards only. We now ignore USD settings for the
+      // referral bonus and force SWAG if referral_reward_enabled is true.
+      const referralRewardSWAG = parseInt(await this.getAppSetting('referral_reward_pad', '50'));
+      const referralRewardEnabled = (await this.getAppSetting('referral_reward_enabled', 'true')) === 'true';
+      const giveSWAG = referralRewardEnabled;
+
+      // Activate each pending referral — use atomic conditional update to prevent race-condition
+      // double-payments. Only credit reward if this process was the one that flipped the status.
+      for (const referral of pendingReferrals) {
+        const atomicUpdate = await db
+          .update(referrals)
+          .set({
+            status: 'completed',
+            rewardAmount: giveSWAG ? String(referralRewardSWAG) : '0',
+            usdRewardAmount: '0', // USD bonus removed as per user request
+            bugRewardAmount: '0'
+          })
+          .where(and(eq(referrals.id, referral.id), eq(referrals.status, 'pending')))
+          .returning({ id: referrals.id });
+
+        if (atomicUpdate.length === 0) {
+          // Another concurrent call already activated this referral — skip to avoid duplicate reward
+          console.log(`⚠️ Referral ${referral.id} was already activated by a concurrent process — skipping duplicate reward`);
+          continue;
+        }
+
+        if (giveSWAG && referralRewardSWAG > 0) {
+          await this.addEarning({
+            userId: referral.referrerId,
+            amount: String(referralRewardSWAG),
+            source: 'referral',
+            description: `Referral bonus (Gems) for inviting a friend`,
+          });
+        }
+
+        // Track this referrer so caller can push WebSocket update
+        activatedReferrerIds.push(referral.referrerId);
+
+        // Notify the referrer via Telegram
+        const referrer = await this.getUser(referral.referrerId);
+        const referee = await this.getUser(userId);
+
+        if (referrer?.telegram_id && referee) {
+          const refereeName = referee.firstName || referee.username || 'A friend';
+          try {
+            const { sendReferralRewardNotification } = await import('./telegram');
+            await sendReferralRewardNotification(
+              referrer.telegram_id,
+              refereeName,
+              giveSWAG ? String(referralRewardSWAG) : '0'
+            );
+          } catch (notifyErr) {
+            console.warn('⚠️ Referral notification failed (non-critical):', notifyErr);
+          }
+        }
+
+        console.log(`✅ Referral bonus activated: SWAG=${giveSWAG ? referralRewardSWAG : 0} → referrer ${referral.referrerId}`);
+      }
+    } catch (error) {
+      console.error('❌ Error activating referral bonus:', error);
+    }
+    return activatedReferrerIds;
+  }
+
+  // Claim any accumulated pending referral bonus for a user.
+  // Bonuses are normally auto-credited, but this handles any leftover pendingReferralBonus.
+  async claimReferralBonus(userId: string): Promise<{ success: boolean; message: string; amount?: string }> {
+    try {
+      // FIX: entire check-clear-credit sequence now runs inside a single
+      // transaction with a row lock (FOR UPDATE), so concurrent/duplicate
+      // requests can no longer both read pendingReferralBonus > 0 before
+      // either one clears it (previous version allowed double/triple-claim
+      // via simultaneous requests).
+      const pendingAmount = await db.transaction(async (tx) => {
+        const [user] = await tx
+          .select({ pendingReferralBonus: users.pendingReferralBonus })
+          .from(users)
+          .where(eq(users.id, userId))
+          .for('update');
+
+        if (!user) {
+          throw new Error('USER_NOT_FOUND');
+        }
+
+        const amount = parseFloat(user.pendingReferralBonus || '0');
+        if (amount <= 0) {
+          return 0;
+        }
+
+        // Atomically clear the pending amount FIRST, while still holding the lock,
+        // so a concurrent request can never see a stale positive value.
+        await tx
+          .update(users)
+          .set({
+            pendingReferralBonus: '0',
+            totalClaimedReferralBonus: sql`COALESCE(${users.totalClaimedReferralBonus}, 0) + ${amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
+
+        return amount;
+      });
+
+      if (pendingAmount <= 0) {
+        // Bonuses are auto-credited on activation — nothing extra to claim
+        return { success: true, message: 'No pending bonus to claim. Bonuses are credited automatically when your friends complete their first ad.', amount: '0' };
+      }
+
+      // Credit the pending bonus to the user's balance (slot is already locked/cleared above)
+      await this.addEarning({
+        userId,
+        amount: String(pendingAmount),
+        source: 'referral',
+        description: 'Referral bonus claimed',
+      });
+
+      console.log(`✅ Referral bonus claimed: ${pendingAmount} Gems for user ${userId}`);
+      return { success: true, message: `Successfully claimed ${pendingAmount} Gems referral bonus`, amount: String(pendingAmount) };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
+        return { success: false, message: 'User not found' };
+      }
+      console.error('Error claiming referral bonus:', error);
+      return { success: false, message: 'Failed to claim referral bonus' };
+    }
+  }
+
+  async getUserReferrals(userId: string): Promise<Referral[]> {
+    return db
+      .select()
+      .from(referrals)
+      .where(eq(referrals.referrerId, userId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  // Get total count of ALL invites (regardless of status or if user watched ads)
+  async getTotalInvitesCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(referrals)
+      .where(eq(referrals.referrerId, userId));
+    
+    return Number(result[0]?.count || 0);
+  }
+
+  // Clear orphaned referral - when referrer no longer exists
+  async clearOrphanedReferral(userId: string): Promise<void> {
+    try {
+      // Clear the referredBy field on the user
+      await db
+        .update(users)
+        .set({ 
+          referredBy: null,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      console.log(`✅ Cleared orphaned referral for user ${userId}`);
+    } catch (error) {
+      console.error(`❌ Error clearing orphaned referral for user ${userId}:`, error);
+      // Don't throw - this is a cleanup operation that shouldn't block main flow
+    }
+  }
+
+  async getUserByReferralCode(referralCode: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, referralCode)).limit(1);
+    return user || null;
+  }
+
+
+  async getReferralByUsers(referrerId: string, refereeId: string): Promise<Referral | null> {
+    const [referral] = await db
+      .select()
+      .from(referrals)
+      .where(and(
+        eq(referrals.referrerId, referrerId),
+        eq(referrals.refereeId, refereeId)
+      ))
+      .limit(1);
+    return referral || null;
+  }
+
+  // Helper method to ensure all users have referral codes
+  async ensureAllUsersHaveReferralCodes(): Promise<void> {
+    const usersWithoutCodes = await db
+      .select()
+      .from(users)
+      .where(sql`${users.referralCode} IS NULL OR ${users.referralCode} = ''`);
+    
+    for (const user of usersWithoutCodes) {
+      try {
+        await this.generateReferralCode(user.id);
+        console.log(`Generated referral code for user ${user.id}`);
+      } catch (error) {
+        console.error(`Failed to generate referral code for user ${user.id}:`, error);
+      }
+    }
+  }
+
+  // CRITICAL: Fix existing referral data by synchronizing referrals table with referred_by fields
+  async fixExistingReferralData(): Promise<void> {
+    try {
+      console.log('🔄 Starting referral data synchronization...');
+      
+      // Find all users who have referred_by but no entry in referrals table
+      const usersWithReferredBy = await db
+        .select({
+          userId: users.id,
+          referredBy: users.referredBy,
+          referralCode: users.referralCode
+        })
+        .from(users)
+        .where(and(
+          sql`${users.referredBy} IS NOT NULL`,
+          sql`${users.referredBy} != ''`
+        ));
+
+      console.log(`Found ${usersWithReferredBy.length} users with referred_by field set`);
+
+      for (const user of usersWithReferredBy) {
+        try {
+          // Skip if referredBy is null or empty
+          if (!user.referredBy) continue;
+          
+          // Find the referrer by their referral code
+          const referrer = await this.getUserByReferralCode(user.referredBy);
+          
+          if (referrer) {
+            // Check if referral relationship already exists
+            const existingReferral = await db
+              .select()
+              .from(referrals)
+              .where(and(
+                eq(referrals.referrerId, referrer.id),
+                eq(referrals.refereeId, user.userId)
+              ))
+              .limit(1);
+
+            if (existingReferral.length === 0) {
+              // Create the missing referral relationship
+              await db
+                .insert(referrals)
+                .values({
+                  referrerId: referrer.id,
+                  refereeId: user.userId,
+                  rewardAmount: "0.01",
+                  status: 'pending', // Will be updated by checkAndActivateReferralBonus if user has 10+ ads
+                });
+              
+              console.log(`✅ Created missing referral: ${referrer.id} -> ${user.userId}`);
+              
+              // Check if this user should have activated referral bonus
+              await this.checkAndActivateReferralBonus(user.userId);
+            }
+          } else {
+            console.log(`⚠️  Referrer not found for referral code: ${user.referredBy}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error processing user ${user.userId}:`, error);
+        }
+      }
+      
+      console.log('✅ Referral data synchronization completed');
+    } catch (error) {
+      console.error('❌ Error in fixExistingReferralData:', error);
+    }
+  }
+
+  async generateReferralCode(userId: string): Promise<string> {
+    // First check if user already has a referral code
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (user && user.referralCode) {
+      return user.referralCode;
+    }
+    
+    // Generate a secure random referral code using crypto
+    const code = crypto.randomBytes(6).toString('hex'); // 12-character hex code
+    
+    await db
+      .update(users)
+      .set({
+        referralCode: code,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    
+    return code;
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    return db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+  }
+
+  async updateUserBanStatus(userId: string, banned: boolean, reason?: string, adminUserId?: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        banned,
+        bannedReason: reason || null,
+        bannedAt: banned ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    try {
+      await db.insert(banLogs).values({
+        bannedUserId: userId,
+        reason: reason || (banned ? 'Manual ban' : 'Manual unban'),
+        banType: 'manual',
+        bannedBy: adminUserId || null,
+      } as any);
+    } catch (e) {
+      // Ignore ban log failures
+    }
+  }
+
+  async updateUserLanguage(userId: string, language: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ language, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // Promo code operations
+  async createPromoCode(promoCodeData: InsertPromoCode): Promise<PromoCode> {
+    // Business rule: every promo code auto-expires and is purged 24h after creation.
+    // Admins may set an earlier expiry, but nothing may outlive the 24h ceiling.
+    const maxExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const requested = promoCodeData.expiresAt ? new Date(promoCodeData.expiresAt) : null;
+    const expiresAt = requested && requested < maxExpiry ? requested : maxExpiry;
+
+    const [promoCode] = await db
+      .insert(promoCodes)
+      .values({ ...promoCodeData, expiresAt })
+      .returning();
+    
+    return promoCode;
+  }
+
+  async getAllPromoCodes(): Promise<PromoCode[]> {
+    // Exclude expired codes so the admin panel never shows stale entries even if the
+    // background cleanup job hasn't swept them yet (see deleteExpiredPromoCodes).
+    return db
+      .select()
+      .from(promoCodes)
+      .where(sql`${promoCodes.expiresAt} IS NULL OR ${promoCodes.expiresAt} > NOW()`)
+      .orderBy(desc(promoCodes.createdAt));
+  }
+
+  async deleteExpiredPromoCodes(): Promise<number> {
+    return db.transaction(async (tx) => {
+      const expired = await tx
+        .select({ id: promoCodes.id })
+        .from(promoCodes)
+        .where(sql`${promoCodes.expiresAt} IS NOT NULL AND ${promoCodes.expiresAt} <= NOW()`);
+
+      if (expired.length === 0) return 0;
+
+      const ids = expired.map(row => row.id);
+      await tx.delete(promoCodeUsage).where(inArray(promoCodeUsage.promoCodeId, ids));
+      await tx.delete(promoCodes).where(inArray(promoCodes.id, ids));
+      return ids.length;
+    });
+  }
+
+  async getPromoCode(code: string): Promise<PromoCode | undefined> {
+    const [promoCode] = await db
+      .select()
+      .from(promoCodes)
+      .where(sql`LOWER(${promoCodes.code}) = LOWER(${code})`);
+    
+    return promoCode;
+  }
+
+  async updatePromoCodeStatus(id: string, isActive: boolean): Promise<PromoCode> {
+    const [promoCode] = await db
+      .update(promoCodes)
+      .set({
+        isActive,
+        updatedAt: new Date(),
+      })
+      .where(eq(promoCodes.id, id))
+      .returning();
+    
+    return promoCode;
+  }
+
+  async usePromoCode(code: string, userId: string): Promise<{ success: boolean; message: string; reward?: string; rewardType?: string; rewardCurrency?: string; promoCodeId?: string; usageId?: string; errorType?: string }> {
+    // FIX: validation + usage-reservation now happen atomically inside a
+    // transaction that locks the promo_codes row (FOR UPDATE). Previously,
+    // validation ran with no lock and usage wasn't recorded until AFTER the
+    // reward was given — a window where N concurrent requests (same user,
+    // or different users on a limited-use code) could all pass validation
+    // before any of them recorded usage, allowing the per-user limit and/or
+    // the global usage limit to be bypassed (duplicate/over redemption).
+    // The usage row is now inserted (reserved) here, while still holding the
+    // lock, before returning success — if the caller fails to actually give
+    // the reward afterward, it should call releasePromoCodeUsage() to undo
+    // this reservation.
+    return await db.transaction(async (tx) => {
+      const [promoCode] = await tx
+        .select()
+        .from(promoCodes)
+        .where(eq(promoCodes.code, code))
+        .for('update');
+
+      if (!promoCode) {
+        return { success: false, message: "Invalid promo code", errorType: "invalid" as const };
+      }
+
+      // Check if expired
+      if (promoCode.expiresAt && new Date() > new Date(promoCode.expiresAt)) {
+        return { success: false, message: "Promo code has expired", errorType: "expired" as const };
+      }
+
+      // Check if active
+      if (!promoCode.isActive) {
+        return { success: false, message: "Promo code not active", errorType: "not_active" as const };
+      }
+
+      // Check global usage limit
+      if (promoCode.usageLimit && (promoCode.usageCount || 0) >= promoCode.usageLimit) {
+        return { success: false, message: "Promo code limit reached", errorType: "limit_reached" as const };
+      }
+
+      // Check per-user limit (already applied) — safe now, still under the row lock
+      const userUsageCount = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(promoCodeUsage)
+        .where(and(
+          eq(promoCodeUsage.promoCodeId, promoCode.id),
+          eq(promoCodeUsage.userId, userId)
+        ));
+
+      if (Number(userUsageCount[0]?.count) >= (promoCode.perUserLimit || 1)) {
+        return { success: false, message: "Promo code already applied", errorType: "already_applied" as const };
+      }
+
+      // Reserve the slot atomically while still holding the lock
+      const [usageRow] = await tx.insert(promoCodeUsage).values({
+        promoCodeId: promoCode.id,
+        userId,
+        rewardAmount: promoCode.rewardAmount,
+      }).returning({ id: promoCodeUsage.id });
+
+      await tx
+        .update(promoCodes)
+        .set({
+          usageCount: sql`COALESCE(${promoCodes.usageCount}, 0) + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(promoCodes.id, promoCode.id));
+
+      return {
+        success: true,
+        message: `Promo code redeemed! You earned ${promoCode.rewardAmount} ${promoCode.rewardCurrency || 'Gems'}`,
+        reward: promoCode.rewardAmount,
+        rewardType: promoCode.rewardType || 'GEMS',
+        rewardCurrency: promoCode.rewardCurrency || 'GEMS',
+        promoCodeId: promoCode.id,
+        usageId: usageRow.id,
+      };
+    });
+  }
+
+  // Usage is now recorded inside usePromoCode() itself (see fix above). This is kept
+  // as a safe no-op / legacy no-arg-mismatch guard in case any old call site still
+  // invokes it — it intentionally does nothing, since a second insert here would
+  // double-count usage.
+  async confirmPromoCodeUsage(_promoCodeId: string, _userId: string, _rewardAmount: string): Promise<void> {
+    return;
+  }
+
+  // Call this if reward-crediting fails AFTER usePromoCode() already reserved the slot,
+  // so the user doesn't lose their attempt and the usage/limit counters stay accurate.
+  async releasePromoCodeUsage(usageId: string, promoCodeId: string): Promise<void> {
+    try {
+      await db.delete(promoCodeUsage).where(eq(promoCodeUsage.id, usageId));
+      await db
+        .update(promoCodes)
+        .set({
+          usageCount: sql`GREATEST(COALESCE(${promoCodes.usageCount}, 0) - 1, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(promoCodes.id, promoCodeId));
+    } catch (error) {
+      console.error('Error releasing promo code usage reservation:', error);
+    }
+  }
+
+  // Process referral commission (10% of user's earnings)
+  async processReferralCommission(userId: string, originalEarningId: number, earningAmount: string): Promise<void> {
+    try {
+      // Only process commissions for ad watching earnings
+      const [earning] = await db
+        .select()
+        .from(earnings)
+        .where(eq(earnings.id, originalEarningId))
+        .limit(1);
+
+      if (!earning || earning.source !== 'ad_watch') {
+        // Only ad earnings generate commissions
+        return;
+      }
+
+      // Find who referred this user (must be completed referral)
+      const [referralInfo] = await db
+        .select({ referrerId: referrals.referrerId })
+        .from(referrals)
+        .where(and(
+          eq(referrals.refereeId, userId),
+          eq(referrals.status, 'completed') // Only completed referrals earn commissions
+        ))
+        .limit(1);
+
+      if (!referralInfo) {
+        // User was not referred by anyone or referral not activated
+        return;
+      }
+
+      // Calculate 10% commission on ad earnings only
+      const commissionAmount = (parseFloat(earningAmount) * 0.10).toFixed(8);
+      
+      // Record the referral commission
+      await db.insert(referralCommissions).values({
+        referrerId: referralInfo.referrerId,
+        referredUserId: userId,
+        originalEarningId,
+        commissionAmount,
+      });
+
+      // Add commission as earnings to the referrer
+      await this.addEarning({
+        userId: referralInfo.referrerId,
+        amount: commissionAmount,
+        source: 'referral_commission',
+        description: `10% commission from referred user's ad earnings`,
+      });
+
+      // Log commission transaction
+      await this.logTransaction({
+        userId: referralInfo.referrerId,
+        amount: commissionAmount,
+        type: 'addition',
+        source: 'referral_commission',
+        description: `10% commission from referred user's ad earnings`,
+        metadata: { 
+          originalEarningId, 
+          referredUserId: userId,
+          commissionRate: '10%'
+        }
+      });
+
+      console.log(`✅ Referral commission of ${commissionAmount} awarded to ${referralInfo.referrerId} from ${userId}'s ad earnings`);
+      
+      // NOTE: Commission notifications removed to prevent spam on every ad watch
+      // Only first-ad referral notifications are sent via sendReferralRewardNotification in checkAndActivateReferralBonus
+    } catch (error) {
+      console.error('Error processing referral commission:', error);
+      // Don't throw error to avoid disrupting the main earning process
+    }
+  }
+
+  async getUserReferralEarnings(userId: string): Promise<string> {
+    const [result] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${earnings.amount}), '0')` })
+      .from(earnings)
+      .where(and(
+        eq(earnings.userId, userId),
+        sql`${earnings.source} IN ('referral_commission', 'referral')`
+      ));
+
+    return result.total;
+  }
+
+
+  async createPayoutRequest(userId: string, amount: string, paymentSystemId: string, paymentDetails?: string): Promise<{ success: boolean; message: string; withdrawalId?: string }> {
+    try {
+      // Get user data
+      const user = await this.getUser(userId);
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      // Find payment system and calculate fee
+      const paymentSystem = PAYMENT_SYSTEMS.find(p => p.id === paymentSystemId);
+      if (!paymentSystem) {
+        return { success: false, message: 'Invalid payment system' };
+      }
+      
+      const requestedAmount = parseFloat(amount);
+      const fee = paymentSystem.fee;
+      const netAmount = requestedAmount - fee;
+      
+      // Validate minimum withdrawal amount and ensure net amount is positive
+      if (requestedAmount < paymentSystem.minWithdrawal) {
+        return { success: false, message: `Minimum withdrawal is ${paymentSystem.minWithdrawal} ${paymentSystem.name}` };
+      }
+      
+      if (netAmount <= 0) {
+        return { success: false, message: `Withdrawal amount must be greater than the fee of ${fee} ${paymentSystem.name}` };
+      }
+
+      // Check balance (but don't deduct yet - wait for admin approval)
+      // Super admin has unlimited balance - skip balance check
+      const superAdminId = (process.env.TELEGRAM_ADMIN_ID || process.env.SUPER_ADMIN_ID || '').trim();
+      const isAdmin = !!superAdminId && user.telegram_id === superAdminId;
+      const userBalance = parseFloat(user.balance || '0');
+      
+      if (!isAdmin && userBalance < requestedAmount) {
+        return { success: false, message: 'Insufficient balance' };
+      }
+
+      // Create pending withdrawal record (DO NOT deduct balance yet)
+      const withdrawalDetails = {
+        paymentSystem: paymentSystem.name,
+        paymentDetails: paymentDetails,
+        paymentSystemId: paymentSystemId,
+        requestedAmount: requestedAmount.toString(),
+        fee: fee.toString(),
+        netAmount: netAmount.toString()
+      };
+
+      const [withdrawal] = await db.insert(withdrawals).values({
+        userId: userId,
+        amount: amount, // Store the full requested amount that will be deducted from balance
+        status: 'pending',
+        method: paymentSystem.name,
+        details: withdrawalDetails
+      }).returning();
+
+      return { 
+        success: true, 
+        message: `Payout request created successfully. Fee: ${fee} ${paymentSystem.name}, Net transfer: ${netAmount.toFixed(8)} ${paymentSystem.name}`,
+        withdrawalId: withdrawal.id
+      };
+    } catch (error) {
+      console.error('Error creating payout request:', error);
+      return { success: false, message: 'Error processing payout request' };
+    }
+  }
+
+  async getAppStats(): Promise<{
+    totalUsers: number;
+    activeUsersToday: number;
+    totalInvites: number;
+    totalEarnings: string;
+    totalReferralEarnings: string;
+    totalPayouts: string;
+    newUsersLast24h: number;
+  }> {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+
+    // Total users
+    const [totalUsersResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users);
+
+    // Active users today (users who earned something today)
+    const [activeUsersResult] = await db
+      .select({ count: sql<number>`count(DISTINCT ${earnings.userId})` })
+      .from(earnings)
+      .where(gte(earnings.createdAt, today));
+
+    // Total invites
+    const [totalInvitesResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(referrals);
+
+    // Total earnings (positive amounts only)
+    const [totalEarningsResult] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${earnings.amount}), '0')` })
+      .from(earnings)
+      .where(sql`${earnings.amount} > 0`);
+
+    // Total referral earnings
+    const [totalReferralEarningsResult] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${earnings.amount}), '0')` })
+      .from(earnings)
+      .where(sql`${earnings.source} IN ('referral_commission', 'referral')`);
+
+    // Total payouts (negative amounts)
+    const [totalPayoutsResult] = await db
+      .select({ total: sql<string>`COALESCE(ABS(SUM(${earnings.amount})), '0')` })
+      .from(earnings)
+      .where(eq(earnings.source, 'payout'));
+
+    // New users in last 24h
+    const [newUsersResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(gte(users.createdAt, yesterday));
+
+    return {
+      totalUsers: totalUsersResult.count || 0,
+      activeUsersToday: activeUsersResult.count || 0,
+      totalInvites: totalInvitesResult.count || 0,
+      totalEarnings: totalEarningsResult.total || '0',
+      totalReferralEarnings: totalReferralEarningsResult.total || '0',
+      totalPayouts: totalPayoutsResult.total || '0',
+      newUsersLast24h: newUsersResult.count || 0,
+    };
+  }
+
+  // Withdrawal operations (missing implementations)
+  async createWithdrawal(withdrawal: InsertWithdrawal): Promise<Withdrawal> {
+    const [result] = await db.insert(withdrawals).values(withdrawal).returning();
+    return result;
+  }
+
+  async getUserWithdrawals(userId: string): Promise<Withdrawal[]> {
+    return db.select().from(withdrawals).where(eq(withdrawals.userId, userId)).orderBy(desc(withdrawals.createdAt));
+  }
+
+  async getAllPendingWithdrawals(): Promise<Withdrawal[]> {
+    return db.select().from(withdrawals).where(eq(withdrawals.status, 'pending')).orderBy(desc(withdrawals.createdAt));
+  }
+
+  async getAllWithdrawals(): Promise<Withdrawal[]> {
+    return db.select().from(withdrawals).orderBy(desc(withdrawals.createdAt));
+  }
+
+  async updateWithdrawalStatus(withdrawalId: string, status: string, transactionHash?: string, adminNotes?: string): Promise<Withdrawal> {
+    const updateData: any = { status, updatedAt: new Date() };
+    if (transactionHash) updateData.transactionHash = transactionHash;
+    if (adminNotes) updateData.adminNotes = adminNotes;
+    
+    const [result] = await db.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
+    return result;
+  }
+
+  async approveWithdrawal(withdrawalId: string, adminNotes?: string, transactionHash?: string): Promise<{ success: boolean; message: string; withdrawal?: Withdrawal }> {
+    try {
+      // Get withdrawal details
+      const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId));
+      if (!withdrawal) {
+        return { success: false, message: 'Withdrawal not found' };
+      }
+      
+      if (withdrawal.status !== 'pending') {
+        return { success: false, message: 'Withdrawal is not pending' };
+      }
+
+      // Get user for logging and balance management
+      const user = await this.getUser(withdrawal.userId);
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      const withdrawalAmount = parseFloat(withdrawal.amount);
+      
+      // Get the total amount that should be deducted (includes fee) from withdrawal details
+      // The withdrawal.amount is the NET amount after fee, but we need to deduct the TOTAL (with fee)
+      const withdrawalDetails = withdrawal.details as any;
+      const totalToDeduct = withdrawalDetails?.totalDeducted 
+        ? parseFloat(withdrawalDetails.totalDeducted) 
+        : withdrawalAmount;
+      
+      // Determine if this is an SWAG-direct withdrawal (new flow) or legacy USD withdrawal
+      const axnAmountRaw = withdrawalDetails?.axnAmount ? parseFloat(String(withdrawalDetails.axnAmount)) : null;
+      const isAxnWithdrawal = axnAmountRaw !== null && Number.isFinite(axnAmountRaw) && axnAmountRaw > 0;
+
+      let updatedWithdrawal: any;
+
+      if (isAxnWithdrawal) {
+        // ── SWAG-direct withdrawal — fully atomic transaction ───────────────────
+        // Lock the withdrawal row first to re-confirm it is still pending and
+        // not yet deducted (guards against double-approval via concurrent
+        // Telegram callbacks or admin clicks).
+        const txResult = await db.transaction(async (tx) => {
+          const [lockedWithdrawal] = await tx
+            .select()
+            .from(withdrawals)
+            .where(eq(withdrawals.id, withdrawalId))
+            .for('update');
+
+          if (!lockedWithdrawal) throw new Error('Withdrawal not found inside transaction');
+          if (lockedWithdrawal.status !== 'pending') throw new Error('Withdrawal is not pending');
+
+          if (lockedWithdrawal.deducted) {
+            console.log(`⚠️ Gems Withdrawal ${withdrawalId} already flagged as deducted — approving without deducting again.`);
+          } else {
+            // Lock the user row and read the live balance
+            const [lockedUser] = await tx
+              .select({ balance: users.balance, diamondBalance: users.diamondBalance })
+              .from(users)
+              .where(eq(users.id, withdrawal.userId))
+              .for('update');
+
+            if (!lockedUser) throw new Error('User not found inside transaction');
+
+            const rawBal = parseFloat(lockedUser.balance || '0');
+            const currentGemsBalance = rawBal < 1 ? Math.round(rawBal * 10_000_000) : Math.round(rawBal);
+
+            if (currentGemsBalance < axnAmountRaw!) {
+              throw new Error(
+                `Cannot approve: user's Gold balance (${currentGemsBalance.toLocaleString()} Gold) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} Gold) and it isn't flagged as already-deducted.`
+              );
+            }
+
+            const currentDiamondBalance = Math.floor(parseFloat(lockedUser.diamondBalance || '0'));
+            if (currentDiamondBalance < axnAmountRaw!) {
+              throw new Error(
+                `Cannot approve: user's Diamond balance (${currentDiamondBalance.toLocaleString()}) is less than the required ${axnAmountRaw!.toLocaleString()} Diamonds.`
+              );
+            }
+
+            const newGemsBalance = currentGemsBalance - axnAmountRaw!;
+            const newDiamondBalance = currentDiamondBalance - axnAmountRaw!;
+
+            // Deduct from users.balance (primary Gems store)
+            await tx.update(users)
+              .set({
+                balance: String(newGemsBalance),
+                diamondBalance: String(newDiamondBalance),
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, withdrawal.userId));
+
+            // Keep user_balances in sync (canonical secondary store)
+            await tx.update(userBalances)
+              .set({
+                balance: sql`GREATEST(0, COALESCE(${userBalances.balance}, 0) - ${String(axnAmountRaw!)})`,
+                updatedAt: new Date(),
+              })
+              .where(eq(userBalances.userId, withdrawal.userId));
+
+            console.log(`✅ Gold + Diamond balances deducted atomically: ${currentGemsBalance} → ${newGemsBalance} Gold; ${currentDiamondBalance} → ${newDiamondBalance} Diamonds`);
+          }
+
+          // Audit records inside the same transaction
+          const paymentSystemName = lockedWithdrawal.method;
+          const description = `Withdrawal approved: ${axnAmountRaw} Gems via ${paymentSystemName}`;
+
+          await tx.insert(earnings).values({
+            userId: withdrawal.userId,
+            amount: `-${axnAmountRaw}`,
+            source: 'withdrawal',
+            description,
+          });
+
+          // Status → Approved, deducted → true, all in same transaction
+          const updateData: any = { status: 'Approved', deducted: true, updatedAt: new Date() };
+          if (transactionHash) updateData.transactionHash = transactionHash;
+          if (adminNotes) updateData.adminNotes = adminNotes;
+
+          const [updated] = await tx.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
+          return { updated, paymentSystemName, description };
+        });
+
+        updatedWithdrawal = txResult.updated;
+
+        // logTransaction can run outside the tx (it's append-only audit, not balance-critical)
+        await this.logTransaction({
+          userId: withdrawal.userId,
+          amount: `-${axnAmountRaw}`,
+          type: 'debit',
+          source: 'withdrawal',
+          description: txResult.description,
+          metadata: { withdrawalId, currency: 'GEMS', method: txResult.paymentSystemName, axnAmount: axnAmountRaw, usdEquivalent: withdrawalAmount }
+        });
+
+      } else {
+        // ── Legacy USD withdrawal: deduct from user.usdBalance ─────────────────
+        const currency = 'USD';
+        const userBalance = parseFloat(user.usdBalance || '0');
+
+        // The `deducted` flag on the withdrawal row is the actual, explicit record
+        // of whether this specific withdrawal already had its balance taken out.
+        if (withdrawal.deducted) {
+          console.log(`⚠️ Withdrawal ${withdrawalId} already flagged as deducted — approving without deducting again.`);
+        } else if (userBalance >= totalToDeduct) {
+          // Deduct USD balance now on approval
+          console.log(`💰 Deducting USD balance now for approved withdrawal`);
+          console.log(`💰 Net amount: $${withdrawalAmount}, Total to deduct (with fee): $${totalToDeduct}`);
+          console.log(`💰 Previous USD balance: ${userBalance}, New balance: ${(userBalance - totalToDeduct).toFixed(10)}`);
+
+          const newUsdBalance = (userBalance - totalToDeduct).toFixed(10);
+          await db.update(users).set({ usdBalance: newUsdBalance, updatedAt: new Date() }).where(eq(users.id, withdrawal.userId));
+          console.log(`✅ USD balance deducted: ${userBalance} → ${newUsdBalance}`);
+        } else {
+          return {
+            success: false,
+            message: `Cannot approve: user's balance ($${userBalance.toFixed(2)}) is less than this withdrawal's total ($${totalToDeduct.toFixed(2)}) and it isn't flagged as already-deducted. This likely means a duplicate or stale withdrawal request — please investigate before approving.`,
+          };
+        }
+
+        // Record withdrawal in earnings history for proper stats tracking
+        const paymentSystemName = withdrawal.method;
+        const description = `Withdrawal approved: ${withdrawal.amount} USD via ${paymentSystemName}`;
+        await db.insert(earnings).values({
+          userId: withdrawal.userId,
+          amount: `-${withdrawalAmount.toString()}`,
+          source: 'withdrawal',
+          description,
+        });
+        await this.logTransaction({
+          userId: withdrawal.userId,
+          amount: `-${withdrawalAmount.toString()}`,
+          type: 'debit',
+          source: 'withdrawal',
+          description,
+          metadata: { withdrawalId, currency, method: paymentSystemName }
+        });
+
+        // Update withdrawal status to Approved and mark as deducted
+        const updateData: any = { status: 'Approved', deducted: true, updatedAt: new Date() };
+        if (transactionHash) updateData.transactionHash = transactionHash;
+        if (adminNotes) updateData.adminNotes = adminNotes;
+        [updatedWithdrawal] = await db.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
+      }
+
+      const deductedCurrency = isAxnWithdrawal ? 'SWAG' : 'USD';
+      console.log(`✅ Withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated ✅`);
+
+      return { success: true, message: 'Withdrawal approved and processed', withdrawal: updatedWithdrawal };
+    } catch (error) {
+      console.error('Error approving withdrawal:', error);
+      return { success: false, message: 'Error processing withdrawal approval' };
+    }
+  }
+
+  async rejectWithdrawal(withdrawalId: string, adminNotes?: string): Promise<{ success: boolean; message: string; withdrawal?: Withdrawal }> {
+    try {
+      // Get withdrawal details
+      const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId));
+      if (!withdrawal) {
+        return { success: false, message: 'Withdrawal not found' };
+      }
+      
+      if (withdrawal.status !== 'pending') {
+        return { success: false, message: 'Withdrawal is not pending' };
+      }
+
+      // Get user and withdrawal details for potential refund
+      const user = await this.getUser(withdrawal.userId);
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+      
+      const withdrawalAmount = parseFloat(withdrawal.amount);
+      const withdrawalDetails = withdrawal.details as any;
+      const axnAmount = withdrawalDetails?.axnAmount
+        ? parseFloat(String(withdrawalDetails.axnAmount))
+        : null;
+      const isAxnWithdrawal = axnAmount !== null && Number.isFinite(axnAmount) && axnAmount > 0;
+      const totalToRefund = withdrawalDetails?.totalDeducted 
+        ? parseFloat(withdrawalDetails.totalDeducted) 
+        : withdrawalAmount;
+      const currentUsdBalance = parseFloat(user.usdBalance || '0');
+      
+      // SWAG is not deducted at request time. Its `totalDeducted` field is only
+      // the USD equivalent for display, so it must never be refunded as USD.
+      if (isAxnWithdrawal) {
+        console.log(`❌ SWAG withdrawal ${withdrawalId} rejected - no USD refund needed; SWAG was not deducted at request time`);
+      } else {
+      // Check if this is a LEGACY withdrawal (balance was already deducted at request time)
+      // Legacy withdrawals have insufficient balance because it was already taken
+      // We detect this by checking if the user's balance is lower than expected
+      // For legacy withdrawals, we need to REFUND the USD balance ONLY
+      if (currentUsdBalance < totalToRefund) {
+        // LEGACY withdrawal - refund the USD balance that was already deducted
+        console.log(`⚠️ Legacy withdrawal detected - refunding USD balance that was deducted at request time`);
+        const newUsdBalance = (currentUsdBalance + totalToRefund).toFixed(10);
+        
+        await db
+          .update(users)
+          .set({
+            usdBalance: newUsdBalance,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, withdrawal.userId));
+        console.log(`💰 USD balance refunded: ${currentUsdBalance} → ${newUsdBalance}`);
+      } else {
+        // NEW withdrawal - balance was never deducted, nothing to refund
+        console.log(`❌ Withdrawal #${withdrawalId} rejected - no refund needed (balance was never deducted)`);
+      }
+      }
+
+      // Update withdrawal status to rejected
+      const updateData: any = { 
+        status: 'rejected', 
+        refunded: false,
+        deducted: false,
+        updatedAt: new Date() 
+      };
+      if (adminNotes) updateData.adminNotes = adminNotes;
+      
+      // Conditional status update prevents duplicate rejection/refund attempts.
+      const [updatedWithdrawal] = await db.update(withdrawals).set(updateData).where(and(
+        eq(withdrawals.id, withdrawalId),
+        eq(withdrawals.status, 'pending'),
+      )).returning();
+      if (!updatedWithdrawal) {
+        return { success: false, message: 'Withdrawal is no longer pending' };
+      }
+      
+      console.log(`✅ Withdrawal #${withdrawalId} rejected - balance remains untouched`);
+      
+      return { success: true, message: 'Withdrawal rejected', withdrawal: updatedWithdrawal };
+    } catch (error) {
+      console.error('Error rejecting withdrawal:', error);
+      return { success: false, message: 'Error processing withdrawal rejection' };
+    }
+  }
+
+  async getWithdrawal(withdrawalId: string): Promise<Withdrawal | undefined> {
+    const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId));
+    return withdrawal;
+  }
+
+
+  // Ensure all required system tasks exist for production deployment
+  async ensureSystemTasksExist(): Promise<void> {
+    try {
+      // Get first available user to be the owner, or create a system user
+      let firstUser = await db.select({ id: users.id }).from(users).limit(1).then(users => users[0]);
+      
+      if (!firstUser) {
+        console.log('⚠️ No users found, creating system user for task ownership');
+        // Create a system user for task ownership
+        const systemUser = await db.insert(users).values({
+          id: 'system-user',
+          username: 'System',
+          firstName: 'System',
+          lastName: 'Tasks',
+          referralCode: 'SYSTEM',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning({ id: users.id });
+        firstUser = systemUser[0];
+        console.log('✅ System user created for task ownership');
+      }
+
+      // Define all system tasks with exact specifications.
+      // The channel-visit task URL is read from TELEGRAM_CHANNEL_LINK (env-based),
+      // never hardcoded to a specific channel.
+      const systemTasks = [
+        // Fixed daily tasks
+        {
+          id: 'channel-visit-check-update',
+          type: 'channel_visit',
+          url: process.env.TELEGRAM_CHANNEL_LINK || 'https://t.me/',
+          rewardPerUser: '0.00015000', // 0.00015 TON formatted to 8 digits for precision
+          title: 'Channel visit (Check Update)',
+          description: 'Visit our Telegram channel for updates and news'
+        },
+        {
+          id: 'app-link-share',
+          type: 'share_link',
+          url: 'share://referral',
+          rewardPerUser: '0.00020000', // 0.00020 TON formatted to 8 digits for precision
+          title: 'App link share (Share link)',
+          description: 'Share your affiliate link with friends'
+        },
+        {
+          id: 'invite-friend-valid',
+          type: 'invite_friend',
+          url: 'invite://friend',
+          rewardPerUser: '0.00050000', // 0.00050 TON formatted to 8 digits for precision
+          title: 'Invite friend (valid)',
+          description: 'Invite 1 valid friend to earn rewards'
+        },
+        // Daily ads goal tasks
+        {
+          id: 'ads-goal-mini',
+          type: 'ads_goal_mini',
+          url: 'watch://ads/mini',
+          rewardPerUser: '0.00045000', // 0.00045 TON formatted to 8 digits for precision
+          title: 'Mini (Watch 15 ads)',
+          description: 'Watch 15 ads to complete this daily goal'
+        },
+        {
+          id: 'ads-goal-light',
+          type: 'ads_goal_light',
+          url: 'watch://ads/light',
+          rewardPerUser: '0.00060000', // 0.00060 TON formatted to 8 digits for precision
+          title: 'Light (Watch 25 ads)',
+          description: 'Watch 25 ads to complete this daily goal'
+        },
+        {
+          id: 'ads-goal-medium',
+          type: 'ads_goal_medium',
+          url: 'watch://ads/medium',
+          rewardPerUser: '0.00070000', // 0.00070 TON formatted to 8 digits for precision
+          title: 'Medium (Watch 45 ads)',
+          description: 'Watch 45 ads to complete this daily goal'
+        },
+        {
+          id: 'ads-goal-hard',
+          type: 'ads_goal_hard',
+          url: 'watch://ads/hard',
+          rewardPerUser: '0.00080000', // 0.00080 TON formatted to 8 digits for precision
+          title: 'Hard (Watch 75 ads)',
+          description: 'Watch 75 ads to complete this daily goal'
+        }
+      ];
+
+      // Create or update each system task
+      for (const task of systemTasks) {
+        const existingTask = await this.getPromotion(task.id);
+        
+        if (existingTask) {
+          // Update existing task to match current specifications
+          await db.update(promotions)
+            .set({
+              type: task.type,
+              url: task.url,
+              rewardPerUser: task.rewardPerUser,
+              title: task.title,
+              description: task.description,
+              status: 'active',
+              isApproved: true // System tasks are pre-approved
+            })
+            .where(eq(promotions.id, task.id));
+          
+          console.log(`✅ System task updated: ${task.title}`);
+        } else {
+          // Create new system task
+          await db.insert(promotions).values({
+            id: task.id,
+            ownerId: firstUser.id,
+            type: task.type,
+            url: task.url,
+            cost: '0',
+            rewardPerUser: task.rewardPerUser,
+            limit: 100000, // High limit for system tasks
+            claimedCount: 0,
+            status: 'active',
+            isApproved: true, // System tasks are pre-approved
+            title: task.title,
+            description: task.description,
+            createdAt: new Date()
+          });
+          
+          console.log(`✅ System task created: ${task.title}`);
+        }
+      }
+
+      console.log('✅ All system tasks ensured successfully');
+    } catch (error) {
+      console.error('❌ Error ensuring system tasks exist:', error);
+      // Don't throw - server should still start even if task creation fails
+    }
+  }
+
+
+  // Ensure admin user with unlimited balance exists for production deployment
+  async ensureAdminUserExists(): Promise<void> {
+    try {
+      const adminTelegramId = (process.env.TELEGRAM_ADMIN_ID || process.env.SUPER_ADMIN_ID || '').trim();
+      if (!adminTelegramId) {
+        console.log('ℹ️ No TELEGRAM_ADMIN_ID set — skipping admin user creation');
+        return;
+      }
+      const maxBalance = '99.999'; // Admin balance as requested
+      
+      // Check if admin user already exists
+      const existingAdmin = await this.getUserByTelegramId(adminTelegramId);
+      if (existingAdmin) {
+        // Update balance if it's less than max
+        if (parseFloat(existingAdmin.balance || '0') < parseFloat(maxBalance)) {
+          await db.update(users)
+            .set({ 
+              balance: maxBalance,
+              updatedAt: new Date()
+            })
+            .where(eq(users.telegram_id, adminTelegramId));
+          
+          // Also update user_balances table
+          await db.insert(userBalances).values({
+            userId: existingAdmin.id,
+            balance: maxBalance,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }).onConflictDoUpdate({
+            target: [userBalances.userId],
+            set: {
+              balance: maxBalance,
+              updatedAt: new Date()
+            }
+          });
+          
+          console.log('✅ Admin balance updated to unlimited:', adminTelegramId);
+        } else {
+          console.log('✅ Admin user already exists with unlimited balance:', adminTelegramId);
+        }
+        return;
+      }
+
+      // Create admin user with unlimited balance
+      const adminUser = await db.insert(users).values({
+        telegram_id: adminTelegramId,
+        username: 'admin',
+        balance: maxBalance,
+        referralCode: 'ADMIN001',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      if (adminUser[0]) {
+        // Also create user balance record
+        await db.insert(userBalances).values({
+          userId: adminUser[0].id,
+          balance: maxBalance,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+
+        console.log('✅ Admin user created with unlimited balance:', adminTelegramId);
+      }
+    } catch (error) {
+      console.error('❌ Error ensuring admin user exists:', error);
+      // Don't throw - server should still start even if admin creation fails
+    }
+  }
+
+  // Promotion system removed - using Ads Watch Tasks system only
+
+  async getAvailablePromotionsForUser(userId: string): Promise<any> {
+    // Get all active and approved promotions - ALWAYS show them
+    const allPromotions = await db.select().from(promotions)
+      .where(and(eq(promotions.status, 'active'), eq(promotions.isApproved, true)))
+      .orderBy(desc(promotions.createdAt));
+
+    const currentDate = this.getCurrentTaskDate();
+    const availablePromotions = [];
+
+    for (const promotion of allPromotions) {
+      // Check if this is a daily task type
+      const isDailyTask = [
+        'channel_visit', 'share_link', 'invite_friend',
+        'ads_goal_mini', 'ads_goal_light', 'ads_goal_medium', 'ads_goal_hard'
+      ].includes(promotion.type);
+
+      const periodDate = isDailyTask ? currentDate : undefined;
+      
+      // Get current task status from the new system
+      const taskStatus = await this.getTaskStatus(userId, promotion.id, periodDate);
+      
+      let completionStatus = 'locked';
+      let statusMessage = 'Click to start';
+      let progress = null;
+      let buttonText = 'Start';
+
+      if (taskStatus) {
+        if (taskStatus.status === 'claimed') {
+          completionStatus = 'claimed';
+          statusMessage = '✅ Done';
+          buttonText = '✅ Done';
+        } else if (taskStatus.status === 'claimable') {
+          completionStatus = 'claimable';
+          statusMessage = 'Ready to claim!';
+          buttonText = 'Claim';
+        } else {
+          // Status is 'locked' - check if we can make it claimable
+          const verificationResult = await this.verifyTask(userId, promotion.id, promotion.type);
+          if (verificationResult.status === 'claimable') {
+            completionStatus = 'claimable';
+            statusMessage = 'Ready to claim!';
+            buttonText = 'Claim';
+          } else {
+            completionStatus = 'locked';
+            if (promotion.type.startsWith('ads_goal_')) {
+              const user = await this.getUser(userId);
+              const adsWatchedToday = user?.adsWatchedToday || 0;
+              const adsGoalThresholds = {
+                'ads_goal_mini': 15,
+                'ads_goal_light': 25,
+                'ads_goal_medium': 45,
+                'ads_goal_hard': 75
+              };
+              const requiredAds = adsGoalThresholds[promotion.type as keyof typeof adsGoalThresholds] || 0;
+              statusMessage = `Watch ${Math.max(0, requiredAds - adsWatchedToday)} more ads (${adsWatchedToday}/${requiredAds})`;
+              progress = {
+                current: adsWatchedToday,
+                required: requiredAds,
+                percentage: Math.min(100, (adsWatchedToday / requiredAds) * 100)
+              };
+              buttonText = 'Watch Ads';
+            } else if (promotion.type === 'invite_friend') {
+              statusMessage = 'Invite a friend first';
+              buttonText = 'Copy Link';
+            } else if (promotion.type === 'share_link') {
+              statusMessage = 'Share your affiliate link first';
+              buttonText = 'Share Link';
+            } else if (promotion.type === 'channel_visit') {
+              statusMessage = 'Visit the channel';
+              buttonText = 'Visit Channel';
+            }
+          }
+        }
+      } else {
+        // No task status yet - create initial status
+        await this.setTaskStatus(userId, promotion.id, 'locked', periodDate);
+        
+        // Set default messages based on task type
+        if (promotion.type === 'channel_visit') {
+          statusMessage = 'Visit the channel';
+          buttonText = 'Visit Channel';
+        } else if (promotion.type === 'share_link') {
+          statusMessage = 'Share your affiliate link';
+          buttonText = 'Share Link';
+        } else if (promotion.type === 'invite_friend') {
+          statusMessage = 'Invite a friend';
+          buttonText = 'Copy Link';
+        } else if (promotion.type.startsWith('ads_goal_')) {
+          const adsGoalThresholds = {
+            'ads_goal_mini': 15,
+            'ads_goal_light': 25,
+            'ads_goal_medium': 45,
+            'ads_goal_hard': 75
+          };
+          const requiredAds = adsGoalThresholds[promotion.type as keyof typeof adsGoalThresholds] || 0;
+          const user = await this.getUser(userId);
+          const adsWatchedToday = user?.adsWatchedToday || 0;
+          statusMessage = `Watch ${Math.max(0, requiredAds - adsWatchedToday)} more ads (${adsWatchedToday}/${requiredAds})`;
+          progress = {
+            current: adsWatchedToday,
+            required: requiredAds,
+            percentage: Math.min(100, (adsWatchedToday / requiredAds) * 100)
+          };
+          buttonText = 'Watch Ads';
+        }
+      }
+
+      // ALWAYS add the task - never filter out
+      availablePromotions.push({
+        ...promotion,
+        completionStatus,
+        statusMessage,
+        buttonText,
+        progress
+      });
+    }
+
+    return {
+      success: true,
+      tasks: availablePromotions.map(p => ({
+        id: p.id,
+        title: p.title || 'Untitled Task',
+        description: p.description || '',
+        type: p.type,
+        channelUsername: p.url?.match(/t\.me\/([^/?]+)/)?.[1],
+        botUsername: p.url?.match(/t\.me\/([^/?]+)/)?.[1],
+        reward: p.rewardPerUser || '0',
+        completedCount: p.claimedCount || 0,
+        totalSlots: p.limit || 1000,
+        isActive: p.status === 'active',
+        createdAt: p.createdAt,
+        claimUrl: p.url,
+        // New task status system properties
+        completionStatus: (p as any).completionStatus,
+        statusMessage: (p as any).statusMessage,
+        buttonText: (p as any).buttonText,
+        progress: (p as any).progress
+      })),
+      total: availablePromotions.length
+    };
+  }
+
+
+  // Task completion system removed - using Ads Watch Tasks system only
+
+
+  // Get current date in YYYY-MM-DD format for 18:30 UTC (12:00 AM IST) reset
+  private getCurrentTaskDate(): string {
+    const now = new Date();
+    // If current time is before 18:30 UTC, use yesterday's date
+    if (now.getUTCHours() < 18 || (now.getUTCHours() === 18 && now.getUTCMinutes() < 30)) {
+      now.setUTCDate(now.getUTCDate() - 1);
+    }
+    return now.toISOString().split('T')[0]; // Returns YYYY-MM-DD format
+  }
+
+
+  async completeDailyTask(promotionId: string, userId: string, rewardAmount: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Check if promotion exists
+      const promotion = await this.getPromotion(promotionId);
+      if (!promotion) {
+        return { success: false, message: 'Daily task not found' };
+      }
+
+      // Check if user already completed this daily task today
+      const hasCompleted = await this.hasUserCompletedDailyTask(promotionId, userId);
+      if (hasCompleted) {
+        return { success: false, message: 'You have already completed this daily task today' };
+      }
+
+      const currentDate = this.getCurrentTaskDate();
+
+      // Record daily task completion
+      await db.insert(dailyTaskCompletions).values({
+        promotionId,
+        userId,
+        taskType: promotion.type, // Use promotion type as task type
+        rewardAmount,
+        progress: 1,
+        required: 1,
+        completed: true,
+        claimed: true,
+        completionDate: currentDate,
+      });
+
+      console.log(`📊 DAILY_TASK_COMPLETION_LOG: UserID=${userId}, TaskID=${promotionId}, AmountRewarded=${rewardAmount}, Date=${currentDate}, Status=SUCCESS, Title="${promotion.title}"`);
+
+      // Add reward to user's earnings balance
+      await this.addBalance(userId, rewardAmount);
+
+      // Add earning record
+      await this.addEarning({
+        userId,
+        amount: rewardAmount,
+        source: 'daily_task_completion',
+        description: `Daily task completed: ${promotion.title}`,
+      });
+
+      // Send task completion notification to user via Telegram
+      try {
+        const { sendTaskCompletionNotification } = await import('./telegram');
+        await sendTaskCompletionNotification(userId, rewardAmount);
+      } catch (error) {
+        console.error('Failed to send task completion notification:', error);
+        // Don't fail the task completion if notification fails
+      }
+
+      return { success: true, message: 'Daily task completed successfully' };
+    } catch (error) {
+      console.error('Error completing daily task:', error);
+      return { success: false, message: 'Error completing daily task' };
+    }
+  }
+
+  async checkAdsGoalCompletion(userId: string, adsGoalType: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+
+    const currentDate = this.getCurrentTaskDate();
+    const adsWatchedToday = user.adsWatchedToday || 0;
+
+    // Define ads goal thresholds
+    const adsGoalThresholds = {
+      'ads_goal_mini': 15,
+      'ads_goal_light': 25, 
+      'ads_goal_medium': 45,
+      'ads_goal_hard': 75
+    };
+
+    const requiredAds = adsGoalThresholds[adsGoalType as keyof typeof adsGoalThresholds];
+    if (!requiredAds) return false;
+
+    // Check if user has watched enough ads today
+    return adsWatchedToday >= requiredAds;
+  }
+
+  // Helper method to check if user has valid referral today (only 1 allowed per day)
+  async hasValidReferralToday(userId: string): Promise<boolean> {
+    try {
+      // Check if there's an actual new referral created today in the referrals table
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      
+      const todayReferrals = await db
+        .select({ count: sql`count(*)` })
+        .from(referrals)
+        .where(
+          and(
+            eq(referrals.referrerId, userId),
+            gte(referrals.createdAt, startOfDay),
+            lt(referrals.createdAt, endOfDay)
+          )
+        );
+
+      const count = Number(todayReferrals[0]?.count || 0);
+      console.log(`🔍 Referral validation for user ${userId}: ${count} new referrals today`);
+      
+      return count >= 1;
+    } catch (error) {
+      console.error('Error checking valid referral today:', error);
+      return false;
+    }
+  }
+
+  // Helper method to check if user has shared their link today
+  async hasSharedLinkToday(userId: string): Promise<boolean> {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) return false;
+      
+      // Use the new appShared field for faster lookup
+      return user.appShared || false;
+    } catch (error) {
+      console.error('Error checking link share today:', error);
+      return false;
+    }
+  }
+
+  // Helper method to check if user has visited channel today
+  async hasVisitedChannelToday(userId: string): Promise<boolean> {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) return false;
+      
+      // Use the new channelVisited field for faster lookup
+      return user.channelVisited || false;
+    } catch (error) {
+      console.error('Error checking channel visit today:', error);
+      return false;
+    }
+  }
+
+  // Method to record that user shared their link (called from frontend)
+  async recordLinkShare(userId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Check if user already shared today
+      const hasShared = await this.hasSharedLinkToday(userId);
+      if (hasShared) {
+        return { success: true, message: 'Link share already recorded today' };
+      }
+
+      // Update the appShared field
+      await db.update(users)
+        .set({ appShared: true })
+        .where(eq(users.id, userId));
+
+      return { success: true, message: 'Link share recorded successfully' };
+    } catch (error) {
+      console.error('Error recording link share:', error);
+      return { success: false, message: 'Failed to record link share' };
+    }
+  }
+
+  // ============== NEW TASK STATUS SYSTEM FUNCTIONS ==============
+  
+  // Get or create task status for user
+  async getTaskStatus(userId: string, promotionId: string, periodDate?: string): Promise<TaskStatus | null> {
+    try {
+      const [taskStatus] = await db.select().from(taskStatuses)
+        .where(and(
+          eq(taskStatuses.userId, userId),
+          eq(taskStatuses.promotionId, promotionId),
+          periodDate ? eq(taskStatuses.periodDate, periodDate) : sql`${taskStatuses.periodDate} IS NULL`
+        ));
+      return taskStatus || null;
+    } catch (error) {
+      console.error('Error getting task status:', error);
+      return null;
+    }
+  }
+
+  // Update or create task status
+  async setTaskStatus(
+    userId: string, 
+    promotionId: string, 
+    status: 'locked' | 'claimable' | 'claimed',
+    periodDate?: string,
+    progressCurrent?: number,
+    progressRequired?: number,
+    metadata?: any
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const existingStatus = await this.getTaskStatus(userId, promotionId, periodDate);
+      
+      if (existingStatus) {
+        // Update existing status
+        await db.update(taskStatuses)
+          .set({
+            status,
+            progressCurrent,
+            progressRequired,
+            metadata,
+            updatedAt: sql`now()`
+          })
+          .where(eq(taskStatuses.id, existingStatus.id));
+      } else {
+        // Create new status
+        await db.insert(taskStatuses).values({
+          userId,
+          promotionId,
+          periodDate,
+          status,
+          progressCurrent: progressCurrent || 0,
+          progressRequired: progressRequired || 0,
+          metadata
+        });
+      }
+      
+      return { success: true, message: 'Task status updated successfully' };
+    } catch (error) {
+      console.error('Error setting task status:', error);
+      return { success: false, message: 'Failed to update task status' };
+    }
+  }
+
+  // Verify task and update status to claimable
+  async verifyTask(userId: string, promotionId: string, taskType: string): Promise<{ success: boolean; message: string; status?: 'claimable' | 'locked' | 'claimed' }> {
+    try {
+      const promotion = await this.getPromotion(promotionId);
+      if (!promotion) {
+        return { success: false, message: 'Task not found' };
+      }
+
+      const isDailyTask = ['channel_visit', 'share_link', 'invite_friend', 'ads_goal_mini', 'ads_goal_light', 'ads_goal_medium', 'ads_goal_hard'].includes(taskType);
+      const periodDate = isDailyTask ? this.getCurrentTaskDate() : undefined;
+
+      // Check current status
+      const currentStatus = await this.getTaskStatus(userId, promotionId, periodDate);
+      if (currentStatus?.status === 'claimed') {
+        return { success: false, message: 'Task already claimed', status: 'claimed' };
+      }
+
+      let verified = false;
+      let progressCurrent = 0;
+      let progressRequired = 0;
+
+      // Perform verification based on task type
+      switch (taskType) {
+        case 'channel_visit':
+          // Channel visit is immediately claimable after user clicks
+          verified = true;
+          break;
+          
+        case 'share_link':
+          // Check if user has shared their link
+          verified = await this.hasSharedLinkToday(userId);
+          break;
+          
+        case 'invite_friend':
+          // Check if user has valid referral today
+          verified = await this.hasValidReferralToday(userId);
+          break;
+          
+        case 'ads_goal_mini':
+        case 'ads_goal_light':
+        case 'ads_goal_medium':
+        case 'ads_goal_hard':
+          // Check if user met ads goal
+          const user = await this.getUser(userId);
+          const adsWatchedToday = user?.adsWatchedToday || 0;
+          
+          const adsGoalThresholds = {
+            'ads_goal_mini': 15,
+            'ads_goal_light': 25,
+            'ads_goal_medium': 45,
+            'ads_goal_hard': 75
+          };
+          
+          progressRequired = adsGoalThresholds[taskType as keyof typeof adsGoalThresholds] || 0;
+          progressCurrent = adsWatchedToday;
+          verified = adsWatchedToday >= progressRequired;
+          break;
+          
+        default:
+          verified = true; // For other task types, assume verified
+      }
+
+      const newStatus = verified ? 'claimable' : 'locked';
+      await this.setTaskStatus(userId, promotionId, newStatus, periodDate, progressCurrent, progressRequired);
+
+      return { 
+        success: true, 
+        message: verified ? 'Task verified, ready to claim!' : 'Task requirements not met yet',
+        status: newStatus
+      };
+    } catch (error) {
+      console.error('Error verifying task:', error);
+      return { success: false, message: 'Failed to verify task' };
+    }
+  }
+
+  // Claim task reward
+  async claimTaskReward(userId: string, promotionId: string): Promise<{ success: boolean; message: string; rewardAmount?: string; newBalance?: string }> {
+    try {
+      const promotion = await this.getPromotion(promotionId);
+      if (!promotion) {
+        return { success: false, message: 'Task not found' };
+      }
+
+      const isDailyTask = ['channel_visit', 'share_link', 'invite_friend', 'ads_goal_mini', 'ads_goal_light', 'ads_goal_medium', 'ads_goal_hard'].includes(promotion.type);
+      const periodDate = isDailyTask ? this.getCurrentTaskDate() : undefined;
+
+      // Check current status
+      const currentStatus = await this.getTaskStatus(userId, promotionId, periodDate);
+      if (!currentStatus) {
+        return { success: false, message: 'Task status not found' };
+      }
+      
+      if (currentStatus.status === 'claimed') {
+        return { success: false, message: 'Task already claimed' };
+      }
+      
+      if (currentStatus.status !== 'claimable') {
+        return { success: false, message: 'Task not ready to claim' };
+      }
+
+      // Prevent users from claiming their own tasks
+      if (promotion.ownerId === userId) {
+        return { success: false, message: 'You cannot claim your own task' };
+      }
+
+      const rewardAmount = promotion.rewardPerUser || '0';
+      
+      // Record claim in appropriate table
+      if (isDailyTask) {
+        await db.insert(dailyTaskCompletions).values({
+          promotionId,
+          userId,
+          taskType: promotion.type,
+          rewardAmount,
+          progress: 1,
+          required: 1,
+          completed: true,
+          claimed: true,
+          completionDate: periodDate!,
+        });
+      } else {
+        await db.insert(taskCompletions).values({
+          promotionId,
+          userId,
+          rewardAmount,
+          verified: true,
+        });
+      }
+
+      // Add the reward through the canonical earning pipeline. This writes the
+      // earning ledger and atomically increments the user's Gold balance once;
+      // calling addBalance here as well would credit the same task twice.
+      // Add earning record
+      await this.addEarning({
+        userId,
+        amount: rewardAmount,
+        source: isDailyTask ? 'daily_task_completion' : 'task_completion',
+        description: `Task completed: ${promotion.title}`,
+      });
+
+      // Update task status to claimed
+      await this.setTaskStatus(userId, promotionId, 'claimed', periodDate);
+
+      // Get updated balance
+      const updatedBalance = await this.getUserBalance(userId);
+
+      console.log(`📊 TASK_CLAIM_LOG: UserID=${userId}, TaskID=${promotionId}, AmountRewarded=${rewardAmount}, Status=SUCCESS, Title="${promotion.title}"`);
+
+      // Send notification
+      try {
+        const { sendTaskCompletionNotification } = await import('./telegram');
+        await sendTaskCompletionNotification(userId, rewardAmount);
+      } catch (error) {
+        console.error('Failed to send task completion notification:', error);
+      }
+
+      return { 
+        success: true, 
+        message: 'Task claimed successfully!',
+        rewardAmount,
+        newBalance: updatedBalance?.balance || '0'
+      };
+    } catch (error) {
+      console.error('Error claiming task reward:', error);
+      return { success: false, message: 'Failed to claim task reward' };
+    }
+  }
+
+  // ============== END NEW TASK STATUS SYSTEM FUNCTIONS ==============
+
+  // Method to record that user visited channel (called from frontend)
+  async recordChannelVisit(userId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Check if user already visited today
+      const hasVisited = await this.hasVisitedChannelToday(userId);
+      if (hasVisited) {
+        return { success: true, message: 'Channel visit already recorded today' };
+      }
+
+      // Update the channelVisited field
+      await db.update(users)
+        .set({ channelVisited: true })
+        .where(eq(users.id, userId));
+
+      return { success: true, message: 'Channel visit recorded successfully' };
+    } catch (error) {
+      console.error('Error recording channel visit:', error);
+      return { success: false, message: 'Failed to record channel visit' };
+    }
+  }
+
+  // Method to increment referrals today count when a referral is made
+  async incrementReferralsToday(userId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Get current user data
+      const user = await this.getUser(userId);
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      // Increment referrals today count
+      const newCount = (user.friendsInvited || 0) + 1;
+      await db.update(users)
+        .set({ friendsInvited: newCount })
+        .where(eq(users.id, userId));
+
+      return { success: true, message: `Referrals today count updated to ${newCount}` };
+    } catch (error) {
+      console.error('Error incrementing referrals today:', error);
+      return { success: false, message: 'Failed to increment referrals today' };
+    }
+  }
+
+  // Daily reset system - runs at 12:00 PM UTC
+  async performDailyReset(): Promise<void> {
+    try {
+      console.log('🔄 Starting daily reset at 12:00 PM UTC...');
+      
+      const currentDate = new Date();
+      const currentDateString = currentDate.toISOString().split('T')[0];
+      const periodStart = new Date(currentDate);
+      periodStart.setUTCHours(12, 0, 0, 0); // 12:00 PM UTC period start
+      
+      // 1. Check if reset was already performed for this period (idempotency)
+      const usersNeedingReset = await db.select({ id: users.id })
+        .from(users)
+        .where(sql`${users.lastResetAt} < ${periodStart.toISOString()} OR ${users.lastResetAt} IS NULL`)
+        .limit(1000); // Process in batches
+      
+      if (usersNeedingReset.length === 0) {
+        console.log('🔄 Daily reset already completed for this period');
+        return;
+      }
+      
+      console.log(`🔄 Resetting ${usersNeedingReset.length} users for period ${currentDateString}`);
+      
+      // 2. Reset all users' daily counters and tracking fields
+      await db.update(users)
+        .set({ 
+          adsWatchedToday: 0,
+          channelVisited: false,
+          appShared: false,
+          linkShared: false,
+          friendInvited: false,
+          friendsInvited: 0,
+          lastResetDate: currentDate,
+          lastResetAt: periodStart,
+          lastAdDate: currentDate 
+        })
+        .where(sql`${users.lastResetAt} < ${periodStart.toISOString()} OR ${users.lastResetAt} IS NULL`);
+      
+      // 3. Create daily task completion records for all task types for this period
+      const taskTypes = ['channel_visit', 'share_link', 'invite_friend', 'ads_mini', 'ads_light', 'ads_medium', 'ads_hard'];
+      const taskRewards = {
+        'channel_visit': '0.000025',
+        'share_link': '0.000025', 
+        'invite_friend': '0.00005',
+        'ads_mini': '0.000035', // 15 ads
+        'ads_light': '0.000055', // 25 ads
+        'ads_medium': '0.000095', // 45 ads
+        'ads_hard': '0.000155' // 75 ads
+      };
+      const taskRequirements = {
+        'channel_visit': 1,
+        'share_link': 1,
+        'invite_friend': 1,
+        'ads_mini': 15,
+        'ads_light': 25,
+        'ads_medium': 45,
+        'ads_hard': 75
+      };
+      
+      for (const user of usersNeedingReset) {
+        for (const taskType of taskTypes) {
+          try {
+            await db.insert(dailyTaskCompletions).values({
+              userId: user.id,
+              promotionId: 'system_daily_tasks',
+              taskType,
+              rewardAmount: taskRewards[taskType as keyof typeof taskRewards],
+              progress: 0,
+              required: taskRequirements[taskType as keyof typeof taskRequirements],
+              completed: false,
+              claimed: false,
+              completionDate: currentDateString,
+            }).onConflictDoNothing(); // Ignore if already exists
+          } catch (error) {
+            console.warn(`⚠️ Failed to create daily task ${taskType} for user ${user.id}:`, error);
+          }
+        }
+      }
+      
+      // 4. Clean up old daily task completions (older than 7 days)
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const weekAgoString = weekAgo.toISOString().split('T')[0];
+      
+      await db.delete(dailyTaskCompletions)
+        .where(sql`${dailyTaskCompletions.completionDate} < ${weekAgoString}`);
+      
+      console.log('✅ Daily reset completed successfully at 12:00 PM UTC');
+      console.log(`   - Reset ${usersNeedingReset.length} users for period ${currentDateString}`);
+      console.log('   - Reset ads watched today to 0');
+      console.log('   - Reset channel visited, app shared, link shared, friend invited to false');
+      console.log('   - Reset friends invited count to 0');
+      console.log('   - Created daily task completion records');
+      console.log('   - Cleaned up old task completions');
+    } catch (error) {
+      console.error('❌ Error during daily reset:', error);
+    }
+  }
+
+  // Check if it's time for daily reset (18:30 UTC = 12:00 AM IST)
+  async checkAndPerformDailyReset(): Promise<void> {
+    const now = new Date();
+    
+    // Check if it's 18:30 UTC (within 1 minute window)
+    const isResetTime = now.getUTCHours() === 18 && now.getUTCMinutes() === 30;
+    
+    if (isResetTime) {
+      await this.performDailyReset();
+    }
+  }
+
+  // Simplified methods for the new schema - no complex tracking needed
+  async updatePromotionCompletedCount(promotionId: string): Promise<void> {
+    // No-op since we removed complex tracking
+    return;
+  }
+
+  async updatePromotionMessageId(promotionId: string, messageId: string): Promise<void> {
+    // Note: message_id field doesn't exist in promotions schema
+    // This could be tracked separately if needed in the future
+    console.log(`📌 Promotion ${promotionId} posted with message ID: ${messageId}`);
+  }
+
+  async deactivateCompletedPromotions(): Promise<void> {
+    // No-op since we removed complex tracking  
+    return;
+  }
+
+  // User balance operations
+  async getUserBalance(userId: string): Promise<UserBalance | undefined> {
+    try {
+      const [balance] = await db.select().from(userBalances).where(eq(userBalances.userId, userId));
+      return balance;
+    } catch (error) {
+      console.error('Error getting user balance:', error);
+      return undefined;
+    }
+  }
+
+  async createOrUpdateUserBalance(userId: string, balance?: string): Promise<UserBalance> {
+    try {
+      // Use upsert pattern with ON CONFLICT to handle race conditions
+      const [result] = await db.insert(userBalances)
+        .values({
+          userId,
+          balance: balance || '0',
+        })
+        .onConflictDoUpdate({
+          target: userBalances.userId,
+          set: {
+            balance: balance ? balance : sql`${userBalances.balance}`,
+            updatedAt: new Date()
+          }
+        })
+        .returning();
+      return result;
+    } catch (error) {
+      console.error('Error creating/updating user balance:', error);
+      // Fallback: try to get existing balance if upsert fails
+      try {
+        const existingBalance = await this.getUserBalance(userId);
+        if (existingBalance) {
+          return existingBalance;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback getUserBalance also failed:', fallbackError);
+      }
+      throw error;
+    }
+  }
+
+  async deductBalance(userId: string, amount: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // Check if user is super admin - super admin has unlimited balance
+      const user = await this.getUser(userId);
+      const superAdminId = (process.env.TELEGRAM_ADMIN_ID || process.env.SUPER_ADMIN_ID || '').trim();
+      const isAdmin = !!superAdminId && user?.telegram_id === superAdminId;
+      
+      if (isAdmin) {
+        console.log('🔑 Admin has unlimited balance - allowing deduction');
+        return { success: true, message: 'Balance deducted successfully (admin unlimited)' };
+      }
+
+      let balance = await this.getUserBalance(userId);
+      if (!balance) {
+        // Create balance record with 0 if user not found
+        balance = await this.createOrUpdateUserBalance(userId, '0');
+      }
+
+      const currentBalance = parseFloat(balance.balance || '0');
+      const deductAmount = parseFloat(amount);
+
+      if (currentBalance < deductAmount) {
+        return { success: false, message: 'Insufficient balance' };
+      }
+
+      await db.update(userBalances)
+        .set({
+          balance: sql`${userBalances.balance} - ${amount}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(userBalances.userId, userId));
+
+      // Record transaction for balance deduction
+      await this.addTransaction({
+        userId,
+        amount: `-${amount}`,
+        type: 'deduction',
+        source: 'task_creation',
+        description: `Task creation cost deducted - fixed rate`,
+        metadata: { 
+          deductedAmount: amount,
+          fixedCost: '0.01',
+          reason: 'task_creation_fee'
+        }
+      });
+
+      return { success: true, message: 'Balance deducted successfully' };
+    } catch (error) {
+      console.error('Error deducting balance:', error);
+      return { success: false, message: 'Error deducting balance' };
+    }
+  }
+
+  async addBalance(userId: string, amount: string): Promise<void> {
+    try {
+      // First ensure the user has a balance record
+      let existingBalance = await this.getUserBalance(userId);
+      if (!existingBalance) {
+        // Create new balance record with the amount if user not found
+        await this.createOrUpdateUserBalance(userId, amount);
+      } else {
+        // Add to existing balance
+        await db.update(userBalances)
+          .set({
+            balance: sql`${userBalances.balance} + ${amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(userBalances.userId, userId));
+      }
+    } catch (error) {
+      console.error('Error adding balance:', error);
+      throw error;
+    }
+  }
+
+  // Promotion claims methods
+  async hasUserClaimedPromotion(promotionId: string, userId: string): Promise<boolean> {
+    const [claim] = await db.select().from(promotionClaims)
+      .where(and(
+        eq(promotionClaims.promotionId, promotionId),
+        eq(promotionClaims.userId, userId)
+      ));
+    return !!claim;
+  }
+
+
+  async incrementPromotionClaimedCount(promotionId: string): Promise<void> {
+    await db.update(promotions)
+      .set({
+        claimedCount: sql`${promotions.claimedCount} + 1`,
+      })
+      .where(eq(promotions.id, promotionId));
+  }
+
+  // ===== NEW SIMPLE TASK SYSTEM =====
+  
+  // Fixed task configuration for the 9 sequential ads-based tasks
+  private readonly TASK_CONFIG = [
+    { level: 1, required: 20, reward: "0.00033000" },
+    { level: 2, required: 20, reward: "0.00033000" },
+    { level: 3, required: 20, reward: "0.00033000" },
+    { level: 4, required: 20, reward: "0.00033000" },
+    { level: 5, required: 20, reward: "0.00033000" },
+    { level: 6, required: 20, reward: "0.00033000" },
+    { level: 7, required: 20, reward: "0.00033000" },
+    { level: 8, required: 20, reward: "0.00033000" },
+    { level: 9, required: 20, reward: "0.00033000" },
+  ];
+
+  public getCurrentResetPeriod(): string {
+    return getResetPeriodKey();
+  }
+
+  // Deprecated: Use getCurrentResetPeriod instead
+  private getCurrentResetDate(): string {
+    return getResetPeriodKey();
+  }
+
+  // Initialize or get daily tasks for a user
+  async getUserDailyTasks(userId: string): Promise<DailyTask[]> {
+    const resetDate = this.getCurrentResetDate();
+    
+    // Get existing tasks for today
+    const existingTasks = await db
+      .select()
+      .from(dailyTasks)
+      .where(and(
+        eq(dailyTasks.userId, userId),
+        eq(dailyTasks.resetDate, resetDate)
+      ))
+      .orderBy(dailyTasks.taskLevel);
+
+    // If no tasks exist for today, create them
+    if (existingTasks.length === 0) {
+      const tasksToInsert: InsertDailyTask[] = this.TASK_CONFIG.map(config => ({
+        userId,
+        taskLevel: config.level,
+        progress: 0,
+        required: config.required,
+        completed: false,
+        claimed: false,
+        rewardAmount: config.reward,
+        resetDate,
+      }));
+
+      await db.insert(dailyTasks).values(tasksToInsert);
+      
+      // Fetch the newly created tasks
+      return await db
+        .select()
+        .from(dailyTasks)
+        .where(and(
+          eq(dailyTasks.userId, userId),
+          eq(dailyTasks.resetDate, resetDate)
+        ))
+        .orderBy(dailyTasks.taskLevel);
+    }
+
+    return existingTasks;
+  }
+
+  // Update task progress when user watches ads (truly independent task progress)
+  async updateTaskProgress(userId: string, adsWatchedToday: number): Promise<void> {
+    const resetDate = this.getCurrentResetDate();
+    
+    // Get all tasks for today ordered by level
+    const tasks = await this.getUserDailyTasks(userId);
+    
+    // Find the currently active task (first task that hasn't been claimed and all previous tasks are claimed)
+    let currentTask = null;
+    
+    for (const task of tasks) {
+      if (!task.claimed) {
+        // Check if all previous tasks are claimed (sequential unlock)
+        let canActivate = true;
+        for (const prevTask of tasks) {
+          if (prevTask.taskLevel < task.taskLevel && !prevTask.claimed) {
+            canActivate = false;
+            break;
+          }
+        }
+        
+        if (canActivate) {
+          currentTask = task;
+          break;
+        }
+      }
+    }
+    
+    // If no current task found, all tasks are claimed or blocked by prerequisites
+    if (!currentTask) {
+      return;
+    }
+    
+    // Calculate how many ads have been "consumed" by previous claimed tasks
+    let adsConsumedByPreviousTasks = 0;
+    for (const task of tasks) {
+      if (task.taskLevel < currentTask.taskLevel && task.claimed) {
+        adsConsumedByPreviousTasks += task.required;
+      }
+    }
+    
+    // Calculate independent progress for current task
+    // This ensures each task starts at 0 when it becomes active and only counts ads from that point
+    const adsAvailableForCurrentTask = Math.max(0, adsWatchedToday - adsConsumedByPreviousTasks);
+    const newProgress = Math.min(adsAvailableForCurrentTask, currentTask.required);
+    const isCompleted = newProgress >= currentTask.required;
+    
+    // Only update the currently active task with independent progress
+    await db
+      .update(dailyTasks)
+      .set({
+        progress: newProgress,
+        completed: isCompleted,
+        completedAt: isCompleted && !currentTask.completed ? new Date() : currentTask.completedAt,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(dailyTasks.userId, userId),
+        eq(dailyTasks.taskLevel, currentTask.taskLevel),
+        eq(dailyTasks.resetDate, resetDate)
+      ));
+    
+    // Reset progress of all non-active tasks to ensure they start fresh when they become active
+    await db
+      .update(dailyTasks)
+      .set({
+        progress: 0,
+        completed: false,
+        completedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(dailyTasks.userId, userId),
+        eq(dailyTasks.resetDate, resetDate),
+        sql`${dailyTasks.taskLevel} > ${currentTask.taskLevel}`,
+        eq(dailyTasks.claimed, false)
+      ));
+  }
+
+  // Claim a completed daily task reward
+  async claimDailyTaskReward(userId: string, taskLevel: number): Promise<{ success: boolean; message: string; rewardAmount?: string }> {
+    const resetDate = this.getCurrentResetDate();
+    
+    // Get the specific task
+    const [task] = await db
+      .select()
+      .from(dailyTasks)
+      .where(and(
+        eq(dailyTasks.userId, userId),
+        eq(dailyTasks.taskLevel, taskLevel),
+        eq(dailyTasks.resetDate, resetDate)
+      ));
+
+    if (!task) {
+      return { success: false, message: "Task not found" };
+    }
+
+    if (!task.completed) {
+      return { success: false, message: "Task not completed yet" };
+    }
+
+    if (task.claimed) {
+      return { success: false, message: "Task already claimed" };
+    }
+
+    // Check if this is sequential (can only claim if previous tasks are claimed)
+    if (taskLevel > 1) {
+      const previousTask = await db
+        .select()
+        .from(dailyTasks)
+        .where(and(
+          eq(dailyTasks.userId, userId),
+          eq(dailyTasks.taskLevel, taskLevel - 1),
+          eq(dailyTasks.resetDate, resetDate)
+        ));
+
+      if (previousTask.length === 0 || !previousTask[0].claimed) {
+        return { success: false, message: "Complete previous tasks first" };
+      }
+    }
+
+    // Mark task as claimed
+    await db
+      .update(dailyTasks)
+      .set({
+        claimed: true,
+        claimedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(dailyTasks.userId, userId),
+        eq(dailyTasks.taskLevel, taskLevel),
+        eq(dailyTasks.resetDate, resetDate)
+      ));
+
+    // Add reward to user balance
+    await this.addEarning({
+      userId,
+      amount: task.rewardAmount,
+      source: 'task_completion',
+      description: `Task ${taskLevel} completed: Watch ${task.required} ads`,
+    });
+
+    // Log transaction
+    await this.logTransaction({
+      userId,
+      amount: task.rewardAmount,
+      type: 'addition',
+      source: 'task_completion',
+      description: `Task ${taskLevel} reward`,
+      metadata: { taskLevel, required: task.required, resetDate }
+    });
+
+    return {
+      success: true,
+      message: "Task reward claimed successfully",
+      rewardAmount: task.rewardAmount
+    };
+  }
+
+  // Get next available task (first unclaimed task)
+  async getNextAvailableTask(userId: string): Promise<DailyTask | null> {
+    const tasks = await this.getUserDailyTasks(userId);
+    
+    // Find the first unclaimed task
+    for (const task of tasks) {
+      if (!task.claimed) {
+        return task;
+      }
+    }
+    
+    return null; // All tasks claimed
+  }
+
+  // New daily reset - runs at 06:30 and 18:30 UTC
+  async performDailyResetV2(): Promise<void> {
+    try {
+      const periodKey = getResetPeriodKey();
+      console.log(`🔄 Starting daily reset for period: ${periodKey}...`);
+      
+      const currentDate = new Date();
+      
+      // Reset all users' daily counters who haven't been reset for this period
+      const result = await db.update(users)
+        .set({ 
+          adsWatchedToday: 0,
+          monetagAdsWatchedToday: 0,
+          gigapubAdsWatchedToday: 0,
+          usladsAdsWatchedToday: 0,
+          lastResetDate: currentDate,
+          lastResetPeriod: periodKey,
+          updatedAt: new Date(),
+        } as any)
+        .where(sql`last_reset_period != ${periodKey} OR last_reset_period IS NULL`);
+
+      console.log('✅ Daily reset completed successfully');
+    } catch (error) {
+      console.error('❌ Error in daily reset:', error);
+      throw error;
+    }
+  }
+
+  // Check and perform daily reset (called every 5 minutes)
+  async checkAndPerformDailyResetV2(): Promise<void> {
+    try {
+      const now = new Date();
+      const currentHour = now.getUTCHours();
+      const currentMinute = now.getUTCMinutes();
+      
+      // Run reset at 06:30-06:35 UTC and 18:30-18:35 UTC
+      const isAMReset = currentHour === 6 && currentMinute >= 30 && currentMinute < 35;
+      const isPMReset = currentHour === 18 && currentMinute >= 30 && currentMinute < 35;
+      
+      if (isAMReset || isPMReset) {
+        await this.performDailyResetV2();
+      }
+    } catch (error) {
+      console.error('❌ Error checking daily reset:', error);
+      // Don't throw to avoid disrupting the interval
+    }
+  }
+
+  // Get all advertiser tasks (for admin panel)
+  async getAllTasks(): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(advertiserTasks)
+      .orderBy(desc(advertiserTasks.createdAt));
+    return result;
+  }
+
+  // Get pending tasks (under_review status) for admin approval
+  async getPendingTasks(): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(advertiserTasks)
+      .where(eq(advertiserTasks.status, 'under_review'))
+      .orderBy(desc(advertiserTasks.createdAt));
+    return result;
+  }
+
+  // Create a new advertiser task
+  async createTask(taskData: {
+    advertiserId: string;
+    taskType: string;
+    title: string;
+    link: string;
+    totalClicksRequired: number;
+    costPerClick: string;
+    totalCost: string;
+    status?: string;
+    verificationRequired?: boolean;
+    channelVerified?: boolean;
+  }): Promise<any> {
+    const [task] = await db
+      .insert(advertiserTasks)
+      .values({
+        advertiserId: taskData.advertiserId,
+        taskType: taskData.taskType,
+        title: taskData.title,
+        link: taskData.link,
+        totalClicksRequired: taskData.totalClicksRequired,
+        costPerClick: taskData.costPerClick,
+        totalCost: taskData.totalCost,
+        status: taskData.status || 'under_review',
+        currentClicks: 0,
+        verificationRequired: taskData.verificationRequired ?? false,
+        channelVerified: taskData.channelVerified ?? false,
+      })
+      .returning();
+    
+    console.log(`📝 Task created: ${task.id} by ${taskData.advertiserId}`);
+    return task;
+  }
+
+  // Get valid (completed) referral count for a user
+  async getValidReferralCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(referrals)
+      .where(and(
+        eq(referrals.referrerId, userId),
+        eq(referrals.status, 'completed')
+      ));
+    
+    return Number(result[0]?.count || 0);
+  }
+
+  // Get tasks created by a specific user (my tasks)
+  async getMyTasks(userId: string): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(advertiserTasks)
+      .where(eq(advertiserTasks.advertiserId, userId))
+      .orderBy(desc(advertiserTasks.createdAt));
+    return result;
+  }
+
+  // Get active tasks for a user (excludes tasks they've already completed, their own tasks, and tasks that hit click limit)
+  async getActiveTasksForUser(userId: string): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(advertiserTasks)
+      .where(and(
+        sql`${advertiserTasks.status} IN ('running', 'active')`,
+        sql`${advertiserTasks.currentClicks} < ${advertiserTasks.totalClicksRequired}`,
+        sql`NOT EXISTS (
+          SELECT 1 FROM task_clicks 
+          WHERE task_clicks.task_id = ${advertiserTasks.id} 
+          AND task_clicks.publisher_id = ${userId}
+          AND task_clicks.claimed_at IS NOT NULL
+        )`
+      ))
+      .orderBy(desc(advertiserTasks.createdAt));
+    return result;
+  }
+
+  // Get a specific task by ID
+  async getTaskById(taskId: string): Promise<any | null> {
+    const [task] = await db
+      .select()
+      .from(advertiserTasks)
+      .where(eq(advertiserTasks.id, taskId));
+    return task || null;
+  }
+
+  // Approve a task (change status from under_review to running)
+  async approveTask(taskId: string): Promise<any> {
+    const [updatedTask] = await db
+      .update(advertiserTasks)
+      .set({
+        status: 'running',
+        updatedAt: new Date()
+      })
+      .where(eq(advertiserTasks.id, taskId))
+      .returning();
+    
+    console.log(`✅ Task ${taskId} approved and set to running`);
+    return updatedTask;
+  }
+
+  // Reject a task (change status to rejected)
+  async rejectTask(taskId: string): Promise<any> {
+    const [updatedTask] = await db
+      .update(advertiserTasks)
+      .set({
+        status: 'rejected',
+        updatedAt: new Date()
+      })
+      .where(eq(advertiserTasks.id, taskId))
+      .returning();
+    
+    console.log(`❌ Task ${taskId} rejected`);
+    return updatedTask;
+  }
+
+  // Pause a task (change status from running to paused)
+  async pauseTask(taskId: string): Promise<any> {
+    const [updatedTask] = await db
+      .update(advertiserTasks)
+      .set({
+        status: 'paused',
+        updatedAt: new Date()
+      })
+      .where(eq(advertiserTasks.id, taskId))
+      .returning();
+    
+    console.log(`⏸️ Task ${taskId} paused`);
+    return updatedTask;
+  }
+
+  // Resume a task (change status from paused to running)
+  async resumeTask(taskId: string): Promise<any> {
+    const [updatedTask] = await db
+      .update(advertiserTasks)
+      .set({
+        status: 'running',
+        updatedAt: new Date()
+      })
+      .where(eq(advertiserTasks.id, taskId))
+      .returning();
+    
+    console.log(`▶️ Task ${taskId} resumed`);
+    return updatedTask;
+  }
+
+  // Delete a task
+  async deleteTask(taskId: string): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(advertiserTasks)
+        .where(eq(advertiserTasks.id, taskId))
+        .returning({ id: advertiserTasks.id });
+      
+      if (result.length === 0) {
+        console.log(`⚠️ Task ${taskId} not found for deletion`);
+        return false;
+      }
+      
+      console.log(`🗑️ Task ${taskId} deleted`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error deleting task ${taskId}:`, error);
+      return false;
+    }
+  }
+
+  // Record a task click (when publisher clicks on a task)
+  async recordTaskClick(taskId: string, publisherId: string): Promise<{
+    success: boolean;
+    message: string;
+    reward?: number;
+    diamondReward?: number;
+    task?: any;
+  }> {
+    try {
+      // Get the task
+      const task = await this.getTaskById(taskId);
+      
+      if (!task) {
+        return { success: false, message: "Task not found" };
+      }
+
+      // Check if task is active and running
+      if (task.status !== 'running' && task.status !== 'active') {
+        return { success: false, message: "Task is not active" };
+      }
+
+
+
+      // Check if user already clicked this task
+      const existingClick = await db
+        .select()
+        .from(taskClicks)
+        .where(and(
+          eq(taskClicks.taskId, taskId),
+          eq(taskClicks.publisherId, publisherId)
+        ))
+        .limit(1);
+
+      if (existingClick.length > 0 && existingClick[0].claimedAt) {
+        return { success: false, message: "You have already completed this task" };
+      }
+
+      // Get reward amount from admin settings based on task type and verification tier
+      let rewardSWAG: number;
+      if (task.taskType === 'partner') {
+        // Partner tasks: always use partner_task_reward setting (default 5000 SWAG)
+        const partnerSetting = await db.select().from(adminSettings)
+          .where(eq(adminSettings.settingKey, 'partner_task_reward')).limit(1);
+        rewardSWAG = parseInt(partnerSetting[0]?.settingValue || '5000');
+      } else if (task.verificationRequired) {
+        // Tasks with verification: use task_reward_with_verify setting (default 3000 SWAG)
+        const verifySetting = await db.select().from(adminSettings)
+          .where(eq(adminSettings.settingKey, 'task_reward_with_verify')).limit(1);
+        rewardSWAG = parseInt(verifySetting[0]?.settingValue || '3000');
+      } else {
+        // Tasks without verification: use task_reward_no_verify setting (default 2000 SWAG)
+        const noVerifySetting = await db.select().from(adminSettings)
+          .where(eq(adminSettings.settingKey, 'task_reward_no_verify')).limit(1);
+        rewardSWAG = parseInt(noVerifySetting[0]?.settingValue || '2000');
+      }
+
+      // FIX: previously "check if already clicked" and "check click limit" were
+      // separate reads with no lock, and the actual increment/insert happened
+      // afterward — classic check-then-write race. Two concurrent requests
+      // (same user double-clicking, or many different users clicking near the
+      // limit) could both pass validation before either one recorded anything,
+      // letting a user bypass the one-click-per-task rule and/or letting a
+      // task collect more paid clicks than the advertiser purchased
+      // (totalClicksRequired). Now the whole check+increment+insert sequence
+      // runs inside one transaction that locks the task row (FOR UPDATE), so
+      // concurrent requests are serialized and only one can ever win the
+      // last available click slot; the taskClicks unique constraint is a
+      // second line of defense against per-user duplicates.
+      const claimResult = await db.transaction(async (tx) => {
+        const [lockedTask] = await tx
+          .select({ currentClicks: advertiserTasks.currentClicks, totalClicksRequired: advertiserTasks.totalClicksRequired })
+          .from(advertiserTasks)
+          .where(eq(advertiserTasks.id, taskId))
+          .for('update');
+
+        if (!lockedTask) {
+          return { success: false as const, message: "Task not found" };
+        }
+
+        const existingClick = await tx
+          .select({ id: taskClicks.id, claimedAt: taskClicks.claimedAt })
+          .from(taskClicks)
+          .where(and(
+            eq(taskClicks.taskId, taskId),
+            eq(taskClicks.publisherId, publisherId)
+          ))
+          .limit(1);
+
+        if (existingClick.length > 0) {
+          if (existingClick[0].claimedAt) {
+            return { success: false as const, message: "You have already completed this task" };
+          }
+          return { success: true as const, currentClicks: lockedTask.currentClicks, isCompleted: false };
+        }
+
+        if (lockedTask.currentClicks >= lockedTask.totalClicksRequired) {
+          return { success: false as const, message: "Task has reached its click limit" };
+        }
+
+        // A click is only a pending interaction. Do not increment the
+        // advertiser's paid/completed click counter until /claim succeeds.
+        await tx.insert(taskClicks).values({
+          taskId,
+          publisherId,
+          rewardAmount: rewardSWAG.toString(),
+        });
+
+        return { success: true as const, currentClicks: lockedTask.currentClicks, isCompleted: false };
+      });
+
+      if (!claimResult.success) {
+        return { success: false, message: claimResult.message };
+      }
+
+      // Clicking only reserves/registers the task interaction. The reward is
+      // credited by the separate /claim endpoint after the user explicitly
+      // presses Claim, so opening/clicking alone cannot hide or pay the task.
+      console.log(`✅ Task click recorded as pending: ${taskId} by ${publisherId}`);
+
+      return {
+        success: true,
+        message: "Task opened. Claim the reward after completing the task.",
+        task: {
+          ...task,
+          currentClicks: claimResult.currentClicks,
+          status: claimResult.isCompleted ? 'completed' : 'running'
+        }
+      };
+    } catch (error: any) {
+      // Handle unique constraint violation (user already clicked)
+      if (error.code === '23505') {
+        return { success: false, message: "You have already completed this task" };
+      }
+      console.error(`❌ Error recording task click:`, error);
+      return { success: false, message: "Failed to record task click" };
+    }
+  }
+
+  // Add USD balance to user
+  async addUSDBalance(userId: string, amount: string, source: string, description: string): Promise<void> {
+    try {
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        throw new Error('Invalid UGems amount');
+      }
+
+      // Get current USD balance
+      const [user] = await db
+        .select({ usdBalance: users.usdBalance })
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const currentUsdBalance = parseFloat(user.usdBalance || '0');
+      const newUsdBalance = (currentUsdBalance + amountNum).toFixed(10);
+
+      // Update user's USD balance
+      await db
+        .update(users)
+        .set({
+          usdBalance: newUsdBalance,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+
+      // Log the transaction
+      await this.logTransaction({
+        userId,
+        amount: amount,
+        type: 'credit',
+        source: source,
+        description: description,
+        metadata: { rewardType: 'USD' }
+      });
+
+      console.log(`✅ Added $${amountNum} USD to user ${userId}. New balance: $${newUsdBalance}`);
+    } catch (error) {
+      console.error(`Error adding USD balance:`, error);
+      throw error;
+    }
+  }
+
+  // Backfill rewards for existing referrals (fix for users who earned before the update)
+  /**
+   * fullReferralRepair — runs on every server startup.
+   * Pass 1: users whose `referred_by` is set but have no row in `referrals` → create the row.
+   * Pass 2: all pending referrals whose referee already watched enough ads → activate bonus.
+   * Returns a stats object so callers (admin endpoint / startup) can log results.
+   */
+  async fullReferralRepair(): Promise<{
+    usersLinked: number;
+    referralsCreated: number;
+    referralsActivated: number;
+    errors: number;
+  }> {
+    const stats = { usersLinked: 0, referralsCreated: 0, referralsActivated: 0, errors: 0 };
+
+    try {
+      console.log('🔧 fullReferralRepair: starting…');
+
+      // ── PASS 1: Sync referred_by → referrals table ──────────────────────────
+      const orphanedUsers = await db
+        .select({
+          userId: users.id,
+          referredBy: users.referredBy,
+        })
+        .from(users)
+        .where(and(
+          sql`${users.referredBy} IS NOT NULL`,
+          sql`${users.referredBy} != ''`,
+        ));
+
+      console.log(`🔧 Pass 1: ${orphanedUsers.length} users have referred_by set`);
+
+      for (const u of orphanedUsers) {
+        try {
+          if (!u.referredBy) continue;
+          const referrer = await this.getUserByReferralCode(u.referredBy);
+          if (!referrer) continue;
+
+          // Check if this referee ALREADY has ANY referral record (not just with this referrer)
+          // A user should have at most ONE referral record — their direct L1 only
+          const anyExisting = await db
+            .select({ id: referrals.id })
+            .from(referrals)
+            .where(eq(referrals.refereeId, u.userId))
+            .limit(1);
+          if (anyExisting.length > 0) continue;
+
+          // Check if the referee already watched enough ads — if so, insert as completed
+          // to avoid re-triggering a reward for users who were already paid
+          const [adCountRow] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(earnings)
+            .where(and(
+              eq(earnings.userId, u.userId),
+              eq(earnings.source, 'ad_watch'),
+            ));
+          const adsAlreadyWatched = Number(adCountRow?.count || 0);
+          const repairAdsRequired = parseInt(await this.getAppSetting('referral_ads_required', '1'));
+
+          const insertStatus = adsAlreadyWatched >= repairAdsRequired ? 'completed' : 'pending';
+          await db.insert(referrals).values({
+            referrerId: referrer.id,
+            refereeId: u.userId,
+            rewardAmount: '0.01',
+            status: insertStatus,
+          });
+          if (insertStatus === 'completed') {
+            console.log(`  ℹ️ Inserted referral as 'completed' (referee already watched ${adsAlreadyWatched} ads — no duplicate reward)`);
+          }
+          stats.referralsCreated++;
+          stats.usersLinked++;
+          console.log(`  ✅ Created missing referral: ${referrer.id} → ${u.userId}`);
+        } catch (err) {
+          stats.errors++;
+          console.error(`  ⚠️ Pass 1 error for user ${u.userId}:`, err);
+        }
+      }
+
+      // ── PASS 2: Activate pending referrals whose referee watched enough ads ─
+      const referralAdsRequired = parseInt(await this.getAppSetting('referral_ads_required', '1'));
+
+      const pendingRows = await db
+        .select({
+          id: referrals.id,
+          referrerId: referrals.referrerId,
+          refereeId: referrals.refereeId,
+        })
+        .from(referrals)
+        .where(eq(referrals.status, 'pending'));
+
+      console.log(`🔧 Pass 2: ${pendingRows.length} pending referrals to check`);
+
+      for (const ref of pendingRows) {
+        try {
+          const [adCount] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(earnings)
+            .where(and(
+              eq(earnings.userId, ref.refereeId),
+              eq(earnings.source, 'ad_watch'),
+            ));
+          const adsWatched = Number(adCount?.count || 0);
+          if (adsWatched < referralAdsRequired) continue;
+
+          // Use the existing per-user activation path so reward logic stays in one place
+          await this.checkAndActivateReferralBonus(ref.refereeId);
+          stats.referralsActivated++;
+          console.log(`  ✅ Activated referral ${ref.id} (referee ${ref.refereeId} has ${adsWatched} ads)`);
+        } catch (err) {
+          stats.errors++;
+          console.error(`  ⚠️ Pass 2 error for referral ${ref.id}:`, err);
+        }
+      }
+
+      console.log(`🔧 fullReferralRepair complete — linked:${stats.usersLinked} created:${stats.referralsCreated} activated:${stats.referralsActivated} errors:${stats.errors}`);
+    } catch (err) {
+      console.error('❌ fullReferralRepair fatal error:', err);
+      stats.errors++;
+    }
+
+    return stats;
+  }
+
+  async backfillExistingReferralSTARRewards(): Promise<void> {
+    // Referral backfill disabled
+    return;
+  }
+
+  // Deduct balance for withdrawal approval (direct deduction method)
+  async deductBalanceForWithdrawal(userId: string, amount: string, currency: string = 'TON'): Promise<boolean> {
+    try {
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        console.error('Invalid deduction amount:', amount);
+        return false;
+      }
+
+      if (currency === 'TON') {
+        // Deduct from TON balance
+        const [user] = await db
+          .select({ tonBalance: users.tonBalance })
+          .from(users)
+          .where(eq(users.id, userId));
+
+        if (!user) {
+          console.error('User not found for balance deduction');
+          return false;
+        }
+
+        const currentBalance = parseFloat(user.tonBalance || '0');
+        if (currentBalance < amountNum) {
+          console.error(`Insufficient TON balance: ${currentBalance} < ${amountNum}`);
+          return false;
+        }
+
+        const newBalance = (currentBalance - amountNum).toFixed(8);
+
+        await db
+          .update(users)
+          .set({
+            tonBalance: newBalance,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, userId));
+
+        console.log(`💰 Deducted ${amountNum} TON from user ${userId}. New balance: ${newBalance}`);
+      } else if (currency === 'USD') {
+        // Deduct from USD balance
+        const [user] = await db
+          .select({ usdBalance: users.usdBalance })
+          .from(users)
+          .where(eq(users.id, userId));
+
+        if (!user) {
+          console.error('User not found for USD balance deduction');
+          return false;
+        }
+
+        const currentBalance = parseFloat(user.usdBalance || '0');
+        if (currentBalance < amountNum) {
+          console.error(`Insufficient USD balance: ${currentBalance} < ${amountNum}`);
+          return false;
+        }
+
+        const newBalance = (currentBalance - amountNum).toFixed(10);
+
+        await db
+          .update(users)
+          .set({
+            usdBalance: newBalance,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, userId));
+
+        console.log(`💰 Deducted $${amountNum} USD from user ${userId}. New balance: $${newBalance}`);
+      } else {
+        // Deduct from Gems balance (default)
+        const [user] = await db
+          .select({ balance: users.balance })
+          .from(users)
+          .where(eq(users.id, userId));
+
+        if (!user) {
+          console.error('User not found for Gems balance deduction');
+          return false;
+        }
+
+        const currentBalance = parseInt(user.balance || '0');
+        if (currentBalance < amountNum) {
+          console.error(`Insufficient Gems balance: ${currentBalance} < ${amountNum}`);
+          return false;
+        }
+
+        const newBalance = Math.round(currentBalance - amountNum);
+
+        await db
+          .update(users)
+          .set({
+            balance: newBalance.toString(),
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, userId));
+
+        console.log(`💰 Deducted ${amountNum} Gems from user ${userId}. New balance: ${newBalance}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deducting balance for withdrawal:', error);
+      return false;
+    }
+  }
+
+  async getRunningTasksForUser(userId: string): Promise<any[]> {
+    const runningTasks = await db
+      .select()
+      .from(advertiserTasks)
+      .where(eq(advertiserTasks.status, 'running'))
+      .orderBy(desc(advertiserTasks.createdAt));
+
+    const completedClicksResult = await db
+      .select({ taskId: taskClicks.taskId })
+      .from(taskClicks)
+      .where(eq(taskClicks.publisherId, userId));
+
+    const completedTaskIds = new Set(completedClicksResult.map(c => c.taskId));
+
+    return runningTasks
+      .filter(task => 
+        task.advertiserId !== userId && 
+        !completedTaskIds.has(task.id) &&
+        task.currentClicks < task.totalClicksRequired
+      )
+            .map(task => ({
+        ...task,
+        isAdminTask: true,
+        rewardSWAG: Math.round(parseFloat(task.costPerClick || '0.0001750') * 10000000),
+      }));
+  }
+
+  // ============== PROMOTION / TASK SYSTEM STUBS ==============
+  // These support legacy task/promotion references in storage.ts and routes.ts.
+  // The active task system is Ads Watch Tasks; these methods delegate to it.
+
+  async getPromotion(promotionId: string): Promise<Promotion | undefined> {
+    try {
+      const [promotion] = await db.select().from(promotions).where(eq(promotions.id, promotionId));
+      return promotion;
+    } catch (error) {
+      console.error('Error getting promotion:', error);
+      return undefined;
+    }
+  }
+
+  async createPromotion(data: any): Promise<Promotion | undefined> {
+    try {
+      const [promotion] = await db.insert(promotions).values({
+        id: data.id,
+        ownerId: data.ownerId,
+        type: data.type,
+        url: data.url,
+        cost: data.cost || '0',
+        rewardPerUser: data.rewardPerUser,
+        limit: data.limit ?? 0,
+        claimedCount: 0,
+        title: data.title,
+        description: data.description,
+        channelMessageId: data.channelMessageId || null,
+        status: 'active',
+        isApproved: true,
+        createdAt: new Date(),
+      }).returning();
+      return promotion;
+    } catch (error) {
+      console.error('Error creating promotion:', error);
+      return undefined;
+    }
+  }
+
+  async syncFriendsInvitedCounts(): Promise<void> {
+    try {
+      const referrers = await db.select({
+        referrerId: referrals.referrerId,
+        count: sql<number>`count(*)::integer`,
+      }).from(referrals)
+        .where(eq(referrals.status, 'completed'))
+        .groupBy(referrals.referrerId);
+      for (const row of referrers) {
+        await db.update(users)
+          .set({ friendsInvited: row.count })
+          .where(eq(users.id, row.referrerId));
+      }
+      console.log(`✅ Friends-invited counts synced for ${referrers.length} users`);
+    } catch (error) {
+      console.error('Error syncing friends-invited counts:', error);
+    }
+  }
+
+  async hasUserClickedTask(taskId: string, userId: string): Promise<boolean> {
+    try {
+      const rows = await db.select({ id: taskClicks.id }).from(taskClicks)
+        .where(and(eq(taskClicks.taskId, taskId), eq(taskClicks.publisherId, userId)))
+        .limit(1);
+      return rows.length > 0;
+    } catch (error) {
+      console.error('Error checking task click:', error);
+      return false;
+    }
+  }
+
+  async hasUserCompletedTask(promotionId: string, userId: string): Promise<boolean> {
+    return this.hasUserCompletedDailyTask(promotionId, userId);
+  }
+
+  async completeTask(promotionId: string, userId: string, rewardAmount: string): Promise<{ success: boolean; message: string; rewardAmount?: string; newBalance?: string }> {
+    try {
+      return await this.completeDailyTask(promotionId, userId, rewardAmount);
+    } catch (error) {
+      console.error('Error completing task:', error);
+      return { success: false, message: 'Error completing task' };
+    }
+  }
+
+  async claimPromotionReward(userId: string, promotionId: string): Promise<{ success: boolean; message: string; rewardAmount?: string; newBalance?: string }> {
+    try {
+      return await this.claimTaskReward(userId, promotionId);
+    } catch (error) {
+      console.error('Error claiming promotion reward:', error);
+      return { success: false, message: 'Error claiming reward' };
+    }
+  }
+
+  async hasUserCompletedDailyTask(promotionId: string, userId: string): Promise<boolean> {
+    try {
+      const currentDate = this.getCurrentTaskDate();
+      const rows = await db.select({ id: dailyTaskCompletions.id }).from(dailyTaskCompletions)
+        .where(and(
+          eq(dailyTaskCompletions.promotionId, promotionId),
+          eq(dailyTaskCompletions.userId, userId),
+          eq(dailyTaskCompletions.completionDate, currentDate)
+        ))
+        .limit(1);
+      return rows.length > 0;
+    } catch (error) {
+      console.error('Error checking daily task completion:', error);
+      return false;
+    }
+  }
+}
+export const storage = new DatabaseStorage();

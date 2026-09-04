@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Swag Bux</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Only the 3 families actually used in the app (was 26 families —
+         everything else was unused template boilerplate that blocked
+         first paint for nothing). -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400..700;1,400..700&family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..800&family=Space+Grotesk:wght@400..700&display=swap" rel="stylesheet">
+    <!-- Only the solid + brands icon subsets are used in the app (was the
+         full all.min.css bundle, which also ships regular/duotone glyphs
+         nothing here uses). -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/brands.min.css">
+
+    <!-- Telegram WebApp SDK — must load synchronously before React -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Ad SDKs — all async so a slow/blocked network never hangs the app -->
+
+    <!-- Monetag Rewarded Interstitial SDK — zone id injected at build time from VITE_MONETAG_ZONE_ID -->
+    <script src='//libtl.com/sdk.js' data-zone='%VITE_MONETAG_ZONE_ID%' data-sdk='show_%VITE_MONETAG_ZONE_ID%'></script>
+
+    <!-- GiGaPub Ad Network — loaded dynamically in useAdFlow.ts -->
+
+    <!-- AdsGram SDK -->
+    <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
+    <!-- USL Ads (TowerAds SDK) -->
+    <script async src="https://uslads.com/sdk/tower-ads-v4.js"></script>
+
+    <!-- Richads Telegram Ads -->
+    <script async src="https://richinfo.co/richpartners/telegram/js/tg-ob.js" id="richads-sdk"></script>
+    <script>
+      (function() {
+        function initRichads() {
+          if (typeof TelegramAdsController !== 'undefined') {
+            window.TelegramAdsController = new TelegramAdsController();
+            window.TelegramAdsController.initialize({ pubId: "%VITE_RICHADS_PUB_ID%", appId: "%VITE_RICHADS_APP_ID%" });
+          }
+        }
+        var sdk = document.getElementById('richads-sdk');
+        if (sdk) {
+          sdk.addEventListener('load', initRichads);
+        }
+        document.addEventListener('DOMContentLoaded', initRichads);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

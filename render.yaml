@@ -1,0 +1,29 @@
+services:
+  # Web Service
+  - type: web
+    name: cashwatch-app
+    env: node
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SESSION_SECRET
+        generateValue: true
+      # Set these manually in Render dashboard → Environment:
+      # DATABASE_URL       — your PostgreSQL connection string
+      # TELEGRAM_BOT_TOKEN — your bot token from @BotFather
+      # SUPER_ADMIN_ID     — your Telegram numeric user ID
+      # BOT_USERNAME       — your bot username e.g. Paid_Adzbot
+    autoDeploy: false
+
+databases:
+  - name: cashwatch-db
+    databaseName: cashwatch
+    user: cashwatch
+    plan: free

@@ -1,0 +1,69 @@
+import { useQuery } from "@tanstack/react-query";
+import { useLanguage } from "@/hooks/useLanguage";
+
+interface UserStats {
+  todayEarnings: string;
+  weekEarnings: string;
+  monthEarnings: string;
+  totalEarnings: string;
+}
+
+const GEMS_TO_USD_RATE = 100_000;
+
+function formatUSD(padAmount: number): string {
+  const usd = padAmount / GEMS_TO_USD_RATE;
+  if (usd === 0) return '$0';
+  if (usd >= 1) return '$' + usd.toFixed(2);
+  if (usd >= 0.0001) return '$' + usd.toFixed(4);
+  return '$' + usd.toFixed(6);
+}
+
+const CARD = '#1C1C1E';
+
+function StatCard({ label, value, isLoading }: { label: string; value: string; isLoading: boolean }) {
+  const num = parseFloat(value || '0');
+  const formatted = formatUSD(num);
+  return (
+    <div style={{ flex: 1, background: CARD, borderRadius: 12, padding: '12px 14px', minWidth: 0 }}>
+      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginBottom: 4 }}>{label}</p>
+      {isLoading ? (
+        <div style={{ height: 22, width: 60, background: 'rgba(255,255,255,0.08)', borderRadius: 6, marginBottom: 2 }} />
+      ) : (
+        <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.2, margin: 0 }}>
+          {formatted}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function IncomeStatistics() {
+  const { t } = useLanguage();
+  // Root cause of Issue 4: staleTime:0 means every navigation to a page that
+  // renders IncomeStatistics triggered a fresh server request, causing a flash
+  // of loading state on every tab switch. Use 30s staleTime and rely on
+  // query invalidation from mutations to get fresh data after ad watches.
+  const { data: stats, isLoading } = useQuery<UserStats>({
+    queryKey: ['/api/user/stats'],
+    retry: false,
+    staleTime: 30_000,
+    refetchOnMount: true,
+  });
+
+  return (
+    <div className="mt-5 px-1">
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+        {t('income_statistics')}
+      </p>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <StatCard label={t('today')} value={stats?.todayEarnings ?? '0'} isLoading={isLoading} />
+        <StatCard label={t('weekly')} value={stats?.weekEarnings ?? '0'} isLoading={isLoading} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+        <StatCard label={t('monthly')} value={stats?.monthEarnings ?? '0'} isLoading={isLoading} />
+        <StatCard label={t('all_time')} value={stats?.totalEarnings ?? '0'} isLoading={isLoading} />
+      </div>
+    </div>
+  );
+}
