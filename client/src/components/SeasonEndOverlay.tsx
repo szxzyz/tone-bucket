@@ -97,7 +97,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
                 {[0, 200, 400].map((d, i) => (
                   <div key={i} style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: '#00C853',
+                    background: '#007BFF',
                     animation: `dotBlink 1.4s ${d}ms ease-in-out infinite`,
                   }} />
                 ))}
@@ -115,7 +115,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
                 padding: '14px 0',
                 borderRadius: 14,
                 border: 'none',
-                background: isLocked ? 'rgba(255,255,255,0.07)' : '#00C853',
+                background: isLocked ? 'rgba(255,255,255,0.07)' : '#007BFF',
                 color: isLocked ? 'rgba(255,255,255,0.3)' : '#fff',
                 fontSize: 15,
                 fontWeight: 700,

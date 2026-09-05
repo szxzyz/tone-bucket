@@ -402,7 +402,7 @@ export default function Withdraw() {
               <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>YOU RECEIVE</span>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{netUSD.toFixed(4)} USDT</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#00E676', marginTop: 1 }}>≈ {netTON.toFixed(6)} TON</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', marginTop: 1 }}>≈ {netTON.toFixed(6)} TON</div>
               </div>
             </div>
             <div className="flex items-center justify-between" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
@@ -415,7 +415,7 @@ export default function Withdraw() {
             type="button"
             disabled={isSubmitDisabled}
             onClick={handleSubmit}
-            style={{ width: '100%', height: 54, borderRadius: 14, border: 'none', background: !isSubmitDisabled ? 'linear-gradient(135deg, #00C853, #00E676)' : 'rgba(255,255,255,0.06)', color: !isSubmitDisabled ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 15, fontWeight: 900, cursor: isSubmitDisabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: !isSubmitDisabled ? '0 8px 20px rgba(0,200,83,0.3)' : 'none' }}
+            style={{ width: '100%', height: 54, borderRadius: 14, border: 'none', background: !isSubmitDisabled ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'rgba(255,255,255,0.06)', color: !isSubmitDisabled ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 15, fontWeight: 900, cursor: isSubmitDisabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: !isSubmitDisabled ? '0 8px 20px rgba(37,99,235,0.3)' : 'none' }}
             className="active:scale-95 transition-transform"
           >
             {isPending ? <Loader2 size={20} className="animate-spin" /> : dailyLimitReached ? 'DAILY LIMIT REACHED' : !allRequirementsMet ? 'REQUIREMENTS NOT MET' : !hasMatchingDiamonds ? 'DIAMONDS NOT ENOUGH' : 'SUBMIT WITHDRAWAL'}
@@ -433,7 +433,7 @@ export default function Withdraw() {
             History
           </div>
           {isHistoryLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '18px 0', color: '#00E676' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '18px 0', color: '#3b82f6' }}>
               <Loader2 size={20} className="animate-spin" />
             </div>
           ) : withdrawalHistory.length === 0 ? (

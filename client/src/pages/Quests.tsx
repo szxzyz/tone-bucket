@@ -8,7 +8,7 @@ import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 const CARD = "#333333";
 const TEXT_DIM = "rgba(255,255,255,0.35)";
-const BLUE = "#00E676";
+const BLUE = "#3b82f6";
 const GREEN = "#22c55e";
 
 type Reward = {

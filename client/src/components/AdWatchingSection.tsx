@@ -17,10 +17,10 @@ interface AdWatchingSectionProps {
 // corresponding provider is configured. This keeps the UI in sync with the
 // runtime ad flow instead of showing cards that can never open an ad.
 const AD_CARDS = [
-  { id: 1, adType: "adsgram", title: "AdsGram", accentColor: "#00C853", image: "/adsgram-logo.jpg" },
-  { id: 2, adType: "monetag", title: "MonetaG", accentColor: "#00E676", image: "/monetag-logo.jpg" },
-  { id: 3, adType: "gigapub", title: "Gigapub", accentColor: "#00E676", image: "/gigapub-logo.jpg" },
-  { id: 4, adType: "uslads",  title: "USL Ads", accentColor: "#00E676", image: "/usl-logo.jpg" },
+  { id: 1, adType: "adsgram", title: "AdsGram", accentColor: "#2563eb", image: "/adsgram-logo.jpg" },
+  { id: 2, adType: "monetag", title: "MonetaG", accentColor: "#3b82f6", image: "/monetag-logo.jpg" },
+  { id: 3, adType: "gigapub", title: "Gigapub", accentColor: "#3b82f6", image: "/gigapub-logo.jpg" },
+  { id: 4, adType: "uslads",  title: "USL Ads", accentColor: "#3b82f6", image: "/usl-logo.jpg" },
 ];
 
 function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
@@ -362,7 +362,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                       padding: "9px 16px", borderRadius: 12, minWidth: 92,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
                       letterSpacing: "0.02em", whiteSpace: "nowrap",
-                      background: limitReached ? "rgba(255,255,255,0.06)" : "#00E676",
+                      background: limitReached ? "rgba(255,255,255,0.06)" : "#3b82f6",
                       color:      limitReached ? "rgba(255,255,255,0.3)"  : "#fff",
                       opacity: isShowingAds && !isActive ? 0.5 : 1,
                       transition: "opacity 0.2s",

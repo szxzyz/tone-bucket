@@ -211,10 +211,10 @@ export default function TurnstileActionModal({
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {state === "loading"
-              ? <Loader2 size={22} style={{ color: "#00C853", animation: "spin 1s linear infinite" }} />
+              ? <Loader2 size={22} style={{ color: "#007BFF", animation: "spin 1s linear infinite" }} />
               : isErr
                 ? <AlertTriangle size={22} style={{ color: "#ffa000" }} />
-                : <ShieldCheck size={22} style={{ color: "#00C853" }} />
+                : <ShieldCheck size={22} style={{ color: "#007BFF" }} />
             }
           </div>
 
@@ -258,7 +258,7 @@ export default function TurnstileActionModal({
               onClick={retry}
               style={{
                 display: "flex", alignItems: "center", gap: 7,
-                background: "#00C853", color: "#fff",
+                background: "#007BFF", color: "#fff",
                 border: "none", borderRadius: 10,
                 padding: "10px 22px", fontSize: 14, fontWeight: 600,
                 cursor: "pointer", width: "100%", justifyContent: "center",
