@@ -105,7 +105,7 @@ function ParticipantCard({
   const metricValue = isMonthly ? `#${rank}` : score.toLocaleString();
 
   return (
-    <div style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#333333", border: isMe ? "1px solid rgba(59,130,246,0.65)" : "none", marginBottom: 12 }}>
+    <div style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#333333", border: isMe ? "1px solid rgba(0,230,118,0.65)" : "none", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, overflow: "hidden", background: "#2b2b2b", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {avatarUrl ? (
@@ -133,7 +133,7 @@ function ParticipantCard({
           ) : <span className="avatar-fallback" style={{ fontSize: 14, fontWeight: 900, color: "rgba(255,255,255,0.7)" }}>{name.slice(0, 2).toUpperCase()}</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.2, fontWeight: 800, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}{isMe && <span style={{ marginLeft: 5, fontSize: 9, color: "#3b82f6" }}>You</span>}</p>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.2, fontWeight: 800, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}{isMe && <span style={{ marginLeft: 5, fontSize: 9, color: "#00E676" }}>You</span>}</p>
           <p style={{ margin: "3px 0 0", fontSize: 10, lineHeight: 1.2, color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{username}</p>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>

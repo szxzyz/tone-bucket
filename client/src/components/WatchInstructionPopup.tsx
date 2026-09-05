@@ -16,7 +16,7 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
   const steps = [
     {
       icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E676" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
       ),
@@ -43,8 +43,8 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
             height: 50,
             borderRadius: 10,
             overflow: "hidden",
-            border: "1.5px solid rgba(59,130,246,0.4)",
-            boxShadow: "0 0 14px rgba(59,130,246,0.2)",
+            border: "1.5px solid rgba(0,230,118,0.4)",
+            boxShadow: "0 0 14px rgba(0,230,118,0.2)",
           }}>
             <img
               src="/play-now-btn.jpg"
@@ -156,8 +156,8 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
         <label style={{
           display: "flex", alignItems: "flex-start", gap: 12,
           cursor: "pointer", marginBottom: 18,
-          background: checked ? "rgba(37,99,235,0.08)" : "rgba(255,255,255,0.02)",
-          border: `1px solid ${checked ? "rgba(59,130,246,0.35)" : "rgba(255,255,255,0.07)"}`,
+          background: checked ? "rgba(0,200,83,0.08)" : "rgba(255,255,255,0.02)",
+          border: `1px solid ${checked ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.07)"}`,
           borderRadius: 12, padding: "12px 14px",
           transition: "all 0.2s ease",
         }}>
@@ -166,8 +166,8 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
             onClick={() => setChecked(p => !p)}
             style={{
               width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
-              border: `2px solid ${checked ? "#3b82f6" : "rgba(255,255,255,0.2)"}`,
-              background: checked ? "#2563eb" : "transparent",
+              border: `2px solid ${checked ? "#00E676" : "rgba(255,255,255,0.2)"}`,
+              background: checked ? "#00C853" : "transparent",
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "all 0.18s ease",
             }}
@@ -194,12 +194,12 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
           style={{
             width: "100%", padding: "14px 0",
             background: checked
-              ? "linear-gradient(135deg, #2563eb, #3b82f6)"
+              ? "linear-gradient(135deg, #00C853, #00E676)"
               : "rgba(255,255,255,0.06)",
             border: "none", borderRadius: 16,
             color: checked ? "#fff" : "rgba(255,255,255,0.25)",
             fontSize: 15, fontWeight: 800, cursor: checked ? "pointer" : "not-allowed",
-            boxShadow: checked ? "0 4px 20px rgba(37,99,235,0.4)" : "none",
+            boxShadow: checked ? "0 4px 20px rgba(0,200,83,0.4)" : "none",
             letterSpacing: "0.02em",
             transition: "all 0.2s ease",
           }}

@@ -118,7 +118,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
     <PopupShell onClose={onClose} maxWidth={390} closeOnBackdrop={!busy}>
       <div style={{ position: "relative", width: "100%" }}>
         <div style={{ color: "#fff", fontSize: 18, fontWeight: 900, letterSpacing: "0.02em" }}>
-          <span>TON</span> <span style={{ color: "#3b82f6" }}>DEPOSIT</span>
+          <span>TON</span> <span style={{ color: "#00E676" }}>DEPOSIT</span>
         </div>
         <div style={{ color: "#60a5fa", fontSize: 12, fontWeight: 700, marginTop: 5 }}>
           Enter the deposit amount to add TON to your balance
@@ -129,7 +129,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
             style={{
               marginTop: 15, width: "100%", boxSizing: "border-box",
               display: "flex", alignItems: "center", gap: 9,
-              background: "rgba(37,99,235,0.16)", borderRadius: 12, padding: "10px 12px",
+              background: "rgba(0,200,83,0.16)", borderRadius: 12, padding: "10px 12px",
             }}
           >
             <TonIcon size={17} />
@@ -148,7 +148,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
               marginTop: 15, width: "100%", boxSizing: "border-box",
               display: "flex", alignItems: "center", gap: 9,
               border: "none", borderRadius: 12, padding: "12px 14px",
-              background: "#2563eb", color: "#fff", fontSize: 13,
+              background: "#00C853", color: "#fff", fontSize: 13,
               fontWeight: 800, cursor: "pointer", textAlign: "left",
             }}
           >
@@ -193,7 +193,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
         <button
           onClick={buyGram}
           disabled={!amount || busy || status === "success"}
-          style={{ width: "100%", marginTop: 16, border: "none", borderRadius: 12, padding: "14px 0", background: amount && !busy && status !== "success" ? "linear-gradient(135deg,#2563eb,#3b82f6)" : "rgba(255,255,255,0.07)", color: amount && !busy && status !== "success" ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 14, fontWeight: 900, cursor: amount && !busy ? "pointer" : "not-allowed", boxShadow: amount && !busy && status !== "success" ? "0 4px 16px rgba(37,99,235,0.3)" : "none" }}
+          style={{ width: "100%", marginTop: 16, border: "none", borderRadius: 12, padding: "14px 0", background: amount && !busy && status !== "success" ? "linear-gradient(135deg,#00C853,#00E676)" : "rgba(255,255,255,0.07)", color: amount && !busy && status !== "success" ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 14, fontWeight: 900, cursor: amount && !busy ? "pointer" : "not-allowed", boxShadow: amount && !busy && status !== "success" ? "0 4px 16px rgba(0,200,83,0.3)" : "none" }}
         >
           {status === "success" ? "DONE" : connectedAddress ? "DEPOSIT NOW" : "CONNECT WALLET"}
         </button>

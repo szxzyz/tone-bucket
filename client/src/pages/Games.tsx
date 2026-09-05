@@ -263,8 +263,8 @@ export default function Games() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes boxPulse {
-          0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
-          50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(37,99,235,0); }
+          0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,200,83,0.4); }
+          50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(0,200,83,0); }
         }
         @keyframes rewardIn {
           0% { transform: scale(0.5); opacity: 0; }
@@ -334,10 +334,10 @@ export default function Games() {
                 onClick={() => setLocation('/withdraw')}
                 style={{
                   width: 52, height: 52, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+                  background: 'linear-gradient(135deg, #1e40af, #00E676)',
                   border: 'none',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(37,99,235,0.4)',
+                  boxShadow: '0 4px 16px rgba(0,200,83,0.4)',
                 }}
                 className="active:scale-90 transition-transform"
               >
@@ -352,10 +352,10 @@ export default function Games() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button onClick={() => setShowSwapPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+                background: 'linear-gradient(135deg, #1e40af, #00E676)',
                 border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 16px rgba(0,200,83,0.4)',
               }} className="active:scale-90 transition-transform">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="17 1 21 5 17 9"/>
@@ -371,10 +371,10 @@ export default function Games() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button onClick={() => setShowStakingPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+                background: 'linear-gradient(135deg, #1e40af, #00E676)',
                 border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 16px rgba(0,200,83,0.4)',
               }} className="active:scale-90 transition-transform">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -389,10 +389,10 @@ export default function Games() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button onClick={() => setShowPromoPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                background: 'linear-gradient(135deg, #1d4ed8, #00C853)',
                 border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 16px rgba(0,200,83,0.4)',
               }} className="active:scale-90 transition-transform">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
@@ -436,13 +436,13 @@ export default function Games() {
               onClick={handleDailyCheck}
               disabled={dailyChecked || dailyAdLoading || dailyCheckMutation.isPending}
               style={{
-                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
                 color: dailyChecked ? 'rgba(255,255,255,0.3)' : '#fff',
                 border: 'none',
                 borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 800,
                 cursor: (dailyChecked || dailyAdLoading) ? 'not-allowed' : 'pointer',
                 flexShrink: 0, letterSpacing: '0.03em',
-                boxShadow: dailyChecked ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                boxShadow: dailyChecked ? 'none' : '0 2px 12px rgba(0,200,83,0.4)',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}
               className="active:scale-95 transition-transform"
@@ -470,12 +470,12 @@ export default function Games() {
               onClick={handleMysteryOpen}
               disabled={mysteryOpened || mysteryPhase !== 'idle'}
               style={{
-                background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
                 color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
                 border: 'none',
                 borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 800,
                 cursor: mysteryOpened ? 'not-allowed' : 'pointer', flexShrink: 0,
-                boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(0,200,83,0.4)',
               }}
               className="active:scale-95 transition-transform"
             >
@@ -566,7 +566,7 @@ export default function Games() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={() => setShowFarmInfo(false)} />
             <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00C853, #00E676, #00C853, transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#000', flexShrink: 0 }}>
@@ -651,19 +651,19 @@ export default function Games() {
           <div style={{
             position: 'relative', width: '100%',
             background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-            border: '1px solid rgba(37,99,235,0.25)',
+            border: '1px solid rgba(0,200,83,0.25)',
             borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(52px, calc(env(safe-area-inset-bottom, 0px) + 28px))', zIndex: 901, textAlign: 'center',
-            boxShadow: '0 -8px 60px rgba(37,99,235,0.2), 0 0 0 1px rgba(255,255,255,0.03)',
+            boxShadow: '0 -8px 60px rgba(0,200,83,0.2), 0 0 0 1px rgba(255,255,255,0.03)',
             overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)', animation: 'popup-glow 2s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00C853, #00E676, #00C853, transparent)', animation: 'popup-glow 2s ease-in-out infinite' }} />
             <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
             <div style={{
               width: 64, height: 64, borderRadius: '50%', margin: '0 auto 18px',
-              background: 'linear-gradient(135deg, rgba(37,99,235,0.2), rgba(59,130,246,0.1))',
-              border: '1px solid rgba(37,99,235,0.25)',
+              background: 'linear-gradient(135deg, rgba(0,200,83,0.2), rgba(0,230,118,0.1))',
+              border: '1px solid rgba(0,200,83,0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 28px rgba(37,99,235,0.25)',
+              boxShadow: '0 0 28px rgba(0,200,83,0.25)',
             }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -685,10 +685,10 @@ export default function Games() {
             </div>
             <button onClick={() => setShowStakingPopup(false)} style={{
               width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              background: 'linear-gradient(135deg, #00C853, #00E676)',
               border: 'none', borderRadius: 50, color: '#fff',
               fontSize: 15, fontWeight: 800, cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(37,99,235,0.4)',
+              boxShadow: '0 4px 20px rgba(0,200,83,0.4)',
             }} className="active:scale-95 transition-transform">Got it</button>
           </div>
         </div>
@@ -701,16 +701,16 @@ export default function Games() {
           <div style={{
             position: 'relative', width: '85%', maxWidth: 320,
             background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-            border: '1px solid rgba(37,99,235,0.22)',
+            border: '1px solid rgba(0,200,83,0.22)',
             borderRadius: 24, padding: '36px 24px 28px',
             textAlign: 'center', zIndex: 951,
-            boxShadow: '0 0 60px rgba(37,99,235,0.15), 0 -4px 20px rgba(37,99,235,0.08)',
+            boxShadow: '0 0 60px rgba(0,200,83,0.15), 0 -4px 20px rgba(0,200,83,0.08)',
           }}>
             <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               {mysteryPhase === 'opening' && (
                 <div style={{
                   width: 82, height: 82, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                  background: 'linear-gradient(135deg, #1d4ed8, #00C853)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: 'boxPulse 0.65s ease-in-out infinite',
                 }}>
@@ -724,7 +724,7 @@ export default function Games() {
               {(mysteryPhase === 'revealed' || mysteryPhase === 'claiming') && (
                 <div style={{ animation: 'rewardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both' }}>
                   <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-2px' }}>{mysteryReward}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#3b82f6', marginTop: 6 }}>CIPHER</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#00E676', marginTop: 6 }}>CIPHER</div>
                 </div>
               )}
               {mysteryPhase === 'done' && (
@@ -753,17 +753,17 @@ export default function Games() {
             {mysteryPhase === 'revealed' && (
               <button onClick={handleMysteryClaim} style={{
                 width: '100%', padding: '14px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #00C853, #00E676)',
                 border: 'none', borderRadius: 50, color: '#fff',
                 fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 20px rgba(0,200,83,0.4)',
               }} className="active:scale-95 transition-transform">
                 Claim {mysteryReward} CIPHER
               </button>
             )}
             {(mysteryPhase === 'opening' || mysteryPhase === 'claiming') && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#3b82f6', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(0,230,118,0.3)', borderTopColor: '#00E676', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Please wait</span>
               </div>
             )}
@@ -814,7 +814,7 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '13px 14px', borderRadius: 14,
-    border: '1.5px solid rgba(37,99,235,0.2)',
+    border: '1.5px solid rgba(0,200,83,0.2)',
     fontSize: 15, color: '#fff',
     background: 'rgba(255,255,255,0.04)', outline: 'none',
     boxSizing: 'border-box',
@@ -826,12 +826,12 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
       <div style={{
         position: 'relative', width: '100%',
         background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-        border: '1px solid rgba(37,99,235,0.25)',
+        border: '1px solid rgba(0,200,83,0.25)',
         borderRadius: '28px 28px 0 0', padding: '24px 20px 52px', zIndex: 901,
-        boxShadow: '0 -8px 60px rgba(37,99,235,0.2), 0 0 0 1px rgba(255,255,255,0.03)',
+        boxShadow: '0 -8px 60px rgba(0,200,83,0.2), 0 0 0 1px rgba(255,255,255,0.03)',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00C853, #00E676, #00C853, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: mode ? 22 : 28 }}>
@@ -854,14 +854,14 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button onClick={() => setMode('user')} style={{
               display: 'flex', alignItems: 'center', gap: 16,
-              background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.18)',
+              background: 'rgba(0,200,83,0.07)', border: '1px solid rgba(0,200,83,0.18)',
               borderRadius: 18, padding: '18px 20px', cursor: 'pointer', textAlign: 'left',
             }} className="active:scale-[0.98] transition-transform">
               <div style={{
                 width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                background: 'linear-gradient(135deg, #1d4ed8, #00C853)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 12px rgba(0,200,83,0.4)',
               }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13"/>
@@ -919,10 +919,10 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
               disabled={loading}
               style={{
                 width: '100%', padding: '14px',
-                background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
                 border: 'none', borderRadius: 14, color: loading ? 'rgba(255,255,255,0.3)' : '#fff',
                 fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
-                boxShadow: loading ? 'none' : '0 4px 20px rgba(37,99,235,0.4)',
+                boxShadow: loading ? 'none' : '0 4px 20px rgba(0,200,83,0.4)',
               }}
               className="active:scale-95 transition-transform"
             >
@@ -952,12 +952,12 @@ function _ReceivePopupRemoved({ user, onClose }: { user: any; onClose: () => voi
       <div style={{
         position: 'relative', width: '100%',
         background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-        border: '1px solid rgba(37,99,235,0.25)',
+        border: '1px solid rgba(0,200,83,0.25)',
         borderRadius: '28px 28px 0 0', padding: '24px 20px 52px', zIndex: 901,
-        boxShadow: '0 -8px 60px rgba(37,99,235,0.2)',
+        boxShadow: '0 -8px 60px rgba(0,200,83,0.2)',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00C853, #00E676, #00C853, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -977,7 +977,7 @@ function _ReceivePopupRemoved({ user, onClose }: { user: any; onClose: () => voi
               <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>User ID</div>
               <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Roboto Mono' }}>{user?.id ?? '—'}</div>
             </div>
-            <button onClick={copyId} style={{ background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
+            <button onClick={copyId} style={{ background: 'linear-gradient(135deg, #1d4ed8, #00E676)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
           </div>
           {user?.username && (
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -985,7 +985,7 @@ function _ReceivePopupRemoved({ user, onClose }: { user: any; onClose: () => voi
                 <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Username</div>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Roboto Mono' }}>@{user.username}</div>
               </div>
-              <button onClick={copyUsername} style={{ background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
+              <button onClick={copyUsername} style={{ background: 'linear-gradient(135deg, #1d4ed8, #00E676)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
             </div>
           )}
         </div>
@@ -1033,7 +1033,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'flex-end' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={onClose} />
       <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00C853, #00E676, #00C853, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
 
         {/* Header */}
@@ -1068,7 +1068,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Amount</div>
-            <button onClick={() => setAmount(String(maxAmount))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontSize: 11, fontWeight: 700, padding: 0 }}>MAX</button>
+            <button onClick={() => setAmount(String(maxAmount))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00E676', fontSize: 11, fontWeight: 700, padding: 0 }}>MAX</button>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 14, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
             <input
@@ -1088,7 +1088,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
           disabled={!canSwap || loading}
           style={{
             width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
-            background: canSwap && !loading ? 'linear-gradient(135deg, #1d4ed8, #3b82f6)' : 'rgba(255,255,255,0.06)',
+            background: canSwap && !loading ? 'linear-gradient(135deg, #1d4ed8, #00E676)' : 'rgba(255,255,255,0.06)',
             color: canSwap && !loading ? '#fff' : 'rgba(255,255,255,0.25)',
             fontSize: 14, fontWeight: 800, cursor: canSwap && !loading ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1139,12 +1139,12 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
       <div style={{
         position: 'relative', width: '100%',
         background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-        border: '1px solid rgba(37,99,235,0.25)',
+        border: '1px solid rgba(0,200,83,0.25)',
         borderRadius: '28px 28px 0 0', padding: '24px 20px 52px', zIndex: 901,
-        boxShadow: '0 -8px 60px rgba(37,99,235,0.2)',
+        boxShadow: '0 -8px 60px rgba(0,200,83,0.2)',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00C853, #00E676, #00C853, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -1159,7 +1159,7 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
             disabled={loading}
             style={{
               width: '100%', padding: '14px', borderRadius: 14,
-              border: '1.5px solid rgba(37,99,235,0.2)',
+              border: '1.5px solid rgba(0,200,83,0.2)',
               fontSize: 15, color: '#fff', letterSpacing: '0.08em', fontWeight: 700,
               background: 'rgba(255,255,255,0.04)', outline: 'none',
               boxSizing: 'border-box', textAlign: 'center',
@@ -1173,10 +1173,10 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
           disabled={loading}
           style={{
             width: '100%', padding: '14px',
-            background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
             border: 'none', borderRadius: 14, color: loading ? 'rgba(255,255,255,0.3)' : '#fff',
             fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
-            boxShadow: loading ? 'none' : '0 4px 20px rgba(37,99,235,0.4)',
+            boxShadow: loading ? 'none' : '0 4px 20px rgba(0,200,83,0.4)',
           }}
           className="active:scale-95 transition-transform"
         >

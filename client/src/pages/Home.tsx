@@ -47,7 +47,7 @@ function getTodayKey() {
 const CARD = 'rgba(255,255,255,0.07)';
 const TEXT = '#fff';
 const TEXT_DIM = 'rgba(255,255,255,0.35)';
-const BLUE = '#3b82f6';
+const BLUE = '#00E676';
 
 
 
@@ -98,13 +98,13 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, dia
         }}
         disabled={isClaimed}
         style={{
-          background: isClaimed ? 'rgba(255,255,255,0.06)' : isCompleted ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+          background: isClaimed ? 'rgba(255,255,255,0.06)' : isCompleted ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #00C853, #00E676)',
           color: isClaimed ? 'rgba(255,255,255,0.3)' : '#fff',
           border: 'none', width: buttonLabel === 'Share' ? 78 : 70, height: 38,
           boxSizing: 'border-box' as const, borderRadius: 10, padding: 0,
           fontSize: 12, fontWeight: 800, cursor: isClaimed ? 'not-allowed' : 'pointer',
           flexShrink: 0, letterSpacing: '0.03em',
-          boxShadow: isClaimed ? 'none' : isCompleted ? '0 2px 12px rgba(34,197,94,0.4)' : '0 2px 12px rgba(37,99,235,0.4)',
+          boxShadow: isClaimed ? 'none' : isCompleted ? '0 2px 12px rgba(34,197,94,0.4)' : '0 2px 12px rgba(0,200,83,0.4)',
         }}
         className="active:scale-95 transition-transform"
       >
@@ -811,13 +811,13 @@ export default function Home() {
                 onClick={() => setCheckinSheetOpen(true)}
                 disabled={checkinStatus?.alreadyClaimedToday}
                 style={{
-                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
                   color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.3)' : '#fff',
                   border: 'none',
                   width: 76, height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer',
                   flexShrink: 0, letterSpacing: '0.03em',
-                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(0,200,83,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 }}
                 className="active:scale-95 transition-transform"
@@ -845,12 +845,12 @@ export default function Home() {
                 onClick={handleMysteryOpen}
                 disabled={mysteryOpened || mysteryAdLoading}
                 style={{
-                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
                   color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
                   border: 'none',
                   width: 76, height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer', flexShrink: 0,
-                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(0,200,83,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, letterSpacing: '0.03em',
                 }}
                 className="active:scale-95 transition-transform"

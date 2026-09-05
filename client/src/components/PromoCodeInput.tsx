@@ -209,13 +209,13 @@ export default function PromoCodeInput() {
           onClick={handleSubmit}
           disabled={isDisabled}
           style={{
-            background: isDisabled ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            background: isDisabled ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #00C853, #00E676)',
             color: isDisabled ? 'rgba(255,255,255,0.3)' : '#fff',
             border: 'none',
             width: 76, height: 38, borderRadius: 10, fontSize: 12, fontWeight: 800,
             cursor: isDisabled ? 'not-allowed' : 'pointer',
             flexShrink: 0, letterSpacing: '0.03em',
-            boxShadow: isDisabled ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+            boxShadow: isDisabled ? 'none' : '0 2px 12px rgba(0,200,83,0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}
           className={isDisabled ? "" : "active:scale-95 transition-transform"}

@@ -6,7 +6,7 @@ import {
 import { useLanguage } from "@/hooks/useLanguage";
 
 const BLUE_ACCENT = "#4cd3ff";
-const APP_BLUE = "#3b82f6";
+const APP_BLUE = "#00E676";
 
 /** Returns true only for public t.me/username links the avatar proxy can resolve. */
 function hasTelegramAvatar(link: string): boolean {

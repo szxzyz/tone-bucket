@@ -209,7 +209,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
                 onClick={handleDeposit}
                 className="w-full py-3.5 rounded-2xl text-white font-bold text-sm tracking-wide transition-all active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #4cd3ff, #007BFF)",
+                  background: "linear-gradient(135deg, #4cd3ff, #00C853)",
                   boxShadow: "0 4px 16px rgba(0,123,255,0.35)",
                 }}
               >

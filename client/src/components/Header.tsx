@@ -117,7 +117,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           {/* Right — universal Add Task button */}
           <button
             onClick={() => setLocation('/tasks/create')}
-            style={{ height: 36, boxSizing: 'border-box', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 12px', border: 'none', borderRadius: 11, background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap' }}
+            style={{ height: 36, boxSizing: 'border-box', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 12px', border: 'none', borderRadius: 11, background: '#00E676', color: '#fff', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap' }}
             className="active:scale-95 transition-transform"
             aria-label="Add Task"
           >

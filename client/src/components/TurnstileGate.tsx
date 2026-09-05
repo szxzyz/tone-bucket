@@ -371,10 +371,10 @@ export default function TurnstileGate({ children }: { children: React.ReactNode 
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {isLoading
-              ? <Loader2 size={22} style={{ color: "#007BFF", animation: "spin 1s linear infinite" }} />
+              ? <Loader2 size={22} style={{ color: "#00C853", animation: "spin 1s linear infinite" }} />
               : isErr
                 ? <AlertTriangle size={22} style={{ color: "#ffa000" }} />
-                : <ShieldCheck size={22} style={{ color: state === "success" ? "#00c864" : "#007BFF" }} />
+                : <ShieldCheck size={22} style={{ color: state === "success" ? "#00c864" : "#00C853" }} />
             }
           </div>
 
@@ -408,7 +408,7 @@ export default function TurnstileGate({ children }: { children: React.ReactNode 
           {isErr && (
             <button onClick={retry} style={{
               display: "flex", alignItems: "center", gap: 7,
-              background: "#007BFF", color: "#fff",
+              background: "#00C853", color: "#fff",
               border: "none", borderRadius: 10,
               padding: "10px 22px", fontSize: 14, fontWeight: 600,
               cursor: "pointer", width: "100%", justifyContent: "center",

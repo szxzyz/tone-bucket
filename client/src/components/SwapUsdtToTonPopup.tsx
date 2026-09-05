@@ -194,7 +194,7 @@ export default function SwapUsdtToTonPopup({ open, onOpenChange, usdBalance }: S
                 disabled={clampedAmount <= 0}
                 className="w-full py-3.5 rounded-2xl text-white font-bold text-sm tracking-wide transition-all active:scale-[0.98]"
                 style={{
-                  background: clampedAmount > 0 ? "linear-gradient(135deg, #4cd3ff, #007BFF)" : "rgba(255,255,255,0.08)",
+                  background: clampedAmount > 0 ? "linear-gradient(135deg, #4cd3ff, #00C853)" : "rgba(255,255,255,0.08)",
                   color: clampedAmount > 0 ? "#fff" : "rgba(255,255,255,0.3)",
                   boxShadow: clampedAmount > 0 ? "0 4px 16px rgba(0,123,255,0.35)" : "none",
                   cursor: clampedAmount > 0 ? "pointer" : "not-allowed",
