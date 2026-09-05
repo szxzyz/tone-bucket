@@ -194,7 +194,6 @@ const ResetCountdownBanner = () => {
         justifyContent: "center",
         gap: 6,
         padding: "5px 16px",
-        borderBottom: "1px solid rgba(255,255,255,0.14)",
       }}
     >
       <Clock size={11} color="rgba(216,180,254,0.75)" strokeWidth={2.5} />
