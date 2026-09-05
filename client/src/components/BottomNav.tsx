@@ -9,7 +9,7 @@ const DIM = "#6E6E73";
 
 const TABS = [
   { id: "rewards", label: "Home",    path: "/rewards", icon: HomeIcon       },
-  { id: "quests",  label: "Quests",  path: "/quests",  icon: ListChecks     },
+  { id: "mission", label: "Mission", path: "/missions", icon: ListChecks     },
   { id: "friend",  label: "Friends", path: "/friend",  icon: HeartHandshake },
   { id: "withdraw", label: "Withdraw", path: "/withdraw", icon: Wallet       },
 ] as const;
@@ -27,7 +27,7 @@ export default function BottomNav() {
 
   const isOn = (tab: typeof TABS[number]) =>
     location === tab.path ||
-    (tab.id === "quests" && location.startsWith("/quests")) ||
+    (tab.id === "mission" && location.startsWith("/mission")) ||
     (tab.id === "rewards" && (location === "/" || location.startsWith("/rewards")));
 
   const telegramPhotoUrl =

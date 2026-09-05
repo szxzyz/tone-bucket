@@ -17,7 +17,7 @@ import { LanguageProvider } from "@/hooks/useLanguage";
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Home from "@/pages/Home";
 import Affiliates from "@/pages/Affiliates";
-import Quests from "@/pages/Quests";
+import Mission from "@/pages/Mission";
 import Withdraw from "@/pages/Withdraw";
 import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
@@ -42,7 +42,8 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/affiliates" component={Affiliates} />
-        <Route path="/quests" component={Quests} />
+        <Route path="/mission" component={Mission} />
+        <Route path="/missions" component={Mission} />
         <Route path="/withdraw" component={Withdraw} />
         <Route path="/profile" component={Profile} />
         <Route path="/admin" component={Admin} />
@@ -50,12 +51,10 @@ function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/ambassador" component={AmbassadorPage} />
         <Route path="/tasks/create" component={CreateTask} />
-        {/* Legacy Missions links now open the restored Quests page. */}
-        <Route path="/missions" component={Quests} />
         {/* BottomNav tab routes — aliased to existing pages */}
         <Route path="/rewards" component={Home} />
-        {/* Legacy Earn URL now opens the Home task sections. */}
-        <Route path="/earn" component={Home} />
+        {/* Legacy Earn URL now opens the dedicated Mission page. */}
+        <Route path="/earn" component={Mission} />
         <Route path="/friend" component={Affiliates} />
         <Route path="/machine" component={Leaderboard} />
         <Route path="/contest" component={Leaderboard} />

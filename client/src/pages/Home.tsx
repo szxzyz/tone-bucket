@@ -16,8 +16,6 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { FaMedal, FaTrophy } from "react-icons/fa";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import { showAdgramAd } from "@/lib/showAd";
-import AdWatchingSection from "@/components/AdWatchingSection";
-import AdvertiserTaskFeed from "@/components/AdvertiserTaskFeed";
 
 
 
@@ -432,8 +430,8 @@ export default function Home() {
   });
 
   // Server-verified AdsGram flow for daily rewards. The provider remains
-  // available for these existing reward contexts even while its main card is
-  // hidden from AdWatchingSection pending platform approval.
+  // available for these existing reward contexts; the main ad-watching card
+  // now lives on the Mission page.
   const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
   const runVerifiedAdgramAd = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = startSession();
@@ -767,17 +765,6 @@ export default function Home() {
           <PromoCodeInput />
         </section>
 
-        {/* Golden Ad */}
-        <section style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            Golden Ad
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
-            Watch ads to earn gold and boost your income.
-          </div>
-          <AdWatchingSection user={user} hideTitle />
-        </section>
-
         {/* Daily Task: Check-In, Mystery Gift, and daily missions */}
         <style>{`@keyframes spin-hdc { to { transform: rotate(360deg); } }`}</style>
 
@@ -921,20 +908,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Social Tasks */}
-        <AdvertiserTaskFeed
-          kind="social"
-          title="Social Tasks"
-          subtitle="Complete social tasks and get rewards."
-        />
-
-        {/* Game Task */}
-        <AdvertiserTaskFeed
-          kind="game"
-          title="Game Task"
-          subtitle="Launch game and get rewards"
-        />
-          
           <DailyCheckinSheet
             open={checkinSheetOpen}
             onClose={() => setCheckinSheetOpen(false)}

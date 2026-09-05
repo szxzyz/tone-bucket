@@ -1,12 +1,13 @@
 import Layout from "@/components/Layout";
 import AdWatchingSection from "@/components/AdWatchingSection";
+import AdvertiserTaskFeed from "@/components/AdvertiserTaskFeed";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
 import { FaTrophy, FaMedal } from "react-icons/fa";
 
-export default function Earn() {
+export default function Mission() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
@@ -97,6 +98,20 @@ export default function Earn() {
         {/* Scrollable Content (Ad Cards) */}
         <div className="flex-1 overflow-y-auto px-4 custom-scrollbar" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 80px) + 20px)' }}>
           <AdWatchingSection user={user} hideTitle={true} />
+
+          <div className="mt-5">
+            <AdvertiserTaskFeed
+              kind="social"
+              title="Social Tasks"
+              subtitle="Complete social tasks and get rewards."
+            />
+
+            <AdvertiserTaskFeed
+              kind="game"
+              title="Game Task"
+              subtitle="Launch game and get rewards"
+            />
+          </div>
         </div>
       </main>
     </Layout>
