@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
 import { Plus, Clock } from "lucide-react";
 import DepositPopup from "@/components/DepositPopup";
+import { TonIcon } from "@/components/TonIcon";
 import { useLocation } from "wouter";
 
 interface HeaderProps {
@@ -35,9 +36,6 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     placeholderData: (previousData: any) => previousData,
   });
 
-  // Gold and Diamond are separate balances in the authenticated user snapshot.
-  const hasConfirmedDiamondBalance = user?.diamondBalance !== undefined && user?.diamondBalance !== null;
-  const diamondBalance = hasConfirmedDiamondBalance ? parseFloat(String(user.diamondBalance)) : 0;
   const hasConfirmedAxnBalance = user?.balance !== undefined && user?.balance !== null;
   const rawAxnBalance = hasConfirmedAxnBalance ? parseFloat(String(user.balance)) : null;
   const axnBalance = rawAxnBalance === null
@@ -46,7 +44,9 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       ? Math.round(rawAxnBalance * 10_000_000) 
       : Math.round(rawAxnBalance);
 
-    const isHome = String(location) === "/" || String(location) === "/rewards" || String(location) === "/home";
+    const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null
+      ? null
+      : parseFloat(String(user.tonBalance));
 
     useEffect(() => {
       const tg = (window as any).Telegram?.WebApp;
@@ -98,7 +98,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           gap: 10,
         }}>
 
-          {/* Left — Gold and Diamond balances */}
+          {/* Left — Gold balance and TON top-up balance */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
               <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
@@ -106,12 +106,20 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
                 {axnBalance === null || !Number.isFinite(axnBalance) ? '—' : axnBalance.toLocaleString()}
               </span>
             </div>
-            <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
-              <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {Number.isFinite(diamondBalance) ? diamondBalance.toLocaleString() : '0'}
+            <button
+              onClick={() => setDepositOpen(true)}
+              aria-label="Top up TON balance"
+              style={{ minWidth: 116, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '6px 9px', background: 'rgba(0,152,234,0.13)', border: '1px solid rgba(0,152,234,0.28)', borderRadius: 11, cursor: 'pointer' }}
+              className="active:scale-95 transition-transform"
+            >
+              <TonIcon size={22} />
+              <span style={{ color: '#fff', fontSize: 14, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                {tonBalance === null || !Number.isFinite(tonBalance) ? '—' : tonBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
               </span>
-              <img src="/assets/diamonds.png" alt="Diamond" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
-            </div>
+              <span style={{ width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#0098EA', color: '#fff' }}>
+                <Plus size={12} strokeWidth={3} />
+              </span>
+            </button>
           </div>
 
           {/* Right — universal Add Task button */}

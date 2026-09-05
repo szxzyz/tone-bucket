@@ -74,9 +74,11 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, dia
         <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, lineHeight: 1.2 }}>
           {title}
         </div>
-        <div style={{ color: isCompleted ? '#22c55e' : 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 4, lineHeight: 1.25 }}>
-          {subtitle}
-        </div>
+        {subtitle ? (
+          <div style={{ color: isCompleted ? '#22c55e' : 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 4, lineHeight: 1.25 }}>
+            {subtitle}
+          </div>
+        ) : null}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff' }}>
             <img src="/assets/gold-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
@@ -786,12 +788,11 @@ export default function Home() {
               />
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
-                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  {checkinStatus?.alreadyClaimedToday ? (
-                    "Come back tomorrow"
-                  ) : (
-                    <>Earn {checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]} Gold today</>
-                  )}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
+                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
+                    {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
+                  </span>
                 </div>
               </div>
               <button
@@ -824,8 +825,11 @@ export default function Home() {
               />
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
-                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>
-                  Open a Mystery Gift
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
+                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
+                    1–500
+                  </span>
                 </div>
               </div>
               <button
@@ -854,7 +858,7 @@ export default function Home() {
             <DailyTaskItem
               icon="/assets/check-updates.png"
               title="Check for updates"
-              subtitle="Find out the latest updates"
+              subtitle=""
               buttonLabel="Go"
               goldReward={100}
               diamondReward={1}
@@ -878,7 +882,7 @@ export default function Home() {
             <DailyTaskItem
               icon="/assets/share-with-friends.png"
               title="Share With Friends"
-              subtitle="Invite and earn USDT together"
+              subtitle=""
               buttonLabel="Share"
               goldReward={100}
               diamondReward={1}
