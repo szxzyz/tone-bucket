@@ -433,7 +433,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Earnings operations
-  async addEarning(earning: InsertEarning & { diamondAmount?: number }): Promise<Earning> {
+  async addEarning(earning: InsertEarning): Promise<Earning> {
     const [newEarning] = await db
       .insert(earnings)
       .values({
@@ -505,18 +505,6 @@ export class DatabaseStorage implements IStorage {
       } catch (userUpdateError) {
         console.error('Error updating users table in addEarning:', userUpdateError);
         // Don't throw - the earning was already recorded
-      }
-
-      // Diamond is a separate progress currency: ad watches or tasks award Diamonds.
-      // Default to 1 if not specified for backward compatibility.
-      if (earning.source === 'ad_watch' || earning.source === 'mission_ad' || earning.source === 'task_completion' || earning.source === 'daily_task_completion') {
-        const diamondAward = earning.diamondAmount !== undefined ? earning.diamondAmount : 1;
-        if (diamondAward > 0) {
-          await db.update(users).set({
-            diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + ${diamondAward}`,
-            updatedAt: new Date(),
-          }).where(eq(users.id, earning.userId));
-        }
       }
 
       // NOTE: The former "balance integrity guard" that synced users.balance FROM
@@ -1783,7 +1771,7 @@ export class DatabaseStorage implements IStorage {
           } else {
             // Lock the user row and read the live balance
             const [lockedUser] = await tx
-              .select({ balance: users.balance, diamondBalance: users.diamondBalance })
+              .select({ balance: users.balance })
               .from(users)
               .where(eq(users.id, withdrawal.userId))
               .for('update');
@@ -1798,35 +1786,6 @@ export class DatabaseStorage implements IStorage {
                 `Cannot approve: user's Gold balance (${currentGemsBalance.toLocaleString()} Gold) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} Gold) and it isn't flagged as already-deducted.`
               );
             }
-
-            const currentDiamondBalance = Math.floor(parseFloat(lockedUser.diamondBalance || '0'));
-            if (currentDiamondBalance < axnAmountRaw!) {
-              throw new Error(
-                `Cannot approve: user's Diamond balance (${currentDiamondBalance.toLocaleString()}) is less than the required ${axnAmountRaw!.toLocaleString()} Diamonds.`
-              );
-            }
-
-            const newGemsBalance = currentGemsBalance - axnAmountRaw!;
-            const newDiamondBalance = currentDiamondBalance - axnAmountRaw!;
-
-            // Deduct from users.balance (primary Gems store)
-            await tx.update(users)
-              .set({
-                balance: String(newGemsBalance),
-                diamondBalance: String(newDiamondBalance),
-                updatedAt: new Date(),
-              })
-              .where(eq(users.id, withdrawal.userId));
-
-            // Keep user_balances in sync (canonical secondary store)
-            await tx.update(userBalances)
-              .set({
-                balance: sql`GREATEST(0, COALESCE(${userBalances.balance}, 0) - ${String(axnAmountRaw!)})`,
-                updatedAt: new Date(),
-              })
-              .where(eq(userBalances.userId, withdrawal.userId));
-
-            console.log(`✅ Gold + Diamond balances deducted atomically: ${currentGemsBalance} → ${newGemsBalance} Gold; ${currentDiamondBalance} → ${newDiamondBalance} Diamonds`);
           }
 
           // Audit records inside the same transaction
@@ -3553,7 +3512,6 @@ export class DatabaseStorage implements IStorage {
     success: boolean;
     message: string;
     reward?: number;
-    diamondReward?: number;
     task?: any;
   }> {
     try {

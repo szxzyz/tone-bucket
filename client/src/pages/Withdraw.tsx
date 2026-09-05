@@ -96,15 +96,6 @@ export default function Withdraw() {
     () => (amountGold ? Number.parseFloat(amountGold) / GEMS_PER_USD : 0),
     [amountGold],
   );
-  const diamondBalance = useMemo(
-    () => Math.floor(Number.parseFloat(String(user?.diamondBalance ?? '0')) || 0),
-    [user?.diamondBalance],
-  );
-  const requiredDiamonds = useMemo(
-    () => Math.max(0, Math.floor(Number.parseFloat(amountGold) || 0)),
-    [amountGold],
-  );
-  const hasMatchingDiamonds = diamondBalance >= requiredDiamonds;
   const feeUSD = useMemo(() => amountUSD * (feePercent / 100), [amountUSD, feePercent]);
   const netUSD = useMemo(() => Math.max(0, amountUSD - feeUSD), [amountUSD, feeUSD]);
   const netTON = useMemo(() => netUSD / tonPrice, [netUSD, tonPrice]);
@@ -205,7 +196,6 @@ export default function Withdraw() {
     isPending ||
     !allRequirementsMet ||
     dailyLimitReached ||
-    !hasMatchingDiamonds ||
     !amountInAdminRange ||
     !amountWithinBalance ||
     !amountGold ||
@@ -368,20 +358,6 @@ export default function Withdraw() {
                 MAX
               </button>
             </div>
-            {requiredDiamonds > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
-                  REQUIRED DIAMONDS
-                </div>
-                <div className="flex items-center justify-between" style={{ width: '100%', height: 50, boxSizing: 'border-box', background: CARD, borderRadius: 12, padding: '0 14px' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Requirement</span>
-                  <div className="flex items-center gap-2">
-                    <img src="/assets/diamonds.png" alt="Diamond" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
-                    <span style={{ fontSize: 16, fontWeight: 900, color: hasMatchingDiamonds ? '#10b981' : '#ef4444' }}>{requiredDiamonds.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {requirements.length > 0 && (
@@ -418,7 +394,7 @@ export default function Withdraw() {
             style={{ width: '100%', height: 54, borderRadius: 14, border: 'none', background: !isSubmitDisabled ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'rgba(255,255,255,0.06)', color: !isSubmitDisabled ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 15, fontWeight: 900, cursor: isSubmitDisabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: !isSubmitDisabled ? '0 8px 20px rgba(37,99,235,0.3)' : 'none' }}
             className="active:scale-95 transition-transform"
           >
-            {isPending ? <Loader2 size={20} className="animate-spin" /> : dailyLimitReached ? 'DAILY LIMIT REACHED' : !allRequirementsMet ? 'REQUIREMENTS NOT MET' : !hasMatchingDiamonds ? 'DIAMONDS NOT ENOUGH' : 'SUBMIT WITHDRAWAL'}
+            {isPending ? <Loader2 size={20} className="animate-spin" /> : dailyLimitReached ? 'DAILY LIMIT REACHED' : !allRequirementsMet ? 'REQUIREMENTS NOT MET' : 'SUBMIT WITHDRAWAL'}
           </button>
 
           {dailyLimitReached && (

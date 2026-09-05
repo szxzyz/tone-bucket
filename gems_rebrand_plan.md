@@ -14,7 +14,7 @@
 ## Key Replacements
 - Global search and replace `SWAG` with `Gems` in all UI strings, backend logs, and notifications.
 - Update `SWAG_PER_USD` or similar constants to reflect the new `GEMS_PER_TON` logic.
-- Replace `SWAG` icon with a Gem icon (diamond or similar) in the header and other UI components.
+- Replace the legacy `SWAG` icon with the current Gold icon in the header and other UI components.
 
 ## Affected Files
 - `shared/schema.ts`: Database comments and default values.

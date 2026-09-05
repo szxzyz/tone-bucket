@@ -1657,16 +1657,16 @@ export async function sendWeeklyReferralContest(chatId: string, messageId?: numb
     lines.push(`<code>Position │ Friends │ Prize</code>\n`);
 
     const prizes = [
-      '500,000 Gold · 50,000 Diamond',
-      '250,000 Gold · 25,000 Diamond',
-      '100,000 Gold · 10,000 Diamond',
-      '50,000 Gold · 5,000 Diamond',
-      '50,000 Gold · 5,000 Diamond',
-      '1,000 Gold · 1,000 Diamond',
-      '1,000 Gold · 1,000 Diamond',
-      '1,000 Gold · 1,000 Diamond',
-      '1,000 Gold · 1,000 Diamond',
-      '1,000 Gold · 1,000 Diamond',
+      '500,000 Gold',
+      '250,000 Gold',
+      '100,000 Gold',
+      '50,000 Gold',
+      '50,000 Gold',
+      '1,000 Gold',
+      '1,000 Gold',
+      '1,000 Gold',
+      '1,000 Gold',
+      '1,000 Gold',
     ];
 
     for (let i = 0; i < topN; i++) {
@@ -1847,16 +1847,16 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
         const topN = 10;
         const startDate = getSetting('weekly_referral_start_date', '');
         const prizes = [
-          '500,000 Gold · 50,000 Diamond',
-          '250,000 Gold · 25,000 Diamond',
-          '100,000 Gold · 10,000 Diamond',
-          '50,000 Gold · 5,000 Diamond',
-          '50,000 Gold · 5,000 Diamond',
-          '1,000 Gold · 1,000 Diamond',
-          '1,000 Gold · 1,000 Diamond',
-          '1,000 Gold · 1,000 Diamond',
-          '1,000 Gold · 1,000 Diamond',
-          '1,000 Gold · 1,000 Diamond',
+          '500,000 Gold',
+          '250,000 Gold',
+          '100,000 Gold',
+          '50,000 Gold',
+          '50,000 Gold',
+          '1,000 Gold',
+          '1,000 Gold',
+          '1,000 Gold',
+          '1,000 Gold',
+          '1,000 Gold',
         ];
 
         const topQuery = await dbConn.execute(sqlFn`

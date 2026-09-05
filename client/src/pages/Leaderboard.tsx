@@ -25,16 +25,16 @@ interface ReferralEntry {
 }
 
 const FIXED_REWARDS = [
-  { gold: 500000, diamond: 50000 },
-  { gold: 250000, diamond: 25000 },
-  { gold: 100000, diamond: 10000 },
-  { gold: 50000, diamond: 5000 },
-  { gold: 50000, diamond: 5000 },
-  { gold: 1000, diamond: 1000 },
-  { gold: 1000, diamond: 1000 },
-  { gold: 1000, diamond: 1000 },
-  { gold: 1000, diamond: 1000 },
-  { gold: 1000, diamond: 1000 },
+  { gold: 500000 },
+  { gold: 250000 },
+  { gold: 100000 },
+  { gold: 50000 },
+  { gold: 50000 },
+  { gold: 1000 },
+  { gold: 1000 },
+  { gold: 1000 },
+  { gold: 1000 },
+  { gold: 1000 },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ function ParticipantCard({
   isMonthly: boolean;
   isMe: boolean;
 }) {
-  const reward = FIXED_REWARDS[rank - 1] || { gold: 0, diamond: 0 };
+  const reward = FIXED_REWARDS[rank - 1] || { gold: 0 };
   const name = displayName(entry, rank);
   const username = entry?.username ? `@${entry.username.replace(/^@/, "")}` : "@username";
   const avatarUrl = entry?.avatarUrl || undefined;
@@ -152,7 +152,6 @@ function ParticipantCard({
           <p style={{ margin: "0 0 3px", fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Reward</p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} /><span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{entry ? reward.gold.toLocaleString() : "—"}</span></span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><img src="/assets/diamonds.png" alt="Diamond" style={{ width: 20, height: 20, objectFit: "contain" }} /><span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{entry ? reward.diamond.toLocaleString() : "—"}</span></span>
           </div>
         </div>
       </div>

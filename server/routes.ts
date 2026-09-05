@@ -1347,19 +1347,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Per-provider ad limits and rewards
       const adsgramAdLimit        = parseInt(getSetting('adsgram_ad_limit',        '10'));
       const adsgramRewardPerAd    = parseInt(getSetting('adsgram_reward_per_ad',    '125'));
-      const adsgramDiamondPerAd   = parseInt(getSetting('adsgram_diamond_per_ad',   '2'));
       const adsgramEnabled        = getSetting('adsgram_enabled', 'true') === 'true';
       const monetagAdLimit        = parseInt(getSetting('monetag_ad_limit',         '10'));
       const monetagRewardPerAd    = parseInt(getSetting('monetag_reward_per_ad',    '125'));
-      const monetagDiamondPerAd   = parseInt(getSetting('monetag_diamond_per_ad',   '2'));
       const monetagEnabled        = getSetting('monetag_enabled', 'true') === 'true';
       const gigapubAdLimit        = parseInt(getSetting('gigapub_ad_limit',         '10'));
       const gigapubRewardPerAd    = parseInt(getSetting('gigapub_reward_per_ad',    '125'));
-      const gigapubDiamondPerAd   = parseInt(getSetting('gigapub_diamond_per_ad',   '2'));
       const gigapubEnabled        = getSetting('gigapub_enabled', 'true') === 'true';
       const usladsAdLimit         = parseInt(getSetting('uslads_ad_limit',          '10'));
       const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '125'));
-      const usladsDiamondPerAd    = parseInt(getSetting('uslads_diamond_per_ad',    '2'));
       const usladsEnabled         = getSetting('uslads_enabled', 'true') === 'true';
 
       // Legacy compatibility - keep old values for backwards compatibility
@@ -1369,7 +1365,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Settings must be fresh immediately after an admin update. React Query
       // handles deduplication on the client, so do not let an old browser/proxy
-      // response hide a newly configured Diamond reward.
       res.set('Cache-Control', 'no-store');
       res.json({
         dailyAdLimit,
@@ -1448,19 +1443,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Per-provider ad settings
         adsgramAdLimit,
         adsgramRewardPerAd,
-        adsgramDiamondPerAd,
         adsgramEnabled,
         monetagAdLimit,
         monetagRewardPerAd,
-        monetagDiamondPerAd,
         monetagEnabled,
         gigapubAdLimit,
         gigapubRewardPerAd,
-        gigapubDiamondPerAd,
         gigapubEnabled,
         usladsAdLimit,
         usladsRewardPerAd,
-        usladsDiamondPerAd,
         usladsEnabled,
         // Contest settings (public — needed by leaderboard/frontend)
         weeklyReferralContestEnabled: getSetting('weekly_referral_contest_enabled', 'false') === 'true',
@@ -1841,7 +1832,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Initialize response values early to avoid reference errors in catch block
       let adRewardGems = 0;
-      let rewardPerAdDiamonds = 0;
 
       // Fetch all admin settings once and pick per-provider values
       const allAdminSettings = await db.select().from(adminSettings);
@@ -1851,7 +1841,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const defaultLimit = normalizedAdType === 'adsgram' ? '510' : '50';
       const DAILY_AD_LIMIT = parseInt(getAdSetting(`${normalizedAdType}_ad_limit`, defaultLimit));
       const rewardPerAdGems = parseInt(getAdSetting(`${normalizedAdType}_reward_per_ad`, '125'));
-      rewardPerAdDiamonds = parseInt(getAdSetting(`${normalizedAdType}_diamond_per_ad`, '2'));
       const providerEnabled = getAdSetting(`${normalizedAdType}_enabled`, 'true') === 'true';
 
       if (!providerEnabled) {
@@ -1911,7 +1900,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           amount: String(adRewardGems),
           source: 'ad_watch',
           description: adDescription,
-          diamondAmount: rewardPerAdDiamonds,
         });
 
         // Increment per-provider daily ads watched count (period-reset aware)
@@ -2130,9 +2118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         rewardGems: adRewardGems,
-        rewardDiamonds: rewardPerAdDiamonds,
         newBalance: finalUpdatedUser.balance,
-        newDiamondBalance: finalUpdatedUser.diamondBalance,
         adsWatchedToday: finalUpdatedUser.adsWatchedToday,
       });
     } catch (error) {
@@ -2583,14 +2569,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dailyTasksDate: new Date(),
             lastResetPeriod: periodKey,
             tonBalance: sql`COALESCE(ton_balance, 0) + ${reward}`,
-            diamondBalance: sql`COALESCE(diamond_balance, 0) + 1`,
             updatedAt: new Date(),
           })
           .where(and(
             eq(users.id, userId),
             sql`NOT (daily_checkin_claimed = true AND last_reset_period = ${periodKey})`,
           ))
-          .returning({ tonBalance: users.tonBalance, diamondBalance: users.diamondBalance });
+          .returning({ tonBalance: users.tonBalance });
         if (updated.length === 0) return { error: 'already_claimed' as const };
 
         await tx.insert(transactions).values({
@@ -2666,14 +2651,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             withdrawBalance: sql`COALESCE(withdraw_balance, 0) + ${reward}`,
             totalEarned: sql`COALESCE(total_earned, 0) + ${reward}`,
             totalEarnings: sql`COALESCE(total_earnings, 0) + ${reward}`,
-            diamondBalance: sql`COALESCE(diamond_balance, 0) + 1`,
             updatedAt: new Date(),
           })
           .where(and(
             eq(users.id, userId),
             sql`(last_reset_period IS NULL OR last_reset_period != ${periodKey} OR COALESCE(mystery_box_count, 0) < ${MYSTERY_DAILY_LIMIT})`,
           ))
-          .returning({ mysteryBoxCount: users.mysteryBoxCount, balance: users.balance, diamondBalance: users.diamondBalance });
+          .returning({ mysteryBoxCount: users.mysteryBoxCount, balance: users.balance });
         if (updated.length === 0) return { error: 'limit_reached' as const };
 
         await tx.insert(earnings).values({
@@ -2742,13 +2726,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Quests progress and one-time reward claims.
   // Quest rewards are persisted through transactions so the client can safely
   // render claim state without adding a second quest-specific table.
-  type QuestReward = { target: number; kind: 'checkin' | 'ads' | 'social' | 'game'; gold: number; diamond: number; ton: number };
+  type QuestReward = { target: number; kind: 'checkin' | 'ads' | 'social' | 'game'; gold: number; ton: number };
   const QUEST_TARGETS = [10, 50, 100, 300, 500, 1000, 2000, 3000, 5000, 10000, 15000, 20000, 25000, 30000, 50000];
   const QUEST_REWARDS: Record<string, QuestReward> = {};
   for (const target of QUEST_TARGETS) {
-    QUEST_REWARDS[`game_${target}`] = { target, kind: 'game', gold: target * 10, diamond: target / 10, ton: 0 };
-    QUEST_REWARDS[`ads_${target}`] = { target, kind: 'ads', gold: target * 10, diamond: target / 10, ton: 0 };
-    QUEST_REWARDS[`social_${target}`] = { target, kind: 'social', gold: target * 10, diamond: target / 10, ton: 0 };
+    QUEST_REWARDS[`game_${target}`] = { target, kind: 'game', gold: target * 10, ton: 0 };
+    QUEST_REWARDS[`ads_${target}`] = { target, kind: 'ads', gold: target * 10, ton: 0 };
+    QUEST_REWARDS[`social_${target}`] = { target, kind: 'social', gold: target * 10, ton: 0 };
   }
   const QUEST_CHECKIN_REWARDS: Array<[number, number, number]> = [
     [1, 100, 1], [5, 500, 5], [10, 1000, 10], [15, 3000, 30], [20, 5000, 50],
@@ -2756,8 +2740,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     [50, 100000, 1000], [55, 150000, 1500], [60, 200000, 2000], [75, 250000, 2500],
     [80, 300000, 3000], [85, 500000, 5000],
   ];
-  for (const [target, gold, diamond] of QUEST_CHECKIN_REWARDS) {
-    QUEST_REWARDS[`checkin_${target}`] = { target, kind: 'checkin', gold, diamond, ton: 0 };
+  for (const [target, gold] of QUEST_CHECKIN_REWARDS) {
+    QUEST_REWARDS[`checkin_${target}`] = { target, kind: 'checkin', gold, ton: 0 };
   }
 
   app.get('/api/quests/status', authenticateTelegram, async (req: any, res) => {
@@ -2859,9 +2843,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Quest reward: ${questId}`,
         });
       }
-      if (quest.diamond > 0 || quest.ton > 0) {
+      if (quest.ton > 0) {
         const balanceUpdate: any = { updatedAt: new Date() };
-        if (quest.diamond > 0) balanceUpdate.diamondBalance = sql`COALESCE(${users.diamondBalance}, 0) + ${quest.diamond}`;
         if (quest.ton > 0) balanceUpdate.tonBalance = sql`COALESCE(${users.tonBalance}, 0) + ${quest.ton}`;
         await db.update(users).set(balanceUpdate).where(eq(users.id, userId));
       }
@@ -2871,10 +2854,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'addition',
         source: `quest_claim_${questId}`,
         description: `Quest claimed: ${questId}`,
-        metadata: { questId, gold: quest.gold, diamond: quest.diamond, ton: quest.ton },
+        metadata: { questId, gold: quest.gold, ton: quest.ton },
       });
 
-      res.json({ success: true, questId, goldReward: quest.gold, diamondReward: quest.diamond, tonReward: quest.ton });
+      res.json({ success: true, questId, goldReward: quest.gold, tonReward: quest.ton });
     } catch (error) {
       console.error('Error claiming quest:', error);
       res.status(500).json({ success: false, message: 'Failed to claim quest' });
@@ -3059,10 +3042,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existing = await db.select({ id: transactions.id }).from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.source, source))).limit(1);
       if (existing.length) return res.status(400).json({ error: 'Milestone already claimed' });
       const goldReward = milestones[inviteTarget];
-      await db.update(users).set({ balance: sql`COALESCE(${users.balance}, 0) + ${goldReward}`, diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + ${inviteTarget}`, updatedAt: new Date() }).where(eq(users.id, userId));
+      await db.update(users).set({ balance: sql`COALESCE(${users.balance}, 0) + ${goldReward}`, updatedAt: new Date() }).where(eq(users.id, userId));
       await db.update(userBalances).set({ balance: sql`COALESCE(${userBalances.balance}, 0) + ${goldReward}`, updatedAt: new Date() }).where(eq(userBalances.userId, userId));
       await db.insert(transactions).values({ userId, amount: String(goldReward), type: 'addition', source, description: `Referral milestone: ${inviteTarget} invites` });
-      return res.json({ success: true, goldReward, diamondReward: inviteTarget });
+      return res.json({ success: true, goldReward });
     } catch (error) {
       console.error('Error claiming referral milestone:', error);
       return res.status(500).json({ error: 'Failed to claim milestone' });
@@ -4890,11 +4873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gigapubEnabled: getSetting('gigapub_enabled', 'true') === 'true',
         usladsAdLimit: parseInt(getSetting('uslads_ad_limit', '10')),
         usladsRewardPerAd: parseInt(getSetting('uslads_reward_per_ad', '125')),
-        usladsDiamondPerAd: parseInt(getSetting('uslads_diamond_per_ad', '2')),
         usladsEnabled: getSetting('uslads_enabled', 'true') === 'true',
-        adsgramDiamondPerAd: parseInt(getSetting('adsgram_diamond_per_ad', '2')),
-        monetagDiamondPerAd: parseInt(getSetting('monetag_diamond_per_ad', '2')),
-        gigapubDiamondPerAd: parseInt(getSetting('gigapub_diamond_per_ad', '2')),
       });
     } catch (error) {
       console.error("Error fetching admin settings:", error);
@@ -5010,25 +4989,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get diamond reward for mission ad
-      let diamondReward: number;
-      switch (platform) {
-        case 'monetag':
-          diamondReward = safeInt(getSetting('monetag_diamond_per_ad', '2'), 2);
-          break;
-        case 'gigapub':
-          diamondReward = safeInt(getSetting('gigapub_diamond_per_ad', '2'), 2);
-          break;
-        default:
-          diamondReward = 2;
-      }
-
       await storage.addEarning({
         userId,
         amount: String(reward),
         source: 'mission_ad',
         description: `Mission ad reward (${platform})`,
-        diamondAmount: diamondReward,
       });
 
       return res.json({ success: true, reward, claimsToday: counter.count, dailyLimit: limit });
@@ -8041,15 +8006,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!claimedClick) {
         return res.status(400).json({ success: false, message: "You have already claimed the reward for this task" });
       }
-
-      const earnsTaskDiamonds = ['bot', 'game', 'channel', 'social', 'partner'].includes(String(task.taskType).toLowerCase());
-      const diamondReward = earnsTaskDiamonds ? 5 : undefined;
       await storage.addEarning({
         userId,
         amount: String(rewardGems),
         source: 'task_completion',
         description: `Completed ${task.taskType} task: ${task.title}`,
-        diamondAmount: diamondReward,
       });
 
       // Only a successful claim counts against the advertiser's paid click
@@ -8069,12 +8030,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = ${taskId}
       `);
 
-      console.log(`✅ Task reward claimed: ${taskId} by ${userId} - Reward: ${rewardGems} Gems${diamondReward ? ` + ${diamondReward} Diamonds` : ''}`);
+      console.log(`✅ Task reward claimed: ${taskId} by ${userId} - Reward: ${rewardGems} Gems`);
       res.json({
         success: true,
         message: `Reward claimed! +${rewardGems} Gems`,
         reward: rewardGems,
-        diamondReward,
       });
     } catch (error) {
       console.error("Error claiming task reward:", error);
@@ -9016,7 +8976,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [user] = await tx
           .select({
             balance: users.balance,
-            diamondBalance: users.diamondBalance,
             usdBalance: users.usdBalance,
             cwalletId: users.cwalletId,
             usdtWalletAddress: users.usdtWalletAddress,
@@ -9264,21 +9223,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`Insufficient Gold balance. You have ${currentAxnBalance.toLocaleString()} Gold.`);
           }
 
-          // A Gold withdrawal requires the same number of Diamonds.
-          const currentDiamondBalance = Math.floor(parseFloat(user.diamondBalance || '0'));
-          if (currentDiamondBalance < axnAmountInput) {
-            throw new Error(`You need ${axnAmountInput.toLocaleString()} Diamonds for this withdrawal. You have ${currentDiamondBalance.toLocaleString()}.`);
-          }
-
           // Convert to USD for the withdrawal record (100,000 Gold = $1)
           const usdEquivalent = axnAmountInput / Gems_PER_USD;
           packageUsdAmount = usdEquivalent;
 
-          // Store axnAmount in details for history display and approval deduction
+          // Store Gold withdrawal metadata for history display and approval deduction.
           withdrawalDetails.axnAmount = axnAmountInput;
           withdrawalDetails.axnPerUsd = Gems_PER_USD;
-          withdrawalDetails.diamondAmount = axnAmountInput;
-          console.log(`💎 Gold withdrawal: ${axnAmountInput.toLocaleString()} Gold + ${axnAmountInput.toLocaleString()} Diamonds → $${usdEquivalent.toFixed(4)} USD`);
+          console.log(`Gold withdrawal: ${axnAmountInput.toLocaleString()} Gold → $${usdEquivalent.toFixed(4)} USD`);
         } else if (customAmount !== null && !isNaN(customAmount) && customAmount > 0) {
           // Legacy USD custom amount — validate against admin min/max settings
           const [minAmtSetting] = await tx
@@ -10317,7 +10269,6 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
           ));
 
         // Add earning record through the canonical pipeline. It updates Gold
-        // exactly once and awards the matching one-Diamond action reward.
 
         await storage.addEarning({
           userId,
@@ -11372,7 +11323,6 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       // Add reward to user balance — atomic increment prevents clobbering concurrent updates
       await db.update(users).set({
         balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
-        diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + 1`,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
       await db.update(userBalances).set({
@@ -11498,7 +11448,6 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
         dailyCheckinLastClaimDate: new Date(),
         lastResetPeriod: today,
         balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
-        diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + 1`,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
       await db.update(userBalances).set({
@@ -11572,7 +11521,6 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       // Add reward to user balance — atomic increment prevents clobbering concurrent updates
       await db.update(users).set({
         balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
-        diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + 1`,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
       await db.update(userBalances).set({
@@ -11641,7 +11589,6 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       // Add reward
       await db.update(users).set({
         balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
-        diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + 1`,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
       await db.update(userBalances).set({
@@ -11720,7 +11667,6 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       // Add reward
       await db.update(users).set({
         balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
-        diamondBalance: sql`COALESCE(${users.diamondBalance}, 0) + 1`,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
       await db.update(userBalances).set({
@@ -12778,16 +12724,16 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       const startDate = getSetting('monthly_contest_start_date', '');
       // Weekly Ad Leaderboard prizes are fixed by rank; admins only control the contest lifecycle.
       const prizes = [
-        '500,000 Gold · 50,000 Diamond',
-        '250,000 Gold · 25,000 Diamond',
-        '100,000 Gold · 10,000 Diamond',
-        '50,000 Gold · 5,000 Diamond',
-        '50,000 Gold · 5,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
+        '500,000 Gold',
+        '250,000 Gold',
+        '100,000 Gold',
+        '50,000 Gold',
+        '50,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
       ];
 
       if (!contestEnabled) {
@@ -12852,16 +12798,16 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       const startDate = getSetting('weekly_referral_start_date', '');
       // Referral Contest prizes are fixed by rank; admins only control lifecycle settings.
       const prizes = [
-        '500,000 Gold · 50,000 Diamond',
-        '250,000 Gold · 25,000 Diamond',
-        '100,000 Gold · 10,000 Diamond',
-        '50,000 Gold · 5,000 Diamond',
-        '50,000 Gold · 5,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
-        '1,000 Gold · 1,000 Diamond',
+        '500,000 Gold',
+        '250,000 Gold',
+        '100,000 Gold',
+        '50,000 Gold',
+        '50,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
+        '1,000 Gold',
       ];
 
       if (!contestEnabled) {
@@ -14373,8 +14319,7 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
   app.post('/api/admin/reset-stars', authenticateAdmin, async (req: any, res) => {
     try {
       const fixedRewards = [
-        [500000, 50000], [250000, 25000], [100000, 10000], [50000, 5000], [50000, 5000],
-        [1000, 1000], [1000, 1000], [1000, 1000], [1000, 1000], [1000, 1000],
+        [500000, 250000, 100000, 50000, 50000, 1000, 1000, 1000, 1000, 1000],
       ];
       const winners = await db.execute(sql`
         SELECT id FROM users
@@ -14383,11 +14328,10 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
         LIMIT 10
       `);
       for (const [index, row] of (winners.rows as any[]).entries()) {
-        const [gold, diamonds] = fixedRewards[index] || [0, 0];
+        const gold = fixedRewards[index] || 0;
         await db.execute(sql`
           UPDATE users
           SET balance = COALESCE(balance, 0) + ${gold},
-              diamond_balance = COALESCE(diamond_balance, 0) + ${diamonds},
               updated_at = NOW()
           WHERE id = ${row.id}
         `);

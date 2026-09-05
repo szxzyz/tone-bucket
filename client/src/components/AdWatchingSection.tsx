@@ -62,14 +62,12 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     },
     onSuccess: (data: any) => {
       const rewardGems = data?.rewardGems || 0;
-      const rewardDiamonds = data?.rewardDiamonds || 0;
       
       queryClient.setQueryData(["/api/auth/user"], (old: any) => {
         if (!old) return old;
         const adType = currentAdTypeRef.current;
         const updates: any = {
           balance: data?.newBalance !== undefined ? String(data.newBalance) : old.balance,
-          diamondBalance: data?.newDiamondBalance !== undefined ? data.newDiamondBalance : old.diamondBalance,
         };
         if      (adType === "adsgram") updates.adsWatchedToday        = (old.adsWatchedToday        || 0) + 1;
         else if (adType === "monetag") updates.monetagAdsWatchedToday = (old.monetagAdsWatchedToday || 0) + 1;
@@ -84,10 +82,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
           <div className="flex items-center gap-1">
             <img src="/assets/gold-icon.png" alt="Gold" className="w-4 h-4 object-contain" />
             <span className="font-bold text-yellow-500">{rewardGems}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <img src="/assets/diamonds.png" alt="Diamond" className="w-4 h-4 object-contain" />
-            <span className="font-bold text-blue-400">{rewardDiamonds}</span>
           </div>
         </div> as any,
         "success"
@@ -254,14 +248,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 	    if (adType === "uslads")  return appSettings?.usladsRewardPerAd  ?? 125;
 	    return 125;
 	  };
-	
-	  const getCardDiamondReward = (adType: string): number => {
-	    if (adType === "adsgram") return appSettings?.adsgramDiamondPerAd ?? 2;
-	    if (adType === "monetag") return appSettings?.monetagDiamondPerAd ?? 2;
-	    if (adType === "gigapub") return appSettings?.gigapubDiamondPerAd ?? 2;
-	    if (adType === "uslads")  return appSettings?.usladsDiamondPerAd  ?? 2;
-	    return 2;
-	  };
 
   const isCardLimitReached = (adType: string) =>
     getCardWatched(adType) >= getCardLimit(adType);
@@ -285,8 +271,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
             const watched      = getCardWatched(card.adType);
             const limit        = getCardLimit(card.adType);
 	            const reward       = getCardReward(card.adType);
-	            const diamondReward = getCardDiamondReward(card.adType);
-	            const limitReached = isCardLimitReached(card.adType);
+		            const limitReached = isCardLimitReached(card.adType);
             const isActive     = index === activeIndex;
             const isLoading    = isShowingAds && isActive;
 
@@ -344,10 +329,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                         <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
                         <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
                       </span>
-	                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-	                        <img src="/assets/diamonds.png" alt="Diamond" style={{ width: 20, height: 20, objectFit: "contain" }} />
-	                        <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{diamondReward}</span>
-	                      </span>
                     </div>
                   </div>
 

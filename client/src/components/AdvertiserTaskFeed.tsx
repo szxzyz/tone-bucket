@@ -124,10 +124,6 @@ function TaskCard({
               <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
               <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{reward.toLocaleString()}</span>
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <img src="/assets/diamonds.png" alt="Diamond" style={{ width: 20, height: 20, objectFit: "contain" }} />
-              <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>1</span>
-            </span>
           </div>
         </div>
         <button

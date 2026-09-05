@@ -41,7 +41,6 @@ export const users = pgTable("users", {
   balance: decimal("balance", { precision: 20, scale: 0 }).default("0"), // Gems stored as BIGINT (integer with large precision)
   usdBalance: decimal("usd_balance", { precision: 30, scale: 10 }).default("0"), // USD with high precision to prevent overflow
   tonBalance: decimal("ton_balance", { precision: 30, scale: 10 }).default("0"),
-  diamondBalance: decimal("diamond_balance", { precision: 30, scale: 0 }).default("0"),
   pdzBalance: decimal("pdz_balance", { precision: 30, scale: 10 }).default("0"),
   bugBalance: decimal("bug_balance", { precision: 30, scale: 10 }).default("0"), // BUG currency for withdrawal requirements
   withdrawBalance: decimal("withdraw_balance", { precision: 30, scale: 10 }),

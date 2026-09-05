@@ -2490,11 +2490,7 @@ function SettingsSection() {
     gigapubEnabled: true,
     usladsAdLimit: '10',
     usladsRewardPerAd: '125',
-    usladsDiamondPerAd: '2',
     usladsEnabled: true,
-    adsgramDiamondPerAd: '2',
-    monetagDiamondPerAd: '2',
-    gigapubDiamondPerAd: '2',
   });
 
   useEffect(() => {
@@ -2561,11 +2557,7 @@ function SettingsSection() {
         gigapubEnabled: settingsData.gigapubEnabled !== false,
         usladsAdLimit: settingsData.usladsAdLimit?.toString() || '50',
         usladsRewardPerAd: settingsData.usladsRewardPerAd?.toString() || '125',
-        usladsDiamondPerAd: settingsData.usladsDiamondPerAd?.toString() ?? '2',
         usladsEnabled: settingsData.usladsEnabled !== false,
-        adsgramDiamondPerAd: settingsData.adsgramDiamondPerAd?.toString() ?? '2',
-        monetagDiamondPerAd: settingsData.monetagDiamondPerAd?.toString() ?? '2',
-        gigapubDiamondPerAd: settingsData.gigapubDiamondPerAd?.toString() ?? '2',
       });
     }
   }, [settingsData]);
@@ -2586,19 +2578,15 @@ function SettingsSection() {
       const payload = {
         adsgramAdLimit: parseInt((settings as any).adsgramAdLimit) || 10,
         adsgramRewardPerAd: parseInt((settings as any).adsgramRewardPerAd) || 125,
-        adsgramDiamondPerAd: parseInt((settings as any).adsgramDiamondPerAd) || 0,
         adsgramEnabled: (settings as any).adsgramEnabled !== false,
         monetagAdLimit: parseInt((settings as any).monetagAdLimit) || 10,
         monetagRewardPerAd: parseInt((settings as any).monetagRewardPerAd) || 125,
-        monetagDiamondPerAd: parseInt((settings as any).monetagDiamondPerAd) || 0,
         monetagEnabled: (settings as any).monetagEnabled !== false,
         gigapubAdLimit: parseInt((settings as any).gigapubAdLimit) || 10,
         gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 125,
-        gigapubDiamondPerAd: parseInt((settings as any).gigapubDiamondPerAd) || 0,
         gigapubEnabled: (settings as any).gigapubEnabled !== false,
         usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 10,
         usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 125,
-        usladsDiamondPerAd: parseInt((settings as any).usladsDiamondPerAd) || 0,
         usladsEnabled: (settings as any).usladsEnabled !== false,
       };
       const response = await apiRequest('PUT', '/api/admin/settings', payload);
@@ -2792,15 +2780,6 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-blue-400"></i> Reward Per Ad (Diamond)
-                  </Label>
-                  <Input type="number" min="0" placeholder="2"
-                    value={(settings as any).adsgramDiamondPerAd}
-                    onChange={(e) => setSettings({ ...settings, adsgramDiamondPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramDiamondPerAd ?? 2} Diamond</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">
                     <i className="fas fa-power-off mr-1 text-emerald-400"></i> Status
                   </Label>
                   <div className="flex items-center gap-2 h-9">
@@ -2839,15 +2818,6 @@ function SettingsSection() {
                     value={(settings as any).monetagRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, monetagRewardPerAd: e.target.value } as any)} />
                   <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 125} Gold</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-blue-400"></i> Reward Per Ad (Diamond)
-                  </Label>
-                  <Input type="number" min="0" placeholder="2"
-                    value={(settings as any).monetagDiamondPerAd}
-                    onChange={(e) => setSettings({ ...settings, monetagDiamondPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagDiamondPerAd ?? 2} Diamond</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2892,15 +2862,6 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-blue-400"></i> Reward Per Ad (Diamond)
-                  </Label>
-                  <Input type="number" min="0" placeholder="2"
-                    value={(settings as any).gigapubDiamondPerAd}
-                    onChange={(e) => setSettings({ ...settings, gigapubDiamondPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubDiamondPerAd ?? 2} Diamond</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">
                     <i className="fas fa-power-off mr-1 text-emerald-400"></i> Status
                   </Label>
                   <div className="flex items-center gap-2 h-9">
@@ -2939,15 +2900,6 @@ function SettingsSection() {
                     value={(settings as any).usladsRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, usladsRewardPerAd: e.target.value } as any)} />
                   <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 125} Gold</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-blue-400"></i> Reward Per Ad (Diamond)
-                  </Label>
-                  <Input type="number" min="0" placeholder="2"
-                    value={(settings as any).usladsDiamondPerAd}
-                    onChange={(e) => setSettings({ ...settings, usladsDiamondPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsDiamondPerAd ?? 2} Diamond</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">

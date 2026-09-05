@@ -51,7 +51,7 @@ const BLUE = '#3b82f6';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, diamondReward = 1, isCompleted, isClaimed, onAction, onClaim }: any) {
+function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, isCompleted, isClaimed, onAction, onClaim }: any) {
   return (
     <div
       style={{
@@ -83,10 +83,6 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, dia
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff' }}>
             <img src="/assets/gold-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
             <span style={{ fontSize: 16, fontWeight: 900, color: '#ffffff' }}>{Number(goldReward).toLocaleString()}</span>
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff' }}>
-            <img src="/assets/diamonds.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-            <span style={{ fontSize: 16, fontWeight: 900, color: '#ffffff' }}>{Number(diamondReward).toLocaleString()}</span>
           </span>
         </div>
       </div>
@@ -861,7 +857,6 @@ export default function Home() {
               subtitle=""
               buttonLabel="Go"
               goldReward={100}
-              diamondReward={1}
               isCompleted={missionStatus?.checkForUpdates?.completed}
               isClaimed={missionStatus?.checkForUpdates?.claimed}
               onAction={() => {
@@ -885,7 +880,6 @@ export default function Home() {
               subtitle=""
               buttonLabel="Share"
               goldReward={100}
-              diamondReward={1}
               isCompleted={missionStatus?.shareReferral?.completed}
               isClaimed={missionStatus?.shareReferral?.claimed}
               onAction={async () => {

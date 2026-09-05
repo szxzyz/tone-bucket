@@ -103,7 +103,6 @@ export async function ensureDatabaseSchema(): Promise<void> {
         pending_referral_bonus DECIMAL(12, 8) DEFAULT '0',
         total_claimed_referral_bonus DECIMAL(12, 8) DEFAULT '0',
         ton_balance DECIMAL(30, 10) DEFAULT '0',
-        diamond_balance DECIMAL(30, 0) DEFAULT '0',
         usd_balance DECIMAL(30, 10) DEFAULT '0',
         pdz_balance DECIMAL(30, 10) DEFAULT '0',
         bug_balance DECIMAL(30, 10) DEFAULT '0',
@@ -619,7 +618,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
           ALTER TABLE users ADD COLUMN IF NOT EXISTS suspicion_score INTEGER DEFAULT 0;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS platform VARCHAR(20);
           ALTER TABLE users ADD COLUMN IF NOT EXISTS monetag_ads_watched_today INTEGER DEFAULT 0;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS diamond_balance DECIMAL(30, 0) DEFAULT 0;
+          ALTER TABLE users DROP COLUMN IF EXISTS diamond_balance;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS gigapub_ads_watched_today INTEGER DEFAULT 0;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS uslads_ads_watched_today INTEGER DEFAULT 0;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_message_sent BOOLEAN DEFAULT false;

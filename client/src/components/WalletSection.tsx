@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Clock, Shield } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
-import { DiamondIcon } from "@/components/DiamondIcon";
 
 
 interface WalletSectionProps {

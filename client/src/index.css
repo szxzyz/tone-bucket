@@ -221,8 +221,7 @@
   font-size: 14px;
 }
 
-/* Remove all diamond/glow effects */
-.frosted-glass, .diamond-glow, .neon-glow-border, .neon-glow-border-strong {
+.frosted-glass, .neon-glow-border, .neon-glow-border-strong {
   background: #171717 !important;
   border: none !important;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5) !important;
