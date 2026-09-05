@@ -7,7 +7,7 @@ import { showNotification } from '@/components/AppNotification';
 import { useAuth } from '@/hooks/useAuth';
 
 const GEMS_PER_USD = 100000;
-const CARD = '#171717';
+const CARD = '#333333';
 const TEXT_DIM = 'rgba(255,255,255,0.38)';
 
 type WithdrawalHistoryItem = {
@@ -447,7 +447,7 @@ export default function Withdraw() {
                 const statusColor = getHistoryStatusColor(status);
                 const walletAddress = getHistoryWalletAddress(withdrawal);
                 return (
-                  <div key={withdrawal.id} style={{ background: '#171717', borderRadius: 16, overflow: 'hidden' }}>
+                  <div key={withdrawal.id} style={{ background: '#333333', borderRadius: 16, overflow: 'hidden' }}>
                     <div className="flex items-center justify-between gap-3" style={{ padding: '17px 16px', background: 'rgba(255,255,255,0.025)' }}>
                       <div className="flex items-center gap-3" style={{ minWidth: 0 }}>
                         <span style={{ color: '#fff', fontSize: 23, fontWeight: 700, fontFamily: 'Roboto Mono', letterSpacing: '-0.4px', lineHeight: 1 }}>

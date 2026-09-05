@@ -185,7 +185,7 @@ export default function Affiliates() {
             onClick={inviteFriends}
             disabled={isSharing || !user?.referralCode}
             className="flex-1 h-14 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
-            style={{ background: '#2B2B2B' }}
+            style={{ background: '#333333' }}
           >
             <Send className="w-5 h-5 text-white" />
             <span className="text-white font-bold tracking-widest text-sm">Invite Friends</span>
@@ -196,7 +196,7 @@ export default function Affiliates() {
             onClick={copyLink}
             disabled={!user?.referralCode}
             className="w-14 h-14 rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0"
-            style={{ background: '#2B2B2B' }}
+            style={{ background: '#333333' }}
             title="Copy referral link"
           >
             <Copy className="w-5 h-5 text-white" />
@@ -206,7 +206,7 @@ export default function Affiliates() {
                 {/* Income from friends */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-1">Income from friends</div>
         {[{ level: 1, income: l1Income, count: l1Count, percent: l1Percent }, { level: 2, income: l2Income, count: l2Count, percent: l2Percent }].map(({ level, income, count, percent }) => (
-          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#171717' }}>
+          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#333333' }}>
             <div className="flex items-center justify-between px-3 pt-3">
               <div className="min-w-0">
                 <div className="text-white text-[15px] font-extrabold">Income to collect</div>

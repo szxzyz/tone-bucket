@@ -105,7 +105,7 @@ function ParticipantCard({
   const metricValue = isMonthly ? `#${rank}` : score.toLocaleString();
 
   return (
-    <div style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#171717", border: isMe ? "1px solid rgba(59,130,246,0.65)" : "none", marginBottom: 12 }}>
+    <div style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#333333", border: isMe ? "1px solid rgba(59,130,246,0.65)" : "none", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, overflow: "hidden", background: "#2b2b2b", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {avatarUrl ? (
