@@ -649,16 +649,6 @@ export default function Home() {
 
       <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#000000' }}>
 
-        {/* Giveaway */}
-        <section style={{ marginTop: 0, marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            Giveaway
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, paddingLeft: 4 }}>
-            take part in giveaway and get rewards.
-          </div>
-        </section>
-
         {/* Banner Carousel */}
         <div className="mt-1 mb-2.5 relative overflow-hidden rounded-2xl shrink-0" style={{ height: 'clamp(80px, 12vh, 96px)', touchAction: 'pan-x' }}>
           <div 

@@ -1,7 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Home as HomeIcon, HeartHandshake, ListChecks, ShieldCheck, Trophy, Wallet } from "lucide-react";
+import { Home as HomeIcon, HeartHandshake, ListChecks, ShieldCheck, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ACTIVE = "#ffffff";
@@ -11,7 +11,6 @@ const TABS = [
   { id: "rewards", label: "Home",    path: "/rewards", icon: HomeIcon       },
   { id: "quests",  label: "Quests",  path: "/quests",  icon: ListChecks     },
   { id: "friend",  label: "Friends", path: "/friend",  icon: HeartHandshake },
-  { id: "contest", label: "Contest", path: "/contest", icon: Trophy         },
   { id: "withdraw", label: "Withdraw", path: "/withdraw", icon: Wallet       },
 ] as const;
 
@@ -28,7 +27,6 @@ export default function BottomNav() {
 
   const isOn = (tab: typeof TABS[number]) =>
     location === tab.path ||
-    (tab.id === "contest" && (location.startsWith("/contest") || location.startsWith("/leaderboard"))) ||
     (tab.id === "quests" && location.startsWith("/quests")) ||
     (tab.id === "rewards" && (location === "/" || location.startsWith("/rewards")));
 

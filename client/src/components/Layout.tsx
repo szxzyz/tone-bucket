@@ -6,7 +6,6 @@ import Header from "@/components/Header";
 import { useSeasonEnd } from "@/lib/SeasonEndContext";
 import BanScreen from "@/components/BanScreen";
 import BottomNav from "@/components/BottomNav";
-import TelegramJoinGate from "@/components/TelegramJoinGate";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -57,7 +56,6 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {!showSeasonEnd && <BottomNav />}
-      <TelegramJoinGate />
     </div>
   );
 }
