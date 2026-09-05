@@ -167,7 +167,7 @@ export default function PromoCodeInput() {
         display: "flex", 
         gap: 14, // Match Daily Rewards gap
         alignItems: "center",
-        background: "#333333", // Match other sections
+        background: "#171717", // Match other sections
         borderRadius: 14,
         padding: "16px 16px", // Match Daily Rewards padding
       }}>
@@ -190,7 +190,7 @@ export default function PromoCodeInput() {
           style={{
             flex: 1,
             height: 40,
-            background: "#333333", // Darker pill background
+            background: "#2B2B2B", // Darker pill background
             border: "none",
             borderRadius: 20, // Rounded pill shape
             color: "#fff",

@@ -292,7 +292,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
             return (
               <div key={card.id}
-                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#333333", cursor: "pointer", border: "none" }}
+                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#171717", cursor: "pointer", border: "none" }}
                 onClick={() => {
                   if (index !== activeIndex) { setActiveIndex(index); return; }
                   handleStartEarning(card.id);

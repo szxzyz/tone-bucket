@@ -5,48 +5,42 @@
 @tailwind utilities;
 
 :root {
-  --background: #1F1F1F;
-  --section: #333333;
-  --button-shadow: #161616;
+  --background: #000000;
   --foreground: #FFFFFF;
-  --card: #333333;
+  --card: #171717;
   --card-foreground: #FFFFFF;
-  --popover: #333333;
+  --popover: #171717;
   --popover-foreground: #FFFFFF;
   --primary: #007BFF;
   --primary-foreground: #FFFFFF;
-  --secondary: #333333;
+  --secondary: #2B2B2B;
   --secondary-foreground: #CCCCCC;
-  --muted: #333333;
+  --muted: #171717;
   --muted-foreground: #AAAAAA;
-  --accent: #333333;
+  --accent: #171717;
   --accent-foreground: #FFFFFF;
   --destructive: #ef4444;
   --destructive-foreground: #FFFFFF;
-  --border: #333333;
-  --input: #333333;
+  --border: #2B2B2B;
+  --input: #2B2B2B;
   --ring: #007BFF;
   --chart-1: #007BFF;
   --chart-2: #00A8E8;
   --chart-3: #00C9A7;
   --chart-4: #007BFF;
   --chart-5: #00A8E8;
-  --sidebar: #1F1F1F;
+  --sidebar: #000000;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #007BFF;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #333333;
+  --sidebar-accent: #1A1A1A;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #333333;
+  --sidebar-border: #2A2A2A;
   --sidebar-ring: #007BFF;
   --font-sans: "Roboto Mono";
   --font-serif: "Roboto Mono";
   --font-mono: "Roboto Mono";
   --radius: 20px;
-}
-
-.bg-black {
-  background-color: #1F1F1F !important;
 }
 
 @layer base {
@@ -57,13 +51,13 @@
   html {
     overflow: hidden;
     height: 100dvh; /* Dynamic viewport height */
-    background: #1F1F1F;
+    background: #000000;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply font-sans antialiased text-foreground;
-    background: #1F1F1F;
+    background: #000000;
     font-family: "Roboto Mono";
     font-weight: 400;
     overflow: hidden;
@@ -84,7 +78,7 @@
 
   input, textarea, select {
     font-family: "Roboto Mono";
-    background-color: #333333 !important;
+    background-color: #2B2B2B !important;
     border: 1px solid #333333 !important;
     outline: none !important;
     color: #FFFFFF !important;
@@ -138,11 +132,6 @@
   button {
     font-family: "Roboto Mono";
     transition: all 0.2s ease;
-    box-shadow: 0 6px 14px var(--button-shadow) !important;
-  }
-
-  button:disabled {
-    box-shadow: none !important;
   }
 
   #root {
@@ -168,19 +157,19 @@
 
 /* Minimal Dark Theme Card Styling */
 .minimal-card {
-  background: #333333;
+  background: #171717;
   border-radius: 20px;
-  box-shadow: 0px 4px 12px var(--button-shadow);
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .minimal-card-inner {
-  background: #333333;
+  background: #2B2B2B;
   border-radius: 16px;
 }
 
 /* Task Box Styling (like reference image) */
 .task-box {
-  background: #333333;
+  background: #171717;
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
@@ -236,7 +225,7 @@
 .frosted-glass, .diamond-glow, .neon-glow-border, .neon-glow-border-strong {
   background: #171717 !important;
   border: none !important;
-  box-shadow: 0px 4px 12px var(--button-shadow) !important;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Animation utilities */
