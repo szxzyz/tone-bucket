@@ -175,7 +175,7 @@ const ResetCountdownBanner = () => {
   return (
     <div
       style={{
-        background: "#7337F1",
+        background: "#210E40",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
