@@ -6,7 +6,7 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, isC
     <div
       style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px',
-        width: '100%', boxSizing: 'border-box', background: '#9660F5',
+        width: '100%', boxSizing: 'border-box', background: '#171717',
         borderRadius: 14, marginBottom: 10,
       }}
       onClick={isClaimed ? undefined : (isCompleted ? onClaim : onAction)}

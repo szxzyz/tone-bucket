@@ -558,7 +558,7 @@ export default function Home() {
   return (
     <Layout>
 
-      <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#220E42' }}>
+      <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#000000' }}>
 
         {/* Banner Carousel */}
         <div className="mt-1 mb-2.5 relative overflow-hidden rounded-2xl shrink-0" style={{ height: 'clamp(80px, 12vh, 96px)', touchAction: 'pan-x' }}>
@@ -689,7 +689,7 @@ export default function Home() {
             Complete daily task and get rewards
           </div>
 
-          <div style={{ background: '#9660F5', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: '#171717', borderRadius: 14, overflow: 'hidden' }}>
             {/* Daily Check-In */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
               <img

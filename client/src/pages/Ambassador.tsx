@@ -278,7 +278,7 @@ export default function Ambassador() {
   if (statusLoading) {
     return (
       <Layout>
-        <main className="max-w-md mx-auto px-4 pt-4 bg-[#220E42]">
+        <main className="max-w-md mx-auto px-4 pt-4 bg-black">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-white/30 animate-spin" />
           </div>
@@ -291,7 +291,7 @@ export default function Ambassador() {
   if (status?.application?.status === "pending" && !status?.isAmbassador) {
     return (
       <Layout>
-        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-[#220E42]">
+        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
           <div className="mb-6">
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">
               {t("under_review_title")}
@@ -333,7 +333,7 @@ export default function Ambassador() {
   if (status?.application?.status === "rejected" && !status?.isAmbassador) {
     return (
       <Layout>
-        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-[#220E42]">
+        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
           <div className="mb-6">
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">
               {t("not_approved_title")}
@@ -379,7 +379,7 @@ export default function Ambassador() {
 
     return (
       <Layout>
-        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-[#220E42]">
+        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
 
           {/* Header */}
           <div className="mb-4">
@@ -892,7 +892,7 @@ export default function Ambassador() {
 
   return (
     <Layout>
-      <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-[#220E42]">
+      <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
 
         {/* Header */}
         <div className="mb-6">
