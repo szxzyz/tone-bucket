@@ -4,7 +4,6 @@ import { forwardRef, useImperativeHandle } from "react";
 import { Plus, Clock } from "lucide-react";
 import DepositPopup from "@/components/DepositPopup";
 import { TonIcon } from "@/components/TonIcon";
-import { useLocation } from "wouter";
 
 interface HeaderProps {
   onMenuOpen?: () => void;
@@ -21,7 +20,6 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     const [overlayTop, setOverlayTop] = useState(0);
     const [depositOpen, setDepositOpen] = useState(false);
     const innerRef = useRef<HTMLDivElement>(null);
-    const [, setLocation] = useLocation();
 
     useImperativeHandle(ref, () => innerRef.current!);
 
@@ -85,11 +83,11 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
         ref={innerRef}
         className="fixed top-0 left-0 right-0 z-40"
         style={{
-          background: "#7337F1",
+          background: "#210E40",
           paddingTop: `${overlayTop + 6}px`,
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,
-          boxShadow: "0 4px 18px rgba(115,55,241,0.35)",
+          boxShadow: "0 4px 18px rgba(33,14,64,0.45)",
         }}
       >
         <ResetCountdownBanner />
@@ -112,29 +110,18 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             <button
               onClick={() => setDepositOpen(true)}
               aria-label="Top up TON balance"
-              style={{ minWidth: 116, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '6px 9px', background: 'rgba(0,152,234,0.13)', border: '1px solid rgba(0,152,234,0.28)', borderRadius: 11, cursor: 'pointer' }}
+              style={{ minWidth: 116, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '6px 9px', background: 'rgba(255,255,255,0.04)', border: 'none', borderRadius: 11, cursor: 'pointer' }}
               className="active:scale-95 transition-transform"
             >
               <TonIcon size={22} />
               <span style={{ color: '#fff', fontSize: 14, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {tonBalance === null || !Number.isFinite(tonBalance) ? '—' : tonBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
               </span>
-              <span style={{ width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#0098EA', color: '#fff' }}>
+              <span style={{ width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'rgba(255,255,255,0.16)', color: '#fff' }}>
                 <Plus size={12} strokeWidth={3} />
               </span>
             </button>
           </div>
-
-          {/* Right — universal Add Task button */}
-          <button
-            onClick={() => setLocation('/tasks/create')}
-            style={{ height: 36, boxSizing: 'border-box', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 12px', border: 'none', borderRadius: 11, background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap' }}
-            className="active:scale-95 transition-transform"
-            aria-label="Add Task"
-          >
-            <Plus size={16} strokeWidth={3} />
-            Add Task
-          </button>
 
         </div>
         <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />

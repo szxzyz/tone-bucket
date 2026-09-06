@@ -678,95 +678,54 @@ export default function Home() {
           <PromoCodeInput />
         </section>
 
-        {/* Daily Task: Check-In, Mystery Gift, and daily missions */}
+        {/* Daily Rewards */}
         <style>{`@keyframes spin-hdc { to { transform: rotate(360deg); } }`}</style>
-
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            Daily Task
+        <section style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>
+            Daily Rewards
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
-            Complete daily task and get rewards
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, background: '#171717', borderRadius: 16, padding: 10 }}>
+            <button
+              type="button"
+              disabled
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.45)', padding: '6px 2px', cursor: 'not-allowed' }}
+            >
+              <span style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 16, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <Repeat size={28} strokeWidth={2.2} />
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 800 }}>Spin</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)' }}>Coming soon</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCheckinSheetOpen(true)}
+              disabled={checkinStatus?.alreadyClaimedToday}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.35)' : '#fff', padding: '6px 2px', cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer' }}
+              className="active:scale-95 transition-transform"
+            >
+              <span style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 16, background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.04)' : 'rgba(115,55,241,0.22)', border: '1px solid rgba(115,55,241,0.35)' }}>
+                <img src="/assets/check-in.png" alt="Check-in" style={{ width: 34, height: 34, objectFit: 'contain' }} />
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 800 }}>Check-in</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.45)' }}>{checkinStatus?.alreadyClaimedToday ? 'Done' : 'Claim'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleMysteryOpen}
+              disabled={mysteryOpened || mysteryAdLoading}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: mysteryOpened ? 'rgba(255,255,255,0.35)' : '#fff', padding: '6px 2px', cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer' }}
+              className="active:scale-95 transition-transform"
+            >
+              <span style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 16, background: mysteryOpened ? 'rgba(255,255,255,0.04)' : 'rgba(115,55,241,0.22)', border: '1px solid rgba(115,55,241,0.35)' }}>
+                {mysteryAdLoading ? <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin-hdc 0.7s linear infinite' }} /> : <img src="/assets/mystery-box.png" alt="Mystery Gift" style={{ width: 34, height: 34, objectFit: 'contain' }} />}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 800 }}>Mystery Gift</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: mysteryOpened ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.45)' }}>{mysteryOpened ? 'Done' : 'Open'}</span>
+            </button>
           </div>
-          
-          <div style={{ background: '#171717', borderRadius: 14, overflow: 'hidden' }}>
-            {/* Daily Check-In */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-              <img 
-                src="/assets/check-in.png" 
-                alt="Daily Check-In" 
-                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} 
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setCheckinSheetOpen(true)}
-                disabled={checkinStatus?.alreadyClaimedToday}
-                style={{
-                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                  color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.3)' : '#fff',
-                  border: 'none',
-                  width: 76, height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
-                  cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer',
-                  flexShrink: 0, letterSpacing: '0.03em',
-                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                }}
-                className="active:scale-95 transition-transform"
-              >
-                {checkinStatus?.alreadyClaimedToday ? 'DONE' : 'CLAIM'}
-              </button>
-            </div>
-
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />
-
-            {/* Mystery Gift */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-              <img 
-                src="/assets/mystery-box.png" 
-                alt="Mystery Gift" 
-                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} 
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    1–500
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={handleMysteryOpen}
-                disabled={mysteryOpened || mysteryAdLoading}
-                style={{
-                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                  color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
-                  border: 'none',
-                  width: 76, height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
-                  cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer', flexShrink: 0,
-                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, letterSpacing: '0.03em',
-                }}
-                className="active:scale-95 transition-transform"
-              >
-                {mysteryAdLoading ? (
-                  <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin-hdc 0.7s linear infinite' }} />
-                ) : mysteryOpened ? 'DONE' : 'OPEN'}
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        <AdWatchingSection user={user} hideTitle={false} />
+        </section>
 
           <DailyCheckinSheet
             open={checkinSheetOpen}
