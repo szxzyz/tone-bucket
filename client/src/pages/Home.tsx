@@ -7,7 +7,7 @@ import React from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAdSession } from "@/hooks/useAdSession";
 import { useLocation } from "wouter";
-import { Clock, Loader2, Send, ExternalLink, Shield, Play, Repeat, Layers, Share2 } from "lucide-react";
+import { Clock, Loader2, Send, ExternalLink, Shield, Play, Rocket, Layers, Share2 } from "lucide-react";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { CHECKIN_REWARDS } from "@/components/DailyCheckinSheet";
 import { showNotification } from "@/components/AppNotification";
@@ -687,7 +687,9 @@ export default function Home() {
               disabled
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.45)', padding: '6px 2px', cursor: 'not-allowed' }}
             >
-              <Repeat size={34} strokeWidth={2.2} />
+              <span style={{ width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 22, background: '#080a08', boxShadow: '0 8px 0 rgba(0,0,0,0.18)' }}>
+                <Rocket size={36} strokeWidth={2.2} color="#b8ff3d" />
+              </span>
               <span style={{ fontSize: 12, fontWeight: 800 }}>Spin</span>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)' }}>Coming soon</span>
             </button>
@@ -699,7 +701,9 @@ export default function Home() {
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.35)' : '#fff', padding: '6px 2px', cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer' }}
               className="active:scale-95 transition-transform"
             >
-              <img src="/assets/check-in.png" alt="Check-in" style={{ width: 34, height: 34, objectFit: 'contain' }} />
+              <span style={{ width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 22, background: '#080a08', boxShadow: '0 8px 0 rgba(0,0,0,0.18)' }}>
+                <img src="/assets/check-in.png" alt="Check-in" style={{ width: 42, height: 42, objectFit: 'contain' }} />
+              </span>
               <span style={{ fontSize: 12, fontWeight: 800 }}>Check-in</span>
               <span style={{ fontSize: 10, fontWeight: 700, color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.45)' }}>{checkinStatus?.alreadyClaimedToday ? 'Done' : 'Claim'}</span>
             </button>
@@ -711,7 +715,9 @@ export default function Home() {
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: mysteryOpened ? 'rgba(255,255,255,0.35)' : '#fff', padding: '6px 2px', cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer' }}
               className="active:scale-95 transition-transform"
             >
-              {mysteryAdLoading ? <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin-hdc 0.7s linear infinite' }} /> : <img src="/assets/mystery-box.png" alt="Mystery Gift" style={{ width: 34, height: 34, objectFit: 'contain' }} />}
+              <span style={{ width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 22, background: '#080a08', boxShadow: '0 8px 0 rgba(0,0,0,0.18)' }}>
+                {mysteryAdLoading ? <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin-hdc 0.7s linear infinite' }} /> : <img src="/assets/mystery-box.png" alt="Mystery Gift" style={{ width: 42, height: 42, objectFit: 'contain' }} />}
+              </span>
               <span style={{ fontSize: 12, fontWeight: 800 }}>Mystery Gift</span>
               <span style={{ fontSize: 10, fontWeight: 700, color: mysteryOpened ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.45)' }}>{mysteryOpened ? 'Done' : 'Open'}</span>
             </button>
