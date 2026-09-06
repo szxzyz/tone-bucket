@@ -101,7 +101,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
 
           {/* Left — Gold balance and TON top-up balance */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
+            <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
               <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
               <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {axnBalance === null || !Number.isFinite(axnBalance) ? '—' : axnBalance.toLocaleString()}
