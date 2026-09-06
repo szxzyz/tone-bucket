@@ -83,11 +83,11 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
         ref={innerRef}
         className="fixed top-0 left-0 right-0 z-40"
         style={{
-          background: "#7337F1",
+          background: "#000000",
           paddingTop: `${overlayTop + 6}px`,
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,
-          boxShadow: "0 4px 18px rgba(115,55,241,0.35)",
+          boxShadow: "0 4px 18px rgba(0,0,0,0.45)",
         }}
       >
         <ResetCountdownBanner />
@@ -175,7 +175,7 @@ const ResetCountdownBanner = () => {
   return (
     <div
       style={{
-        background: "#7337F1",
+        background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
