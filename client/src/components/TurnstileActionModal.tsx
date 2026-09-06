@@ -206,15 +206,15 @@ export default function TurnstileActionModal({
           {/* Status icon */}
           <div style={{
             width: 48, height: 48, borderRadius: "50%",
-            background: isErr ? "rgba(255,160,0,0.1)" : "rgba(0,123,255,0.1)",
-            border: `1.5px solid ${isErr ? "rgba(255,160,0,0.3)" : "rgba(0,123,255,0.25)"}`,
+            background: isErr ? "rgba(255,160,0,0.1)" : "rgba(61,21,128,0.12)",
+            border: `1.5px solid ${isErr ? "rgba(255,160,0,0.3)" : "rgba(61,21,128,0.25)"}`,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {state === "loading"
-              ? <Loader2 size={22} style={{ color: "#007BFF", animation: "spin 1s linear infinite" }} />
+              ? <Loader2 size={22} style={{ color: "#6b21a8", animation: "spin 1s linear infinite" }} />
               : isErr
                 ? <AlertTriangle size={22} style={{ color: "#ffa000" }} />
-                : <ShieldCheck size={22} style={{ color: "#007BFF" }} />
+                : <ShieldCheck size={22} style={{ color: "#6b21a8" }} />
             }
           </div>
 
@@ -258,7 +258,7 @@ export default function TurnstileActionModal({
               onClick={retry}
               style={{
                 display: "flex", alignItems: "center", gap: 7,
-                background: "#007BFF", color: "#fff",
+                background: "#6b21a8", color: "#fff",
                 border: "none", borderRadius: 10,
                 padding: "10px 22px", fontSize: 14, fontWeight: 600,
                 cursor: "pointer", width: "100%", justifyContent: "center",

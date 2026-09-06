@@ -163,8 +163,8 @@ export default function PromoCodeInput() {
       )}
 
       {/* Single Line Input Row - Refined Sizes */}
-      <div style={{ 
-        display: "flex", 
+      <div style={{
+        display: "flex",
         gap: 14, // Match Daily Rewards gap
         alignItems: "center",
         background: "#171717", // Match other sections
@@ -172,7 +172,7 @@ export default function PromoCodeInput() {
         padding: "16px 16px", // Match Daily Rewards padding
       }}>
         <Ticket size={26} color="rgba(255,255,255,0.7)" strokeWidth={2} style={{ flexShrink: 0 }} />
-        
+
         <input
           value={promoCode}
           onChange={e => { setPromoCode(e.target.value.toUpperCase()); setInlineError(null); setChannelRequired(null); }}
@@ -209,13 +209,13 @@ export default function PromoCodeInput() {
           onClick={handleSubmit}
           disabled={isDisabled}
           style={{
-            background: isDisabled ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            background: isDisabled ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
             color: isDisabled ? 'rgba(255,255,255,0.3)' : '#fff',
             border: 'none',
             width: 76, height: 38, borderRadius: 10, fontSize: 12, fontWeight: 800,
             cursor: isDisabled ? 'not-allowed' : 'pointer',
             flexShrink: 0, letterSpacing: '0.03em',
-            boxShadow: isDisabled ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+            boxShadow: isDisabled ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}
           className={isDisabled ? "" : "active:scale-95 transition-transform"}

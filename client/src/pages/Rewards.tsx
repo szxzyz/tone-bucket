@@ -162,14 +162,14 @@ function NFTDetailsSheet({
             <button
               onClick={() => setSelectedIndex(index => Math.max(0, index - 1))}
               disabled={selectedIndex === 0}
-              style={{ flex: 1, padding: '11px 0', border: '1px solid rgba(255,255,255,0.08)', background: selectedIndex === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(37,99,235,0.12)', color: selectedIndex === 0 ? 'rgba(255,255,255,0.2)' : '#93c5fd', fontSize: 12, fontWeight: 800, cursor: selectedIndex === 0 ? 'not-allowed' : 'pointer', clipPath: 'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)' }}
+              style={{ flex: 1, padding: '11px 0', border: '1px solid rgba(255,255,255,0.08)', background: selectedIndex === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(61,21,128,0.15)', color: selectedIndex === 0 ? 'rgba(255,255,255,0.2)' : '#d8b4fe', fontSize: 12, fontWeight: 800, cursor: selectedIndex === 0 ? 'not-allowed' : 'pointer', clipPath: 'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)' }}
             >
               ← Previous
             </button>
             <button
               onClick={() => setSelectedIndex(index => Math.min(sortedMachines.length - 1, index + 1))}
               disabled={selectedIndex === sortedMachines.length - 1}
-              style={{ flex: 1, padding: '11px 0', border: '1px solid rgba(255,255,255,0.08)', background: selectedIndex === sortedMachines.length - 1 ? 'rgba(255,255,255,0.03)' : 'rgba(37,99,235,0.12)', color: selectedIndex === sortedMachines.length - 1 ? 'rgba(255,255,255,0.2)' : '#93c5fd', fontSize: 12, fontWeight: 800, cursor: selectedIndex === sortedMachines.length - 1 ? 'not-allowed' : 'pointer', clipPath: 'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)' }}
+              style={{ flex: 1, padding: '11px 0', border: '1px solid rgba(255,255,255,0.08)', background: selectedIndex === sortedMachines.length - 1 ? 'rgba(255,255,255,0.03)' : 'rgba(61,21,128,0.15)', color: selectedIndex === sortedMachines.length - 1 ? 'rgba(255,255,255,0.2)' : '#d8b4fe', fontSize: 12, fontWeight: 800, cursor: selectedIndex === sortedMachines.length - 1 ? 'not-allowed' : 'pointer', clipPath: 'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)' }}
             >
               Next →
             </button>
@@ -304,12 +304,12 @@ function FarmingCard({
             disabled={totalUnclaimed < 1}
              style={{
                flex: 3, padding: '11px 0', border: 'none',
-               background: totalUnclaimed >= 1 ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'rgba(255,255,255,0.06)',
+               background: totalUnclaimed >= 1 ? 'linear-gradient(135deg, #3d1580, #6b21a8)' : 'rgba(255,255,255,0.06)',
                cursor: totalUnclaimed >= 1 ? 'pointer' : 'not-allowed',
                display: 'flex', alignItems: 'center', justifyContent: 'center',
                color: totalUnclaimed >= 1 ? '#fff' : 'rgba(255,255,255,0.3)',
                fontSize: 12, fontWeight: 800, letterSpacing: '0.05em',
-               boxShadow: totalUnclaimed >= 1 ? '0 2px 12px rgba(37,99,235,0.35)' : 'none',
+               boxShadow: totalUnclaimed >= 1 ? '0 2px 12px rgba(61,21,128,0.35)' : 'none',
              }}
              className={totalUnclaimed >= 1 ? "active:scale-95 transition-transform" : ""}
           >
@@ -579,8 +579,8 @@ export default function Rewards() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes boxPulse {
-          0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
-          50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(37,99,235,0); }
+          0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(61,21,128,0.4); }
+          50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(61,21,128,0); }
         }
         @keyframes rewardIn {
           0% { transform: scale(0.5); opacity: 0; }
@@ -598,7 +598,7 @@ export default function Rewards() {
         <div style={{ marginBottom: 10 }}>
              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.3px' }}>
             <span style={{ color: '#fff' }}>Daily </span>
-            <span style={{ color: '#3b82f6' }}>Rewards</span>
+            <span style={{ color: '#6b21a8' }}>Rewards</span>
           </span>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>Complete daily tasks and get rewards.</div>
         </div>
@@ -626,13 +626,13 @@ export default function Rewards() {
               onClick={handleDailyCheck}
               disabled={dailyChecked || dailyAdLoading || dailyCheckMutation.isPending}
               style={{
-                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
                 color: dailyChecked ? 'rgba(255,255,255,0.3)' : '#fff',
                 border: 'none',
                  width: 76, height: 38, boxSizing: 'border-box', borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
                 cursor: (dailyChecked || dailyAdLoading) ? 'not-allowed' : 'pointer',
                 flexShrink: 0, letterSpacing: '0.03em',
-                boxShadow: dailyChecked ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                boxShadow: dailyChecked ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               }}
               className="active:scale-95 transition-transform"
@@ -662,12 +662,12 @@ export default function Rewards() {
               onClick={handleMysteryOpen}
                disabled={mysteryOpened || mysteryAdLoading}
               style={{
-                 background: mysteryOpened || mysteryAdLoading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                 background: mysteryOpened || mysteryAdLoading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
                 color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
                 border: 'none',
                  width: 76, height: 38, boxSizing: 'border-box', borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
                  cursor: mysteryOpened || mysteryAdLoading ? 'not-allowed' : 'pointer', flexShrink: 0,
-                 boxShadow: mysteryOpened || mysteryAdLoading ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                 boxShadow: mysteryOpened || mysteryAdLoading ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
                  display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.03em',
               }}
               className="active:scale-95 transition-transform"
@@ -682,7 +682,7 @@ export default function Rewards() {
           <div>
              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.3px' }}>
               <span style={{ color: '#fff' }}>My </span>
-              <span style={{ color: '#3b82f6' }}>NFTs</span>
+              <span style={{ color: '#6b21a8' }}>NFTs</span>
             </span>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>
               Rewards are generated only by NFTs you own.
@@ -706,10 +706,10 @@ export default function Rewards() {
               onClick={() => setLocation('/machine')}
               style={{
                 marginTop: 18, padding: '11px 22px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #3d1580, #6b21a8)',
                 color: '#fff', border: 'none', borderRadius: 12,
                 fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', cursor: 'pointer',
-                boxShadow: '0 2px 12px rgba(37,99,235,0.4)',
+                boxShadow: '0 2px 12px rgba(61,21,128,0.4)',
               }}
               className="active:scale-95 transition-transform"
             >
@@ -857,7 +857,7 @@ export default function Rewards() {
           <div style={{ textAlign: 'center' }}>
             <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               {mysteryPhase === 'intro' && (
-                <div style={{ width: 82, height: 82, borderRadius: '50%', background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 82, height: 82, borderRadius: '50%', background: 'linear-gradient(135deg, #1d4ed8, #3d1580)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7-4A2 2 0 0 0 21 16z"/>
                     <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -868,7 +868,7 @@ export default function Rewards() {
               {mysteryPhase === 'opening' && (
                 <div style={{
                   width: 82, height: 82, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                  background: 'linear-gradient(135deg, #1d4ed8, #3d1580)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: 'boxPulse 0.65s ease-in-out infinite',
                 }}>
@@ -882,7 +882,7 @@ export default function Rewards() {
               {(mysteryPhase === 'revealed' || mysteryPhase === 'claiming') && (
                 <div style={{ animation: 'rewardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both' }}>
                   <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-2px' }}>{mysteryReward}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#3b82f6', marginTop: 6 }}>GRAM</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#6b21a8', marginTop: 6 }}>GRAM</div>
                 </div>
               )}
               {mysteryPhase === 'done' && (
@@ -912,9 +912,9 @@ export default function Rewards() {
 
              {mysteryPhase === 'intro' && (
                <button onClick={handleMysteryStart} style={{
-                 width: '100%', padding: '14px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                 width: '100%', padding: '14px', background: 'linear-gradient(135deg, #3d1580, #6b21a8)',
                  border: 'none', borderRadius: 50, color: '#fff', fontSize: 14, fontWeight: 800,
-                 cursor: 'pointer', boxShadow: '0 4px 20px rgba(37,99,235,0.4)',
+                 cursor: 'pointer', boxShadow: '0 4px 20px rgba(61,21,128,0.4)',
                }} className="active:scale-95 transition-transform">
                  Watch 2 Ads
                </button>
@@ -922,17 +922,17 @@ export default function Rewards() {
              {mysteryPhase === 'revealed' && (
               <button onClick={handleMysteryClaim} style={{
                 width: '100%', padding: '14px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #3d1580, #6b21a8)',
                 border: 'none', borderRadius: 50, color: '#fff',
                 fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 20px rgba(61,21,128,0.4)',
               }} className="active:scale-95 transition-transform">
                  Open Reward
               </button>
             )}
             {(mysteryPhase === 'opening' || mysteryPhase === 'claiming') && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#3b82f6', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#6b21a8', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Please wait</span>
               </div>
             )}

@@ -134,7 +134,7 @@ export default function TopUpSheet({ trigger }: TopUpSheetProps) {
     <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerTrigger asChild>
         {trigger || (
-          <button className="flex items-center gap-1 text-[#4cd3ff] hover:text-[#6ddeff] transition-colors text-xs font-medium cursor-pointer">
+          <button className="flex items-center gap-1 text-[#6b21a8] hover:text-[#6ddeff] transition-colors text-xs font-medium cursor-pointer">
             <Plus className="w-3.5 h-3.5" />
             Top up
           </button>
@@ -156,8 +156,8 @@ export default function TopUpSheet({ trigger }: TopUpSheetProps) {
                   disabled={isLoading}
                   className={`py-3 px-3 rounded-xl border transition-all text-sm font-semibold ${
                     tonAmount === amount.toString()
-                      ? "bg-[#4cd3ff] text-black border-[#4cd3ff]"
-                      : "bg-[#0d0d0d] text-white border-white/20 hover:border-[#4cd3ff]/50"
+                      ? "bg-[#6b21a8] text-black border-[#6b21a8]"
+                      : "bg-[#0d0d0d] text-white border-white/20 hover:border-[#6b21a8]/50"
                   }`}
                 >
                   {amount}
@@ -172,7 +172,7 @@ export default function TopUpSheet({ trigger }: TopUpSheetProps) {
               value={tonAmount}
               onChange={handleInputChange}
               disabled={isLoading}
-              className="bg-[#0d0d0d] border border-white/20 rounded-xl text-white placeholder:text-gray-500 px-4 py-3 h-12 text-center text-lg font-semibold focus:border-[#4cd3ff] focus:ring-0"
+              className="bg-[#0d0d0d] border border-white/20 rounded-xl text-white placeholder:text-gray-500 px-4 py-3 h-12 text-center text-lg font-semibold focus:border-[#6b21a8] focus:ring-0"
             />
 
             {validationError && (
@@ -189,7 +189,7 @@ export default function TopUpSheet({ trigger }: TopUpSheetProps) {
               <Button
                 onClick={handlePay}
                 disabled={!tonAmount || isLoading || !!validationError}
-                className="flex-1 h-11 bg-[#4cd3ff] hover:bg-[#6ddeff] text-black font-semibold rounded-xl disabled:opacity-50"
+                className="flex-1 h-11 bg-[#6b21a8] hover:bg-[#6ddeff] text-black font-semibold rounded-xl disabled:opacity-50"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay"}
               </Button>
@@ -205,8 +205,8 @@ export default function TopUpSheet({ trigger }: TopUpSheetProps) {
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {deposits.map((deposit) => (
                     <div key={deposit.id} className="flex items-center gap-3 bg-[#1a1a1a] rounded-lg p-2">
-                      <div className="w-8 h-8 rounded-full bg-[#4cd3ff]/10 flex items-center justify-center">
-                        <CreditCard className="w-4 h-4 text-[#4cd3ff]" />
+                      <div className="w-8 h-8 rounded-full bg-[#6b21a8]/10 flex items-center justify-center">
+                        <CreditCard className="w-4 h-4 text-[#6b21a8]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -215,7 +215,7 @@ export default function TopUpSheet({ trigger }: TopUpSheetProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-[#4cd3ff]">
+                        <span className="text-sm font-semibold text-[#6b21a8]">
                           +{parseFloat(deposit.amount).toFixed(2)} TON
                         </span>
                       </div>

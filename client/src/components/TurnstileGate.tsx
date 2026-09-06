@@ -366,15 +366,15 @@ export default function TurnstileGate({ children }: { children: React.ReactNode 
               ? "rgba(255,160,0,0.1)"
               : state === "success"
                 ? "rgba(0,200,100,0.1)"
-                : "rgba(0,123,255,0.1)",
-            border: `1.5px solid ${isErr ? "rgba(255,160,0,0.3)" : state === "success" ? "rgba(0,200,100,0.35)" : "rgba(0,123,255,0.25)"}`,
+                : "rgba(61,21,128,0.12)",
+            border: `1.5px solid ${isErr ? "rgba(255,160,0,0.3)" : state === "success" ? "rgba(0,200,100,0.35)" : "rgba(61,21,128,0.25)"}`,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {isLoading
-              ? <Loader2 size={22} style={{ color: "#007BFF", animation: "spin 1s linear infinite" }} />
+              ? <Loader2 size={22} style={{ color: "#6b21a8", animation: "spin 1s linear infinite" }} />
               : isErr
                 ? <AlertTriangle size={22} style={{ color: "#ffa000" }} />
-                : <ShieldCheck size={22} style={{ color: state === "success" ? "#00c864" : "#007BFF" }} />
+                : <ShieldCheck size={22} style={{ color: state === "success" ? "#00c864" : "#6b21a8" }} />
             }
           </div>
 
@@ -408,7 +408,7 @@ export default function TurnstileGate({ children }: { children: React.ReactNode 
           {isErr && (
             <button onClick={retry} style={{
               display: "flex", alignItems: "center", gap: 7,
-              background: "#007BFF", color: "#fff",
+              background: "#6b21a8", color: "#fff",
               border: "none", borderRadius: 10,
               padding: "10px 22px", fontSize: 14, fontWeight: 600,
               cursor: "pointer", width: "100%", justifyContent: "center",

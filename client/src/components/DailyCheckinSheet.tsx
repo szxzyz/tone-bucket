@@ -21,7 +21,7 @@ interface DailyCheckinSheetProps {
 }
 
 // Same calendar icon used by the Home "Daily Check-In" card — same colour.
-function CalendarIcon({ color = "#3b82f6", size = 22 }: { color?: string; size?: number }) {
+function CalendarIcon({ color = "#6b21a8", size = 22 }: { color?: string; size?: number }) {
   return (
     <svg
       width={size}
@@ -189,8 +189,8 @@ export default function DailyCheckinSheet({
               }}
             >
               {alreadyClaimedToday
-                ? <span>CHECK-IN <span style={{ color: "#3b82f6" }}>DONE</span></span>
-                : <span>DAILY <span style={{ color: "#3b82f6" }}>CHECK-IN</span></span>}
+                ? <span>CHECK-IN <span style={{ color: "#6b21a8" }}>DONE</span></span>
+                : <span>DAILY <span style={{ color: "#6b21a8" }}>CHECK-IN</span></span>}
             </div>
             <div
               style={{
@@ -277,14 +277,14 @@ export default function DailyCheckinSheet({
                   width: 80,
                   borderRadius: 16,
                   border: isCurrentDay
-                    ? "2px solid #3b82f6"
+                    ? "2px solid #6b21a8"
                     : "1px solid rgba(255,255,255,0.08)",
-                  background: isCurrentDay ? "rgba(37,99,235,0.08)" : "rgba(255,255,255,0.04)",
+                  background: isCurrentDay ? "rgba(61,21,128,0.1)" : "rgba(255,255,255,0.04)",
                   padding: "12px 4px 11px",
                   textAlign: "center",
                   scrollSnapAlign: "start",
                   opacity: isFuture ? 0.5 : 1,
-                  boxShadow: isCurrentDay ? "0 0 20px rgba(37,99,235,0.25)" : "none",
+                  boxShadow: isCurrentDay ? "0 0 20px rgba(61,21,128,0.3)" : "none",
                 }}
               >
                 <div
@@ -337,7 +337,7 @@ export default function DailyCheckinSheet({
               border: "none",
               background: alreadyClaimedToday
                 ? "rgba(255,255,255,0.07)"
-                : "linear-gradient(135deg, #2563eb, #3b82f6)",
+                : "linear-gradient(135deg, #3d1580, #6b21a8)",
               color: alreadyClaimedToday ? "rgba(255,255,255,0.25)" : "#fff",
               fontSize: 14,
               fontWeight: 800,
@@ -346,7 +346,7 @@ export default function DailyCheckinSheet({
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              boxShadow: alreadyClaimedToday ? "none" : "0 4px 16px rgba(37,99,235,0.4)",
+              boxShadow: alreadyClaimedToday ? "none" : "0 4px 16px rgba(61,21,128,0.4)",
             }}
             className="active:scale-95 transition-transform"
           >

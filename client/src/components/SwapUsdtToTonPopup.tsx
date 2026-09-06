@@ -150,7 +150,7 @@ export default function SwapUsdtToTonPopup({ open, onOpenChange, usdBalance }: S
                   style={{
                     background: "rgba(76,211,255,0.12)",
                     border: "1px solid rgba(76,211,255,0.25)",
-                    color: "#4cd3ff",
+                    color: "#6b21a8",
                     fontSize: 11,
                     padding: "4px 10px",
                   }}
@@ -171,7 +171,7 @@ export default function SwapUsdtToTonPopup({ open, onOpenChange, usdBalance }: S
               >
                 <span
                   className="text-xl font-bold"
-                  style={{ color: loadingPrice ? "rgba(255,255,255,0.3)" : "#4cd3ff" }}
+                  style={{ color: loadingPrice ? "rgba(255,255,255,0.3)" : "#6b21a8" }}
                 >
                   {loadingPrice ? "…" : estimatedTon !== null ? estimatedTon.toFixed(6) : "0.000000"}
                 </span>
@@ -194,9 +194,9 @@ export default function SwapUsdtToTonPopup({ open, onOpenChange, usdBalance }: S
                 disabled={clampedAmount <= 0}
                 className="w-full py-3.5 rounded-2xl text-white font-bold text-sm tracking-wide transition-all active:scale-[0.98]"
                 style={{
-                  background: clampedAmount > 0 ? "linear-gradient(135deg, #4cd3ff, #007BFF)" : "rgba(255,255,255,0.08)",
+                  background: clampedAmount > 0 ? "linear-gradient(135deg, #6b21a8, #6b21a8)" : "rgba(255,255,255,0.08)",
                   color: clampedAmount > 0 ? "#fff" : "rgba(255,255,255,0.3)",
-                  boxShadow: clampedAmount > 0 ? "0 4px 16px rgba(0,123,255,0.35)" : "none",
+                  boxShadow: clampedAmount > 0 ? "0 4px 16px rgba(61,21,128,0.35)" : "none",
                   cursor: clampedAmount > 0 ? "pointer" : "not-allowed",
                 }}
               >
@@ -224,7 +224,7 @@ export default function SwapUsdtToTonPopup({ open, onOpenChange, usdBalance }: S
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(76,211,255,0.1)", border: "1px solid rgba(76,211,255,0.2)" }}
               >
-                <Loader2 className="w-8 h-8 text-[#4cd3ff] animate-spin" />
+                <Loader2 className="w-8 h-8 text-[#6b21a8] animate-spin" />
               </div>
               <div className="text-center">
                 <p className="text-white font-bold text-base">Swapping…</p>

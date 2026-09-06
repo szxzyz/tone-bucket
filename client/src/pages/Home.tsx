@@ -46,7 +46,7 @@ function getTodayKey() {
 const CARD = 'rgba(255,255,255,0.07)';
 const TEXT = '#fff';
 const TEXT_DIM = 'rgba(255,255,255,0.35)';
-const BLUE = '#3b82f6';
+const BLUE = '#6b21a8';
 
 
 
@@ -65,7 +65,7 @@ export default function Home() {
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [hasClaimed, setHasClaimed] = useState(false);
   const [timeUntilNextClaim, setTimeUntilNextClaim] = useState<string>("");
-  
+
   const [promoPopupOpen, setPromoPopupOpen] = useState(false);
   const [boosterPopupOpen, setBoosterPopupOpen] = useState(false);
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -79,7 +79,7 @@ export default function Home() {
   const MYSTERY_DAILY_LIMIT = 5;
   const mysteryOpened = mysteryClaimsToday >= MYSTERY_DAILY_LIMIT;
   const [mysteryAdLoading, setMysteryAdLoading] = useState(false);
-  
+
   // Legacy daily missions removed from state
 
   // 7-day check-in streak bottom sheet
@@ -187,13 +187,13 @@ export default function Home() {
     const updateTimer = () => {
       const now = new Date();
       const typedUser = user as User;
-      
+
       if (typedUser?.id) {
         const claimedTimestamp = localStorage.getItem(`streak_claimed_${typedUser.id}`);
         if (claimedTimestamp) {
           const claimedDate = new Date(claimedTimestamp);
           const nextClaimTime = new Date(claimedDate.getTime() + 5 * 60 * 1000);
-          
+
           if (now.getTime() < nextClaimTime.getTime()) {
             setHasClaimed(true);
             const diff = nextClaimTime.getTime() - now.getTime();
@@ -207,11 +207,11 @@ export default function Home() {
           }
         }
       }
-      
+
       if ((user as User)?.lastStreakDate) {
         const lastClaim = new Date((user as User).lastStreakDate!);
         const minutesSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60);
-        
+
         if (minutesSinceLastClaim < 5) {
           setHasClaimed(true);
           const nextClaimTime = new Date(lastClaim.getTime() + 5 * 60 * 1000);
@@ -222,7 +222,7 @@ export default function Home() {
           return;
         }
       }
-      
+
       setHasClaimed(false);
       setTimeUntilNextClaim("Available now");
     };
@@ -474,12 +474,12 @@ export default function Home() {
 
   const handleClaimStreak = async () => {
     if (isClaimingStreak || hasClaimed) return;
-    
+
     setIsClaimingStreak(true);
-    
+
     try {
       const monetagResult = await showMonetagRewardedAd();
-      
+
       if (monetagResult.unavailable || !monetagResult.success) {
         showNotification(monetagResult.unavailable ? "Rewarded ads are not available right now. Please try again later." : "Please watch the ad completely to claim your bonus.", "error");
         setIsClaimingStreak(false);
@@ -503,18 +503,18 @@ export default function Home() {
     }
 
     if (isApplyingPromo || redeemPromoMutation.isPending) return;
-    
+
     setIsApplyingPromo(true);
-    
+
     try {
       const monetagResult = await showMonetagRewardedAd();
-      
+
       if (monetagResult.unavailable || !monetagResult.success) {
         showNotification(monetagResult.unavailable ? "Rewarded ads are not available right now. Please try again later." : "Please watch the ad to claim your promo code.", "error");
         setIsApplyingPromo(false);
         return;
       }
-      
+
       redeemPromoMutation.mutate(promoCode.trim().toUpperCase());
     } catch (error) {
       console.error('Promo claim error:', error);
@@ -534,9 +534,9 @@ export default function Home() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="flex gap-1 justify-center mb-4">
-            <div className="w-2 h-2 rounded-full bg-[#4cd3ff] animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-[#4cd3ff] animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-[#4cd3ff] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            <div className="w-2 h-2 rounded-full bg-[#6b21a8] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 rounded-full bg-[#6b21a8] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 rounded-full bg-[#6b21a8] animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
           <div className="text-foreground font-medium">{t('loading')}</div>
         </div>
@@ -562,12 +562,12 @@ export default function Home() {
 
         {/* Banner Carousel */}
         <div className="mt-1 mb-2.5 relative overflow-hidden rounded-2xl shrink-0" style={{ height: 'clamp(80px, 12vh, 96px)', touchAction: 'pan-x' }}>
-          <div 
-            style={{ 
-              display: 'flex', 
-              width: '200%', 
-              height: '100%', 
-              transform: `translateX(-${currentBanner * 50}%)`, 
+          <div
+            style={{
+              display: 'flex',
+              width: '200%',
+              height: '100%',
+              transform: `translateX(-${currentBanner * 50}%)`,
               transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               cursor: 'grab'
             }}
@@ -586,7 +586,7 @@ export default function Home() {
             }}
           >
             {/* Slide 1: Weekly Contest (Invite) */}
-            <div 
+            <div
               style={{ width: '50%', height: '100%', position: 'relative' }}
               onClick={() => setLocation('/leaderboard')}
             >
@@ -623,7 +623,7 @@ export default function Home() {
             </div>
 
             {/* Slide 2: Leaderboard (Earnings) */}
-            <div 
+            <div
               style={{ width: '50%', height: '100%', position: 'relative' }}
               onClick={() => setLocation('/leaderboard')}
             >
@@ -659,7 +659,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           {/* Carousel Indicators */}
           <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: currentBanner === 0 ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'background 0.3s' }} />
@@ -688,14 +688,14 @@ export default function Home() {
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
             Complete daily task and get rewards
           </div>
-          
+
           <div style={{ background: '#171717', borderRadius: 14, overflow: 'hidden' }}>
             {/* Daily Check-In */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-              <img 
-                src="/assets/check-in.png" 
-                alt="Daily Check-In" 
-                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} 
+              <img
+                src="/assets/check-in.png"
+                alt="Daily Check-In"
+                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }}
               />
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
@@ -710,13 +710,13 @@ export default function Home() {
                 onClick={() => setCheckinSheetOpen(true)}
                 disabled={checkinStatus?.alreadyClaimedToday}
                 style={{
-                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
                   color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.3)' : '#fff',
                   border: 'none',
                   width: 76, height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer',
                   flexShrink: 0, letterSpacing: '0.03em',
-                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 }}
                 className="active:scale-95 transition-transform"
@@ -729,10 +729,10 @@ export default function Home() {
 
             {/* Mystery Gift */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-              <img 
-                src="/assets/mystery-box.png" 
-                alt="Mystery Gift" 
-                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} 
+              <img
+                src="/assets/mystery-box.png"
+                alt="Mystery Gift"
+                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }}
               />
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
@@ -747,12 +747,12 @@ export default function Home() {
                 onClick={handleMysteryOpen}
                 disabled={mysteryOpened || mysteryAdLoading}
                 style={{
-                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
                   color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
                   border: 'none',
                   width: 76, height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer', flexShrink: 0,
-                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
+                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, letterSpacing: '0.03em',
                 }}
                 className="active:scale-95 transition-transform"

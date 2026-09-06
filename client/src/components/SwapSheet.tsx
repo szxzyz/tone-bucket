@@ -90,7 +90,7 @@ export default function SwapSheet({
   const bg = "#0d0d0d";
   const cardBg = "#1a1a1a";
   const border = "rgba(255,255,255,0.08)";
-  const accent = "#4cd3ff";
+  const accent = "#6b21a8";
   const textPrimary = "#ffffff";
   const textMuted = "rgba(255,255,255,0.45)";
 

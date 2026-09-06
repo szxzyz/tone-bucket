@@ -143,9 +143,9 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
 
   const isFirstLoad = isFetching && dataUpdatedAt === 0;
 
-  const usdFormatted = balanceUSD.toLocaleString(undefined, { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: balanceUSD < 0.01 ? 6 : 4 
+  const usdFormatted = balanceUSD.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: balanceUSD < 0.01 ? 6 : 4
   });
 
   const tonFormatted = balanceTON.toLocaleString(undefined, {
@@ -322,7 +322,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 16, paddingBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>History</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#3b82f6' }}>›</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#6b21a8' }}>›</span>
                   </div>
 
                   {!earningsData || earningsData.length === 0 ? (

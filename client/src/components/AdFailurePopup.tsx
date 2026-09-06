@@ -53,12 +53,12 @@ export default function AdFailurePopup({ onClose, reason = "instructions" }: AdF
             onClick={onClose}
             style={{
               width: "100%", padding: "14px 0",
-              background: "linear-gradient(135deg, #2563eb, #3b82f6)",
+              background: "linear-gradient(135deg, #3d1580, #6b21a8)",
               border: "none", borderRadius: 14,
               color: "#fff",
               fontSize: 15, fontWeight: 800,
               cursor: "pointer",
-              boxShadow: "0 4px 18px rgba(37,99,235,0.35)",
+              boxShadow: "0 4px 18px rgba(61,21,128,0.35)",
               letterSpacing: "0.02em",
             }}
           >
@@ -129,10 +129,10 @@ export default function AdFailurePopup({ onClose, reason = "instructions" }: AdF
             borderRadius: 12, padding: "12px 14px",
             display: "flex", gap: 10, alignItems: "flex-start",
           }}>
-            <FaHandPointer size={14} color="#3b82f6" style={{ flexShrink: 0, marginTop: 2 }} />
+            <FaHandPointer size={14} color="#6b21a8" style={{ flexShrink: 0, marginTop: 2 }} />
             <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12.5, lineHeight: 1.55 }}>
               Watch the ad, then tap the advertiser button to confirm your interaction.{" "}
-              <strong style={{ color: "#93c5fd" }}>TAP THE ADVERTISER BUTTON</strong> when it appears.
+              <strong style={{ color: "#d8b4fe" }}>TAP THE ADVERTISER BUTTON</strong> when it appears.
             </span>
           </div>
         </div>
@@ -143,18 +143,18 @@ export default function AdFailurePopup({ onClose, reason = "instructions" }: AdF
           style={{
             display: "flex", alignItems: "flex-start", gap: 10,
             cursor: "pointer", marginBottom: 18,
-            background: checked ? "rgba(37,99,235,0.08)" : "rgba(255,255,255,0.02)",
+            background: checked ? "rgba(61,21,128,0.1)" : "rgba(255,255,255,0.02)",
             borderRadius: 12, padding: "12px 13px",
             transition: "background 0.18s ease",
           }}
         >
           {checked
-            ? <MdCheckBox size={22} color="#3b82f6" style={{ flexShrink: 0, marginTop: 1 }} />
+            ? <MdCheckBox size={22} color="#6b21a8" style={{ flexShrink: 0, marginTop: 1 }} />
             : <MdCheckBoxOutlineBlank size={22} color="rgba(255,255,255,0.25)" style={{ flexShrink: 0, marginTop: 1 }} />
           }
           <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, lineHeight: 1.6, userSelect: "none" }}>
             I understand — I will tap the{" "}
-            <strong style={{ color: "#93c5fd" }}>Blue button</strong> inside the ad and stay on the page for at least 3 seconds.
+            <strong style={{ color: "#d8b4fe" }}>Blue button</strong> inside the ad and stay on the page for at least 3 seconds.
           </span>
         </div>
 
@@ -164,12 +164,12 @@ export default function AdFailurePopup({ onClose, reason = "instructions" }: AdF
           disabled={!checked}
           style={{
             width: "100%", padding: "14px 0",
-            background: checked ? "linear-gradient(135deg, #2563eb, #3b82f6)" : "rgba(255,255,255,0.05)",
+            background: checked ? "linear-gradient(135deg, #3d1580, #6b21a8)" : "rgba(255,255,255,0.05)",
             border: "none", borderRadius: 14,
             color: checked ? "#fff" : "rgba(255,255,255,0.2)",
             fontSize: 15, fontWeight: 800,
             cursor: checked ? "pointer" : "not-allowed",
-            boxShadow: checked ? "0 4px 18px rgba(37,99,235,0.35)" : "none",
+            boxShadow: checked ? "0 4px 18px rgba(61,21,128,0.35)" : "none",
             letterSpacing: "0.02em",
             transition: "all 0.2s ease",
           }}

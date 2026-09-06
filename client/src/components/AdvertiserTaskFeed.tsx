@@ -50,7 +50,7 @@ function TaskAvatar({ link, isBot }: { link: string | null; isBot: boolean }) {
   return (
     <div style={{
       width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-      overflow: "hidden", background: "rgba(59,130,246,0.10)",
+      overflow: "hidden", background: "rgba(107,33,168,0.12)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       {imageOk && src ? (
@@ -61,9 +61,9 @@ function TaskAvatar({ link, isBot }: { link: string | null; isBot: boolean }) {
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ) : isBot ? (
-        <Bot style={{ width: 20, height: 20, color: "#3b82f6" }} />
+        <Bot style={{ width: 20, height: 20, color: "#6b21a8" }} />
       ) : (
-        <Send style={{ width: 20, height: 20, color: "#3b82f6" }} />
+        <Send style={{ width: 20, height: 20, color: "#6b21a8" }} />
       )}
     </div>
   );
@@ -137,7 +137,7 @@ function TaskCard({
             padding: "9px 16px", borderRadius: 12, minWidth: 92,
             fontSize: 12, fontWeight: 700, border: "none", cursor: limitReached || directPending ? "default" : "pointer",
             letterSpacing: "0.02em", whiteSpace: "nowrap",
-            background: limitReached || directPending ? "rgba(255,255,255,0.06)" : directReady ? "#22c55e" : "#3b82f6",
+            background: limitReached || directPending ? "rgba(255,255,255,0.06)" : directReady ? "#22c55e" : "#6b21a8",
             color: limitReached || directPending ? "rgba(255,255,255,0.3)" : "#fff",
           }}
         >
@@ -229,7 +229,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
           style={{ width: "100%", padding: "12px", borderRadius: 14, background: "#171717", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10, border: "none" }}
           className="active:scale-[0.98] transition-transform"
         >
-          <Plus size={18} color="#3b82f6" strokeWidth={3} />
+          <Plus size={18} color="#6b21a8" strokeWidth={3} />
           Add Your Task
         </button>
       )}

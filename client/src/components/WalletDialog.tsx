@@ -97,7 +97,7 @@ export default function WalletDialog({ open, onOpenChange }: WalletDialogProps) 
                 type="button"
                 variant={paymentType === 'ton' ? 'default' : 'outline'}
                 onClick={() => setPaymentType('ton')}
-                className={`rounded-[20px] ${paymentType === 'ton' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-700 text-gray-400 hover:text-white'}`}
+                className={`rounded-[20px] ${paymentType === 'ton' ? 'bg-[#6b21a8] hover:bg-[#3d1580]' : 'border-gray-700 text-gray-400 hover:text-white'}`}
               >
                 <Gem className="w-4 h-4 mr-2" />
                 TON Coin
@@ -106,7 +106,7 @@ export default function WalletDialog({ open, onOpenChange }: WalletDialogProps) 
                 type="button"
                 variant={paymentType === 'stars' ? 'default' : 'outline'}
                 onClick={() => setPaymentType('stars')}
-                className={`rounded-[20px] ${paymentType === 'stars' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-700 text-gray-400 hover:text-white'}`}
+                className={`rounded-[20px] ${paymentType === 'stars' ? 'bg-[#6b21a8] hover:bg-[#3d1580]' : 'border-gray-700 text-gray-400 hover:text-white'}`}
               >
                 <Star className="w-4 h-4 mr-2" />
                 Stars
@@ -158,7 +158,7 @@ export default function WalletDialog({ open, onOpenChange }: WalletDialogProps) 
 
             <div className="mt-4">
               <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-[20px]"
+                className="w-full bg-[#6b21a8] hover:bg-[#3d1580] text-white rounded-[20px]"
                 onClick={handleSave}
                 disabled={saveWalletMutation.isPending}
               >

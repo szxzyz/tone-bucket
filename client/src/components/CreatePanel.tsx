@@ -50,7 +50,7 @@ const SPRING = { type: "spring" as const, stiffness: 500, damping: 42, mass: 0.9
 // native iOS-style sheet easing (matches vaul's drawer feel used elsewhere in the app)
 const SHEET_TRANSITION = { type: "tween" as const, duration: 0.28, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
 
-const BLUE = "#4cd3ff";
+const BLUE = "#6b21a8";
 const BLUE_HOVER = "#6ddeff";
 
 export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
@@ -606,9 +606,9 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                     overflow: "hidden",
                   }}>
                     {/* TON balance + top-up */}
-                    <button 
+                    <button
                       onClick={() => setDepositOpen(true)}
-                      style={{ 
+                      style={{
                         display: "flex", alignItems: "center", gap: 8, padding: "0 16px 0 18px",
                         background: "transparent", border: "none", cursor: "pointer"
                       }}

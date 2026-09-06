@@ -32,7 +32,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
       title: t('terms_conditions'),
       content: (
         <div className="space-y-4 text-gray-300 text-sm">
-          <p className="text-[#4cd3ff] font-bold">Last Updated: December 26, 2025</p>
+          <p className="text-[#6b21a8] font-bold">Last Updated: December 26, 2025</p>
           <p>Welcome to Gold Bux. By accessing or using this app, you agree to comply with these Terms & Conditions. If you do not agree, please do not use the app.</p>
           <div>
             <h4 className="text-white font-bold mb-1">1. Eligibility</h4>
@@ -105,7 +105,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
           </div>
           <div>
             <h4 className="text-white font-bold mb-1 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#4cd3ff]" />
+              <ShieldCheck className="w-4 h-4 text-[#6b21a8]" />
               Consequences
             </h4>
             <p>If violations are detected, rewards may be revoked, accounts may be banned, and withdrawals blocked.</p>
@@ -172,26 +172,26 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
         <div className="p-6 overflow-y-auto custom-scrollbar">
           <div className="space-y-2">
             {/* My UID */}
-            <LegalItem 
-              icon={<Copy className="w-4 h-4 text-[#4cd3ff]" />} 
-              label={`${t('my_uid')}: ${uid}`} 
+            <LegalItem
+              icon={<Copy className="w-4 h-4 text-[#6b21a8]" />}
+              label={`${t('my_uid')}: ${uid}`}
               onClick={copyUid}
               rightIcon={copied ? <Check className="w-3 h-3 text-green-500" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
             />
 
             {/* Language */}
-            <LegalItem 
-              icon={<Globe className="w-4 h-4 text-purple-400" />} 
-              label={`${t('language')}: ${languageLabel}`} 
+            <LegalItem
+              icon={<Globe className="w-4 h-4 text-purple-400" />}
+              label={`${t('language')}: ${languageLabel}`}
               onClick={cycleLanguage}
               rightIcon={<RefreshCw className="w-3 h-3 text-gray-600" />}
             />
 
             {/* Admin Panel (Conditional) */}
             {(user as any)?.isAdmin && (
-              <LegalItem 
-                icon={<ShieldCheck className="w-4 h-4 text-red-500" />} 
-                label="Admin Panel" 
+              <LegalItem
+                icon={<ShieldCheck className="w-4 h-4 text-red-500" />}
+                label="Admin Panel"
                 onClick={() => {
                   onClose();
                   window.location.href = '/admin';
@@ -200,9 +200,9 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
             )}
 
             {/* Contact Support */}
-            <LegalItem 
-              icon={<MessageSquare className="w-4 h-4 text-blue-400" />} 
-              label={t('contact_support')} 
+            <LegalItem
+              icon={<MessageSquare className="w-4 h-4 text-blue-400" />}
+              label={t('contact_support')}
               onClick={() => openLink('http://t.me/szxzyz')}
               rightIcon={<ExternalLink className="w-3 h-3 text-gray-600" />}
             />
@@ -211,19 +211,19 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
             <div className="pt-4 pb-2">
               <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-3 px-1">{t('legal_info')}</p>
               <div className="space-y-2">
-                <LegalItem 
-                  icon={<ShieldCheck className="w-4 h-4 text-emerald-400" />} 
-                  label={t('terms_conditions')} 
+                <LegalItem
+                  icon={<ShieldCheck className="w-4 h-4 text-emerald-400" />}
+                  label={t('terms_conditions')}
                   onClick={() => setSelectedLegal('terms')}
                 />
-                <LegalItem 
-                  icon={<FileText className="w-4 h-4 text-orange-400" />} 
-                  label={t('privacy_policy')} 
+                <LegalItem
+                  icon={<FileText className="w-4 h-4 text-orange-400" />}
+                  label={t('privacy_policy')}
                   onClick={() => setSelectedLegal('privacy')}
                 />
-                <LegalItem 
-                  icon={<ShieldCheck className="w-4 h-4 text-rose-400" />} 
-                  label={t('acceptable_use')} 
+                <LegalItem
+                  icon={<ShieldCheck className="w-4 h-4 text-rose-400" />}
+                  label={t('acceptable_use')}
                   onClick={() => setSelectedLegal('acceptable')}
                 />
               </div>
@@ -232,7 +232,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
 
           <Button
             onClick={onClose}
-            className="w-full mt-6 h-12 bg-gradient-to-r from-[#4cd3ff] to-blue-600 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(76,211,255,0.3)]"
+            className="w-full mt-6 h-12 bg-gradient-to-r from-[#6b21a8] to-[#6b21a8] text-black font-bold rounded-xl shadow-[0_0_20px_rgba(76,211,255,0.3)]"
           >
             {t('close')}
           </Button>
@@ -270,7 +270,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
 };
 
 const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode, label: string, onClick?: () => void, rightIcon?: React.ReactNode }) => (
-  <div 
+  <div
     onClick={onClick}
     className="bg-[#1a1a1a]/50 border border-[#2a2a2a] rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-[#1a1a1a] transition-all active:scale-[0.98]"
   >

@@ -16,7 +16,7 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
   const steps = [
     {
       icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b21a8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
       ),
@@ -34,7 +34,7 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
         <div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11.5, lineHeight: 1.55, marginBottom: 8 }}>
             You will see this blue button inside the ad —{" "}
-            <strong style={{ color: "#93c5fd" }}>you must tap it</strong> to earn your reward.
+            <strong style={{ color: "#d8b4fe" }}>you must tap it</strong> to earn your reward.
           </div>
           {/* Cropped Play Now image */}
           <div style={{
@@ -43,8 +43,8 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
             height: 50,
             borderRadius: 10,
             overflow: "hidden",
-            border: "1.5px solid rgba(59,130,246,0.4)",
-            boxShadow: "0 0 14px rgba(59,130,246,0.2)",
+            border: "1.5px solid rgba(107,33,168,0.35)",
+            boxShadow: "0 0 14px rgba(107,33,168,0.22)",
           }}>
             <img
               src="/play-now-btn.jpg"
@@ -156,8 +156,8 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
         <label style={{
           display: "flex", alignItems: "flex-start", gap: 12,
           cursor: "pointer", marginBottom: 18,
-          background: checked ? "rgba(37,99,235,0.08)" : "rgba(255,255,255,0.02)",
-          border: `1px solid ${checked ? "rgba(59,130,246,0.35)" : "rgba(255,255,255,0.07)"}`,
+          background: checked ? "rgba(61,21,128,0.1)" : "rgba(255,255,255,0.02)",
+          border: `1px solid ${checked ? "rgba(107,33,168,0.32)" : "rgba(255,255,255,0.07)"}`,
           borderRadius: 12, padding: "12px 14px",
           transition: "all 0.2s ease",
         }}>
@@ -166,8 +166,8 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
             onClick={() => setChecked(p => !p)}
             style={{
               width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
-              border: `2px solid ${checked ? "#3b82f6" : "rgba(255,255,255,0.2)"}`,
-              background: checked ? "#2563eb" : "transparent",
+              border: `2px solid ${checked ? "#6b21a8" : "rgba(255,255,255,0.2)"}`,
+              background: checked ? "#3d1580" : "transparent",
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "all 0.18s ease",
             }}
@@ -183,7 +183,7 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
             style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.6, userSelect: "none" }}
           >
             I understand — I will tap the{" "}
-            <strong style={{ color: "#93c5fd" }}>Play Now</strong> button inside the ad and stay on the page for at least 3 seconds.
+            <strong style={{ color: "#d8b4fe" }}>Play Now</strong> button inside the ad and stay on the page for at least 3 seconds.
           </span>
         </label>
 
@@ -194,12 +194,12 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
           style={{
             width: "100%", padding: "14px 0",
             background: checked
-              ? "linear-gradient(135deg, #2563eb, #3b82f6)"
+              ? "linear-gradient(135deg, #3d1580, #6b21a8)"
               : "rgba(255,255,255,0.06)",
             border: "none", borderRadius: 16,
             color: checked ? "#fff" : "rgba(255,255,255,0.25)",
             fontSize: 15, fontWeight: 800, cursor: checked ? "pointer" : "not-allowed",
-            boxShadow: checked ? "0 4px 20px rgba(37,99,235,0.4)" : "none",
+            boxShadow: checked ? "0 4px 20px rgba(61,21,128,0.4)" : "none",
             letterSpacing: "0.02em",
             transition: "all 0.2s ease",
           }}

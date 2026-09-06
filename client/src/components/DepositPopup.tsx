@@ -55,7 +55,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
     }
 
     if (status === "sending" || status === "verifying") return;
-    
+
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt < MIN_GRAM_AMOUNT) {
       setStatus("error");
@@ -66,7 +66,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
     try {
       setStatus("sending");
       setMessage("");
-      
+
       const nanotons = BigInt(Math.round(amt * 1_000_000_000));
 
       const result = await tonConnectUI.sendTransaction({
@@ -113,12 +113,12 @@ export default function DepositPopup({ open = true, onClose }: Props) {
   };
 
   const busy = status === "sending" || status === "verifying";
-  
+
   return (
     <PopupShell onClose={onClose} maxWidth={390} closeOnBackdrop={!busy}>
       <div style={{ position: "relative", width: "100%" }}>
         <div style={{ color: "#fff", fontSize: 18, fontWeight: 900, letterSpacing: "0.02em" }}>
-          <span>TON</span> <span style={{ color: "#3b82f6" }}>DEPOSIT</span>
+          <span>TON</span> <span style={{ color: "#6b21a8" }}>DEPOSIT</span>
         </div>
         <div style={{ color: "#60a5fa", fontSize: 12, fontWeight: 700, marginTop: 5 }}>
           Enter the deposit amount to add TON to your balance
@@ -129,7 +129,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
             style={{
               marginTop: 15, width: "100%", boxSizing: "border-box",
               display: "flex", alignItems: "center", gap: 9,
-              background: "rgba(37,99,235,0.16)", borderRadius: 12, padding: "10px 12px",
+              background: "rgba(61,21,128,0.18)", borderRadius: 12, padding: "10px 12px",
             }}
           >
             <TonIcon size={17} />
@@ -148,7 +148,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
               marginTop: 15, width: "100%", boxSizing: "border-box",
               display: "flex", alignItems: "center", gap: 9,
               border: "none", borderRadius: 12, padding: "12px 14px",
-              background: "#2563eb", color: "#fff", fontSize: 13,
+              background: "#3d1580", color: "#fff", fontSize: 13,
               fontWeight: 800, cursor: "pointer", textAlign: "left",
             }}
           >
@@ -176,7 +176,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
 
 
         {busy ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#93c5fd", fontSize: 12, fontWeight: 700, marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#d8b4fe", fontSize: 12, fontWeight: 700, marginTop: 14 }}>
             <Loader2 size={15} style={{ animation: "deposit-spin 1s linear infinite" }} />
             {status === "sending" ? "Opening wallet…" : "Verifying on blockchain…"}
           </div>
@@ -193,7 +193,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
         <button
           onClick={buyGram}
           disabled={!amount || busy || status === "success"}
-          style={{ width: "100%", marginTop: 16, border: "none", borderRadius: 12, padding: "14px 0", background: amount && !busy && status !== "success" ? "linear-gradient(135deg,#2563eb,#3b82f6)" : "rgba(255,255,255,0.07)", color: amount && !busy && status !== "success" ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 14, fontWeight: 900, cursor: amount && !busy ? "pointer" : "not-allowed", boxShadow: amount && !busy && status !== "success" ? "0 4px 16px rgba(37,99,235,0.3)" : "none" }}
+          style={{ width: "100%", marginTop: 16, border: "none", borderRadius: 12, padding: "14px 0", background: amount && !busy && status !== "success" ? "linear-gradient(135deg,#3d1580,#6b21a8)" : "rgba(255,255,255,0.07)", color: amount && !busy && status !== "success" ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 14, fontWeight: 900, cursor: amount && !busy ? "pointer" : "not-allowed", boxShadow: amount && !busy && status !== "success" ? "0 4px 16px rgba(61,21,128,0.35)" : "none" }}
         >
           {status === "success" ? "DONE" : connectedAddress ? "DEPOSIT NOW" : "CONNECT WALLET"}
         </button>

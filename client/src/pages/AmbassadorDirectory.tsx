@@ -7,7 +7,7 @@ const CARD = "rgba(255,255,255,0.07)";
 const TEXT = "#fff";
 const TEXT_DIM = "rgba(255,255,255,0.45)";
 const PINK = "#ec4899";
-const BLUE = "#3b82f6";
+const BLUE = "#6b21a8";
 
 interface AmbassadorEntry {
   id: string;

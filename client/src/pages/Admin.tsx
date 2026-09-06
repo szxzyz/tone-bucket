@@ -97,7 +97,7 @@ function AdminResetSchedule() {
       <p className="text-sm font-medium text-white mb-3">Reset Schedule</p>
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="bg-[#1a1a1a] rounded-lg p-3 text-center">
-          <p className="text-base font-bold text-[#4cd3ff]">06:30 UTC</p>
+          <p className="text-base font-bold text-[#6b21a8]">06:30 UTC</p>
           <p className="text-xs text-gray-500 mt-1">12:00 PM IST</p>
           <p className="text-xs text-gray-600 mt-0.5">User reset only</p>
         </div>
@@ -127,7 +127,7 @@ function StatCard({ icon, label, value, iconColor }: {
   iconColor: string;
 }) {
   return (
-    <div className="bg-[#121212] border border-white/10 rounded-xl p-4 hover:border-[#4cd3ff]/40 transition-all">
+    <div className="bg-[#121212] border border-white/10 rounded-xl p-4 hover:border-[#6b21a8]/40 transition-all">
       <div className={`w-9 h-9 rounded-lg bg-[#1a1a1a] flex items-center justify-center mb-3`}>
         <i className={`fas fa-${icon} ${iconColor}`}></i>
       </div>
@@ -273,7 +273,7 @@ export default function AdminPage() {
                     icon="users"
                     label="Total Users"
                     value={stats?.totalUsers?.toLocaleString() || '0'}
-                    iconColor="text-[#4cd3ff]"
+                    iconColor="text-[#6b21a8]"
                   />
                   <StatCard
                     icon="user-check"
@@ -297,7 +297,7 @@ export default function AdminPage() {
                     icon="gem"
                     label="Gold Earned"
                     value={formatLargeNumber(parseFloat(stats?.totalEarnings || '0'))}
-                    iconColor="text-[#4cd3ff]"
+                    iconColor="text-[#6b21a8]"
                   />
                   <StatCard
                     icon="dollar-sign"
@@ -726,7 +726,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
             size="sm"
             variant="ghost"
             onClick={() => setActiveTab(tab.id)}
-            className={`text-xs h-7 ${activeTab === tab.id ? 'bg-[#4cd3ff]/20 text-[#4cd3ff]' : 'text-muted-foreground'}`}
+            className={`text-xs h-7 ${activeTab === tab.id ? 'bg-[#6b21a8]/20 text-[#6b21a8]' : 'text-muted-foreground'}`}
           >
             {tab.label}
           </Button>
@@ -738,7 +738,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white/5 p-2 rounded">
               <p className="text-xs text-muted-foreground">UID</p>
-              <p className="font-mono font-bold text-[#4cd3ff]">{user.referralCode || user.personalCode || 'N/A'}</p>
+              <p className="font-mono font-bold text-[#6b21a8]">{user.referralCode || user.personalCode || 'N/A'}</p>
             </div>
             <div className="bg-white/5 p-2 rounded">
               <p className="text-xs text-muted-foreground">Join Date</p>
@@ -757,7 +757,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           <div className="bg-white/5 border border-white/10 p-3 rounded">
             <p className="text-xs text-muted-foreground mb-2">Balances</p>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div><p className="text-xs text-muted-foreground">SWAG</p><p className="font-bold text-[#4cd3ff]">{formatSWAG(user.balance)}</p></div>
+              <div><p className="text-xs text-muted-foreground">SWAG</p><p className="font-bold text-[#6b21a8]">{formatSWAG(user.balance)}</p></div>
               <div><p className="text-xs text-muted-foreground">TON</p><p className="font-bold text-purple-400">{parseFloat(user.tonBalance || '0').toFixed(4)}</p></div>
               <div><p className="text-xs text-muted-foreground">USD</p><p className="font-bold text-green-400">${parseFloat(user.usdBalance || '0').toFixed(2)}</p></div>
             </div>
@@ -788,11 +788,11 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Ads Completed Today</p>
-                <p className="font-bold text-xl text-[#4cd3ff]">{analyticsData?.analytics?.adsWatchedToday ?? user.adsWatchedToday ?? 0}</p>
+                <p className="font-bold text-xl text-[#6b21a8]">{analyticsData?.analytics?.adsWatchedToday ?? user.adsWatchedToday ?? 0}</p>
               </div>
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Total Ads Completed</p>
-                <p className="font-bold text-xl text-[#4cd3ff]">{analyticsData?.analytics?.adsWatched ?? user.adsWatched ?? 0}</p>
+                <p className="font-bold text-xl text-[#6b21a8]">{analyticsData?.analytics?.adsWatched ?? user.adsWatched ?? 0}</p>
               </div>
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Referral Income</p>
@@ -838,7 +838,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                 <div><p className="text-xs text-muted-foreground">Total Earnings</p><p className="font-bold text-green-400">${parseFloat(userAmbassador.ambassador.totalEarningsUsd || '0').toFixed(4)}</p></div>
               </div>
               {userAmbassador.ambassador.channelTitle && (
-                <p className="text-xs text-muted-foreground">Channel: <span className="text-white">{userAmbassador.ambassador.channelTitle}</span>{userAmbassador.ambassador.channelUsername && <span className="text-[#4cd3ff]"> @{userAmbassador.ambassador.channelUsername}</span>}</p>
+                <p className="text-xs text-muted-foreground">Channel: <span className="text-white">{userAmbassador.ambassador.channelTitle}</span>{userAmbassador.ambassador.channelUsername && <span className="text-[#6b21a8]"> @{userAmbassador.ambassador.channelUsername}</span>}</p>
               )}
               {userAmbassador.ambassador.subscriberCount != null && (
                 <p className="text-xs text-muted-foreground">Subscribers: <span className="text-white font-semibold">{userAmbassador.ambassador.subscriberCount.toLocaleString()}</span></p>
@@ -849,7 +849,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           {(user.cwalletId || user.usdtWalletAddress || user.telegramStarsUsername) && (
             <div className="bg-white/5 border border-white/10 p-2 rounded">
               <p className="text-xs text-muted-foreground mb-1">Wallet Addresses</p>
-              {user.cwalletId && <p className="font-mono text-xs text-[#4cd3ff] break-all">TON: {user.cwalletId}</p>}
+              {user.cwalletId && <p className="font-mono text-xs text-[#6b21a8] break-all">TON: {user.cwalletId}</p>}
               {user.usdtWalletAddress && <p className="font-mono text-xs text-green-400 break-all">USDT: {user.usdtWalletAddress}</p>}
               {user.telegramStarsUsername && <p className="font-mono text-xs text-yellow-400">Stars: @{user.telegramStarsUsername}</p>}
             </div>
@@ -934,7 +934,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
               </div>
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Commission Txns</p>
-                <p className="font-bold text-lg text-[#4cd3ff]">{userReferrals?.summary?.totalTransactions ?? 0}</p>
+                <p className="font-bold text-lg text-[#6b21a8]">{userReferrals?.summary?.totalTransactions ?? 0}</p>
               </div>
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Total Referrals</p>
@@ -956,10 +956,10 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                   type="button"
                   disabled={!ref.refereeId || openUserMutation.isPending}
                   onClick={() => ref.refereeId && openUserMutation.mutate(ref.refereeId)}
-                  className="w-full text-left bg-white/5 p-2 rounded border border-white/10 hover:bg-white/10 hover:border-[#4cd3ff]/30 transition-colors disabled:cursor-default disabled:hover:bg-white/5"
+                  className="w-full text-left bg-white/5 p-2 rounded border border-white/10 hover:bg-white/10 hover:border-[#6b21a8]/30 transition-colors disabled:cursor-default disabled:hover:bg-white/5"
                 >
                   <div className="flex justify-between items-start">
-                    <p className="text-sm font-mono text-[#4cd3ff]">{ref.refereeName || ref.refereeCode || ref.refereeId?.slice(0, 8) || 'N/A'}</p>
+                    <p className="text-sm font-mono text-[#6b21a8]">{ref.refereeName || ref.refereeCode || ref.refereeId?.slice(0, 8) || 'N/A'}</p>
                     {ref.rewardAmount && parseFloat(ref.rewardAmount) > 0 && (
                       <p className="text-xs font-bold text-green-400">+{Math.round(parseFloat(ref.rewardAmount)).toLocaleString()} SWAG</p>
                     )}
@@ -1028,7 +1028,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                       <div className="flex justify-between items-center mb-1.5">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-green-400">{parseFloat(w.amount || '0').toFixed(4)}</span>
-                          <Badge className="bg-[#4cd3ff]/20 text-[#4cd3ff] text-[10px] px-1.5 py-0">{currency}</Badge>
+                          <Badge className="bg-[#6b21a8]/20 text-[#6b21a8] text-[10px] px-1.5 py-0">{currency}</Badge>
                         </div>
                         <Badge className={`${getStatusColor(w.status)} text-[10px] px-1.5 py-0`}>{w.status}</Badge>
                       </div>
@@ -1042,7 +1042,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
 
                       {/* Row 3: tx hash */}
                       {w.transactionHash && (
-                        <p className="text-[10px] font-mono text-[#4cd3ff]/70 break-all mb-1">
+                        <p className="text-[10px] font-mono text-[#6b21a8]/70 break-all mb-1">
                           <span className="text-muted-foreground/60">Tx: </span>{w.transactionHash}
                         </p>
                       )}
@@ -1133,7 +1133,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                 <div key={t.id} className="bg-white/5 p-2 rounded border border-white/10">
                   <div className="flex justify-between items-center">
                     <p className="text-sm font-medium">{t.title || 'Task'}</p>
-                    <Badge className={t.status === 'completed' ? 'bg-green-600' : t.status === 'rejected' ? 'bg-red-600' : t.status === 'running' ? 'bg-blue-600' : 'bg-yellow-600'}>
+                    <Badge className={t.status === 'completed' ? 'bg-green-600' : t.status === 'rejected' ? 'bg-red-600' : t.status === 'running' ? 'bg-[#6b21a8]' : 'bg-yellow-600'}>
                       {t.status}
                     </Badge>
                   </div>
@@ -1179,7 +1179,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           <div className="bg-white/5 border border-white/10 p-3 rounded">
             <p className="text-xs text-muted-foreground mb-2 font-semibold">Current Balances</p>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div><p className="text-xs text-muted-foreground">SWAG</p><p className="font-bold text-[#4cd3ff]">{Math.round(parseFloat(user.balance || '0')).toLocaleString()}</p></div>
+              <div><p className="text-xs text-muted-foreground">SWAG</p><p className="font-bold text-[#6b21a8]">{Math.round(parseFloat(user.balance || '0')).toLocaleString()}</p></div>
               <div><p className="text-xs text-muted-foreground">USD</p><p className="font-bold text-green-400">${parseFloat(user.usdBalance || '0').toFixed(2)}</p></div>
               <div><p className="text-xs text-muted-foreground">TON</p><p className="font-bold text-purple-400">{parseFloat(user.tonBalance || '0').toFixed(4)}</p></div>
             </div>
@@ -1191,7 +1191,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
               {(['add', 'deduct', 'set'] as const).map(a => (
                 <Button key={a} size="sm" variant={balanceForm.action === a ? 'default' : 'outline'}
                   onClick={() => setBalanceForm(f => ({ ...f, action: a }))}
-                  className={`h-7 text-xs ${balanceForm.action === a && a === 'add' ? 'bg-green-600' : balanceForm.action === a && a === 'deduct' ? 'bg-red-600' : balanceForm.action === a ? 'bg-blue-600' : ''}`}>
+                  className={`h-7 text-xs ${balanceForm.action === a && a === 'add' ? 'bg-green-600' : balanceForm.action === a && a === 'deduct' ? 'bg-red-600' : balanceForm.action === a ? 'bg-[#6b21a8]' : ''}`}>
                   {a === 'add' ? <><Plus size={11}/>Add</> : a === 'deduct' ? <><Minus size={11}/>Deduct</> : <><Wrench size={11}/>Set</>}
                 </Button>
               ))}
@@ -1286,13 +1286,13 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
     <>
       <div className="space-y-3">
         <div className="flex gap-2 flex-wrap items-center">
-          <Button size="sm" variant="outline" onClick={() => setActiveView('list')} className={`text-xs h-7 ${activeView === 'list' ? 'bg-gradient-to-r from-[#4cd3ff]/20 to-[#4cd3ff]/10 border-[#4cd3ff] text-[#4cd3ff]' : 'border-white/20 text-muted-foreground hover:border-[#4cd3ff]/50'}`}>
+          <Button size="sm" variant="outline" onClick={() => setActiveView('list')} className={`text-xs h-7 ${activeView === 'list' ? 'bg-gradient-to-r from-[#6b21a8]/20 to-[#6b21a8]/10 border-[#6b21a8] text-[#6b21a8]' : 'border-white/20 text-muted-foreground hover:border-[#6b21a8]/50'}`}>
             <i className="fas fa-list mr-1"></i>List ({total.toLocaleString()})
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setActiveView('stats')} className={`text-xs h-7 ${activeView === 'stats' ? 'bg-gradient-to-r from-[#4cd3ff]/20 to-[#4cd3ff]/10 border-[#4cd3ff] text-[#4cd3ff]' : 'border-white/20 text-muted-foreground hover:border-[#4cd3ff]/50'}`}>
+          <Button size="sm" variant="outline" onClick={() => setActiveView('stats')} className={`text-xs h-7 ${activeView === 'stats' ? 'bg-gradient-to-r from-[#6b21a8]/20 to-[#6b21a8]/10 border-[#6b21a8] text-[#6b21a8]' : 'border-white/20 text-muted-foreground hover:border-[#6b21a8]/50'}`}>
             <i className="fas fa-chart-pie mr-1"></i>Stats
           </Button>
-          {isFetching && <i className="fas fa-circle-notch fa-spin text-[#4cd3ff] text-xs" />}
+          {isFetching && <i className="fas fa-circle-notch fa-spin text-[#6b21a8] text-xs" />}
         </div>
 
         {activeView === 'list' && (
@@ -1306,7 +1306,7 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-8 text-xs rounded-md border border-white/20 bg-background text-foreground px-2 focus:outline-none focus:border-[#4cd3ff]/50"
+              className="h-8 text-xs rounded-md border border-white/20 bg-background text-foreground px-2 focus:outline-none focus:border-[#6b21a8]/50"
             >
               <option value="all">All Users</option>
               <option value="active">Active Only</option>
@@ -1317,8 +1317,8 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
 
         {activeView === 'stats' ? (
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gradient-to-br from-[#4cd3ff]/20 to-[#4cd3ff]/5 p-3 rounded text-center border border-[#4cd3ff]/30">
-              <p className="text-2xl font-bold text-[#4cd3ff]">{total.toLocaleString()}</p>
+            <div className="bg-gradient-to-br from-[#6b21a8]/20 to-[#6b21a8]/5 p-3 rounded text-center border border-[#6b21a8]/30">
+              <p className="text-2xl font-bold text-[#6b21a8]">{total.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Total</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/20 to-green-500/5 p-3 rounded text-center border border-green-500/30">
@@ -1345,7 +1345,7 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
           </div>
         ) : isLoading ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
-            <i className="fas fa-circle-notch fa-spin text-[#4cd3ff]" />
+            <i className="fas fa-circle-notch fa-spin text-[#6b21a8]" />
             Loading users…
           </div>
         ) : (
@@ -1387,7 +1387,7 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-2">
-                        <div className="font-mono text-[10px] text-[#4cd3ff]">{user.referralCode || user.personalCode || user.id?.slice(0,8) || 'N/A'}</div>
+                        <div className="font-mono text-[10px] text-[#6b21a8]">{user.referralCode || user.personalCode || user.id?.slice(0,8) || 'N/A'}</div>
                       </TableCell>
                       <TableCell className="py-2">
                         <div className="font-mono text-[10px] text-muted-foreground">{user.telegramId || '—'}</div>
@@ -1448,7 +1448,7 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <i className="fas fa-user-circle text-[#4cd3ff]"></i>
+              <i className="fas fa-user-circle text-[#6b21a8]"></i>
               UID: {selectedUser?.referralCode || selectedUser?.personalCode || 'N/A'}
             </DialogTitle>
           </DialogHeader>
@@ -1638,7 +1638,7 @@ function PromoCreatorSection() {
         <Button size="sm" variant="outline" onClick={() => setActiveTab('create')} className={`text-xs h-7 ${activeTab === 'create' ? 'bg-gradient-to-r from-green-500/20 to-green-500/10 border-green-500 text-green-400' : 'border-white/20 text-muted-foreground hover:border-green-500/50'}`}>
           <i className="fas fa-plus mr-1"></i>Create
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setActiveTab('manage')} className={`text-xs h-7 ${activeTab === 'manage' ? 'bg-gradient-to-r from-[#4cd3ff]/20 to-[#4cd3ff]/10 border-[#4cd3ff] text-[#4cd3ff]' : 'border-white/20 text-muted-foreground hover:border-[#4cd3ff]/50'}`}>
+        <Button size="sm" variant="outline" onClick={() => setActiveTab('manage')} className={`text-xs h-7 ${activeTab === 'manage' ? 'bg-gradient-to-r from-[#6b21a8]/20 to-[#6b21a8]/10 border-[#6b21a8] text-[#6b21a8]' : 'border-white/20 text-muted-foreground hover:border-[#6b21a8]/50'}`}>
           <i className="fas fa-list mr-1"></i>Manage ({promoCodes.length})
         </Button>
       </div>
@@ -1670,8 +1670,8 @@ function PromoCreatorSection() {
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-sm">
-                <i className="fas fa-edit text-[#4cd3ff]"></i>
-                Edit: <code className="text-[#4cd3ff]">{editingPromo?.code}</code>
+                <i className="fas fa-edit text-[#6b21a8]"></i>
+                Edit: <code className="text-[#6b21a8]">{editingPromo?.code}</code>
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 pt-1">
@@ -1750,7 +1750,7 @@ function PromoCreatorSection() {
                 <div key={promo.id} className="border border-white/10 rounded p-2 hover:bg-white/5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 min-w-0">
-                      <code className="font-bold text-sm bg-white/10 px-1.5 py-0.5 rounded text-[#4cd3ff] truncate">{promo.code}</code>
+                      <code className="font-bold text-sm bg-white/10 px-1.5 py-0.5 rounded text-[#6b21a8] truncate">{promo.code}</code>
                       <Button size="sm" variant="ghost" onClick={() => copyToClipboard(promo.code)} className="h-5 w-5 p-0 flex-shrink-0"><i className="fas fa-copy text-[10px]"></i></Button>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -1758,7 +1758,7 @@ function PromoCreatorSection() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0 text-blue-400/60 hover:text-blue-400 hover:bg-blue-500/10"
+                        className="h-6 w-6 p-0 text-blue-400/60 hover:text-blue-400 hover:bg-[#6b21a8]/10"
                         onClick={() => openEdit(promo)}
                         title="Edit promo code"
                       >
@@ -1904,7 +1904,7 @@ function PayoutLogsSection({ data }: { data: any }) {
           const activeColors = tab.key === 'pending' ? 'from-yellow-500/20 to-yellow-500/10 border-yellow-500 text-yellow-400' :
             tab.key === 'approved' ? 'from-green-500/20 to-green-500/10 border-green-500 text-green-400' :
             tab.key === 'rejected' ? 'from-red-500/20 to-red-500/10 border-red-500 text-red-400' :
-            'from-[#4cd3ff]/20 to-[#4cd3ff]/10 border-[#4cd3ff] text-[#4cd3ff]';
+            'from-[#6b21a8]/20 to-[#6b21a8]/10 border-[#6b21a8] text-[#6b21a8]';
           return (
             <Button key={tab.key} size="sm" variant="outline" onClick={() => setStatusFilter(tab.key)} className={`text-xs h-7 ${isActive ? `bg-gradient-to-r ${activeColors}` : 'border-white/20 text-muted-foreground hover:border-white/40'}`}>
               {tab.label} ({tab.count})
@@ -1940,7 +1940,7 @@ function PayoutLogsSection({ data }: { data: any }) {
                 return (
                   <TableRow key={payout.id} className={`hover:bg-white/5 ${isPending ? 'bg-yellow-500/5' : ''}`}>
                     <TableCell className="text-xs py-2">
-                      <div className="font-medium text-[#4cd3ff]">{displayUsername}</div>
+                      <div className="font-medium text-[#6b21a8]">{displayUsername}</div>
                       <div className="text-[10px] text-muted-foreground">${usdAmount.toFixed(4)}</div>
                     </TableCell>
                     <TableCell className="text-xs py-2 font-semibold text-green-400">${usdAmount.toFixed(2)}</TableCell>
@@ -1961,7 +1961,7 @@ function PayoutLogsSection({ data }: { data: any }) {
                           </>
                         )}
                         {payout.userId && (
-                          <Button size="sm" variant="ghost" onClick={() => openAnalytics(payout.userId)} className="h-6 px-2 text-[10px] text-[#4cd3ff] hover:bg-[#4cd3ff]/10">
+                          <Button size="sm" variant="ghost" onClick={() => openAnalytics(payout.userId)} className="h-6 px-2 text-[10px] text-[#6b21a8] hover:bg-[#6b21a8]/10">
                             <i className="fas fa-chart-bar"></i>
                           </Button>
                         )}
@@ -1991,7 +1991,7 @@ function PayoutLogsSection({ data }: { data: any }) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <i className="fas fa-chart-bar text-[#4cd3ff]"></i>
+              <i className="fas fa-chart-bar text-[#6b21a8]"></i>
               User Analytics
             </DialogTitle>
           </DialogHeader>
@@ -2004,7 +2004,7 @@ function PayoutLogsSection({ data }: { data: any }) {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-white/5 rounded-lg p-2 space-y-0.5">
                   <div className="text-muted-foreground">UID</div>
-                  <div className="font-mono font-bold text-[#4cd3ff]">{analyticsData.uid || 'N/A'}</div>
+                  <div className="font-mono font-bold text-[#6b21a8]">{analyticsData.uid || 'N/A'}</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-2 space-y-0.5">
                   <div className="text-muted-foreground">Account Age</div>
@@ -2293,7 +2293,7 @@ function BanLogsSection() {
               <TableBody>
                 {paginatedUsers.map((user: any) => (
                   <TableRow key={user.id} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-xs text-[#4cd3ff] py-2">
+                    <TableCell className="font-mono text-xs text-[#6b21a8] py-2">
                       {user.referralCode || user.personalCode || user.id?.slice(0, 8) || 'N/A'}
                     </TableCell>
                     <TableCell className="text-xs py-2 max-w-[150px] truncate" title={user.bannedReason}>
@@ -2347,7 +2347,7 @@ function BanLogsSection() {
               <TableBody>
                 {paginatedLogs.map((log: any) => (
                   <TableRow key={log.id} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-xs text-[#4cd3ff] py-2">
+                    <TableCell className="font-mono text-xs text-[#6b21a8] py-2">
                       {log.bannedUserUid || log.bannedUserId?.slice(0, 8) || 'N/A'}
                     </TableCell>
                     <TableCell className="py-2">
@@ -2740,7 +2740,7 @@ function SettingsSection() {
           const catColors = cat.id === 'ads' ? 'from-orange-500/20 to-orange-500/10 border-orange-500 text-orange-400' :
             cat.id === 'affiliates' ? 'from-green-500/20 to-green-500/10 border-green-500 text-green-400' :
             cat.id === 'withdrawals' ? 'from-emerald-500/20 to-emerald-500/10 border-emerald-500 text-emerald-400' :
-            cat.id === 'tasks' ? 'from-cyan-500/20 to-cyan-500/10 border-[#4cd3ff] text-[#4cd3ff]' :
+            cat.id === 'tasks' ? 'from-cyan-500/20 to-[#6b21a8]/10 border-[#6b21a8] text-[#6b21a8]' :
             cat.id === 'bug' ? 'from-lime-500/20 to-lime-500/10 border-lime-500 text-lime-400' :
             'from-purple-500/20 to-purple-500/10 border-purple-500 text-purple-400';
           return (
@@ -3016,7 +3016,7 @@ function SettingsSection() {
                     type="button"
                     onClick={() => setSettings({ ...settings, referralRewardUSDEnabled: !settings.referralRewardUSDEnabled })}
                     className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors mt-0.5 flex-shrink-0 ${
-                      settings.referralRewardUSDEnabled ? 'bg-blue-500' : 'bg-gray-600'
+                      settings.referralRewardUSDEnabled ? 'bg-[#6b21a8]' : 'bg-gray-600'
                     }`}
                   >
                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${settings.referralRewardUSDEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
@@ -3061,7 +3061,7 @@ function SettingsSection() {
         {activeCategory === 'withdrawals' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-            <div className="space-y-2 md:col-span-2 p-3 border rounded-lg bg-blue-50/5 border-blue-500/20">
+            <div className="space-y-2 md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <Label htmlFor="withdrawal-group-chat-id" className="text-sm font-semibold">
                 <i className="fab fa-telegram mr-2 text-blue-500"></i>
                 Withdrawal Group Chat ID
@@ -3088,7 +3088,7 @@ function SettingsSection() {
                       alert('Error: ' + String(e));
                     }
                   }}
-                  className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+                  className="text-xs px-2 py-1 rounded bg-[#6b21a8] hover:bg-[#3d1580] text-white whitespace-nowrap"
                 >
                   Test Post
                 </button>
@@ -3234,7 +3234,7 @@ function SettingsSection() {
               </div>
             </div>
 
-            <div className="space-y-2 p-3 border rounded-lg bg-blue-50/5 border-blue-500/20 md:col-span-2">
+            <div className="space-y-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20 md:col-span-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">
                   <i className="fas fa-user-plus mr-2 text-blue-500"></i>
@@ -3244,7 +3244,7 @@ function SettingsSection() {
                   type="button"
                   onClick={() => setSettings({ ...settings, withdrawalInviteRequirementEnabled: !settings.withdrawalInviteRequirementEnabled })}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    settings.withdrawalInviteRequirementEnabled ? 'bg-blue-500' : 'bg-gray-600'
+                    settings.withdrawalInviteRequirementEnabled ? 'bg-[#6b21a8]' : 'bg-gray-600'
                   }`}
                 >
                   <span
@@ -3323,7 +3323,7 @@ function SettingsSection() {
         {activeCategory === 'tasks' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Reward tiers info */}
-            <div className="md:col-span-2 p-3 border rounded-lg bg-blue-500/5 border-blue-500/20">
+            <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <p className="text-xs text-blue-400 font-semibold mb-1">🎯 Task Reward Tiers</p>
               <p className="text-xs text-muted-foreground">Configure independent Gold rewards for each task type. Partner tasks always pay more than user tasks.</p>
             </div>
@@ -3360,7 +3360,7 @@ function SettingsSection() {
               <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 200} Gold · Requires channel join verification</p>
             </div>
 
-            <div className="space-y-2 p-3 border rounded-lg border-blue-500/20 bg-blue-500/5">
+            <div className="space-y-2 p-3 border rounded-lg border-[#6b21a8]/20 bg-[#6b21a8]/5">
               <Label className="text-xs font-semibold text-blue-400">Mystery Box Reward Range</Label>
               <div className="grid grid-cols-2 gap-2">
                 <Input type="number" min="1" max="500" value={(settings as any).mysteryBoxMinReward ?? '1'} onChange={(e) => setSettings({ ...settings, mysteryBoxMinReward: e.target.value } as any)} placeholder="1" className="h-8" />
@@ -3448,8 +3448,8 @@ function SettingsSection() {
 
         {activeCategory === 'missions' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2 p-3 border rounded-lg bg-[#4cd3ff]/5 border-[#4cd3ff]/20">
-              <p className="text-xs text-[#4cd3ff] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
+            <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
+              <p className="text-xs text-[#6b21a8] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
               <p className="text-xs text-muted-foreground">Set reward (Gold per ad) and daily ad limit for each platform shown on the Missions page.</p>
             </div>
 
@@ -3524,7 +3524,7 @@ function SettingsSection() {
             </div>
 
             {/* Share Referral Mission */}
-            <div className="p-3 border rounded-lg border-blue-500/20 bg-blue-500/5">
+            <div className="p-3 border rounded-lg border-[#6b21a8]/20 bg-[#6b21a8]/5">
               <Label className="text-xs font-semibold text-blue-400 block mb-2">🔗 Share Referral (daily)</Label>
               <Input type="number" value={(settings as any).shareReferralReward || '1000'}
                 onChange={(e) => setSettings({ ...settings, shareReferralReward: e.target.value } as any)}
@@ -3585,7 +3585,7 @@ function SettingsSection() {
             </div>
 
             <Link href="/admin/country-controls">
-              <div className="space-y-2 p-3 border border-blue-500/30 rounded-lg bg-gradient-to-r from-blue-500/10 to-blue-500/5 hover:border-blue-500/50 cursor-pointer transition-all">
+              <div className="space-y-2 p-3 border border-[#6b21a8]/30 rounded-lg bg-gradient-to-r from-[#3d1580]/10 to-[#6b21a8]/5 hover:border-[#6b21a8]/50 cursor-pointer transition-all">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-semibold cursor-pointer">
                     <i className="fas fa-globe mr-2 text-blue-500"></i>
@@ -3640,7 +3640,7 @@ function SettingsSection() {
             {referralRepairResult && (
               <div className="bg-[#121212] border border-white/5 rounded-lg p-3 grid grid-cols-4 gap-2">
                 <div className="text-center">
-                  <p className="text-lg font-bold text-[#4cd3ff]">{referralRepairResult.usersLinked}</p>
+                  <p className="text-lg font-bold text-[#6b21a8]">{referralRepairResult.usersLinked}</p>
                   <p className="text-[10px] text-gray-500 mt-0.5">Linked</p>
                 </div>
                 <div className="text-center">
@@ -3861,7 +3861,7 @@ function TaskManagementSection() {
       under_review: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
       running: "bg-green-500/20 text-green-400 border-green-500/30",
       paused: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-      completed: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      completed: "bg-[#6b21a8]/20 text-blue-400 border-[#6b21a8]/30",
       rejected: "bg-red-500/20 text-red-400 border-red-500/30",
     };
     const labels: Record<string, string> = {
@@ -3885,7 +3885,7 @@ function TaskManagementSection() {
   return (
     <div className="space-y-4">
       {notifyResult && (
-        <div className="text-xs p-2 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300">
+        <div className="text-xs p-2 rounded-md bg-[#6b21a8]/10 border border-[#6b21a8]/20 text-blue-300">
           {notifyResult}
         </div>
       )}
@@ -4022,7 +4022,7 @@ function TaskManagementSection() {
                   size="sm"
                   variant="outline"
                   onClick={() => openEdit(task)}
-                  className="text-xs text-[#4cd3ff] hover:text-[#6ddeff] hover:bg-[#4cd3ff]/10"
+                  className="text-xs text-[#6b21a8] hover:text-[#6ddeff] hover:bg-[#6b21a8]/10"
                 >
                   <i className="fas fa-pencil-alt mr-1"></i>
                   Edit
@@ -4047,7 +4047,7 @@ function TaskManagementSection() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <i className="fas fa-pencil-alt text-[#4cd3ff]"></i>
+              <i className="fas fa-pencil-alt text-[#6b21a8]"></i>
               Edit Task
             </DialogTitle>
           </DialogHeader>
@@ -4107,7 +4107,7 @@ const ROLE_LABELS: Record<AdminRoleType, string> = {
 const ROLE_COLORS: Record<AdminRoleType, string> = {
   super_admin: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
   finance: 'text-green-400 bg-green-500/10 border-green-500/30',
-  moderator: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+  moderator: 'text-blue-400 bg-[#6b21a8]/10 border-[#6b21a8]/30',
   content: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
 };
 
@@ -4237,7 +4237,7 @@ function AdminManagementSection() {
           <h2 className="text-base font-semibold text-white">Admin Management</h2>
           <p className="text-xs text-gray-500 mt-0.5">Control who has admin access and what they can do</p>
         </div>
-        <Button size="sm" onClick={openAdd} className="bg-[#4cd3ff] hover:bg-[#3ab8e0] text-black text-xs h-8 px-3">
+        <Button size="sm" onClick={openAdd} className="bg-[#6b21a8] hover:bg-[#3ab8e0] text-black text-xs h-8 px-3">
           <i className="fas fa-plus mr-1.5"></i>
           Add Admin
         </Button>
@@ -4363,7 +4363,7 @@ function AdminManagementSection() {
                     onClick={() => togglePermission(perm)}
                     className={`text-[10px] px-2 py-1.5 rounded border text-left transition-all ${
                       form.permissions.includes(perm)
-                        ? 'bg-[#4cd3ff]/10 border-[#4cd3ff]/40 text-[#4cd3ff]'
+                        ? 'bg-[#6b21a8]/10 border-[#6b21a8]/40 text-[#6b21a8]'
                         : 'bg-[#1a1a1a] border-white/10 text-gray-500 hover:border-white/20'
                     }`}
                   >
@@ -4378,7 +4378,7 @@ function AdminManagementSection() {
               <Button variant="outline" className="flex-1 border-white/10 text-gray-300 text-xs" onClick={() => setShowAddForm(false)}>
                 Cancel
               </Button>
-              <Button className="flex-1 bg-[#4cd3ff] hover:bg-[#3ab8e0] text-black text-xs" onClick={handleSave} disabled={saving}>
+              <Button className="flex-1 bg-[#6b21a8] hover:bg-[#3ab8e0] text-black text-xs" onClick={handleSave} disabled={saving}>
                 {saving ? <i className="fas fa-spinner fa-spin mr-1.5"></i> : null}
                 {editingAdmin ? 'Save Changes' : 'Add Admin'}
               </Button>
@@ -4493,8 +4493,8 @@ function SecuritySection() {
           <p className="text-2xl font-bold text-yellow-400">{summary.medium}</p>
           <p className="text-xs text-muted-foreground">Medium</p>
         </div>
-        <div className="bg-gradient-to-br from-[#4cd3ff]/20 to-[#4cd3ff]/5 p-3 rounded text-center border border-[#4cd3ff]/30 cursor-pointer" onClick={() => { setFilterLevel('ALL'); setCurrentPage(1); }}>
-          <p className="text-2xl font-bold text-[#4cd3ff]">{summary.total}</p>
+        <div className="bg-gradient-to-br from-[#6b21a8]/20 to-[#6b21a8]/5 p-3 rounded text-center border border-[#6b21a8]/30 cursor-pointer" onClick={() => { setFilterLevel('ALL'); setCurrentPage(1); }}>
+          <p className="text-2xl font-bold text-[#6b21a8]">{summary.total}</p>
           <p className="text-xs text-muted-foreground">Total</p>
         </div>
       </div>
@@ -4517,7 +4517,7 @@ function SecuritySection() {
               ? level === 'CRITICAL' ? 'bg-red-500/20 border-red-500 text-red-400'
               : level === 'HIGH'     ? 'bg-orange-500/20 border-orange-500 text-orange-400'
               : level === 'MEDIUM'   ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
-              : 'bg-[#4cd3ff]/20 border-[#4cd3ff] text-[#4cd3ff]'
+              : 'bg-[#6b21a8]/20 border-[#6b21a8] text-[#6b21a8]'
               : 'border-white/20 text-muted-foreground'}`}
           >
             {level}
@@ -4534,7 +4534,7 @@ function SecuritySection() {
         <input
           type="range" min={1} max={76} value={minScore}
           onChange={e => { setMinScore(+e.target.value); setCurrentPage(1); }}
-          className="flex-1 accent-[#4cd3ff]"
+          className="flex-1 accent-[#6b21a8]"
         />
       </div>
 
@@ -4592,7 +4592,7 @@ function SecuritySection() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-[#4cd3ff]"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-[#6b21a8]"
                     onClick={() => setExpandedId(expandedId === user.id ? null : user.id)}
                     title="View details"
                   >
@@ -4921,14 +4921,14 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
               </div>
               <div className="bg-white/5 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Rewarded</p>
-                <p className="text-sm font-bold text-[#4cd3ff] mt-0.5">{Math.round(parseFloat(totals.totalRewardGiven || '0')).toLocaleString()} <span className="text-[9px] text-gray-500">Gold</span></p>
+                <p className="text-sm font-bold text-[#6b21a8] mt-0.5">{Math.round(parseFloat(totals.totalRewardGiven || '0')).toLocaleString()} <span className="text-[9px] text-gray-500">Gold</span></p>
               </div>
             </div>
           )}
 
           {isLoading ? (
             <div className="flex justify-center py-4">
-              <div className="w-4 h-4 border-2 border-[#4cd3ff]/30 border-t-[#4cd3ff] rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-[#6b21a8]/30 border-t-[#6b21a8] rounded-full animate-spin" />
             </div>
           ) : history.length === 0 ? (
             <p className="text-center text-gray-600 text-xs py-3">No claims yet</p>
@@ -4949,7 +4949,7 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
                   : '—';
                 return (
                   <div key={entry.id} className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 px-2 py-1.5 rounded-lg bg-white/3 hover:bg-white/5 transition-colors items-center">
-                    <p className="text-xs font-mono font-bold text-[#4cd3ff] truncate">{entry.promoCode}</p>
+                    <p className="text-xs font-mono font-bold text-[#6b21a8] truncate">{entry.promoCode}</p>
                     <p className="text-xs text-gray-300 truncate">{userName}</p>
                     <p className="text-xs font-semibold text-emerald-400 whitespace-nowrap">{reward}</p>
                     <p className="text-[10px] text-gray-600 whitespace-nowrap">
@@ -5121,14 +5121,14 @@ function AmbassadorAdminSection() {
             onClick={() => setActiveSubTab(tab.key as any)}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
               activeSubTab === tab.key
-                ? 'bg-[#4cd3ff]/15 text-[#4cd3ff] shadow-sm'
+                ? 'bg-[#6b21a8]/15 text-[#6b21a8] shadow-sm'
                 : 'text-gray-500 hover:text-gray-300'
             }`}
           >
             {tab.label}
             {tab.badge != null && (
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                activeSubTab === tab.key ? 'bg-[#4cd3ff]/20 text-[#4cd3ff]' : 'bg-white/10 text-gray-400'
+                activeSubTab === tab.key ? 'bg-[#6b21a8]/20 text-[#6b21a8]' : 'bg-white/10 text-gray-400'
               }`}>{tab.badge}</span>
             )}
           </button>
@@ -5165,7 +5165,7 @@ function AmbassadorAdminSection() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-gray-500 flex-shrink-0">Channel</span>
                   <a href={app.channelLink} target="_blank" rel="noopener noreferrer"
-                    className="text-[#4cd3ff] hover:underline truncate text-right max-w-[180px]">
+                    className="text-[#6b21a8] hover:underline truncate text-right max-w-[180px]">
                     {app.channelLink}
                   </a>
                 </div>
@@ -5241,11 +5241,11 @@ function AmbassadorAdminSection() {
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-gray-500">TG: {amb.telegramId}</span>
-                    <span className={`text-[10px] font-mono font-bold text-[#4cd3ff]`}>{amb.promoCodeName}</span>
+                    <span className={`text-[10px] font-mono font-bold text-[#6b21a8]`}>{amb.promoCodeName}</span>
                   </div>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide flex-shrink-0 ml-2 ${
-                  amb.status === 'active' ? 'bg-blue-500/15 text-blue-400' : 'bg-gray-500/15 text-gray-500'
+                  amb.status === 'active' ? 'bg-[#6b21a8]/15 text-blue-400' : 'bg-gray-500/15 text-gray-500'
                 }`}>{amb.status}</span>
               </div>
 
@@ -5295,7 +5295,7 @@ function AmbassadorAdminSection() {
               <div className="px-4 py-3 space-y-1.5">
                 <Button
                   size="sm"
-                  className="w-full h-8 text-xs bg-[#4cd3ff]/10 text-[#4cd3ff] border border-[#4cd3ff]/20 hover:bg-[#4cd3ff]/20 disabled:opacity-40"
+                  className="w-full h-8 text-xs bg-[#6b21a8]/10 text-[#6b21a8] border border-[#6b21a8]/20 hover:bg-[#6b21a8]/20 disabled:opacity-40"
                   onClick={() => { setPostingNow(amb.id); postNowMutation.mutate(amb.id); }}
                   disabled={(postNowMutation.isPending && postingNow === amb.id) || amb.status !== 'active' || !amb.channelVerified}
                 >
@@ -5519,7 +5519,7 @@ function PartnerTasksSection() {
     ? (appConfig.botUsername.startsWith('@') ? appConfig.botUsername : `@${appConfig.botUsername}`)
     : '';
 
-  const BLUE = "#4cd3ff";
+  const BLUE = "#6b21a8";
   const INPUT_STYLE: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
     background: "#1a1a1a", border: "1px solid #2a2a2a",
@@ -5612,7 +5612,7 @@ function PartnerTasksSection() {
       {/* ── Create form ── */}
       <div className="bg-[#121212] border border-white/10 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
-          <Handshake size={14} className="text-[#4cd3ff]" />
+          <Handshake size={14} className="text-[#6b21a8]" />
           <p className="text-sm font-semibold text-white">Create Partner Task</p>
           <span className="ml-auto text-[10px] text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded-full">
             Free · Always Verified
@@ -5755,7 +5755,7 @@ function PartnerTasksSection() {
                     <p className="text-sm font-semibold text-white truncate">{task.title}</p>
                     <a
                       href={task.link} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-[#4cd3ff]/60 hover:text-[#4cd3ff] truncate block mt-0.5 transition-colors"
+                      className="text-xs text-[#6b21a8]/60 hover:text-[#6b21a8] truncate block mt-0.5 transition-colors"
                     >
                       {task.link}
                     </a>
@@ -5881,7 +5881,7 @@ function BackupSection() {
               </Button>
               <Button
                 size="sm"
-                className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                className="h-7 text-xs bg-[#6b21a8] hover:bg-[#3d1580]"
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
               >

@@ -28,21 +28,21 @@ export default function HistoryDialog({ open, onOpenChange }: HistoryDialogProps
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onOpenChange={(newOpen) => {
         // Prevent closing by clicking outside
         if (!newOpen) return;
         onOpenChange(newOpen);
       }}
     >
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-md frosted-glass border border-white/10 rounded-2xl"
         onInteractOutside={(e) => e.preventDefault()}
         hideCloseButton
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-[#4cd3ff] text-lg">
+          <DialogTitle className="flex items-center gap-2 text-[#6b21a8] text-lg">
             <HistoryIcon className="w-5 h-5" />
             Withdrawal History
           </DialogTitle>

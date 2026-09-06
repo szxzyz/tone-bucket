@@ -193,8 +193,8 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
                       onClick={() => setAmount(v.toString())}
                       className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
                       style={{
-                        background: amount === v.toString() ? "rgba(0,123,255,0.25)" : "rgba(255,255,255,0.06)",
-                        color: amount === v.toString() ? "#4cd3ff" : "rgba(255,255,255,0.5)",
+                        background: amount === v.toString() ? "rgba(61,21,128,0.25)" : "rgba(255,255,255,0.06)",
+                        color: amount === v.toString() ? "#6b21a8" : "rgba(255,255,255,0.5)",
                         border: amount === v.toString() ? "1px solid rgba(76,211,255,0.3)" : "1px solid transparent",
                       }}
                     >
@@ -209,8 +209,8 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
                 onClick={handleDeposit}
                 className="w-full py-3.5 rounded-2xl text-white font-bold text-sm tracking-wide transition-all active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #4cd3ff, #007BFF)",
-                  boxShadow: "0 4px 16px rgba(0,123,255,0.35)",
+                  background: "linear-gradient(135deg, #6b21a8, #6b21a8)",
+                  boxShadow: "0 4px 16px rgba(61,21,128,0.35)",
                 }}
               >
                 Deposit
@@ -237,7 +237,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(76,211,255,0.1)", border: "1px solid rgba(76,211,255,0.2)" }}
               >
-                <Loader2 className="w-8 h-8 text-[#4cd3ff] animate-spin" />
+                <Loader2 className="w-8 h-8 text-[#6b21a8] animate-spin" />
               </div>
               <div className="text-center">
                 <p className="text-white font-bold text-base">Processing Deposit</p>

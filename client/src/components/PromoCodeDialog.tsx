@@ -66,7 +66,7 @@ export default function PromoCodeDialog({ open, onOpenChange }: PromoCodeDialogP
             Enter your promo code to claim rewards and bonuses
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div>
             <Input
@@ -79,12 +79,12 @@ export default function PromoCodeDialog({ open, onOpenChange }: PromoCodeDialogP
               className="bg-transparent border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               onClick={handleSubmit}
               disabled={redeemPromoMutation.isPending || !promoCode.trim()}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-[20px]"
+              className="flex-1 bg-[#6b21a8] hover:bg-[#3d1580] text-white rounded-[20px]"
               data-testid="button-redeem-promo"
             >
               {redeemPromoMutation.isPending ? (

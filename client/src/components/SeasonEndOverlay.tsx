@@ -46,15 +46,15 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
           overflow: 'hidden',
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(0,123,255,0.18) 0%, rgba(0,0,0,0) 60%)',
+            background: 'linear-gradient(135deg, rgba(61,21,128,0.18) 0%, rgba(0,0,0,0) 60%)',
             padding: '36px 28px 28px',
           }}>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
               <div style={{
                 width: 80, height: 80,
                 borderRadius: '50%',
-                background: 'rgba(0,123,255,0.12)',
-                border: '1.5px solid rgba(0,123,255,0.3)',
+                background: 'rgba(61,21,128,0.14)',
+                border: '1.5px solid rgba(61,21,128,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 20px',
                 animation: 'iconPulse 2.4s ease-in-out infinite',
@@ -86,8 +86,8 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
             </div>
 
             <div style={{
-              background: 'rgba(0,123,255,0.08)',
-              border: '1px solid rgba(0,123,255,0.2)',
+              background: 'rgba(61,21,128,0.1)',
+              border: '1px solid rgba(61,21,128,0.2)',
               borderRadius: 12,
               padding: '12px 16px',
               marginBottom: 20,
@@ -97,7 +97,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
                 {[0, 200, 400].map((d, i) => (
                   <div key={i} style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: '#007BFF',
+                    background: '#6b21a8',
                     animation: `dotBlink 1.4s ${d}ms ease-in-out infinite`,
                   }} />
                 ))}
@@ -115,7 +115,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
                 padding: '14px 0',
                 borderRadius: 14,
                 border: 'none',
-                background: isLocked ? 'rgba(255,255,255,0.07)' : '#007BFF',
+                background: isLocked ? 'rgba(255,255,255,0.07)' : '#6b21a8',
                 color: isLocked ? 'rgba(255,255,255,0.3)' : '#fff',
                 fontSize: 15,
                 fontWeight: 700,

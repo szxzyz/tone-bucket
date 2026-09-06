@@ -38,11 +38,11 @@ export default function StreakCard({ user }: StreakCardProps) {
     onSuccess: (data) => {
       setHasClaimed(true);
       localStorage.setItem(`streak_claimed_${user?.id}`, new Date().toISOString());
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/earnings"] });
-      
+
       const rewardAmount = parseFloat(data.rewardEarned || '0');
       if (rewardAmount > 0) {
         const earnedGold = Math.round(rewardAmount);
@@ -69,13 +69,13 @@ export default function StreakCard({ user }: StreakCardProps) {
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
-      
+
       if (user?.id) {
         const claimedTimestamp = localStorage.getItem(`streak_claimed_${user.id}`);
         if (claimedTimestamp) {
           const claimedDate = new Date(claimedTimestamp);
           const nextClaimTime = new Date(claimedDate.getTime() + 5 * 60 * 1000);
-          
+
           if (now.getTime() < nextClaimTime.getTime()) {
             setHasClaimed(true);
             const diff = nextClaimTime.getTime() - now.getTime();
@@ -89,11 +89,11 @@ export default function StreakCard({ user }: StreakCardProps) {
           }
         }
       }
-      
+
       if (user?.lastStreakDate) {
         const lastClaim = new Date(user.lastStreakDate);
         const minutesSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60);
-        
+
         if (minutesSinceLastClaim < 5) {
           setHasClaimed(true);
           const nextClaimTime = new Date(lastClaim.getTime() + 5 * 60 * 1000);
@@ -104,7 +104,7 @@ export default function StreakCard({ user }: StreakCardProps) {
           return;
         }
       }
-      
+
       setHasClaimed(false);
       setTimeUntilNextClaim("Available now");
     };
@@ -150,13 +150,13 @@ export default function StreakCard({ user }: StreakCardProps) {
 
   const handleClaimStreak = async () => {
     if (isClaiming || hasClaimed) return;
-    
+
     setIsClaiming(true);
-    
+
     try {
       // Then show Monetag rewarded ad first
       const monetagResult = await showMonetagRewardedAd();
-      
+
       if (monetagResult.unavailable) {
         // If Monetag unavailable, proceed with just AdsGram
         showNotification("Monetag ad not available, showing AdsGram...", "info");
@@ -165,18 +165,18 @@ export default function StreakCard({ user }: StreakCardProps) {
         setIsClaiming(false);
         return;
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Show the env-configured AdsGram streak ad after Monetag
       const adsgramSuccess = await showAdsgramAd();
-      
+
       if (!adsgramSuccess) {
         showNotification("Please watch the ad completely to claim your bonus.", "error");
         setIsClaiming(false);
         return;
       }
-      
+
       claimStreakMutation.mutate();
     } catch (error) {
       console.error('Streak claim failed:', error);
@@ -192,8 +192,8 @@ export default function StreakCard({ user }: StreakCardProps) {
       <CardContent className="pt-3 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4cd3ff]/20 to-[#4cd3ff]/10 border border-[#4cd3ff]/30 flex items-center justify-center">
-              <Flame className="w-5 h-5 text-[#4cd3ff]" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6b21a8]/20 to-[#6b21a8]/10 border border-[#6b21a8]/30 flex items-center justify-center">
+              <Flame className="w-5 h-5 text-[#6b21a8]" />
             </div>
             <div>
               <h3 className="text-white font-bold text-xl">
@@ -204,21 +204,21 @@ export default function StreakCard({ user }: StreakCardProps) {
           <Button
               onClick={handleClaimStreak}
               disabled={isClaiming || !canClaim}
-              className="h-10 px-4 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#4cd3ff]/30 hover:border-[#4cd3ff] hover:bg-[#4cd3ff]/10 transition-all rounded-full flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
+              className="h-10 px-4 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#6b21a8]/30 hover:border-[#6b21a8] hover:bg-[#6b21a8]/10 transition-all rounded-full flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
             >
               {isClaiming ? (
                 <>
-                  <Loader className="w-4 h-4 text-[#4cd3ff] animate-spin" />
+                  <Loader className="w-4 h-4 text-[#6b21a8] animate-spin" />
                   <span className="text-white font-medium text-xs">Claiming...</span>
                 </>
               ) : canClaim ? (
                 <>
-                  <Flame className="w-4 h-4 text-[#4cd3ff]" />
+                  <Flame className="w-4 h-4 text-[#6b21a8]" />
                   <span className="text-white font-medium text-xs">Claim Bonus</span>
                 </>
               ) : (
                 <>
-                  <Flame className="w-4 h-4 text-[#4cd3ff] opacity-50" />
+                  <Flame className="w-4 h-4 text-[#6b21a8] opacity-50" />
                   <span className="text-white font-medium text-xs opacity-70">{timeUntilNextClaim}</span>
                 </>
               )}

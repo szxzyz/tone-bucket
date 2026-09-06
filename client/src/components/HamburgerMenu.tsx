@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   Ticket,
   Loader2
 } from "lucide-react";
@@ -94,34 +94,34 @@ export default function HamburgerMenu() {
     }
 
     if (isShowingAds) return;
-    
+
     setIsShowingAds(true);
-    
+
     try {
       // Show the env-configured AdsGram hamburger ad first
       const adsgramSuccess = await showAdsgramAd();
-      
+
       if (!adsgramSuccess) {
         showNotification("Please watch the ad completely to redeem!", "error");
         setIsShowingAds(false);
         return;
       }
-      
+
       // Then show Monetag rewarded ad
       const monetagResult = await showMonetagRewardedAd();
-      
+
       if (monetagResult.unavailable) {
         // If Monetag unavailable, proceed with just AdsGram
         redeemPromoMutation.mutate(promoCode.trim().toUpperCase());
         return;
       }
-      
+
       if (!monetagResult.watchedFully) {
         showNotification("Please watch the ad completely to redeem!", "error");
         setIsShowingAds(false);
         return;
       }
-      
+
       redeemPromoMutation.mutate(promoCode.trim().toUpperCase());
     } finally {
       setIsShowingAds(false);
@@ -142,7 +142,7 @@ export default function HamburgerMenu() {
           <div className="space-y-6">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Ticket className="w-5 h-5 text-[#4cd3ff]" />
+                <Ticket className="w-5 h-5 text-[#6b21a8]" />
                 <span className="text-sm font-semibold text-white">Promo Code</span>
               </div>
               <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ export default function HamburgerMenu() {
                 <Button
                   onClick={handleSubmit}
                   disabled={redeemPromoMutation.isPending || isShowingAds || !promoCode.trim()}
-                  className="h-11 px-6 bg-[#4cd3ff] hover:bg-[#6ddeff] text-black transition-all active:scale-[0.97] font-semibold rounded-xl"
+                  className="h-11 px-6 bg-[#6b21a8] hover:bg-[#6ddeff] text-black transition-all active:scale-[0.97] font-semibold rounded-xl"
                 >
                   {redeemPromoMutation.isPending || isShowingAds ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
                 </Button>

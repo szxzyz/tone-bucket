@@ -28,11 +28,11 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, isC
         onClick={(e) => { e.stopPropagation(); isCompleted ? onClaim() : onAction(); }}
         disabled={isClaimed}
         style={{
-          background: isClaimed ? 'rgba(255,255,255,0.06)' : isCompleted ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+          background: isClaimed ? 'rgba(255,255,255,0.06)' : isCompleted ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
           color: isClaimed ? 'rgba(255,255,255,0.3)' : '#fff', border: 'none', width: buttonLabel === 'Share' ? 78 : 70,
           height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
           cursor: isClaimed ? 'not-allowed' : 'pointer', flexShrink: 0, letterSpacing: '0.03em',
-          boxShadow: isClaimed ? 'none' : isCompleted ? '0 2px 12px rgba(34,197,94,0.4)' : '0 2px 12px rgba(37,99,235,0.4)',
+          boxShadow: isClaimed ? 'none' : isCompleted ? '0 2px 12px rgba(34,197,94,0.4)' : '0 2px 12px rgba(61,21,128,0.4)',
         }}
         className="active:scale-95 transition-transform"
       >

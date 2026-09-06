@@ -23,7 +23,7 @@ type TaskStep = 'idle' | 'started' | 'countdown' | 'ready' | 'claiming' | 'compl
 
 export default function TaskSection() {
   const queryClient = useQueryClient();
-  
+
   const [shareStep, setShareStep] = useState<TaskStep>('idle');
   const [shareCountdown, setShareCountdown] = useState(3);
   const [channelStep, setChannelStep] = useState<TaskStep>('idle');
@@ -92,7 +92,7 @@ export default function TaskSection() {
       const rewardAmount = parseFloat(data.rewardEarned || '0');
       if (rewardAmount > 0) {
         const rewardGold = Math.round(rewardAmount);
-        const message = data.isBonusDay 
+        const message = data.isBonusDay
           ? `5-day streak bonus! +${rewardGold.toLocaleString()} Gold`
           : `Streak claimed! +${rewardGold.toLocaleString()} Gold`;
         showNotification(message, 'success');
@@ -190,20 +190,20 @@ export default function TaskSection() {
 
   const handleShareTask = useCallback(() => {
     if (shareStep !== 'idle') return;
-    
+
     const botUsername = import.meta.env.VITE_BOT_USERNAME || '';
-    const referralLink = user?.referralCode 
+    const referralLink = user?.referralCode
       ? `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`
       : '';
-    
+
     if (!referralLink) {
       showNotification('Unable to generate referral link', 'error');
       return;
     }
-    
+
     const shareText = `Earn Gold in Telegram!`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
-    
+
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(shareUrl);
     } else if (navigator.share) {
@@ -215,7 +215,7 @@ export default function TaskSection() {
     } else {
       window.open(shareUrl, '_blank');
     }
-    
+
     setShareStep('countdown');
     setShareCountdown(3);
   }, [shareStep, user?.referralCode]);
@@ -228,13 +228,13 @@ export default function TaskSection() {
 
   const handleChannelTask = useCallback(() => {
     if (channelStep !== 'idle') return;
-    
+
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink('https://t.me/MoneyAdz');
     } else {
       window.open('https://t.me/MoneyAdz', '_blank');
     }
-    
+
     setChannelStep('countdown');
     setChannelCountdown(3);
   }, [channelStep]);
@@ -247,13 +247,13 @@ export default function TaskSection() {
 
   const handleCommunityTask = useCallback(() => {
     if (communityStep !== 'idle') return;
-    
+
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink('https://t.me/MoneyAdzChat');
     } else {
       window.open('https://t.me/MoneyAdzChat', '_blank');
     }
-    
+
     setCommunityStep('countdown');
     setCommunityCountdown(3);
   }, [communityStep]);
@@ -304,7 +304,7 @@ export default function TaskSection() {
     isClaimPending: boolean
   ) => {
     const isCompleted = step === 'completed';
-    
+
     const getButtonContent = () => {
       if (isCompleted) {
         return (
@@ -336,7 +336,7 @@ export default function TaskSection() {
       if (step === 'ready') {
         return 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600';
       }
-      return 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600';
+      return 'bg-gradient-to-r from-[#3d1580] to-[#6b21a8] hover:from-[#1a0d3d] hover:to-[#3d1580]';
     };
 
     const handleClick = () => {
@@ -347,7 +347,7 @@ export default function TaskSection() {
         onStart();
       }
     };
-    
+
     return (
       <Card className="minimal-card mb-3 hover:bg-[#1A1A1A]/50 transition-all">
         <CardContent className="p-3">
@@ -411,9 +411,9 @@ export default function TaskSection() {
                   onClick={handleClaimStreak}
                   disabled={streakCompleted || claimStreakMutation.isPending}
                   className={`h-9 px-4 text-xs flex-shrink-0 min-w-[75px] font-semibold rounded-xl border-0 shadow-md ${
-                    streakCompleted 
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
-                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600'
+                    streakCompleted
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                      : 'bg-gradient-to-r from-[#3d1580] to-[#6b21a8] hover:from-[#1a0d3d] hover:to-[#3d1580]'
                   } text-white`}
                 >
                   {streakCompleted ? (
@@ -430,7 +430,7 @@ export default function TaskSection() {
               </div>
             </CardContent>
           </Card>
-          
+
           {renderTask(
             <Gift className="w-5 h-5" />,
             'bg-gradient-to-br from-pink-500 to-rose-500',
@@ -443,10 +443,10 @@ export default function TaskSection() {
             handleClaimShare,
             shareTaskMutation.isPending
           )}
-          
+
           {renderTask(
             <Send className="w-5 h-5" />,
-            'bg-gradient-to-br from-blue-500 to-cyan-500',
+            'bg-gradient-to-br from-[#3d1580] to-[#6b21a8]',
             'Check for Updates',
             `+${channelTaskRewardGold.toLocaleString()} Gold`,
             'text-cyan-400',
@@ -456,7 +456,7 @@ export default function TaskSection() {
             handleClaimChannel,
             channelTaskMutation.isPending
           )}
-          
+
           {renderTask(
             <Users className="w-5 h-5" />,
             'bg-gradient-to-br from-purple-500 to-violet-500',
