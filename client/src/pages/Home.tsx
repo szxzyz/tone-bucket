@@ -13,9 +13,10 @@ import { CHECKIN_REWARDS } from "@/components/DailyCheckinSheet";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/hooks/useLanguage";
-import { FaMedal, FaTrophy } from "react-icons/fa";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import AdWatchingSection from "@/components/AdWatchingSection";
+import DailyMissionTasks from "@/components/DailyMissionTasks";
+import AdvertiserTaskFeed from "@/components/AdvertiserTaskFeed";
 import { showAdgramAd } from "@/lib/showAd";
 
 
@@ -68,7 +69,7 @@ export default function Home() {
 
   const [promoPopupOpen, setPromoPopupOpen] = useState(false);
   const [boosterPopupOpen, setBoosterPopupOpen] = useState(false);
-  const [currentBanner, setCurrentBanner] = useState(0);
+  const [activeHomeTab, setActiveHomeTab] = useState<'daily' | 'social' | 'game'>('daily');
 
 
 
@@ -127,26 +128,12 @@ export default function Home() {
 
 
 
-  const { data: appSettings } = useQuery<any>({
-    queryKey: ['/api/app-settings'],
-    retry: false,
-  });
-
   // Env-based AdsGram and approved rewarded-ad provider configuration.
   const { data: appConfig } = useQuery<any>({
     queryKey: ['/api/config/app'],
     staleTime: 5 * 60_000,
     retry: false,
   });
-
-  // Banner Auto-scroll effect (5 seconds)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentBanner(prev => (prev === 0 ? 1 : 0));
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
 
   const { data: userData } = useQuery<{ referralCode?: string }>({
     queryKey: ['/api/auth/user'],
@@ -560,113 +547,6 @@ export default function Home() {
 
       <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#000000' }}>
 
-        {/* Banner Carousel */}
-        <div className="mt-1 mb-2.5 relative overflow-hidden rounded-2xl shrink-0" style={{ height: 'clamp(80px, 12vh, 96px)', touchAction: 'pan-x' }}>
-          <div
-            style={{
-              display: 'flex',
-              width: '200%',
-              height: '100%',
-              transform: `translateX(-${currentBanner * 50}%)`,
-              transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-              cursor: 'grab'
-            }}
-            onTouchStart={(e) => {
-              const startX = e.touches[0].clientX;
-              const handleTouchMove = (moveEvent: TouchEvent) => {
-                const diff = startX - moveEvent.touches[0].clientX;
-                if (Math.abs(diff) > 50) {
-                  if (diff > 0) setCurrentBanner(1);
-                  else setCurrentBanner(0);
-                  document.removeEventListener('touchmove', handleTouchMove);
-                }
-              };
-              document.addEventListener('touchmove', handleTouchMove);
-              document.addEventListener('touchend', () => document.removeEventListener('touchmove', handleTouchMove), { once: true });
-            }}
-          >
-            {/* Slide 1: Weekly Contest (Invite) */}
-            <div
-              style={{ width: '50%', height: '100%', position: 'relative' }}
-              onClick={() => setLocation('/leaderboard')}
-            >
-              <img
-                src="/daily-contest-banner.jpg"
-                alt="Weekly Contest"
-                className="w-full h-full object-cover"
-                style={{ objectPosition: 'center 50%' }}
-                onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x200/171717/white?text=Weekly+Contest'; }}
-              />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.15) 100%)' }} />
-              <div className="absolute inset-0 flex items-center justify-between" style={{ padding: '0 14px' }}>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <FaMedal style={{ color: '#FFD700', fontSize: 13 }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD700', letterSpacing: '0.18em', textTransform: 'uppercase', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-                      {t('weekly_contest')}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 17, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.95)', lineHeight: 1.15 }}>
-                    Top Inviters
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', textShadow: '0 1px 4px rgba(0,0,0,0.9)', lineHeight: 1.2 }}>
-                    Take the Prize
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-0.5">
-                  <FaTrophy style={{ color: '#FFD700', fontSize: 22, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }} />
-                  <span style={{ fontSize: 20, fontWeight: 900, color: '#FFD700', textShadow: '0 2px 6px rgba(0,0,0,0.9)', lineHeight: 1 }}>
-                    {appSettings?.weeklyReferralPrizes?.split('\n')[0] || '$10'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Slide 2: Leaderboard (Earnings) */}
-            <div
-              style={{ width: '50%', height: '100%', position: 'relative' }}
-              onClick={() => setLocation('/leaderboard')}
-            >
-              <img
-                src="/assets/leaderboard-banner-new.png"
-                alt="Leaderboard"
-                className="w-full h-full object-cover"
-                style={{ objectPosition: 'center 50%' }}
-                onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x200/171717/white?text=Leaderboard'; }}
-              />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%)' }} />
-              <div className="absolute inset-0 flex items-center justify-between" style={{ padding: '0 14px' }}>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <FaTrophy style={{ color: '#FFD700', fontSize: 13 }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD700', letterSpacing: '0.18em', textTransform: 'uppercase', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-                      Leaderboard
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 17, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.95)', lineHeight: 1.15 }}>
-                    Top Earners
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', textShadow: '0 1px 4px rgba(0,0,0,0.9)', lineHeight: 1.2 }}>
-                    Take the Prize
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-0.5">
-                  <FaTrophy style={{ color: '#FFD700', fontSize: 22, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }} />
-                  <span style={{ fontSize: 20, fontWeight: 900, color: '#FFD700', textShadow: '0 2px 6px rgba(0,0,0,0.9)', lineHeight: 1 }}>
-                    {appSettings?.monthlyContestPrizes?.split('\n')[0] || '$10'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Carousel Indicators */}
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: currentBanner === 0 ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'background 0.3s' }} />
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: currentBanner === 1 ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'background 0.3s' }} />
-          </div>
-        </div>
-
         {/* Promo Code */}
         <section style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
@@ -678,9 +558,43 @@ export default function Home() {
           <PromoCodeInput />
         </section>
 
+        <div
+          role="tablist"
+          aria-label="Home sections"
+          style={{ display: 'flex', gap: 8, marginBottom: 14 }}
+        >
+          {([
+            ['daily', 'Daily'],
+            ['social', 'Social'],
+            ['game', 'Game'],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={activeHomeTab === id}
+              onClick={() => setActiveHomeTab(id)}
+              style={{
+                flex: 1,
+                height: 38,
+                border: 'none',
+                borderRadius: 12,
+                background: activeHomeTab === id ? 'linear-gradient(135deg, #3d1580, #6b21a8)' : 'rgba(255,255,255,0.07)',
+                color: activeHomeTab === id ? '#fff' : 'rgba(255,255,255,0.45)',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                cursor: 'pointer',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Daily Task: Check-In, Mystery Gift, and daily missions */}
         <style>{`@keyframes spin-hdc { to { transform: rotate(360deg); } }`}</style>
 
+        {activeHomeTab === 'daily' && <>
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
             Daily Task
@@ -766,7 +680,25 @@ export default function Home() {
 
         </div>
 
+        <DailyMissionTasks />
         <AdWatchingSection user={user} hideTitle={false} />
+        </>}
+
+        {activeHomeTab === 'social' && (
+          <AdvertiserTaskFeed
+            kind="social"
+            title="Social Tasks"
+            subtitle="Complete channel and social tasks to earn rewards."
+          />
+        )}
+
+        {activeHomeTab === 'game' && (
+          <AdvertiserTaskFeed
+            kind="game"
+            title="Game Tasks"
+            subtitle="Launch games and complete tasks to earn rewards."
+          />
+        )}
 
           <DailyCheckinSheet
             open={checkinSheetOpen}
