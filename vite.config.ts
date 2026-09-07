@@ -8,13 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Injects ad-SDK ids into index.html at build time from environment
 // variables, so nothing SDK-related is hardcoded in the HTML source.
 // Placeholders used in index.html: %VITE_MONETAG_ZONE_ID%, %VITE_GIGAPUB_SCRIPT_ID%
-// %VITE_RICHADS_PUB_ID%, %VITE_RICHADS_APP_ID%
 function envHtmlPlugin(): Plugin {
   const replacements: Array<[RegExp, string | undefined]> = [
     [/\%VITE_MONETAG_ZONE_ID\%/g, process.env.VITE_MONETAG_ZONE_ID || process.env.MONETAG_ZONE_ID || "10013974"],
     [/\%VITE_GIGAPUB_SCRIPT_ID\%/g, process.env.VITE_GIGAPUB_SCRIPT_ID || process.env.GIGAPUB_SCRIPT_ID || "6938"],
-    [/\%VITE_RICHADS_PUB_ID\%/g, process.env.VITE_RICHADS_PUB_ID || process.env.RICHADS_PUB_ID || "1014157"],
-    [/\%VITE_RICHADS_APP_ID\%/g, process.env.VITE_RICHADS_APP_ID || process.env.RICHADS_APP_ID || "7733"],
   ];
   return {
     name: "env-html-injection",

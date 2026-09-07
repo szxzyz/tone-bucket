@@ -85,9 +85,6 @@ export const config = {
     uslAdsApiKey: process.env.VITE_USL_ADS_API_KEY || process.env.USL_ADS_API_KEY || '',
     uslAdsPlacementId: process.env.VITE_USL_ADS_PLACEMENT_ID || process.env.USL_ADS_PLACEMENT_ID || '',
 
-    // Richads Telegram Ads (env: RICHADS_PUB_ID / RICHADS_APP_ID)
-    richadsPubId: process.env.VITE_RICHADS_PUB_ID || process.env.RICHADS_PUB_ID || '',
-    richadsAppId: process.env.VITE_RICHADS_APP_ID || process.env.RICHADS_APP_ID || '',
   },
 };
 
@@ -133,7 +130,5 @@ export function getAppConfig() {
     uslAdsSdkUrl: config.ads.uslAdsSdkUrl,
     uslAdsApiKey: config.ads.uslAdsApiKey,
     uslAdsPlacementId: config.ads.uslAdsPlacementId,
-    richadsPubId: config.ads.richadsPubId,
-    richadsAppId: config.ads.richadsAppId,
   };
 }

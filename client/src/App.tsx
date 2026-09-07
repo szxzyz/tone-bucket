@@ -23,7 +23,6 @@ import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
-import ReferenceHome from "@/pages/ReferenceHome";
 
 // Lazy-load heavy/rare pages only
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -54,7 +53,6 @@ function Router() {
         <Route path="/tasks/create" component={CreateTask} />
         {/* BottomNav tab routes — aliased to existing pages */}
         <Route path="/rewards" component={Home} />
-        <Route path="/reference-home" component={ReferenceHome} />
         {/* Legacy Earn URL now opens the dedicated Mission page. */}
         <Route path="/earn" component={Mission} />
         <Route path="/friend" component={Affiliates} />

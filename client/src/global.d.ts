@@ -41,9 +41,6 @@ declare global {
       reset?: (widgetId: string) => void;
     };
 
-    // ── Richads Telegram Ads ───────────────────────────────────────────
-    TelegramAdsController?: any;
-
     // ── USL Ads / TowerAds SDK ─────────────────────────────────────────
     AdsManager?: any;
   }

@@ -33,23 +33,6 @@
     <!-- USL Ads (TowerAds SDK) -->
     <script async src="https://uslads.com/sdk/tower-ads-v4.js"></script>
 
-    <!-- Richads Telegram Ads -->
-    <script async src="https://richinfo.co/richpartners/telegram/js/tg-ob.js" id="richads-sdk"></script>
-    <script>
-      (function() {
-        function initRichads() {
-          if (typeof TelegramAdsController !== 'undefined') {
-            window.TelegramAdsController = new TelegramAdsController();
-            window.TelegramAdsController.initialize({ pubId: "%VITE_RICHADS_PUB_ID%", appId: "%VITE_RICHADS_APP_ID%" });
-          }
-        }
-        var sdk = document.getElementById('richads-sdk');
-        if (sdk) {
-          sdk.addEventListener('load', initRichads);
-        }
-        document.addEventListener('DOMContentLoaded', initRichads);
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

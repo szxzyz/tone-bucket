@@ -1,7 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Home as HomeIcon, HeartHandshake, ListChecks, ShieldCheck, Wallet, Eye } from "lucide-react";
+import { Home as HomeIcon, HeartHandshake, ListChecks, ShieldCheck, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ACTIVE = "#ffffff";
@@ -12,7 +12,6 @@ const TABS = [
   { id: "mission", label: "Mission", path: "/missions", icon: ListChecks     },
   { id: "friend",  label: "Friends", path: "/friend",  icon: HeartHandshake },
   { id: "withdraw", label: "Withdraw", path: "/withdraw", icon: Wallet       },
-  { id: "preview", label: "Preview", path: "/reference-home", icon: Eye       },
 ] as const;
 
 export default function BottomNav() {
