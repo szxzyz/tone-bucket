@@ -6,8 +6,8 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, isC
     <div
       style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px',
-        width: '100%', boxSizing: 'border-box', background: '#171717',
-        borderRadius: 14, marginBottom: 10,
+        width: '100%', boxSizing: 'border-box', background: 'transparent',
+        borderRadius: 0, marginBottom: 0,
       }}
       onClick={isClaimed ? undefined : (isCompleted ? onClaim : onAction)}
     >
@@ -66,10 +66,8 @@ export default function DailyMissionTasks() {
   });
 
   return (
-    <section style={{ marginTop: 18 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>
-        Daily Missions
-      </div>
+    <>
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />
       <DailyTaskItem
         icon="/assets/check-updates.png" title="Check for updates" subtitle="" buttonLabel="Go" goldReward={100}
         isCompleted={missionStatus?.checkForUpdates?.completed} isClaimed={missionStatus?.checkForUpdates?.claimed}
@@ -98,6 +96,6 @@ export default function DailyMissionTasks() {
         }}
         onClaim={() => claimMissionMutation.mutate({ type: 'share_referral' })}
       />
-    </section>
+    </>
   );
 }

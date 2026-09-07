@@ -676,11 +676,13 @@ export default function Home() {
                 ) : mysteryOpened ? 'DONE' : 'OPEN'}
               </button>
             </div>
+
+            {/* Check for Updates and Share With Friends stay inside Daily Task */}
+            <DailyMissionTasks />
           </div>
 
         </div>
 
-        <DailyMissionTasks />
         <AdWatchingSection user={user} hideTitle={false} />
         </>}
 
