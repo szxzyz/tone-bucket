@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, History } from "lucide-react";
 import DepositPopup from "@/components/DepositPopup";
+import PayoutHistoryPopup from "@/components/PayoutHistoryPopup";
 import { TonIcon } from "@/components/TonIcon";
 
 interface HeaderProps {
@@ -19,6 +20,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
   ({ onMenuOpen }, ref) => {
     const [overlayTop, setOverlayTop] = useState(0);
     const [depositOpen, setDepositOpen] = useState(false);
+    const [payoutHistoryOpen, setPayoutHistoryOpen] = useState(false);
     const innerRef = useRef<HTMLDivElement>(null);
 
     useImperativeHandle(ref, () => innerRef.current!);
@@ -122,9 +124,17 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
               </span>
             </button>
           </div>
+          <button
+            onClick={() => setPayoutHistoryOpen(true)}
+            aria-label="Open payout history"
+            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 11, background: 'rgba(255,255,255,0.04)', color: '#fff' }}
+          >
+            <History size={18} />
+          </button>
 
         </div>
         <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
+        <PayoutHistoryPopup open={payoutHistoryOpen} onClose={() => setPayoutHistoryOpen(false)} />
       </div>
     );
   }

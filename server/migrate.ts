@@ -594,6 +594,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
           ALTER TABLE users ADD COLUMN IF NOT EXISTS total_claimed_referral_bonus DECIMAL(12, 8) DEFAULT '0';
           ALTER TABLE users ADD COLUMN IF NOT EXISTS ton_balance DECIMAL(30, 10) DEFAULT '0';
           ALTER TABLE users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL(30, 10) DEFAULT '0';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS faucetpay_email TEXT;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS pdz_balance DECIMAL(30, 10) DEFAULT '0';
           ALTER TABLE users ADD COLUMN IF NOT EXISTS bug_balance DECIMAL(30, 10) DEFAULT '0';
           ALTER TABLE users ADD COLUMN IF NOT EXISTS usdt_wallet_address TEXT;
@@ -662,7 +663,27 @@ export async function ensureDatabaseSchema(): Promise<void> {
 	        console.log('ℹ️ [MIGRATION] user_balances unique constraint repair skipped:', String(e).slice(0, 100));
 	      }
 	      
-	      console.log('✅ [MIGRATION] User columns and constraints ensured');
+      await db.execute(sql`
+        ALTER TABLE earnings ADD COLUMN IF NOT EXISTS currency VARCHAR(12) DEFAULT 'GOLD';
+        CREATE TABLE IF NOT EXISTS payout_records (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id VARCHAR NOT NULL REFERENCES users(id),
+          currency VARCHAR(12) NOT NULL,
+          amount DECIMAL(30, 10) NOT NULL,
+          recipient_email TEXT NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          provider VARCHAR(30) NOT NULL DEFAULT 'faucetpay',
+          provider_reference TEXT,
+          source VARCHAR(40) NOT NULL,
+          error_message TEXT,
+          metadata JSONB,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS payout_records_user_created_idx
+          ON payout_records(user_id, created_at DESC);
+      `);
+      console.log('✅ [MIGRATION] User columns and payout schema ensured');
     } catch (err) {
       console.log('ℹ️ [MIGRATION] User column batch skipped (may already exist):', String(err).slice(0, 100));
     }

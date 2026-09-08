@@ -34,6 +34,7 @@ export const users = pgTable("users", {
   telegram_id: varchar("telegram_id", { length: 20 }).unique(), // ✅ Telegram ID for authentication (stored as string for compatibility)
   username: varchar("username"),
   email: text("email"),
+  faucetpayEmail: text("faucetpay_email"),
   firstName: text("first_name"),
   lastName: text("last_name"),
   profileImageUrl: text("profile_image_url"),
@@ -148,7 +149,26 @@ export const earnings = pgTable("earnings", {
   amount: decimal("amount", { precision: 30, scale: 10 }).notNull(),
   source: varchar("source").notNull(),
   description: text("description"),
+  currency: varchar("currency", { length: 12 }).default('GOLD'),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Automatic FaucetPay payout records. Kept separate from legacy withdrawals
+// so payout history remains available after the old withdrawal page is removed.
+export const payoutRecords = pgTable("payout_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  currency: varchar("currency", { length: 12 }).notNull(),
+  amount: decimal("amount", { precision: 30, scale: 10 }).notNull(),
+  recipientEmail: text("recipient_email").notNull(),
+  status: varchar("status", { length: 20 }).default('pending').notNull(),
+  provider: varchar("provider", { length: 30 }).default('faucetpay').notNull(),
+  providerReference: text("provider_reference"),
+  source: varchar("source", { length: 40 }).notNull(),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Transactions table - For tracking all balance changes (deductions and additions)

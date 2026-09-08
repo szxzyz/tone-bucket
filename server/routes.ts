@@ -58,6 +58,7 @@ import { computeRiskScore, analyzeAdBehavior, checkRateLimit, checkKnownBotSigna
 import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
+import { listUserPayouts } from "./faucetpay";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -1215,6 +1216,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // FaucetPay email is the payout destination for automatic mock/live payouts.
+  app.patch('/api/profile/faucetpay-email', authenticateTelegram, async (req: any, res) => {
+    try {
+      const userId = req.user.user.id;
+      const email = String(req.body?.email || '').trim().toLowerCase();
+      if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+        return res.status(400).json({ message: 'Please enter a valid FaucetPay email' });
+      }
+      await db.update(users).set({ faucetpayEmail: email || null, updatedAt: new Date() }).where(eq(users.id, userId));
+      res.json({ success: true, faucetpayEmail: email || null });
+    } catch (error) {
+      console.error('Error saving FaucetPay email:', error);
+      res.status(500).json({ message: 'Failed to save FaucetPay email' });
+    }
+  });
+
+  app.get('/api/payout-history', authenticateTelegram, async (req: any, res) => {
+    try {
+      const payouts = await listUserPayouts(req.user.user.id, Number(req.query?.limit) || 50);
+      res.json({ success: true, payouts });
+    } catch (error) {
+      console.error('Error fetching payout history:', error);
+      res.status(500).json({ success: false, payouts: [] });
     }
   });
 
