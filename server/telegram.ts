@@ -1254,18 +1254,13 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
     text += seg;
   };
 
-  addSegment('👋');
-  addSegment(' ');
-  addSegment('Welcome to Swag Bux', { bold: true });
-  addSegment('. \n\n');
-  addSegment('✅ ');
-  addSegment('Complete simple tasks and withdraw USDT!', { bold: true });
-  addSegment(' \n\n');
-  addSegment('🔥 ');
-  addSegment('Invite your friends and earn 25% of their earnings!', { bold: true });
-  addSegment(' \n\n');
-  addSegment('🚀 ');
-  addSegment('Click the button below to get started now.', { bold: true });
+  addSegment('✅ Start Earning Crypto Instantly!\n\n', { bold: true });
+  addSegment('✨ Why Choose Grab Penny Official?\n\n', { bold: true });
+  addSegment('🎮 Watch & Earn\n');
+  addSegment('👥 Referral Power\n');
+  addSegment('🚀 Speed Boosts\n');
+  addSegment('💎 Earn TON LTC PEPE DGB\n\n');
+  addSegment('🌟 Your crypto journey starts NOW!', { bold: true });
 
   const appUrl = referralCode && config.bot.appUrl
     ? `${config.bot.appUrl}${config.bot.appUrl.includes('?') ? '&' : '?'}startapp=${encodeURIComponent(referralCode)}`
