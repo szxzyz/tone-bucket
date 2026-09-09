@@ -1,7 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ListChecks, ShieldCheck, Tv, Target } from "lucide-react";
+import { ListChecks, ShieldCheck, Clapperboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ACTIVE = "#ffffff";
@@ -9,8 +9,8 @@ const DIM = "#6E6E73";
 
 const TABS = [
   { id: "home", label: "Home", path: "/", icon: ListChecks },
-  { id: "ads", label: "Ads", path: "/ads", icon: Tv },
-  { id: "mission", label: "Mission", path: "/mission", icon: Target },
+  { id: "ads", label: "Ads", path: "/ads", icon: Clapperboard },
+  { id: "mission", label: "Mission", path: "/mission", icon: ListChecks },
 ] as const;
 
 export default function BottomNav() {

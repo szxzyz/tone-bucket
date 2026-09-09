@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/hooks/useLanguage";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
+import InviteFriendsSection from "@/components/InviteFriendsSection";
 import { showAdgramAd } from "@/lib/showAd";
 
 
@@ -576,7 +577,7 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
                     {Number(checkinStatus?.reward ?? 0.0001).toFixed(4)} USDT
                   </span>
@@ -613,7 +614,7 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
                     0.0001–0.005 USDT
                   </span>
@@ -659,6 +660,8 @@ export default function Home() {
               queryClient.invalidateQueries({ queryKey: ['/api/missions/status'] });
             }}
           />
+
+        <InviteFriendsSection />
 
         {/* Bottom Spacer for floating nav */}
         <div style={{ height: 80, flexShrink: 0 }} />
