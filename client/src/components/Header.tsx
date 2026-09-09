@@ -124,11 +124,11 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           </div>
           <button
             onClick={() => setPayoutHistoryOpen(true)}
-            aria-label="Set Address"
+            aria-label="Cash Out"
             style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px', border: 0, borderRadius: 11, background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 11, fontWeight: 800 }}
           >
             <Wallet size={17} />
-            <span>Set Address</span>
+            <span>Cash Out</span>
           </button>
 
         </div>

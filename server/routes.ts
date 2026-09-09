@@ -6641,15 +6641,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user?.payoutWalletAddress || !user.payoutCurrency) return res.status(400).json({ success: false, message: 'Set your wallet address first' });
-      const gold = Number(user.balance || 0);
+      const requestedGold = req.body?.goldAmount === undefined || req.body?.goldAmount === '' ? Number(user.balance || 0) : Number(req.body.goldAmount);
+      const gold = Math.trunc(requestedGold);
       if (!Number.isFinite(gold) || (config.faucetPay.testMode ? Math.trunc(gold) !== 100000 : gold < 100000)) return res.status(400).json({ success: false, message: config.faucetPay.testMode ? 'Testing mode requires exactly 100,000 Gold ($1)' : 'Minimum payout is 100,000 Gold' });
+      if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GOLD balance' });
       const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), inArray(withdrawals.status, ['pending', 'Approved', 'Processing']))).limit(1);
       if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });
       const rate = await getPayoutRate(user.payoutCurrency);
       const usdValue = gold / 100000;
       const cryptoAmount = usdValue / rate;
       const result = await db.transaction(async (tx) => {
-        const locked = await tx.update(users).set({ balance: '0', updatedAt: new Date() }).where(and(eq(users.id, userId), eq(users.balance, String(Math.trunc(gold))))).returning({ id: users.id });
+        const locked = await tx.update(users).set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() }).where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`)).returning({ id: users.id });
         if (locked.length === 0) throw new Error('Balance changed; please try again');
         const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: usdValue.toFixed(10), method: user.payoutCurrency!, status: 'pending', details: { payoutCurrency: user.payoutCurrency, walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), usdValue, cryptoAmount, marketRateUsd: rate }, goldAmount: String(Math.trunc(gold)), usdValue: usdValue.toFixed(10), payoutCurrency: user.payoutCurrency!, cryptoAmount: cryptoAmount.toFixed(18), marketRateUsd: rate.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
