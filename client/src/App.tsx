@@ -15,13 +15,11 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageProvider } from "@/hooks/useLanguage";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
-import Home from "@/pages/Home";
 import Ads from "@/pages/Ads";
 import Mission from "@/pages/Mission";
 import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
-import Account from "@/pages/Account";
 import CreateTask from "@/pages/CreateTask";
 
 // Lazy-load heavy/rare pages only
@@ -40,19 +38,18 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Home} />
+        <Route path="/" component={Ads} />
         <Route path="/ads" component={Ads} />
         <Route path="/mission" component={Mission} />
         <Route path="/profile" component={Profile} />
-        <Route path="/account" component={Account} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/ambassador" component={AmbassadorPage} />
         <Route path="/tasks/create" component={CreateTask} />
         {/* BottomNav tab routes — aliased to existing pages */}
-        <Route path="/rewards" component={Home} />
-        <Route path="/friend" component={Home} />
+        <Route path="/rewards" component={Ads} />
+        <Route path="/friend" component={Ads} />
         <Route path="/machine" component={Mission} />
         <Route component={NotFound} />
       </Switch>
@@ -67,10 +64,10 @@ function DeepLinkRedirector() {
     if (!param) return;
     if (param === "page_withdraw") {
       localStorage.removeItem("tg_start_param");
-      setLocation("/");
+      setLocation("/ads");
     } else if (param === "page_referral") {
       localStorage.removeItem("tg_start_param");
-      setLocation("/");
+      setLocation("/ads");
     }
   }, [setLocation]);
   return null;
