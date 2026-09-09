@@ -1921,9 +1921,8 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (withdrawal.payoutCurrency && withdrawal.cryptoAmount && withdrawal.walletAddress) {
-        const alreadyProcessed = ['Paid', 'Completed', 'Processing'].includes(String(updatedWithdrawal.status));
-        if (!alreadyProcessed) {
-          await db.update(withdrawals).set({ status: 'Processing', updatedAt: new Date() }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'Approved')));
+        const [claim] = await db.update(withdrawals).set({ status: 'Processing', updatedAt: new Date() }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'Approved'))).returning({ id: withdrawals.id });
+        if (claim) {
           try {
             const payout = await createFaucetPayPayout({
               userId: withdrawal.userId,
@@ -1933,7 +1932,7 @@ export class DatabaseStorage implements IStorage {
               source: 'approved_withdrawal',
               metadata: { withdrawalId, marketRateUsd: withdrawal.marketRateUsd, goldAmount: withdrawal.goldAmount, walletAddress: withdrawal.walletAddress },
             });
-            const finalStatus = payout.status === 'mock_success' ? 'Paid' : 'Processing';
+            const finalStatus = ['mock_success', 'paid', 'success', 'completed'].includes(String(payout.status).toLowerCase()) ? 'Paid' : 'Processing';
             [updatedWithdrawal] = await db.update(withdrawals).set({ status: finalStatus, providerReference: payout.providerReference, updatedAt: new Date() }).where(eq(withdrawals.id, withdrawalId)).returning();
           } catch (payoutError) {
             [updatedWithdrawal] = await db.update(withdrawals).set({ status: 'Failed', adminNotes: payoutError instanceof Error ? payoutError.message : String(payoutError), updatedAt: new Date() }).where(eq(withdrawals.id, withdrawalId)).returning();

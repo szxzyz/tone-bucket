@@ -39,7 +39,7 @@ import {
   type TaskStatus,
 } from "../shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, and, gte } from "drizzle-orm";
+import { eq, sql, desc, and, gte, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToGroup } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
@@ -6642,7 +6642,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user?.payoutWalletAddress || !user.payoutCurrency) return res.status(400).json({ success: false, message: 'Set your wallet address first' });
       const gold = Number(user.balance || 0);
-      if (!Number.isFinite(gold) || gold < 100000) return res.status(400).json({ success: false, message: 'Minimum payout is 100,000 Gold' });
+      if (!Number.isFinite(gold) || (config.faucetPay.testMode ? Math.trunc(gold) !== 100000 : gold < 100000)) return res.status(400).json({ success: false, message: config.faucetPay.testMode ? 'Testing mode requires exactly 100,000 Gold ($1)' : 'Minimum payout is 100,000 Gold' });
+      const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), inArray(withdrawals.status, ['pending', 'Approved', 'Processing']))).limit(1);
+      if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });
       const rate = await getPayoutRate(user.payoutCurrency);
       const usdValue = gold / 100000;
       const cryptoAmount = usdValue / rate;

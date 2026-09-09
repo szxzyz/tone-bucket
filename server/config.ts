@@ -59,6 +59,7 @@ export const config = {
     mode: process.env.FAUCETPAY_MODE === 'live' ? 'live' : 'mock',
     apiKey: process.env.FAUCETPAY_API_KEY || '',
     usdtNetwork: process.env.FAUCETPAY_USDT_NETWORK || 'BSC',
+    testMode: process.env.FAUCETPAY_TEST_MODE === 'true',
   },
 
   // ─── AD SDK CONFIGURATION (all env-based) ─────────────────────────────
