@@ -132,10 +132,21 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         if (!enabled) return false;
         if (card.adType === 'adsgram') return Boolean(appConfig?.adsgramRewardBlockId);
         if (card.adType === 'monetag') return Boolean(appConfig?.monetagZoneId || import.meta.env.VITE_MONETAG_ZONE_ID || import.meta.env.MONETAG_ZONE_ID);
-        if (card.adType === 'gigapub') return Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID);
-        if (card.adType === 'uslads') return Boolean((appConfig?.uslAdsApiKey || import.meta.env.VITE_USL_ADS_API_KEY) && (appConfig?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID));
+        // Keep these provider cards visible even before credentials are added,
+        // so users can see all available ad networks. The action remains
+        // disabled until the provider is configured.
+        if (card.adType === 'gigapub' || card.adType === 'uslads') return true;
         return false;
       });
+
+  const isProviderConfigured = (adType: string) => {
+    if (adType === 'gigapub') return Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID);
+    if (adType === 'uslads') return Boolean(
+      (appConfig?.uslAdsApiKey || import.meta.env.VITE_USL_ADS_API_KEY) &&
+      (appConfig?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID),
+    );
+    return true;
+  };
 
   useEffect(() => {
     if (visibleCards.length > 0 && activeIndex >= visibleCards.length) {
@@ -279,6 +290,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
               <div key={card.id}
                 style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#171717", cursor: "pointer", border: "none" }}
                 onClick={() => {
+                  if (!isProviderConfigured(card.adType)) return;
                   if (index !== activeIndex) { setActiveIndex(index); return; }
                   handleStartEarning(card.id);
                 }}
@@ -335,16 +347,17 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!isProviderConfigured(card.adType)) return;
                       if (index !== activeIndex) { setActiveIndex(index); return; }
                       handleStartEarning(card.id);
                     }}
-                    disabled={isShowingAds || limitReached}
+                    disabled={isShowingAds || limitReached || !isProviderConfigured(card.adType)}
                     style={{
                       padding: "9px 16px", borderRadius: 12, minWidth: 92,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
                       letterSpacing: "0.02em", whiteSpace: "nowrap",
-                      background: limitReached ? "rgba(255,255,255,0.06)" : "#6b21a8",
-                      color:      limitReached ? "rgba(255,255,255,0.3)"  : "#fff",
+                      background: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.06)" : "#6b21a8",
+                      color:      limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.3)"  : "#fff",
                       opacity: isShowingAds && !isActive ? 0.5 : 1,
                       transition: "opacity 0.2s",
                     }}
@@ -356,7 +369,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                           : <><FiZap    size={11} style={{ animation: "spin 0.8s linear infinite" }} />Loading</>
                         }
                       </span>
-                    ) : limitReached ? "LIMIT" : "GET GOLD"}
+                    ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET GOLD"}
                   </button>
                 </div>
               </div>
