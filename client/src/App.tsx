@@ -16,8 +16,8 @@ import { LanguageProvider } from "@/hooks/useLanguage";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Home from "@/pages/Home";
-import Affiliates from "@/pages/Affiliates";
-import Withdraw from "@/pages/Withdraw";
+import Ads from "@/pages/Ads";
+import Mission from "@/pages/Mission";
 import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
@@ -40,8 +40,8 @@ function Router() {
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/affiliates" component={Affiliates} />
-        <Route path="/withdraw" component={Withdraw} />
+        <Route path="/ads" component={Ads} />
+        <Route path="/mission" component={Mission} />
         <Route path="/profile" component={Profile} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
@@ -50,8 +50,8 @@ function Router() {
         <Route path="/tasks/create" component={CreateTask} />
         {/* BottomNav tab routes — aliased to existing pages */}
         <Route path="/rewards" component={Home} />
-        <Route path="/friend" component={Affiliates} />
-        <Route path="/machine" component={Leaderboard} />
+        <Route path="/friend" component={Home} />
+        <Route path="/machine" component={Mission} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -65,10 +65,10 @@ function DeepLinkRedirector() {
     if (!param) return;
     if (param === "page_withdraw") {
       localStorage.removeItem("tg_start_param");
-      setLocation("/withdraw");
+      setLocation("/");
     } else if (param === "page_referral") {
       localStorage.removeItem("tg_start_param");
-      setLocation("/affiliates");
+      setLocation("/");
     }
   }, [setLocation]);
   return null;

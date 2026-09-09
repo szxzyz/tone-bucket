@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { History, X } from 'lucide-react';
+import { Wallet, X } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { showNotification } from '@/components/AppNotification';
 
@@ -27,7 +27,7 @@ export default function PayoutHistoryPopup({ open, onClose }: Props) {
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <section onClick={(event) => event.stopPropagation()} style={{ width: '100%', maxWidth: 440, maxHeight: '78vh', overflowY: 'auto', background: '#171717', borderRadius: '22px 22px 0 0', padding: 18, color: '#fff' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}><History size={18} /> Payout History</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}><Wallet size={18} /> Set Address</div>
           <button onClick={onClose} aria-label="Close payout history" style={{ background: 'none', border: 0, color: '#fff' }}><X size={20} /></button>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 12, marginBottom: 14 }}>
@@ -38,6 +38,7 @@ export default function PayoutHistoryPopup({ open, onClose }: Props) {
           </div>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 7 }}>Mock payout mode is active; no real crypto is sent.</div>
         </div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', margin: '16px 0 4px' }}>Payout History</div>
         {payouts.length === 0 ? <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.45)', padding: '24px 0' }}>No payouts yet</div> : payouts.map((payout: any) => (
           <div key={payout.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div><div style={{ fontWeight: 800 }}>{payout.amount} {payout.currency}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{payout.source}</div></div>

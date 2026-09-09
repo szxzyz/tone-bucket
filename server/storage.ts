@@ -41,7 +41,8 @@ import {
   type TaskStatus,
   type Promotion,
 } from "../shared/schema";
-import { db } from "./db";
+import { db } from './db';
+import { createFaucetPayPayout } from './faucetpay';
 import { eq, desc, and, gte, lt, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { getResetPeriodKey, getPeriodStart } from "./resetPeriod";
@@ -974,10 +975,59 @@ export class DatabaseStorage implements IStorage {
           .where(eq(users.id, userId));
       }
 
-      // No pending referrals — nothing to credit
+      // The first valid ad completes the inviter's one-time 0.01 TON bonus.
+      // The conditional update is the idempotency lock: refreshes and concurrent
+      // ad callbacks cannot create a second bonus or payout.
+      for (const referral of pendingReferrals) {
+        const [firstAdClaim] = await db.update(referrals).set({
+          firstAdCompleted: true,
+          firstAdBonus: '0.01',
+          firstAdBonusPayoutStatus: 'pending',
+          updatedAt: new Date(),
+        }).where(and(
+          eq(referrals.id, referral.id),
+          eq(referrals.firstAdCompleted, false),
+          eq(referrals.firstAdBonusPayoutStatus, 'pending')
+        )).returning({ id: referrals.id, referrerId: referrals.referrerId });
+        if (!firstAdClaim) continue;
+        const referrer = await this.getUser(referral.referrerId);
+        if (!referrer?.faucetpayEmail) {
+          await db.update(referrals).set({
+            firstAdBonusPayoutStatus: 'awaiting_address',
+            firstAdBonusError: 'FaucetPay email is not configured',
+            updatedAt: new Date(),
+          }).where(eq(referrals.id, referral.id));
+          continue;
+        }
+        try {
+          const payout = await createFaucetPayPayout({
+            userId: referral.referrerId,
+            recipientEmail: referrer.faucetpayEmail,
+            currency: 'TON',
+            amount: '0.01',
+            source: 'first_invite_bonus',
+            metadata: { referralId: referral.id, invitedUserId: userId },
+          });
+          await db.update(referrals).set({
+            firstAdBonusPayoutStatus: payout.status,
+            firstAdBonusPayoutId: payout.id,
+            firstAdBonusPaidAt: new Date(),
+            updatedAt: new Date(),
+          }).where(eq(referrals.id, referral.id));
+        } catch (payoutError) {
+          await db.update(referrals).set({
+            firstAdBonusPayoutStatus: 'failed',
+            firstAdBonusError: payoutError instanceof Error ? payoutError.message : String(payoutError),
+            updatedAt: new Date(),
+          }).where(eq(referrals.id, referral.id));
+        }
+      }
+
+      // No pending referrals — nothing else to credit
       if (pendingReferrals.length === 0) return activatedReferrerIds;
 
-      // Not enough ads watched yet — check against admin-configured threshold
+      // Legacy referral reward remains threshold-controlled and separate from
+      // the one-time first-ad TON payout above.
       if (adsWatched < referralAdsRequired) return activatedReferrerIds;
 
       // Get referral reward settings from admin (no hardcoded values)

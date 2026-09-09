@@ -1,16 +1,16 @@
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { HeartHandshake, ListChecks, ShieldCheck, Wallet } from "lucide-react";
+import { ListChecks, ShieldCheck, Tv, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ACTIVE = "#ffffff";
 const DIM = "#6E6E73";
 
 const TABS = [
-  { id: "rewards", label: "Earnings", path: "/rewards", icon: ListChecks     },
-  { id: "friend",  label: "Friends", path: "/friend",  icon: HeartHandshake },
-  { id: "withdraw", label: "Withdraw", path: "/withdraw", icon: Wallet       },
+  { id: "home", label: "Home", path: "/", icon: ListChecks },
+  { id: "ads", label: "Ads", path: "/ads", icon: Tv },
+  { id: "mission", label: "Mission", path: "/mission", icon: Target },
 ] as const;
 
 export default function BottomNav() {
@@ -25,8 +25,7 @@ export default function BottomNav() {
   });
 
   const isOn = (tab: typeof TABS[number]) =>
-    location === tab.path ||
-    (tab.id === "rewards" && (location === "/" || location.startsWith("/rewards")));
+    location === tab.path || (tab.id === "home" && location.startsWith("/rewards"));
 
   const telegramPhotoUrl =
     typeof window !== "undefined" &&
@@ -35,7 +34,7 @@ export default function BottomNav() {
     telegramPhotoUrl || user?.profileImageUrl || user?.profileUrl || null;
 
   const handleHomeClick = () => {
-    if (location !== "/rewards" && location !== "/") setLocation("/rewards");
+    if (location !== "/") setLocation("/");
   };
 
   const handleHomeDoubleClick = () => {
@@ -54,7 +53,7 @@ export default function BottomNav() {
           const on = isOn(tab);
           const Icon = tab.icon;
 
-          if (tab.id === "rewards") {
+          if (tab.id === "home") {
             return (
               <button
                 key={tab.id}

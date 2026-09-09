@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
-import { Plus, Clock, History } from "lucide-react";
+import { Plus, Clock, Wallet } from "lucide-react";
 import DepositPopup from "@/components/DepositPopup";
 import PayoutHistoryPopup from "@/components/PayoutHistoryPopup";
 import { TonIcon } from "@/components/TonIcon";
@@ -35,14 +35,6 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     refetchOnWindowFocus: false,
     placeholderData: (previousData: any) => previousData,
   });
-
-  const hasConfirmedAxnBalance = user?.balance !== undefined && user?.balance !== null;
-  const rawAxnBalance = hasConfirmedAxnBalance ? parseFloat(String(user.balance)) : null;
-  const axnBalance = rawAxnBalance === null
-    ? null
-    : rawAxnBalance < 1 
-      ? Math.round(rawAxnBalance * 10_000_000) 
-      : Math.round(rawAxnBalance);
 
     const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null
       ? null
@@ -101,14 +93,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           gap: 10,
         }}>
 
-          {/* Left — Gold balance and TON top-up balance */}
+          {/* TON balance and top-up */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
-              <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
-              <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {axnBalance === null || !Number.isFinite(axnBalance) ? '—' : axnBalance.toLocaleString()}
-              </span>
-            </div>
             <button
               onClick={() => setDepositOpen(true)}
               aria-label="Top up TON balance"
@@ -126,10 +112,11 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           </div>
           <button
             onClick={() => setPayoutHistoryOpen(true)}
-            aria-label="Open payout history"
-            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 11, background: 'rgba(255,255,255,0.04)', color: '#fff' }}
+            aria-label="Set Address"
+            style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px', border: 0, borderRadius: 11, background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 11, fontWeight: 800 }}
           >
-            <History size={18} />
+            <Wallet size={17} />
+            <span>Set Address</span>
           </button>
 
         </div>

@@ -14,9 +14,7 @@ import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/hooks/useLanguage";
 import PromoCodeInput from "@/components/PromoCodeInput";
-import AdWatchingSection from "@/components/AdWatchingSection";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
-import AdvertiserTaskFeed from "@/components/AdvertiserTaskFeed";
 import { showAdgramAd } from "@/lib/showAd";
 
 
@@ -69,7 +67,6 @@ export default function Home() {
 
   const [promoPopupOpen, setPromoPopupOpen] = useState(false);
   const [boosterPopupOpen, setBoosterPopupOpen] = useState(false);
-  const [activeHomeTab, setActiveHomeTab] = useState<'daily' | 'social' | 'game'>('daily');
 
 
 
@@ -282,8 +279,7 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
       const rewardAmount = parseFloat(data.rewardEarned || '0');
       if (rewardAmount > 0) {
-        const earnedGold = Math.round(rewardAmount);
-        showNotification(`You've claimed +${earnedGold} Gold!`, "success");
+        showNotification(`You've claimed +${rewardAmount} USDT!`, "success");
       } else {
         showNotification("You've claimed your streak bonus!", "success");
       }
@@ -406,7 +402,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.message || 'Failed');
       if (typeof data.claimsToday === 'number') setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification('Mystery Gift reward added to your balance in Gold.', 'success');
+      showNotification('Mystery Gift reward added to your USDT balance.', 'success');
     } catch (err: any) {
       showNotification(err?.message || 'Failed to open mystery box. Try again.', 'error');
     } finally {
@@ -558,43 +554,9 @@ export default function Home() {
           <PromoCodeInput />
         </section>
 
-        <div
-          role="tablist"
-          aria-label="Home sections"
-          style={{ display: 'flex', gap: 8, marginBottom: 14 }}
-        >
-          {([
-            ['daily', 'Daily'],
-            ['social', 'Social'],
-            ['game', 'Game'],
-          ] as const).map(([id, label]) => (
-            <button
-              key={id}
-              role="tab"
-              aria-selected={activeHomeTab === id}
-              onClick={() => setActiveHomeTab(id)}
-              style={{
-                flex: 1,
-                height: 38,
-                border: 'none',
-                borderRadius: 12,
-                background: activeHomeTab === id ? 'linear-gradient(135deg, #3d1580, #6b21a8)' : 'rgba(255,255,255,0.07)',
-                color: activeHomeTab === id ? '#fff' : 'rgba(255,255,255,0.45)',
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: '0.04em',
-                cursor: 'pointer',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         {/* Daily Task: Check-In, Mystery Gift, and daily missions */}
         <style>{`@keyframes spin-hdc { to { transform: rotate(360deg); } }`}</style>
 
-        {activeHomeTab === 'daily' && <>
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
             Daily Task
@@ -614,9 +576,9 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
+                    {Number(checkinStatus?.reward ?? 0.0001).toFixed(4)} USDT
                   </span>
                 </div>
               </div>
@@ -651,9 +613,9 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    1–500
+                    0.0001–0.005 USDT
                   </span>
                 </div>
               </div>
@@ -682,25 +644,6 @@ export default function Home() {
           </div>
 
         </div>
-
-        <AdWatchingSection user={user} hideTitle={false} />
-        </>}
-
-        {activeHomeTab === 'social' && (
-          <AdvertiserTaskFeed
-            kind="social"
-            title="Social Tasks"
-            subtitle="Complete channel and social tasks to earn rewards."
-          />
-        )}
-
-        {activeHomeTab === 'game' && (
-          <AdvertiserTaskFeed
-            kind="game"
-            title="Game Tasks"
-            subtitle="Launch games and complete tasks to earn rewards."
-          />
-        )}
 
           <DailyCheckinSheet
             open={checkinSheetOpen}

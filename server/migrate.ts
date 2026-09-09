@@ -665,6 +665,14 @@ export async function ensureDatabaseSchema(): Promise<void> {
 	      
       await db.execute(sql`
         ALTER TABLE earnings ADD COLUMN IF NOT EXISTS currency VARCHAR(12) DEFAULT 'GOLD';
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_completed BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus DECIMAL(30, 10) DEFAULT '0.01';
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus_payout_status VARCHAR(24) DEFAULT 'pending';
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus_payout_id VARCHAR;
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus_paid_at TIMESTAMP;
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus_error TEXT;
+        ALTER TABLE referrals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
         CREATE TABLE IF NOT EXISTS payout_records (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
           user_id VARCHAR NOT NULL REFERENCES users(id),

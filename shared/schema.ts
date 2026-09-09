@@ -210,7 +210,15 @@ export const referrals = pgTable("referrals", {
   usdRewardAmount: decimal("usd_reward_amount", { precision: 30, scale: 10 }).default("0"),
   bugRewardAmount: decimal("bug_reward_amount", { precision: 30, scale: 10 }).default("0"),
   status: varchar("status").default('pending'),
+  level: integer("level").default(1).notNull(),
+  firstAdCompleted: boolean("first_ad_completed").default(false).notNull(),
+  firstAdBonus: decimal("first_ad_bonus", { precision: 30, scale: 10 }).default("0.01"),
+  firstAdBonusPayoutStatus: varchar("first_ad_bonus_payout_status", { length: 24 }).default('pending'),
+  firstAdBonusPayoutId: varchar("first_ad_bonus_payout_id"),
+  firstAdBonusPaidAt: timestamp("first_ad_bonus_paid_at"),
+  firstAdBonusError: text("first_ad_bonus_error"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Promo codes table
