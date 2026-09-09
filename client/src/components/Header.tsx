@@ -36,6 +36,12 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     placeholderData: (previousData: any) => previousData,
   });
 
+  const hasConfirmedGoldBalance = user?.balance !== undefined && user?.balance !== null;
+  const rawGoldBalance = hasConfirmedGoldBalance ? parseFloat(String(user.balance)) : null;
+  const goldBalance = rawGoldBalance === null ? null : rawGoldBalance < 1
+    ? Math.round(rawGoldBalance * 10_000_000)
+    : Math.round(rawGoldBalance);
+
     const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null
       ? null
       : parseFloat(String(user.tonBalance));
@@ -93,8 +99,14 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           gap: 10,
         }}>
 
-          {/* TON balance and top-up */}
+          {/* Gold balance and TON balance */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
+              <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
+              <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                {goldBalance === null || !Number.isFinite(goldBalance) ? '—' : goldBalance.toLocaleString()}
+              </span>
+            </div>
             <button
               onClick={() => setDepositOpen(true)}
               aria-label="Top up TON balance"

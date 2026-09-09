@@ -280,7 +280,8 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
       const rewardAmount = parseFloat(data.rewardEarned || '0');
       if (rewardAmount > 0) {
-        showNotification(`You've claimed +${rewardAmount} USDT!`, "success");
+        const earnedGold = Math.round(rewardAmount);
+        showNotification(`You've claimed +${earnedGold} Gold!`, "success");
       } else {
         showNotification("You've claimed your streak bonus!", "success");
       }
@@ -403,7 +404,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.message || 'Failed');
       if (typeof data.claimsToday === 'number') setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification('Mystery Gift reward added to your USDT balance.', 'success');
+      showNotification('Mystery Gift reward added to your Gold balance.', 'success');
     } catch (err: any) {
       showNotification(err?.message || 'Failed to open mystery box. Try again.', 'error');
     } finally {
@@ -577,9 +578,9 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    {Number(checkinStatus?.reward ?? 0.0001).toFixed(4)} USDT
+                    {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -614,9 +615,9 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/usdt.png" alt="USDT" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    0.0001–0.005 USDT
+                    1–500
                   </span>
                 </div>
               </div>
