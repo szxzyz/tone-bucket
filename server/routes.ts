@@ -41,7 +41,7 @@ import {
 import { db } from "./db";
 import { eq, sql, desc, and, gte } from "drizzle-orm";
 import crypto from "crypto";
-import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages } from "./telegram";
+import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToGroup } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
 import {
   requireVerifiedSession,
@@ -6596,6 +6596,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const payoutCoinIds: Record<string, string> = {
+    TON: 'the-open-network',
+    LTC: 'litecoin',
+    PEPE: 'pepe',
+    DGB: 'digibyte',
+  };
+  const getPayoutRate = async (currency: string) => {
+    const coinId = payoutCoinIds[currency];
+    if (!coinId) throw new Error('Unsupported payout currency');
+    const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`, { headers: { accept: 'application/json' } });
+    const payload = await response.json() as any;
+    const rate = Number(payload?.[coinId]?.usd);
+    if (!response.ok || !Number.isFinite(rate) || rate <= 0) throw new Error('Unable to fetch current market rate');
+    return rate;
+  };
+
+  app.get('/api/payout/rates', authenticateTelegram, async (_req: any, res) => {
+    try {
+      const rates: Record<string, number> = {};
+      for (const currency of Object.keys(payoutCoinIds)) rates[currency] = await getPayoutRate(currency);
+      res.json({ success: true, rates, goldPerUsd: 100000 });
+    } catch (error) {
+      res.status(503).json({ success: false, message: error instanceof Error ? error.message : 'Market rates unavailable' });
+    }
+  });
+
+  app.patch('/api/wallet/payout', authenticateTelegram, walletMutationRateLimit, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      const currency = String(req.body?.currency || '').toUpperCase();
+      const address = String(req.body?.address || '').trim();
+      if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+      if (!payoutCoinIds[currency]) return res.status(400).json({ success: false, message: 'Unsupported payout currency' });
+      if (address.length < 8 || address.length > 180) return res.status(400).json({ success: false, message: 'Enter a valid wallet address' });
+      await db.update(users).set({ payoutCurrency: currency, payoutWalletAddress: address, walletUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
+      res.json({ success: true, currency, address });
+    } catch (error) { res.status(500).json({ success: false, message: 'Could not save wallet' }); }
+  });
+
+  app.post('/api/payouts', authenticateTelegram, requireVerifiedSession, withdrawRateLimit, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user?.payoutWalletAddress || !user.payoutCurrency) return res.status(400).json({ success: false, message: 'Set your wallet address first' });
+      const gold = Number(user.balance || 0);
+      if (!Number.isFinite(gold) || gold < 100000) return res.status(400).json({ success: false, message: 'Minimum payout is 100,000 Gold' });
+      const rate = await getPayoutRate(user.payoutCurrency);
+      const usdValue = gold / 100000;
+      const cryptoAmount = usdValue / rate;
+      const result = await db.transaction(async (tx) => {
+        const locked = await tx.update(users).set({ balance: '0', updatedAt: new Date() }).where(and(eq(users.id, userId), eq(users.balance, String(Math.trunc(gold))))).returning({ id: users.id });
+        if (locked.length === 0) throw new Error('Balance changed; please try again');
+        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: usdValue.toFixed(10), method: user.payoutCurrency!, status: 'pending', details: { payoutCurrency: user.payoutCurrency, walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), usdValue, cryptoAmount, marketRateUsd: rate }, goldAmount: String(Math.trunc(gold)), usdValue: usdValue.toFixed(10), payoutCurrency: user.payoutCurrency!, cryptoAmount: cryptoAmount.toFixed(18), marketRateUsd: rate.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
+        return withdrawal;
+      });
+      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: usdValue, fee: 0, feePercent: 0, axnAmount: gold, tonPrice: rate });
+      res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue, currency: user.payoutCurrency, cryptoAmount, marketRateUsd: rate });
+    } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not create payout' }); }
+  });
+
   // Save Cwallet ID endpoint
   app.post('/api/wallet/cwallet', authenticateTelegram, walletMutationRateLimit, async (req: any, res) => {
     try {
@@ -9823,9 +9884,12 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       if (result.success) {
         console.log(`✅ Withdrawal ${withdrawalId} approved by admin ${req.user.telegramUser.id}`);
 
-        // Send Telegram notification to the withdrawal channel
-        const { sendWithdrawalApprovedNotification } = await import('./telegram');
-        await sendWithdrawalApprovedNotification(result.withdrawal);
+        // New currency-aware payouts are announced only after FaucetPay succeeds.
+        // Legacy withdrawals keep their existing approval notification behavior.
+        if (result.withdrawal && (!result.withdrawal.payoutCurrency || ['Paid', 'Completed'].includes(String(result.withdrawal.status)))) {
+          const { sendWithdrawalApprovedNotification } = await import('./telegram');
+          await sendWithdrawalApprovedNotification(result.withdrawal);
+        }
 
         // Send real-time update to user
         if (result.withdrawal) {

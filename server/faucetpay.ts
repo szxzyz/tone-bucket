@@ -4,7 +4,7 @@ import { db } from './db';
 import { payoutRecords } from '../shared/schema';
 import { config } from './config';
 
-type PayoutCurrency = 'TON' | 'USDT';
+type PayoutCurrency = 'TON' | 'LTC' | 'PEPE' | 'DGB' | 'USDT';
 
 export type CreatePayoutInput = {
   userId: string;
@@ -23,7 +23,7 @@ export type CreatePayoutInput = {
 export async function createFaucetPayPayout(input: CreatePayoutInput) {
   const amount = Number(input.amount);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Payout amount must be positive');
-  if (!/^\S+@\S+\.\S+$/.test(input.recipientEmail)) throw new Error('Valid FaucetPay email is required');
+  if (!input.recipientEmail || input.recipientEmail.trim().length < 3) throw new Error('Valid FaucetPay recipient is required');
 
   const idempotencyReference = `mock_fp_${crypto.randomUUID()}`;
   const isLive = config.faucetPay.mode === 'live';

@@ -865,7 +865,10 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const netAmount = parseFloat(withdrawalDetails?.netAmount || withdrawal.amount);
     const feeAmount = parseFloat(withdrawalDetails?.fee || '0');
     const feePercent = withdrawalDetails?.feePercent || '0';
-    const walletAddress = withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
+    const walletAddress = withdrawal.walletAddress || withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
+    const payoutCurrency = withdrawal.payoutCurrency || 'USDT';
+    const cryptoAmount = Number(withdrawal.cryptoAmount || 0);
+    const marketRateUsd = Number(withdrawal.marketRateUsd || 0);
     
     const userName = user?.firstName || user?.username || 'Unknown';
     const userTelegramId = user?.telegram_id || '';
@@ -880,12 +883,16 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const axnAmtAppr = withdrawalDetails?.axnAmount ? parseFloat(withdrawalDetails.axnAmount) : null;
     const tonAmountAppr = axnAmtAppr ? (axnAmtAppr / 100_000) / price : netAmount / price;
 
+    const payoutLine = withdrawal.payoutCurrency
+      ? `💸 <b>Amount:</b> <b>${cryptoAmount.toFixed(10)} ${escapeHtml(payoutCurrency)}</b>\n💵 <b>Value:</b> $${Number(withdrawal.usdValue || 0).toFixed(2)} (rate: $${marketRateUsd.toFixed(8)})\n📍 <b>Wallet:</b> <code>${escapeHtml(walletAddress)}</code>`
+      : `💸 <b>Amount:</b> <b>${netAmount.toFixed(2)} USDT</b> (~${tonAmountAppr.toFixed(4)} TON)`;
+
     const groupMessage = `🚀 <b>New Withdrawal Success!</b>
 
 🗣 <b>User:</b> <a href="tg://user?id=${userTelegramId}">${escapeHtml(userName)}</a>
 🆔 <b>User ID:</b> <code>${userTelegramId}</code>
 💳 <b>Username:</b> ${userTelegramUsername}
-💸 <b>Amount:</b> <b>${netAmount.toFixed(2)} USDT</b> (~${tonAmountAppr.toFixed(4)} TON)
+${payoutLine}
 📅 <b>Date:</b> ${currentDate}
 
 👇 <b>Join Swag Bux and start earning USDT today!</b>`;

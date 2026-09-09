@@ -673,6 +673,15 @@ export async function ensureDatabaseSchema(): Promise<void> {
         ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus_paid_at TIMESTAMP;
         ALTER TABLE referrals ADD COLUMN IF NOT EXISTS first_ad_bonus_error TEXT;
         ALTER TABLE referrals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS payout_currency VARCHAR(12) DEFAULT 'TON';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS payout_wallet_address TEXT;
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS gold_amount DECIMAL(30, 0);
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS usd_value DECIMAL(30, 10);
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS payout_currency VARCHAR(12);
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS crypto_amount DECIMAL(30, 18);
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS market_rate_usd DECIMAL(30, 18);
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS wallet_address TEXT;
+        ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS provider_reference TEXT;
         CREATE TABLE IF NOT EXISTS payout_records (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
           user_id VARCHAR NOT NULL REFERENCES users(id),
