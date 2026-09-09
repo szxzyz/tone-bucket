@@ -1252,7 +1252,7 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('🎮 Watch & Earn\n');
   addSegment('👥 Referral Power\n');
   addSegment('🚀 Speed Boosts\n');
-  addSegment('💎 Earn TON LTC PEPE DGB\n\n');
+  addSegment('💎 Earn GRAM Token\n\n');
   addSegment('🌟 Your crypto journey starts NOW!', { bold: true });
 
   const appUrl = referralCode && config.bot.appUrl
@@ -1265,11 +1265,17 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   if (/^https?:\/\//i.test(appUrl)) {
     buttonRows.push([{ text: '💸 Start earning', url: appUrl }]);
   }
-  const updateDiscussRow = [
-    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', url: config.bot.updateUrl }] : [] ),
+  const discussUpdateRow = [
     ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', url: config.bot.discussUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', url: config.bot.updateUrl }] : [] ),
   ];
-  if (updateDiscussRow.length > 0) buttonRows.push(updateDiscussRow);
+  if (discussUpdateRow.length > 0) buttonRows.push(discussUpdateRow);
+
+  // Show PAYOUTS only when the payout-channel URL is configured. Telegram
+  // rejects inline buttons with empty URLs, so never add a placeholder link.
+  if (/^https?:\/\//i.test(config.telegram.payoutChannelUrl)) {
+    buttonRows.push([{ text: 'PAYOUTS', url: config.telegram.payoutChannelUrl }]);
+  }
 
   const inlineKeyboard = { inline_keyboard: buttonRows };
 
