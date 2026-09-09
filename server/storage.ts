@@ -1967,6 +1967,30 @@ export class DatabaseStorage implements IStorage {
       if (!user) {
         return { success: false, message: 'User not found' };
       }
+
+      // New GOLD-based FaucetPay withdrawals deduct GOLD at request time.
+      // Rejection must atomically restore that exact GOLD amount and transition
+      // the request, so repeated admin actions cannot refund twice.
+      if (withdrawal.goldAmount && withdrawal.payoutCurrency) {
+        const [updatedWithdrawal] = await db.transaction(async (tx) => {
+          const [claimed] = await tx.update(withdrawals).set({
+            status: 'rejected',
+            refunded: true,
+            deducted: false,
+            ...(adminNotes ? { adminNotes } : {}),
+            updatedAt: new Date(),
+          }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
+          if (!claimed) return [];
+          await tx.update(users).set({
+            balance: sql`${users.balance} + ${withdrawal.goldAmount}`,
+            updatedAt: new Date(),
+          }).where(eq(users.id, withdrawal.userId));
+          return [claimed];
+        });
+        if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
+        console.log(`💰 Rejected FaucetPay withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GOLD`);
+        return { success: true, message: 'Withdrawal rejected and GOLD refunded', withdrawal: updatedWithdrawal };
+      }
       
       const withdrawalAmount = parseFloat(withdrawal.amount);
       const withdrawalDetails = withdrawal.details as any;
