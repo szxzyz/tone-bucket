@@ -42,7 +42,6 @@ import {
   type Promotion,
 } from "../shared/schema";
 import { db } from './db';
-import { createFaucetPayPayout } from './faucetpay';
 import { eq, desc, and, gte, lt, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { getResetPeriodKey, getPeriodStart } from "./resetPeriod";
@@ -975,67 +974,18 @@ export class DatabaseStorage implements IStorage {
           .where(eq(users.id, userId));
       }
 
-      // The first valid ad completes the inviter's one-time 0.01 TON bonus.
-      // The conditional update is the idempotency lock: refreshes and concurrent
-      // ad callbacks cannot create a second bonus or payout.
-      for (const referral of pendingReferrals) {
-        const [firstAdClaim] = await db.update(referrals).set({
-          firstAdCompleted: true,
-          firstAdBonus: '0.01',
-          firstAdBonusPayoutStatus: 'pending',
-          updatedAt: new Date(),
-        }).where(and(
-          eq(referrals.id, referral.id),
-          eq(referrals.firstAdCompleted, false),
-          eq(referrals.firstAdBonusPayoutStatus, 'pending')
-        )).returning({ id: referrals.id, referrerId: referrals.referrerId });
-        if (!firstAdClaim) continue;
-        const referrer = await this.getUser(referral.referrerId);
-        if (!referrer?.faucetpayEmail) {
-          await db.update(referrals).set({
-            firstAdBonusPayoutStatus: 'awaiting_address',
-            firstAdBonusError: 'FaucetPay email is not configured',
-            updatedAt: new Date(),
-          }).where(eq(referrals.id, referral.id));
-          continue;
-        }
-        try {
-          const payout = await createFaucetPayPayout({
-            userId: referral.referrerId,
-            recipientEmail: referrer.faucetpayEmail,
-            currency: 'TON',
-            amount: '0.01',
-            source: 'first_invite_bonus',
-            metadata: { referralId: referral.id, invitedUserId: userId },
-          });
-          await db.update(referrals).set({
-            firstAdBonusPayoutStatus: payout.status,
-            firstAdBonusPayoutId: payout.id,
-            firstAdBonusPaidAt: new Date(),
-            updatedAt: new Date(),
-          }).where(eq(referrals.id, referral.id));
-        } catch (payoutError) {
-          await db.update(referrals).set({
-            firstAdBonusPayoutStatus: 'failed',
-            firstAdBonusError: payoutError instanceof Error ? payoutError.message : String(payoutError),
-            updatedAt: new Date(),
-          }).where(eq(referrals.id, referral.id));
-        }
-      }
-
+      // First-invite bonus removed; referral earnings use the standard GOLD reward and L1/L2 commissions.
       // No pending referrals — nothing else to credit
       if (pendingReferrals.length === 0) return activatedReferrerIds;
 
-      // Legacy referral reward remains threshold-controlled and separate from
-      // the one-time first-ad TON payout above.
+      // Standard referral reward: 250 GOLD per qualifying invite.
       if (adsWatched < referralAdsRequired) return activatedReferrerIds;
 
       // Get referral reward settings from admin (no hardcoded values)
       // FIX: User wants Gems rewards only. We now ignore USD settings for the
       // referral bonus and force SWAG if referral_reward_enabled is true.
-      const referralRewardSWAG = parseInt(await this.getAppSetting('referral_reward_pad', '50'));
-      const referralRewardEnabled = (await this.getAppSetting('referral_reward_enabled', 'true')) === 'true';
-      const giveSWAG = referralRewardEnabled;
+      const referralRewardSWAG = 250;
+      const giveSWAG = true;
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition
       // double-payments. Only credit reward if this process was the one that flipped the status.
@@ -1920,28 +1870,8 @@ export class DatabaseStorage implements IStorage {
         [updatedWithdrawal] = await db.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
       }
 
-      if (withdrawal.payoutCurrency && withdrawal.cryptoAmount && withdrawal.walletAddress) {
-        const [claim] = await db.update(withdrawals).set({ status: 'Processing', updatedAt: new Date() }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'Approved'))).returning({ id: withdrawals.id });
-        if (claim) {
-          try {
-            const payout = await createFaucetPayPayout({
-              userId: withdrawal.userId,
-              recipientEmail: withdrawal.walletAddress,
-              currency: withdrawal.payoutCurrency as any,
-              amount: withdrawal.cryptoAmount,
-              source: 'approved_withdrawal',
-              metadata: { withdrawalId, marketRateUsd: withdrawal.marketRateUsd, goldAmount: withdrawal.goldAmount, walletAddress: withdrawal.walletAddress },
-            });
-            const finalStatus = ['mock_success', 'paid', 'success', 'completed'].includes(String(payout.status).toLowerCase()) ? 'Paid' : 'Processing';
-            [updatedWithdrawal] = await db.update(withdrawals).set({ status: finalStatus, providerReference: payout.providerReference, updatedAt: new Date() }).where(eq(withdrawals.id, withdrawalId)).returning();
-          } catch (payoutError) {
-            [updatedWithdrawal] = await db.update(withdrawals).set({ status: 'Failed', adminNotes: payoutError instanceof Error ? payoutError.message : String(payoutError), updatedAt: new Date() }).where(eq(withdrawals.id, withdrawalId)).returning();
-          }
-        }
-      }
-
       const deductedCurrency = isAxnWithdrawal ? 'SWAG' : 'USD';
-      console.log(`✅ Withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated ✅`);
+      console.log(`✅ Manual TON withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated; admin must pay externally ✅`);
 
       return { success: true, message: 'Withdrawal approved and processed', withdrawal: updatedWithdrawal };
     } catch (error) {
@@ -1968,10 +1898,10 @@ export class DatabaseStorage implements IStorage {
         return { success: false, message: 'User not found' };
       }
 
-      // New GOLD-based FaucetPay withdrawals deduct GOLD at request time.
+      // New manual TON withdrawals deduct GOLD at request time.
       // Rejection must atomically restore that exact GOLD amount and transition
       // the request, so repeated admin actions cannot refund twice.
-      if (withdrawal.goldAmount && withdrawal.payoutCurrency) {
+      if (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal)) {
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
           const [claimed] = await tx.update(withdrawals).set({
             status: 'rejected',
@@ -1988,7 +1918,7 @@ export class DatabaseStorage implements IStorage {
           return [claimed];
         });
         if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
-        console.log(`💰 Rejected FaucetPay withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GOLD`);
+        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GOLD`);
         return { success: true, message: 'Withdrawal rejected and GOLD refunded', withdrawal: updatedWithdrawal };
       }
       

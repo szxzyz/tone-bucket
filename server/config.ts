@@ -54,14 +54,6 @@ export const config = {
     groupLink: process.env.WITHDRAWAL_GROUP_LINK || '',
   },
 
-  // FaucetPay payouts. Mock mode never sends real funds and is the default.
-  faucetPay: {
-    mode: process.env.FAUCETPAY_MODE === 'live' ? 'live' : 'mock',
-    apiKey: process.env.FAUCETPAY_API_KEY || '',
-    usdtNetwork: process.env.FAUCETPAY_USDT_NETWORK || 'BSC',
-    testMode: process.env.FAUCETPAY_TEST_MODE === 'true',
-  },
-
   // ─── AD SDK CONFIGURATION (all env-based) ─────────────────────────────
   // Every AdsGram block id, Monetag zone id, GigaPub script id and USL/Tower
   // Ads setting is injected from environment variables. Nothing is hardcoded.

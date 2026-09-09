@@ -58,7 +58,6 @@ import { computeRiskScore, analyzeAdBehavior, checkRateLimit, checkKnownBotSigna
 import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
-import { listUserPayouts } from "./faucetpay";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -1216,32 +1215,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // FaucetPay email is the payout destination for automatic mock/live payouts.
-  app.patch('/api/profile/faucetpay-email', authenticateTelegram, async (req: any, res) => {
-    try {
-      const userId = req.user.user.id;
-      const email = String(req.body?.email || '').trim().toLowerCase();
-      if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-        return res.status(400).json({ message: 'Please enter a valid FaucetPay email' });
-      }
-      await db.update(users).set({ faucetpayEmail: email || null, updatedAt: new Date() }).where(eq(users.id, userId));
-      res.json({ success: true, faucetpayEmail: email || null });
-    } catch (error) {
-      console.error('Error saving FaucetPay email:', error);
-      res.status(500).json({ message: 'Failed to save FaucetPay email' });
-    }
-  });
-
-  app.get('/api/payout-history', authenticateTelegram, async (req: any, res) => {
-    try {
-      const payouts = await listUserPayouts(req.user.user.id, Number(req.query?.limit) || 50);
-      res.json({ success: true, payouts });
-    } catch (error) {
-      console.error('Error fetching payout history:', error);
-      res.status(500).json({ success: false, payouts: [] });
     }
   });
 
@@ -6598,51 +6571,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const payoutCoinIds: Record<string, string> = {
-    TON: 'the-open-network',
-    LTC: 'litecoin',
-    PEPE: 'pepe',
-    DGB: 'digibyte',
-  };
-  let payoutRatesCache: { rates: Record<string, number>; fetchedAt: number } | null = null;
-  const getPayoutRates = async () => {
-    const ids = Object.values(payoutCoinIds).join(',');
-    const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
-    const payload = await response.json() as any;
-    const rates: Record<string, number> = {};
-    for (const [currency, coinId] of Object.entries(payoutCoinIds)) {
-      const rate = Number(payload?.[coinId]?.usd);
-      if (!Number.isFinite(rate) || rate <= 0) throw new Error(`Missing live rate for ${currency}`);
-      rates[currency] = rate;
-    }
-    if (!response.ok) throw new Error('Market rates unavailable');
-    payoutRatesCache = { rates, fetchedAt: Date.now() };
-    return rates;
-  };
-  const getPayoutRate = async (currency: string) => {
-    const coinId = payoutCoinIds[currency];
-    if (!coinId) throw new Error('Unsupported payout currency');
-    const rates = payoutRatesCache && Date.now() - payoutRatesCache.fetchedAt < 60000 ? payoutRatesCache.rates : await getPayoutRates();
-    return rates[currency];
-  };
-
-  app.get('/api/payout/rates', authenticateTelegram, async (_req: any, res) => {
-    try {
-      const rates = payoutRatesCache && Date.now() - payoutRatesCache.fetchedAt < 60000 ? payoutRatesCache.rates : await getPayoutRates();
-      res.json({ success: true, rates, goldPerUsd: 100000, fetchedAt: payoutRatesCache?.fetchedAt });
-    } catch (error) {
-      if (payoutRatesCache) return res.json({ success: true, rates: payoutRatesCache.rates, goldPerUsd: 100000, fetchedAt: payoutRatesCache.fetchedAt, stale: true });
-      res.status(503).json({ success: false, message: error instanceof Error ? error.message : 'Market rates unavailable' });
-    }
-  });
-
   app.patch('/api/wallet/payout', authenticateTelegram, walletMutationRateLimit, async (req: any, res) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       const currency = String(req.body?.currency || '').toUpperCase();
       const address = String(req.body?.address || '').trim();
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
-      if (!payoutCoinIds[currency]) return res.status(400).json({ success: false, message: 'Unsupported payout currency' });
+      if (currency !== 'TON') return res.status(400).json({ success: false, message: 'Only TON withdrawals are supported' });
       if (address.length < 8 || address.length > 180) return res.status(400).json({ success: false, message: 'Enter a valid wallet address' });
       await db.update(users).set({ payoutCurrency: currency, payoutWalletAddress: address, walletUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
       res.json({ success: true, currency, address });
@@ -6654,26 +6589,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!user?.payoutWalletAddress || !user.payoutCurrency) return res.status(400).json({ success: false, message: 'Set your wallet address first' });
+      if (!user?.payoutWalletAddress) return res.status(400).json({ success: false, message: 'Save your TON address first' });
       const requestedGold = req.body?.goldAmount === undefined || req.body?.goldAmount === '' ? Number(user.balance || 0) : Number(req.body.goldAmount);
       const gold = Math.trunc(requestedGold);
       const [minimumCashoutSetting] = await db.select({ settingValue: adminSettings.settingValue }).from(adminSettings).where(eq(adminSettings.settingKey, 'minimum_cashout_gold')).limit(1);
       const minimumCashoutGold = Math.max(1, parseInt(minimumCashoutSetting?.settingValue || '100000', 10) || 100000);
-      if (!Number.isFinite(gold) || (config.faucetPay.testMode ? gold !== 100000 : gold < minimumCashoutGold)) return res.status(400).json({ success: false, message: config.faucetPay.testMode ? 'Testing mode requires exactly 100,000 Gold ($1)' : `Minimum cash-out is ${minimumCashoutGold.toLocaleString()} GOLD` });
+      if (!Number.isFinite(gold) || gold < minimumCashoutGold) return res.status(400).json({ success: false, message: `Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GOLD` });
       if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GOLD balance' });
       const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), inArray(withdrawals.status, ['pending', 'Approved', 'Processing']))).limit(1);
       if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });
-      const rate = await getPayoutRate(user.payoutCurrency);
       const usdValue = gold / 100000;
-      const cryptoAmount = usdValue / rate;
       const result = await db.transaction(async (tx) => {
         const locked = await tx.update(users).set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() }).where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`)).returning({ id: users.id });
         if (locked.length === 0) throw new Error('Balance changed; please try again');
-        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: usdValue.toFixed(10), method: user.payoutCurrency!, status: 'pending', details: { payoutCurrency: user.payoutCurrency, walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), usdValue, cryptoAmount, marketRateUsd: rate }, goldAmount: String(Math.trunc(gold)), usdValue: usdValue.toFixed(10), payoutCurrency: user.payoutCurrency!, cryptoAmount: cryptoAmount.toFixed(18), marketRateUsd: rate.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
+        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: usdValue.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: usdValue.toFixed(10), payoutCurrency: null, cryptoAmount: null, marketRateUsd: null, walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
       });
-      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: usdValue, fee: 0, feePercent: 0, axnAmount: gold, tonPrice: rate });
-      res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue, currency: user.payoutCurrency, cryptoAmount, marketRateUsd: rate });
+      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: usdValue, fee: 0, feePercent: 0, axnAmount: gold });
+      res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue, currency: 'TON' });
     } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not create payout' }); }
   });
 
@@ -9904,9 +9837,8 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
       if (result.success) {
         console.log(`✅ Withdrawal ${withdrawalId} approved by admin ${req.user.telegramUser.id}`);
 
-        // New currency-aware payouts are announced only after FaucetPay succeeds.
-        // Legacy withdrawals keep their existing approval notification behavior.
-        if (result.withdrawal && (!result.withdrawal.payoutCurrency || ['Paid', 'Completed'].includes(String(result.withdrawal.status)))) {
+        // Approval posts the manual TON payment instruction to the public channel.
+        if (result.withdrawal) {
           const { sendWithdrawalApprovedNotification } = await import('./telegram');
           await sendWithdrawalApprovedNotification(result.withdrawal);
         }
@@ -9917,7 +9849,7 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
             type: 'withdrawal_approved',
             amount: result.withdrawal.amount,
             method: result.withdrawal.method,
-            message: `Your withdrawal of ${result.withdrawal.amount} TON has been approved and processed`
+            message: `Your ${result.withdrawal.goldAmount || result.withdrawal.amount} GOLD TON withdrawal was approved; admin will pay manually`
           });
 
           // Also send a balance_update so the frontend refreshes balance AND stars correctly

@@ -737,11 +737,6 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
     const botUsername = await getBotUsername();
     const currentDate = new Date().toUTCString();
 
-    const price = withdrawalData.tonPrice || 5.5;
-    const tonAmount = withdrawalData.axnAmount 
-      ? (withdrawalData.axnAmount / 100_000) / price 
-      : withdrawalData.amount / price;
-
     const axnLine = withdrawalData.axnAmount
       ? `💎 Gold: <b>${Math.round(withdrawalData.axnAmount).toLocaleString()} Gold</b>\n`
       : '';
@@ -753,8 +748,8 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
 💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}
 🌐 Address:
 <code>${escapeHtml(withdrawalData.walletAddress)}</code>
-${axnLine}💸 Amount: <b>${withdrawalData.amount.toFixed(2)} USDT</b> (~${tonAmount.toFixed(4)} TON)
-🛂 Fee: ${withdrawalData.fee.toFixed(4)} USDT (${withdrawalData.feePercent}%)
+${axnLine}🪙 Payment: <b>Manual TON payment by admin after approval</b>
+🛂 Fee: ${withdrawalData.fee.toFixed(4)} (${withdrawalData.feePercent}%)
 📅 Date: ${currentDate}
 🤖 Bot: @${botUsername}`;
 
@@ -866,9 +861,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const feeAmount = parseFloat(withdrawalDetails?.fee || '0');
     const feePercent = withdrawalDetails?.feePercent || '0';
     const walletAddress = withdrawal.walletAddress || withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
-    const payoutCurrency = withdrawal.payoutCurrency || 'USDT';
-    const cryptoAmount = Number(withdrawal.cryptoAmount || 0);
-    const marketRateUsd = Number(withdrawal.marketRateUsd || 0);
+    const goldAmount = Number(withdrawal.goldAmount || withdrawalDetails?.axnAmount || 0);
     
     const userName = user?.firstName || user?.username || 'Unknown';
     const userTelegramId = user?.telegram_id || '';
@@ -878,14 +871,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const botUsername = await getBotUsername();
     const botLink = `https://t.me/${botUsername}`;
 
-    const { getLiveTonPriceUSD } = await import('./tonPriceService');
-    const { price } = await getLiveTonPriceUSD();
-    const axnAmtAppr = withdrawalDetails?.axnAmount ? parseFloat(withdrawalDetails.axnAmount) : null;
-    const tonAmountAppr = axnAmtAppr ? (axnAmtAppr / 100_000) / price : netAmount / price;
-
-    const payoutLine = withdrawal.payoutCurrency
-      ? `💸 <b>Amount:</b> <b>${cryptoAmount.toFixed(10)} ${escapeHtml(payoutCurrency)}</b>\n💵 <b>Value:</b> $${Number(withdrawal.usdValue || 0).toFixed(2)} (rate: $${marketRateUsd.toFixed(8)})\n📍 <b>Wallet:</b> <code>${escapeHtml(walletAddress)}</code>`
-      : `💸 <b>Amount:</b> <b>${netAmount.toFixed(2)} USDT</b> (~${tonAmountAppr.toFixed(4)} TON)`;
+    const payoutLine = `💸 <b>Amount:</b> <b>${goldAmount.toLocaleString()} GOLD</b>\n🪙 <b>Payment:</b> Manual TON payment by admin\n📍 <b>TON Wallet:</b> <code>${escapeHtml(walletAddress)}</code>`;
 
     const groupMessage = `🚀 <b>New Withdrawal Success!</b>
 
