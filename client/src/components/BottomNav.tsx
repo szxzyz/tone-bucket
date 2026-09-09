@@ -1,7 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ListChecks, ShieldCheck, Clapperboard } from "lucide-react";
+import { ListChecks, ShieldCheck, Clapperboard, UserRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ACTIVE = "#ffffff";
@@ -11,6 +11,7 @@ const TABS = [
   { id: "home", label: "Home", path: "/", icon: ListChecks },
   { id: "ads", label: "Ads", path: "/ads", icon: Clapperboard },
   { id: "mission", label: "Mission", path: "/mission", icon: ListChecks },
+  { id: "account", label: "Account", path: "/account", icon: UserRound },
 ] as const;
 
 export default function BottomNav() {

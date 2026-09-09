@@ -21,6 +21,7 @@ import Mission from "@/pages/Mission";
 import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
+import Account from "@/pages/Account";
 import CreateTask from "@/pages/CreateTask";
 
 // Lazy-load heavy/rare pages only
@@ -43,6 +44,7 @@ function Router() {
         <Route path="/ads" component={Ads} />
         <Route path="/mission" component={Mission} />
         <Route path="/profile" component={Profile} />
+        <Route path="/account" component={Account} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
         <Route path="/leaderboard" component={Leaderboard} />
