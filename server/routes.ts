@@ -1405,6 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         walletChangeFeeGems,
         minimumWithdrawal,
         minimumWithdrawalUSD,
+        minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '100000')),
         minimumWithdrawalTON,
         withdrawalFeeTON,
         withdrawalFeeUSD,
@@ -4830,6 +4831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         l2CommissionPercent: parseFloat(getSetting('l2_commission_percent', '4')),
         walletChangeFee: parseInt(getSetting('wallet_change_fee', '100')), // Return as Gems, default 100
         minimumWithdrawalUSD: parseFloat(getSetting('minimum_withdrawal_usd', '1.00')), // NEW: Min USD withdrawal
+        minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '100000')),
         minimumWithdrawalTON: parseFloat(getSetting('minimum_withdrawal_ton', '0.5')), // NEW: Min TON withdrawal
         withdrawalFeeTON: parseFloat(getSetting('withdrawal_fee_ton', '5')), // NEW: TON withdrawal fee %
         withdrawalFeeUSD: parseFloat(getSetting('withdrawal_fee_usd', '3')), // NEW: USD withdrawal fee %
@@ -6602,22 +6604,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     PEPE: 'pepe',
     DGB: 'digibyte',
   };
+  let payoutRatesCache: { rates: Record<string, number>; fetchedAt: number } | null = null;
+  const getPayoutRates = async () => {
+    const ids = Object.values(payoutCoinIds).join(',');
+    const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+    const payload = await response.json() as any;
+    const rates: Record<string, number> = {};
+    for (const [currency, coinId] of Object.entries(payoutCoinIds)) {
+      const rate = Number(payload?.[coinId]?.usd);
+      if (!Number.isFinite(rate) || rate <= 0) throw new Error(`Missing live rate for ${currency}`);
+      rates[currency] = rate;
+    }
+    if (!response.ok) throw new Error('Market rates unavailable');
+    payoutRatesCache = { rates, fetchedAt: Date.now() };
+    return rates;
+  };
   const getPayoutRate = async (currency: string) => {
     const coinId = payoutCoinIds[currency];
     if (!coinId) throw new Error('Unsupported payout currency');
-    const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`, { headers: { accept: 'application/json' } });
-    const payload = await response.json() as any;
-    const rate = Number(payload?.[coinId]?.usd);
-    if (!response.ok || !Number.isFinite(rate) || rate <= 0) throw new Error('Unable to fetch current market rate');
-    return rate;
+    const rates = payoutRatesCache && Date.now() - payoutRatesCache.fetchedAt < 60000 ? payoutRatesCache.rates : await getPayoutRates();
+    return rates[currency];
   };
 
   app.get('/api/payout/rates', authenticateTelegram, async (_req: any, res) => {
     try {
-      const rates: Record<string, number> = {};
-      for (const currency of Object.keys(payoutCoinIds)) rates[currency] = await getPayoutRate(currency);
-      res.json({ success: true, rates, goldPerUsd: 100000 });
+      const rates = payoutRatesCache && Date.now() - payoutRatesCache.fetchedAt < 60000 ? payoutRatesCache.rates : await getPayoutRates();
+      res.json({ success: true, rates, goldPerUsd: 100000, fetchedAt: payoutRatesCache?.fetchedAt });
     } catch (error) {
+      if (payoutRatesCache) return res.json({ success: true, rates: payoutRatesCache.rates, goldPerUsd: 100000, fetchedAt: payoutRatesCache.fetchedAt, stale: true });
       res.status(503).json({ success: false, message: error instanceof Error ? error.message : 'Market rates unavailable' });
     }
   });
@@ -6643,7 +6657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user?.payoutWalletAddress || !user.payoutCurrency) return res.status(400).json({ success: false, message: 'Set your wallet address first' });
       const requestedGold = req.body?.goldAmount === undefined || req.body?.goldAmount === '' ? Number(user.balance || 0) : Number(req.body.goldAmount);
       const gold = Math.trunc(requestedGold);
-      if (!Number.isFinite(gold) || (config.faucetPay.testMode ? Math.trunc(gold) !== 100000 : gold < 100000)) return res.status(400).json({ success: false, message: config.faucetPay.testMode ? 'Testing mode requires exactly 100,000 Gold ($1)' : 'Minimum payout is 100,000 Gold' });
+      const [minimumCashoutSetting] = await db.select({ settingValue: adminSettings.settingValue }).from(adminSettings).where(eq(adminSettings.settingKey, 'minimum_cashout_gold')).limit(1);
+      const minimumCashoutGold = Math.max(1, parseInt(minimumCashoutSetting?.settingValue || '100000', 10) || 100000);
+      if (!Number.isFinite(gold) || (config.faucetPay.testMode ? gold !== 100000 : gold < minimumCashoutGold)) return res.status(400).json({ success: false, message: config.faucetPay.testMode ? 'Testing mode requires exactly 100,000 Gold ($1)' : `Minimum cash-out is ${minimumCashoutGold.toLocaleString()} GOLD` });
       if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GOLD balance' });
       const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), inArray(withdrawals.status, ['pending', 'Approved', 'Processing']))).limit(1);
       if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });

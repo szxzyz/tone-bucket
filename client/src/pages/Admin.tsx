@@ -2435,6 +2435,7 @@ function SettingsSection() {
     l1CommissionPercent: '20',
     l2CommissionPercent: '4',
     minimumWithdrawAmount: '0.20',
+    minimumCashoutGold: '100000',
     maximumWithdrawAmount: '0.50',
     maxWithdrawalsPerDay: '1',
     withdrawalFeeTON: '5',
@@ -2502,6 +2503,7 @@ function SettingsSection() {
         l1CommissionPercent: settingsData.l1CommissionPercent?.toString() || '20',
         l2CommissionPercent: settingsData.l2CommissionPercent?.toString() || '4',
         minimumWithdrawAmount: settingsData.minimumWithdrawAmount?.toString() || '0.20',
+        minimumCashoutGold: settingsData.minimumCashoutGold?.toString() || '100000',
         maximumWithdrawAmount: settingsData.maximumWithdrawAmount?.toString() || '0.50',
         maxWithdrawalsPerDay: settingsData.maxWithdrawalsPerDay?.toString() || '1',
         withdrawalFeeTON: settingsData.withdrawalFeeTON?.toString() || '5',
@@ -2651,6 +2653,7 @@ function SettingsSection() {
         l1CommissionPercent: parseFloat(settings.l1CommissionPercent) || 20,
         l2CommissionPercent: parseFloat(settings.l2CommissionPercent) || 4,
         minimumWithdrawAmount: minWithdrawAmount,
+        minimumCashoutGold: Math.max(1, parseInt((settings as any).minimumCashoutGold) || 100000),
         maximumWithdrawAmount: maxWithdrawAmount,
         maxWithdrawalsPerDay: maxWithdrawalsPerDay,
         withdrawalFeeTON: withdrawalFeeTON,
@@ -3130,6 +3133,25 @@ function SettingsSection() {
               />
               <p className="text-xs text-muted-foreground">
                 Current: ${settingsData?.maximumWithdrawAmount || 0.50}
+              </p>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="minimum-cashout-gold" className="text-sm font-semibold">
+                <i className="fas fa-coins mr-2 text-yellow-400"></i>
+                Minimum Cash Out (GOLD)
+              </Label>
+              <Input
+                id="minimum-cashout-gold"
+                type="number"
+                value={(settings as any).minimumCashoutGold}
+                onChange={(e) => setSettings({ ...settings, minimumCashoutGold: e.target.value })}
+                placeholder="100000"
+                min="1"
+                step="1"
+              />
+              <p className="text-xs text-muted-foreground">
+                Users must have at least this many GOLD. 100,000 GOLD = $1 USD. Current: {settingsData?.minimumCashoutGold || 100000} GOLD
               </p>
             </div>
 
