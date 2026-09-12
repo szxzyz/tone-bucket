@@ -121,7 +121,7 @@ function TaskCard({
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
+              <img src="/assets/cipher-icon.jpg" alt="CIPHER" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
               <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{reward.toLocaleString()}</span>
             </span>
           </div>
@@ -266,4 +266,3 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     </section>
   );
 }
-

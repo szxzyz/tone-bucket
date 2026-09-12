@@ -80,7 +80,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       showNotification(
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
-            <img src="/assets/gold-icon.png" alt="Gold" className="w-4 h-4 object-contain" />
+            <img src="/assets/cipher-icon.jpg" alt="CIPHER" className="w-4 h-4 object-contain rounded-full" />
             <span className="font-bold text-yellow-500">{rewardGems}</span>
           </div>
         </div> as any,
@@ -269,10 +269,10 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         {!hideTitle && (
           <div className="mb-3 text-left">
             <h2 className="text-[15px] font-extrabold text-white tracking-widest uppercase mb-0.5">
-              Golden Ad
+              Watch Ads
             </h2>
             <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.12em]">
-              Watch ads to earn gold and boost your income.
+              Watch ads to earn CIPHER and boost your income.
             </p>
           </div>
         )}
@@ -338,7 +338,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
+                        <img src="/assets/cipher-icon.jpg" alt="CIPHER" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
                         <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
                       </span>
                     </div>
