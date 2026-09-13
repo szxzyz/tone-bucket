@@ -7,7 +7,7 @@ import React from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAdSession } from "@/hooks/useAdSession";
 import { useLocation } from "wouter";
-import { Clock, Loader2, Send, ExternalLink, Shield, Play, Repeat, Layers, Share2, ArrowRight, Wallet, Sprout } from "lucide-react";
+import { Clock, Loader2, Send, ExternalLink, Shield, Play, Repeat, Layers, Share2 } from "lucide-react";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { CHECKIN_REWARDS } from "@/components/DailyCheckinSheet";
 import { showNotification } from "@/components/AppNotification";
@@ -17,8 +17,6 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
 import InviteFriendsSection from "@/components/InviteFriendsSection";
 import { showAdgramAd } from "@/lib/showAd";
-import PayoutHistoryPopup from "@/components/PayoutHistoryPopup";
-import SwapSheet from "@/components/SwapSheet";
 
 
 
@@ -70,8 +68,6 @@ export default function Home() {
 
   const [promoPopupOpen, setPromoPopupOpen] = useState(false);
   const [boosterPopupOpen, setBoosterPopupOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [swapOpen, setSwapOpen] = useState(false);
 
 
 
@@ -549,23 +545,6 @@ export default function Home() {
 
       <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#000000' }}>
 
-        {/* Magma home port: balance actions stay Gold-only in GrabPenny. */}
-        <section style={{ marginBottom: 16, padding: 16, borderRadius: 20, background: 'linear-gradient(145deg, #17111f, #111114)', border: '1px solid rgba(168,85,247,0.22)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Your Balance</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#e9d5ff', fontSize: 11, fontWeight: 800 }}><img src="/assets/gold-icon.png" alt="Gold" style={{ width: 16, height: 16 }} /> GOLD</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
-            <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 36, height: 36, objectFit: 'contain' }} />
-            <strong style={{ fontSize: 30, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{Math.round(Number(user?.balance || 0)).toLocaleString()}</strong>
-            <span style={{ color: 'rgba(255,255,255,0.38)', fontSize: 12, fontWeight: 700 }}>Gold</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
-            <button onClick={() => setWithdrawOpen(true)} style={{ height: 42, border: 0, borderRadius: 12, color: '#fff', background: 'linear-gradient(135deg, #7e22ce, #a855f7)', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}><Wallet size={16} /> Withdraw</button>
-            <button onClick={() => setSwapOpen(true)} style={{ height: 42, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, color: '#fff', background: 'rgba(255,255,255,0.06)', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}><Repeat size={16} /> Swap</button>
-          </div>
-        </section>
-
         {/* Promo Code */}
         <section style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
@@ -684,22 +663,6 @@ export default function Home() {
           />
 
         <InviteFriendsSection />
-
-        {/* Farming entry point mirrors Magma's stacking/farming area while using GrabPenny missions. */}
-        <section style={{ marginTop: 2, marginBottom: 14, padding: 16, borderRadius: 18, background: '#171717', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <Sprout size={20} color="#c084fc" />
-            <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 900 }}>Farming</div><div style={{ marginTop: 3, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Stack your time into more Gold</div></div>
-            <button onClick={() => setLocation('/mission')} style={{ border: 0, background: 'transparent', color: '#c084fc', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>Open <ArrowRight size={14} /></button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div style={{ padding: 11, borderRadius: 12, background: 'rgba(168,85,247,0.1)' }}><div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>Social farms</div><div style={{ marginTop: 5, fontSize: 13, fontWeight: 800 }}>Join & earn</div></div>
-            <div style={{ padding: 11, borderRadius: 12, background: 'rgba(168,85,247,0.1)' }}><div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>Game farms</div><div style={{ marginTop: 5, fontSize: 13, fontWeight: 800 }}>Play & earn</div></div>
-          </div>
-        </section>
-
-        <PayoutHistoryPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
-        <SwapSheet open={swapOpen} onClose={() => setSwapOpen(false)} balanceGold={Math.round(Number(user?.balance || 0))} onSwap={(convertTo, amount) => { convertMutation.mutate({ amount, convertTo }); setSwapOpen(false); }} isPending={isConverting || convertMutation.isPending} />
 
         {/* Bottom Spacer for floating nav */}
         <div style={{ height: 80, flexShrink: 0 }} />
