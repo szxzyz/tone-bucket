@@ -4,10 +4,10 @@ const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
 const HomeIcon = ({ active, c }: { active: boolean; c: string }) => <svg width="26" height="26" viewBox="0 0 24 24" fill="none">{active ? <><path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5Z" fill={c} opacity="0.15"/><path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5Z" stroke={c} strokeWidth="1.8" strokeLinejoin="round"/><circle cx="12" cy="12" r="2.5" fill={c}/><circle cx="12" cy="12" r="4.5" stroke={c} strokeWidth="1.2" opacity="0.4"/></> : <><path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5Z" stroke={c} strokeWidth="1.8" strokeLinejoin="round"/><circle cx="12" cy="12" r="2" fill={c} opacity="0.6"/></>}</svg>;
 const TasksIcon = ({ active, c }: { active: boolean; c: string }) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="3" fill={active ? c : "none"} opacity={active ? .15 : 1} stroke={c} strokeWidth="1.8"/><path d="M8 9h8M8 13h5M8 17h3" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>;
-const FriendsIcon = ({ c }: { active: boolean; c: string }) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke={c} strokeWidth="1.8"/><path d="M3 21c0-3.866 2.686-7 6-7s6 3.134 6 7M16 3.13a4 4 0 0 1 0 7.75M21 21c0-3.866-1.79-7-4-7" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>;
+const FriendsIcon = ({ active, c }: { active: boolean; c: string }) => <svg width="25" height="25" viewBox="0 0 24 24" fill="none"><path d="M12 3.2 14.1 8l5.2.55-3.9 3.5 1.1 5.1L12 14.5l-4.5 2.65 1.1-5.1-3.9-3.5L9.9 8 12 3.2Z" fill={active ? c : "none"} opacity={active ? .16 : 1} stroke={c} strokeWidth="1.7" strokeLinejoin="round"/><path d="M4 19.5c1.1-1.5 2.6-2.25 4.5-2.25M20 19.5c-1.1-1.5-2.6-2.25-4.5-2.25" stroke={c} strokeWidth="1.7" strokeLinecap="round"/><circle cx="4" cy="19.5" r="1.2" fill={c}/><circle cx="20" cy="19.5" r="1.2" fill={c}/></svg>;
 const TABS = [
-  { id: "game", label: "Mine", path: "/game" },
-  { id: "tasks", label: "Farming", path: "/mission" },
+  { id: "game", label: "Farming", path: "/game" },
+  { id: "tasks", label: "Mission", path: "/mission" },
   { id: "friends", label: "Friends", path: "/affiliates" },
 ] as const;
 export default function BottomNav() {
