@@ -7,6 +7,7 @@ import Header from "@/components/GameHeader";
 import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
+import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -354,9 +355,9 @@ export default function Games() {
               <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Withdraw</span>
             </div>
 
-            {/* Swap */}
+            {/* Code */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <button onClick={() => setShowSwapPopup(true)} style={{
+              <button onClick={() => setShowPromoPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
                 background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
                 border: 'none',
@@ -370,7 +371,7 @@ export default function Games() {
                   <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
                 </svg>
               </button>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Swap</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Code</span>
             </div>
 
             {/* Staking */}
@@ -617,7 +618,18 @@ export default function Games() {
 
       </div>
 
-      {showSwapPopup && (
+      {showPromoPopup && (
+        <div style={{ position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'flex-end' }}>
+          <div onClick={() => setShowPromoPopup(false)} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.75)', backdropFilter:'blur(8px)' }} />
+          <div onClick={e => e.stopPropagation()} style={{ position:'relative', width:'100%', background:'#0a0a0a', borderRadius:'28px 28px 0 0', padding:'24px 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))', boxSizing:'border-box' }}>
+            <div style={{ width:40, height:4, borderRadius:3, background:'rgba(255,255,255,.1)', margin:'0 auto 20px' }} />
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}><span style={{ color:'#fff', fontSize:18, fontWeight:900 }}>Promo Code</span><button onClick={() => setShowPromoPopup(false)} style={{ background:'rgba(255,255,255,.06)', border:0, borderRadius:'50%', width:32, height:32, color:'#fff', fontSize:18 }}>×</button></div>
+            <PromoCodeInput />
+          </div>
+        </div>
+      )}
+
+      {false && showSwapPopup && (
         <SwapPopup
           onClose={() => setShowSwapPopup(false)}
           cipherBalance={Math.floor(axnRaw)}

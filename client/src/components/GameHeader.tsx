@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
 import { useLocation } from "wouter";
+import { Plus } from "lucide-react";
+import { TonIcon } from "@/components/TonIcon";
 
 interface HeaderProps {
   onMenuOpen?: () => void;
@@ -36,8 +38,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       staleTime: 30000,
     });
 
-    const goldBalance = Math.floor(parseFloat(user?.balance || '0'));
-    const tonBalance = Number(user?.tonBalance ?? user?.ton_balance ?? (goldBalance / 100000 / 3.5));
+    const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
     const firstName: string = user?.firstName || user?.username || "Miner";
     const profileImageUrl: string | null =
@@ -173,12 +174,15 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             </div>
           </div>
 
-          {/* Center — TON balance (Game page only) */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: 10 }}>
-            <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-              {Number.isFinite(tonBalance) ? tonBalance.toFixed(4) : '0.0000'} TON
+          {/* Game page: TON balance only, matching the regular Header */}
+          <button aria-label="TON balance" style={{ minWidth: 116, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '6px 9px', background: 'rgba(255,255,255,0.04)', border: 'none', borderRadius: 11 }}>
+            <TonIcon size={22} />
+            <span style={{ color: '#fff', fontSize: 14, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+              {tonBalance === null || !Number.isFinite(tonBalance) ? '—' : tonBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
             </span>
-          </div>
+            <span style={{ color:'rgba(255,255,255,.45)', fontSize:11, fontWeight:800 }}>TON</span>
+            <span style={{ width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'rgba(255,255,255,0.16)', color: '#fff' }}><Plus size={12} strokeWidth={3} /></span>
+          </button>
 
           {/* Right — Notification bell (clean, no box) */}
           <div style={{ position: 'relative', flexShrink: 0 }}>

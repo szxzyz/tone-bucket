@@ -15,14 +15,11 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageProvider } from "@/hooks/useLanguage";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
-import Ads from "@/pages/Ads";
 import Mission from "@/pages/Mission";
-import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
 import Games from "@/pages/Games";
-import Home from "@/pages/Home";
 import Affiliates from "@/pages/Affiliates";
 
 // Lazy-load heavy/rare pages only
@@ -41,8 +38,7 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/ads" component={Ads} />
+        <Route path="/" component={Games} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Games} />
         <Route path="/profile" component={Profile} />
@@ -52,8 +48,6 @@ function Router() {
         <Route path="/ambassador" component={AmbassadorPage} />
         <Route path="/tasks/create" component={CreateTask} />
         {/* BottomNav tab routes — aliased to existing pages */}
-        <Route path="/rewards" component={Ads} />
-        <Route path="/friend" component={Ads} />
         <Route path="/affiliates" component={Affiliates} />
         <Route path="/machine" component={Mission} />
         <Route component={NotFound} />
