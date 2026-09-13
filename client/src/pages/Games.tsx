@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
-import MenuPopup from "@/components/MenuPopup";
-import Header from "@/components/Header";
+import MenuPopup from "@/components/GameMenuPopup";
+import Header from "@/components/GameHeader";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -58,7 +58,7 @@ export default function Games() {
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], staleTime: 3600000 });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
 
-  const axnRaw = parseFloat(user?.walletBalance || '0');
+  const axnRaw = parseFloat(user?.walletBalance ?? user?.balance ?? '0');
   const axnBalance = Math.floor(axnRaw);
 
   // 100,000 Gold = 1 USDT (Fixed)
@@ -334,7 +334,7 @@ export default function Games() {
                 onClick={() => setLocation('/withdraw')}
                 style={{
                   width: 52, height: 52, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1e40af, #6b21a8)',
+                  background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
                   border: 'none',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
@@ -352,7 +352,7 @@ export default function Games() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button onClick={() => setShowSwapPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e40af, #6b21a8)',
+                background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
                 border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
@@ -371,7 +371,7 @@ export default function Games() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button onClick={() => setShowStakingPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e40af, #6b21a8)',
+                background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
                 border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
@@ -389,7 +389,7 @@ export default function Games() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button onClick={() => setShowPromoPopup(true)} style={{
                 width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1d4ed8, #3d1580)',
+                background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
                 border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
@@ -430,13 +430,13 @@ export default function Games() {
             </svg>
             <div style={{ flex: 1 }}>
               <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Earn 5 CIPHER</div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Earn 5 GOLD</div>
             </div>
             <button
               onClick={handleDailyCheck}
               disabled={dailyChecked || dailyAdLoading || dailyCheckMutation.isPending}
               style={{
-                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
                 color: dailyChecked ? 'rgba(255,255,255,0.3)' : '#fff',
                 border: 'none',
                 borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 800,
@@ -464,13 +464,13 @@ export default function Games() {
             </svg>
             <div style={{ flex: 1 }}>
               <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Box</div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Win 1–100 CIPHER</div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Win 1–100 GOLD</div>
             </div>
             <button
               onClick={handleMysteryOpen}
               disabled={mysteryOpened || mysteryPhase !== 'idle'}
               style={{
-                background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+                background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
                 color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
                 border: 'none',
                 borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 800,
@@ -566,7 +566,7 @@ export default function Games() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={() => setShowFarmInfo(false)} />
             <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #3d1580, #6b21a8, #3d1580, transparent)' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#000', flexShrink: 0 }}>
@@ -656,7 +656,7 @@ export default function Games() {
             boxShadow: '0 -8px 60px rgba(61,21,128,0.24), 0 0 0 1px rgba(255,255,255,0.03)',
             overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #3d1580, #6b21a8, #3d1580, transparent)', animation: 'popup-glow 2s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)', animation: 'popup-glow 2s ease-in-out infinite' }} />
             <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
             <div style={{
               width: 64, height: 64, borderRadius: '50%', margin: '0 auto 18px',
@@ -685,7 +685,7 @@ export default function Games() {
             </div>
             <button onClick={() => setShowStakingPopup(false)} style={{
               width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #3d1580, #6b21a8)',
+              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
               border: 'none', borderRadius: 50, color: '#fff',
               fontSize: 15, fontWeight: 800, cursor: 'pointer',
               boxShadow: '0 4px 20px rgba(61,21,128,0.4)',
@@ -710,7 +710,7 @@ export default function Games() {
               {mysteryPhase === 'opening' && (
                 <div style={{
                   width: 82, height: 82, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1d4ed8, #3d1580)',
+                  background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: 'boxPulse 0.65s ease-in-out infinite',
                 }}>
@@ -724,7 +724,7 @@ export default function Games() {
               {(mysteryPhase === 'revealed' || mysteryPhase === 'claiming') && (
                 <div style={{ animation: 'rewardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both' }}>
                   <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-2px' }}>{mysteryReward}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#6b21a8', marginTop: 6 }}>CIPHER</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#3b82f6', marginTop: 6 }}>GOLD</div>
                 </div>
               )}
               {mysteryPhase === 'done' && (
@@ -739,31 +739,31 @@ export default function Games() {
 
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 6 }}>
               {mysteryPhase === 'opening' ? 'Opening box...'
-                : mysteryPhase === 'revealed' ? `You won ${mysteryReward} CIPHER!`
+                : mysteryPhase === 'revealed' ? `You won ${mysteryReward} GOLD!`
                 : mysteryPhase === 'claiming' ? 'Claiming...'
                 : 'Reward Claimed!'}
             </div>
             <div style={{ color: 'rgba(255,255,255,0.32)', fontSize: 13, marginBottom: 28 }}>
               {mysteryPhase === 'opening' ? 'Wait for your prize...'
-                : mysteryPhase === 'revealed' ? 'Tap below to claim your CIPHER'
+                : mysteryPhase === 'revealed' ? 'Tap below to claim your GOLD'
                 : mysteryPhase === 'claiming' ? 'Please wait...'
-                : 'CIPHER added to your balance'}
+                : 'GOLD added to your balance'}
             </div>
 
             {mysteryPhase === 'revealed' && (
               <button onClick={handleMysteryClaim} style={{
                 width: '100%', padding: '14px',
-                background: 'linear-gradient(135deg, #3d1580, #6b21a8)',
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
                 border: 'none', borderRadius: 50, color: '#fff',
                 fontSize: 14, fontWeight: 800, cursor: 'pointer',
                 boxShadow: '0 4px 20px rgba(61,21,128,0.4)',
               }} className="active:scale-95 transition-transform">
-                Claim {mysteryReward} CIPHER
+                Claim {mysteryReward} GOLD
               </button>
             )}
             {(mysteryPhase === 'opening' || mysteryPhase === 'claiming') && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#6b21a8', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#3b82f6', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Please wait</span>
               </div>
             )}
@@ -831,7 +831,7 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
         boxShadow: '0 -8px 60px rgba(61,21,128,0.24), 0 0 0 1px rgba(255,255,255,0.03)',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #3d1580, #6b21a8, #3d1580, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: mode ? 22 : 28 }}>
@@ -859,7 +859,7 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
             }} className="active:scale-[0.98] transition-transform">
               <div style={{
                 width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #1d4ed8, #3d1580)',
+                background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 12px rgba(61,21,128,0.4)',
               }}>
@@ -919,7 +919,7 @@ function _SendChoicePopupRemoved({ user, onClose, onWithdraw, onSuccess }: {
               disabled={loading}
               style={{
                 width: '100%', padding: '14px',
-                background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+                background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
                 border: 'none', borderRadius: 14, color: loading ? 'rgba(255,255,255,0.3)' : '#fff',
                 fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
                 boxShadow: loading ? 'none' : '0 4px 20px rgba(61,21,128,0.4)',
@@ -957,7 +957,7 @@ function _ReceivePopupRemoved({ user, onClose }: { user: any; onClose: () => voi
         boxShadow: '0 -8px 60px rgba(61,21,128,0.24)',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #3d1580, #6b21a8, #3d1580, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -977,7 +977,7 @@ function _ReceivePopupRemoved({ user, onClose }: { user: any; onClose: () => voi
               <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>User ID</div>
               <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Roboto Mono' }}>{user?.id ?? '—'}</div>
             </div>
-            <button onClick={copyId} style={{ background: 'linear-gradient(135deg, #1d4ed8, #6b21a8)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
+            <button onClick={copyId} style={{ background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
           </div>
           {user?.username && (
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -985,7 +985,7 @@ function _ReceivePopupRemoved({ user, onClose }: { user: any; onClose: () => voi
                 <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Username</div>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Roboto Mono' }}>@{user.username}</div>
               </div>
-              <button onClick={copyUsername} style={{ background: 'linear-gradient(135deg, #1d4ed8, #6b21a8)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
+              <button onClick={copyUsername} style={{ background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copy</button>
             </div>
           )}
         </div>
@@ -1000,11 +1000,11 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
   const queryClient = useQueryClient();
 
   const RATE = swapRate;
-  const MIN_CIPHER = swapMin;
+  const MIN_GOLD = swapMin;
   const parsed = parseInt(amount) || 0;
   const rounded = Math.floor(parsed / RATE) * RATE;
   const axnOut = rounded / RATE;
-  const canSwap = rounded >= MIN_CIPHER && rounded <= cipherBalance;
+  const canSwap = rounded >= MIN_GOLD && rounded <= cipherBalance;
   const maxAmount = Math.floor(cipherBalance / RATE) * RATE;
 
   const handleSwap = async () => {
@@ -1014,7 +1014,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
       const res = await apiRequest('POST', '/api/swap', { cipherAmount: rounded });
       const data = await res.json();
       if (data.success) {
-        showNotification(`✅ Swapped ${rounded} CIPHER → ${axnOut} Gold`, 'success');
+        showNotification(`✅ Swapped ${rounded} GOLD → ${axnOut} Gold`, 'success');
         queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
         onSuccess();
         onClose();
@@ -1033,7 +1033,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'flex-end' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={onClose} />
       <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #3d1580, #6b21a8, #3d1580, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
 
         {/* Header */}
@@ -1042,16 +1042,16 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
             <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
           </div>
           <div>
-            <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Swap CIPHER → Gold</div>
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{RATE.toLocaleString()} CIPHER = 1 Gold</div>
+            <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Swap GOLD → Gold</div>
+            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{RATE.toLocaleString()} GOLD = 1 Gold</div>
           </div>
         </div>
 
         {/* Info rows */}
         <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '4px 0', marginBottom: 16 }}>
           {[
-            { label: 'Your CIPHER', val: cipherBalance.toLocaleString() },
-            { label: 'Minimum', val: `${MIN_CIPHER.toLocaleString()} CIPHER` },
+            { label: 'Your GOLD', val: cipherBalance.toLocaleString() },
+            { label: 'Minimum', val: `${MIN_GOLD.toLocaleString()} GOLD` },
             { label: 'You receive', val: axnOut > 0 ? `${axnOut.toLocaleString()} Gold` : '—' },
           ].map((r, i, arr) => (
             <div key={r.label}>
@@ -1068,17 +1068,17 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Amount</div>
-            <button onClick={() => setAmount(String(maxAmount))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b21a8', fontSize: 11, fontWeight: 700, padding: 0 }}>MAX</button>
+            <button onClick={() => setAmount(String(maxAmount))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontSize: 11, fontWeight: 700, padding: 0 }}>MAX</button>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 14, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
             <input
               type="number"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              placeholder={`Min ${MIN_CIPHER.toLocaleString()}`}
+              placeholder={`Min ${MIN_GOLD.toLocaleString()}`}
               style={{ flex: 1, padding: '14px 0', background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 16, fontWeight: 700 }}
             />
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontWeight: 700 }}>CIPHER</span>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontWeight: 700 }}>GOLD</span>
           </div>
         </div>
 
@@ -1088,7 +1088,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
           disabled={!canSwap || loading}
           style={{
             width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
-            background: canSwap && !loading ? 'linear-gradient(135deg, #1d4ed8, #6b21a8)' : 'rgba(255,255,255,0.06)',
+            background: canSwap && !loading ? 'linear-gradient(135deg, #1d4ed8, #3b82f6)' : 'rgba(255,255,255,0.06)',
             color: canSwap && !loading ? '#fff' : 'rgba(255,255,255,0.25)',
             fontSize: 14, fontWeight: 800, cursor: canSwap && !loading ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1096,7 +1096,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
           className={canSwap && !loading ? 'active:scale-95 transition-transform' : ''}
         >
           {loading && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
-          {loading ? 'Swapping…' : canSwap ? `Swap ${rounded.toLocaleString()} CIPHER → ${axnOut.toLocaleString()} Gold` : 'Enter an amount'}
+          {loading ? 'Swapping…' : canSwap ? `Swap ${rounded.toLocaleString()} GOLD → ${axnOut.toLocaleString()} Gold` : 'Enter an amount'}
         </button>
       </div>
     </div>
@@ -1144,7 +1144,7 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
         boxShadow: '0 -8px 60px rgba(61,21,128,0.24)',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #3d1580, #6b21a8, #3d1580, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -1173,7 +1173,7 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
           disabled={loading}
           style={{
             width: '100%', padding: '14px',
-            background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+            background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
             border: 'none', borderRadius: 14, color: loading ? 'rgba(255,255,255,0.3)' : '#fff',
             fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
             boxShadow: loading ? 'none' : '0 4px 20px rgba(61,21,128,0.4)',
