@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import MenuPopup from "@/components/GameMenuPopup";
 import Header from "@/components/GameHeader";
 import BottomNav from "@/components/BottomNav";
+import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -33,6 +34,7 @@ export default function Games() {
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [tonPrice, setTonPrice] = useState<number>(3.5);
   const [showStakingPopup, setShowStakingPopup] = useState(false);
+  const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
   const [showPromoPopup, setShowPromoPopup] = useState(false);
   const [showSwapPopup, setShowSwapPopup] = useState(false);
   const [dailyChecked, setDailyChecked] = useState(() => localStorage.getItem('daily_check_date') === getTodayKey());
@@ -332,7 +334,7 @@ export default function Games() {
             {/* Withdraw */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <button
-                onClick={() => setLocation('/withdraw')}
+                onClick={() => setShowWithdrawPopup(true)}
                 style={{
                   width: 52, height: 52, borderRadius: '50%',
                   background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
@@ -386,21 +388,6 @@ export default function Games() {
               <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Staking</span>
             </div>
 
-            {/* Promo */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <button onClick={() => setShowPromoPopup(true)} style={{
-                width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-                border: 'none',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
-              }} className="active:scale-90 transition-transform">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-              </button>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Promo</span>
-            </div>
 
           </div>
       </div>
@@ -627,20 +614,12 @@ export default function Games() {
 
       </div>
 
-      {/* Promo Popup */}
-      {showPromoPopup && (
-        <PromoPopup
-          onClose={() => setShowPromoPopup(false)}
-          onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); setShowPromoPopup(false); }}
-        />
-      )}
-
       {showSwapPopup && (
         <SwapPopup
           onClose={() => setShowSwapPopup(false)}
-          cipherBalance={Math.floor(parseFloat(user?.balance || '0'))}
-          swapRate={swapSettings?.swapRate ?? 3}
-          swapMin={swapSettings?.swapMinCipher ?? 1000}
+          cipherBalance={Math.floor(axnRaw)}
+          swapRate={100000}
+          swapMin={Math.max(1, Number((user as any)?.minimumCashoutGold || 100000))}
           onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); }}
         />
       )}
@@ -773,6 +752,7 @@ export default function Games() {
       )}
 
       {menuOpen && <MenuPopup onClose={() => setMenuOpen(false)} />}
+      <GameWithdrawPopup open={showWithdrawPopup} onClose={() => setShowWithdrawPopup(false)} userBalance={Math.floor(axnRaw)} />
       <BottomNav />
     </div>
   );
@@ -1004,19 +984,19 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
   const RATE = swapRate;
   const MIN_GOLD = swapMin;
   const parsed = parseInt(amount) || 0;
-  const rounded = Math.floor(parsed / RATE) * RATE;
+  const rounded = Math.floor(parsed);
   const axnOut = rounded / RATE;
   const canSwap = rounded >= MIN_GOLD && rounded <= cipherBalance;
-  const maxAmount = Math.floor(cipherBalance / RATE) * RATE;
+  const maxAmount = Math.floor(cipherBalance);
 
   const handleSwap = async () => {
     if (!canSwap || loading) return;
     setLoading(true);
     try {
-      const res = await apiRequest('POST', '/api/swap', { cipherAmount: rounded });
+      const res = await apiRequest('POST', '/api/convert-to-usd', { powAmount: rounded, convertTo: 'USD' });
       const data = await res.json();
       if (data.success) {
-        showNotification(`✅ Swapped ${rounded} GOLD → ${axnOut} Gold`, 'success');
+        showNotification(`✅ Swapped ${rounded.toLocaleString()} GOLD → $${axnOut.toFixed(4)} USDT`, 'success');
         queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
         onSuccess();
         onClose();
@@ -1044,8 +1024,8 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
             <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
           </div>
           <div>
-            <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Swap GOLD → Gold</div>
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{RATE.toLocaleString()} GOLD = 1 Gold</div>
+            <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Swap GOLD → USDT</div>
+            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{RATE.toLocaleString()} GOLD = 1 USDT</div>
           </div>
         </div>
 
@@ -1054,7 +1034,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
           {[
             { label: 'Your GOLD', val: cipherBalance.toLocaleString() },
             { label: 'Minimum', val: `${MIN_GOLD.toLocaleString()} GOLD` },
-            { label: 'You receive', val: axnOut > 0 ? `${axnOut.toLocaleString()} Gold` : '—' },
+            { label: 'You receive', val: axnOut > 0 ? `$${axnOut.toFixed(4)} USDT` : '—' },
           ].map((r, i, arr) => (
             <div key={r.label}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
@@ -1098,7 +1078,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
           className={canSwap && !loading ? 'active:scale-95 transition-transform' : ''}
         >
           {loading && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
-          {loading ? 'Swapping…' : canSwap ? `Swap ${rounded.toLocaleString()} GOLD → ${axnOut.toLocaleString()} Gold` : 'Enter an amount'}
+          {loading ? 'Swapping…' : canSwap ? `Swap ${rounded.toLocaleString()} GOLD → $${axnOut.toFixed(4)} USDT` : 'Enter an amount'}
         </button>
       </div>
     </div>
