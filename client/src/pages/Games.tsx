@@ -4,6 +4,7 @@ import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import MenuPopup from "@/components/GameMenuPopup";
 import Header from "@/components/GameHeader";
+import BottomNav from "@/components/BottomNav";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -772,6 +773,7 @@ export default function Games() {
       )}
 
       {menuOpen && <MenuPopup onClose={() => setMenuOpen(false)} />}
+      <BottomNav />
     </div>
   );
 }

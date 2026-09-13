@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Clapperboard, ListChecks } from "lucide-react";
+import { Gamepad2, Clapperboard, ListChecks } from "lucide-react";
 
 const TABS = [
+  { id: "game", label: "Game", path: "/game", icon: Gamepad2 },
   { id: "ads", label: "Ads", path: "/ads", icon: Clapperboard },
   { id: "mission", label: "Mission", path: "/mission", icon: ListChecks },
 ] as const;
