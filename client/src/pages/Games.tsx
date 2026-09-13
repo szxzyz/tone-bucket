@@ -349,7 +349,7 @@ export default function Games() {
                 className="active:scale-90 transition-transform"
               >
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19.5h16"/><path d="M7 19.5v2M17 19.5v2"/>
+                  <path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 21h16"/><path d="M7 21v-2M17 21v-2"/>
                 </svg>
               </button>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Withdraw</span>
@@ -365,7 +365,7 @@ export default function Games() {
                 boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
               }} className="active:scale-90 transition-transform">
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/>
+                  <path d="M4 7.5a2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 0 0 5h16a2.5 2.5 0 0 0 0-5 2.5 2.5 0 0 0 0-5H4Z"/><path d="M12 7.5v10" strokeDasharray="2.5 2.5"/><path d="M8 10.5h1M15 14.5h1" strokeWidth="2.4"/>
                 </svg>
               </button>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Promo</span>
