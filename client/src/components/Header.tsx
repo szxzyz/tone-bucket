@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, Bell, X } from "lucide-react";
 import DepositPopup from "@/components/DepositPopup";
 import { TonIcon } from "@/components/TonIcon";
+import { useLocation } from "wouter";
 
 interface HeaderProps {
   onMenuOpen?: () => void;
@@ -19,6 +20,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
   ({ onMenuOpen }, ref) => {
     const [overlayTop, setOverlayTop] = useState(0);
     const [depositOpen, setDepositOpen] = useState(false);
+    const [notificationOpen, setNotificationOpen] = useState(false);
+    const [location] = useLocation();
     const innerRef = useRef<HTMLDivElement>(null);
 
     useImperativeHandle(ref, () => innerRef.current!);
@@ -33,6 +36,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     refetchOnWindowFocus: false,
     placeholderData: (previousData: any) => previousData,
   });
+  const { data: withdrawalsData } = useQuery<any>({ queryKey: ['/api/withdrawals'], staleTime: 30000 });
+  const withdrawals = withdrawalsData?.withdrawals ?? [];
 
   const hasConfirmedGoldBalance = user?.balance !== undefined && user?.balance !== null;
   const rawGoldBalance = hasConfirmedGoldBalance ? parseFloat(String(user.balance)) : null;
@@ -88,7 +93,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           boxShadow: "0 4px 18px rgba(0,0,0,0.45)",
         }}
       >
-        <ResetCountdownBanner />
+        {location === '/mission' && <ResetCountdownBanner />}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -119,6 +124,19 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
                 <Plus size={12} strokeWidth={3} />
               </span>
             </button>
+          </div>
+
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button onClick={() => setNotificationOpen(v => !v)} aria-label="Notifications" style={{ width: 36, height: 36, borderRadius: '50%', background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: notificationOpen ? '#60a5fa' : 'rgba(255,255,255,0.65)', cursor: 'pointer' }}>
+              <Bell size={21} strokeWidth={2} />
+            </button>
+            {notificationOpen && <>
+              <div onClick={() => setNotificationOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
+              <div style={{ position: 'fixed', top: 'calc(var(--header-height, 62px) + 8px)', right: 12, width: 'min(290px, calc(100vw - 24px))', zIndex: 999, background: '#0d0d0f', border: '1px solid rgba(255,255,255,.08)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,.7)' }}>
+                <div style={{ padding: '13px 16px 10px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: 13, fontWeight: 800 }}>Notifications <button onClick={() => setNotificationOpen(false)} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,.4)' }}><X size={14} /></button></div>
+                {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No notifications yet</div> : withdrawals.slice(0, 6).map((item: any) => <div key={item.id} style={{ padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,.04)', color: '#fff', fontSize: 12 }}>{item.status || 'Pending'} withdrawal request</div>)}
+              </div>
+            </>}
           </div>
 
         </div>
