@@ -114,6 +114,19 @@ export default function AppNotification() {
 
   if (!isVisible) return null;
 
+  const getIcon = () => {
+    switch (type) {
+      case "success":
+        return "✓";
+      case "error":
+        return "✕";
+      case "info":
+        return "ℹ";
+      default:
+        return "✓";
+    }
+  };
+
   const notificationElement = (
     <div 
       className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] px-4 py-3 rounded-xl shadow-2xl text-white font-medium text-sm flex items-center gap-2 animate-slideDown max-w-[90vw]"
@@ -123,6 +136,9 @@ export default function AppNotification() {
         pointerEvents: 'auto'
       }}
     >
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 flex-shrink-0">
+        {getIcon()}
+      </div>
       <div className="whitespace-nowrap">{message}</div>
     </div>
   );
