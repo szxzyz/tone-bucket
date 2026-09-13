@@ -36,7 +36,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       staleTime: 30000,
     });
 
-    const cipherBalance = Math.floor(parseFloat(user?.balance || '0'));
+    const goldBalance = Math.floor(parseFloat(user?.balance || '0'));
+    const tonBalance = Number(user?.tonBalance ?? user?.ton_balance ?? (goldBalance / 100000 / 3.5));
 
     const firstName: string = user?.firstName || user?.username || "Miner";
     const profileImageUrl: string | null =
@@ -172,13 +173,10 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             </div>
           </div>
 
-          {/* Center — GOLD balance */}
+          {/* Center — TON balance (Game page only) */}
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: 10 }}>
-            <div style={{ width: 18, height: 18, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-              <img src="/assets/gold-icon.png" alt="GOLD" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
             <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-              {cipherBalance.toLocaleString()}
+              {Number.isFinite(tonBalance) ? tonBalance.toFixed(4) : '0.0000'} TON
             </span>
           </div>
 

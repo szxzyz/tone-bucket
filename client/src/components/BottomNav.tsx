@@ -6,7 +6,7 @@ const TABS = [
   { id: "game", label: "Game", path: "/game", icon: Gamepad2 },
   { id: "ads", label: "Rewards", path: "/ads", icon: Clapperboard },
   { id: "mission", label: "Farming", path: "/mission", icon: ListChecks },
-  { id: "friend", label: "Friends", path: "/friend", icon: Users },
+  { id: "friend", label: "Friends", path: "/affiliates", icon: Users },
 ] as const;
 
 export default function BottomNav() {

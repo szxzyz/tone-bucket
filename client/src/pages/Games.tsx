@@ -6,6 +6,7 @@ import MenuPopup from "@/components/GameMenuPopup";
 import Header from "@/components/GameHeader";
 import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
+import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -37,6 +38,7 @@ export default function Games() {
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
   const [showPromoPopup, setShowPromoPopup] = useState(false);
   const [showSwapPopup, setShowSwapPopup] = useState(false);
+  const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [dailyChecked, setDailyChecked] = useState(() => localStorage.getItem('daily_check_date') === getTodayKey());
   const [dailyAdLoading, setDailyAdLoading] = useState(false);
   const [mysteryOpened, setMysteryOpened] = useState(() => localStorage.getItem('mystery_box_date') === getTodayKey());
@@ -60,6 +62,7 @@ export default function Games() {
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], staleTime: 0 });
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], staleTime: 3600000 });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
+  const { data: checkinStatus } = useQuery<any>({ queryKey: ['/api/daily-checkin/status'], retry: false });
 
   const axnRaw = parseFloat(user?.walletBalance ?? user?.balance ?? '0');
   const axnBalance = Math.floor(axnRaw);
@@ -421,7 +424,7 @@ export default function Games() {
               <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Earn 5 GOLD</div>
             </div>
             <button
-              onClick={handleDailyCheck}
+              onClick={() => setCheckinSheetOpen(true)}
               disabled={dailyChecked || dailyAdLoading || dailyCheckMutation.isPending}
               style={{
                 background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
@@ -752,6 +755,14 @@ export default function Games() {
       )}
 
       {menuOpen && <MenuPopup onClose={() => setMenuOpen(false)} />}
+      <DailyCheckinSheet
+        open={checkinSheetOpen}
+        onClose={() => setCheckinSheetOpen(false)}
+        streak={checkinStatus?.streak ?? 0}
+        dayIndex={checkinStatus?.dayIndex ?? 0}
+        alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? dailyChecked}
+        onClaimed={() => { setDailyChecked(true); setCheckinSheetOpen(false); queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); queryClient.invalidateQueries({ queryKey: ['/api/daily-checkin/status'] }); }}
+      />
       <GameWithdrawPopup open={showWithdrawPopup} onClose={() => setShowWithdrawPopup(false)} userBalance={Math.floor(axnRaw)} />
       <BottomNav />
     </div>
