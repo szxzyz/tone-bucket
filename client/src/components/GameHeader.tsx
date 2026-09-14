@@ -24,10 +24,10 @@ function statusColor(status: string) {
 const Header = forwardRef<HTMLDivElement, HeaderProps>(
   ({ onMenuOpen }, ref) => {
     const [notifOpen, setNotifOpen] = useState(false);
-    const [hasUnread, setHasUnread] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [overlayTop, setOverlayTop] = useState(0);
     const innerRef = useRef<HTMLDivElement>(null);
-    const prevPendingCount = useRef(0);
+    const seenIds = useRef<Set<string>>(new Set());
     const [, setLocation] = useLocation();
 
     useImperativeHandle(ref, () => innerRef.current!);
@@ -56,18 +56,19 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       null;
 
     const withdrawals: any[] = withdrawalsData?.withdrawals ?? [];
-    const pendingCount = withdrawals.filter(w => w.status === 'pending').length;
-
     useEffect(() => {
-      if (pendingCount > prevPendingCount.current) {
-        setHasUnread(true);
-      }
-      prevPendingCount.current = pendingCount;
-    }, [pendingCount]);
+      if (withdrawals.length === 0) return;
+      const stored = JSON.parse(localStorage.getItem('grabpenny_seen_transactions') || '[]') as string[];
+      seenIds.current = new Set(stored);
+      setUnreadCount(withdrawals.filter(w => !seenIds.current.has(String(w.id))).length);
+    }, [withdrawalsData]);
 
     const handleBellClick = () => {
       setNotifOpen(v => !v);
-      setHasUnread(false);
+      const ids = withdrawals.map(w => String(w.id));
+      localStorage.setItem('grabpenny_seen_transactions', JSON.stringify(ids));
+      seenIds.current = new Set(ids);
+      setUnreadCount(0);
     };
 
     useEffect(() => {
@@ -202,12 +203,13 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
-              {hasUnread && (
+              {unreadCount > 0 && (
                 <div style={{
-                  position: 'absolute', top: 4, right: 4,
-                  width: 8, height: 8, borderRadius: '50%',
+                  position: 'absolute', top: 1, right: 0,
+                  minWidth: 17, height: 17, borderRadius: 9,
                   background: '#ef4444', border: '1.5px solid #0a0a0a',
-                }} />
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', boxSizing: 'border-box',
+                }}><span style={{ color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1 }}>{unreadCount > 99 ? '99+' : unreadCount}</span></div>
               )}
             </button>
 
