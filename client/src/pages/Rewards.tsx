@@ -737,7 +737,7 @@ export default function Rewards() {
               width: 50, height: 50, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: '#000',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+              <img src="/assets/gem-icon.png" alt="Gold" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
             </div>
             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
               {(() => {
@@ -803,7 +803,7 @@ export default function Rewards() {
           <PopupShell onClose={() => setShowFarmInfo(false)} maxWidth={430} zIndex={1100}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#000', flexShrink: 0 }}>
-                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
+                  <img src="/assets/gem-icon.png" alt="Gold" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
                 </div>
                 <div>
                   <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Farming Info</div>

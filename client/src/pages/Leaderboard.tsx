@@ -151,7 +151,7 @@ function ParticipantCard({
         <div style={{ flexShrink: 0, textAlign: "right" }}>
           <p style={{ margin: "0 0 3px", fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Reward</p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} /><span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{entry ? reward.gold.toLocaleString() : "—"}</span></span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><img src="/assets/gem-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} /><span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{entry ? reward.gold.toLocaleString() : "—"}</span></span>
           </div>
         </div>
       </div>
@@ -274,7 +274,7 @@ export default function Leaderboard() {
   const isLoading = isMonthly ? loadingMonthly : loadingReferral;
   const refetch = isMonthly ? refetchMonthly : refetchReferral;
 
-  const gemIcon = <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 11, height: 11, objectFit: "contain" }} />;
+  const gemIcon = <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 11, height: 11, objectFit: "contain" }} />;
   const usersIcon = <FaUsers style={{ color: "#34d399", fontSize: 11 }} />;
   const scoreIcon = isMonthly ? gemIcon : usersIcon;
 
