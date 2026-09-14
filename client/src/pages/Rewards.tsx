@@ -812,11 +812,11 @@ export default function Rewards() {
               </div>
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '4px 0', marginBottom: 20 }}>
                 {[
-                  { label: 'Mining speed', val: '0.001 Gold/s' },
-                  { label: 'Cycle duration', val: '4 hours' },
+                  { label: 'Mining speed', val: '23.9574 Gold/hour' },
+                  { label: 'Cycle duration', val: '1 hour' },
                   { label: 'Rewards', val: 'NFT-owned only' },
-                  { label: 'Claim anytime', val: 'Yes' },
-                  { label: 'Auto-stop', val: 'After 4 hours' },
+                  { label: 'Claim', val: 'After 1 hour only' },
+                  { label: 'Boost levels', val: '1x → 25x' },
                 ].map((r, i, arr) => (
                   <div key={r.label}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>

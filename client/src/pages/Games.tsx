@@ -229,10 +229,11 @@ export default function Games() {
     const isActive = farmData?.isActive;
     if (!isActive) return;
     const rate = farmData?.effectiveRate ?? FARM_RATE;
-    const maxAxn = FARM_DURATION * rate;
+    const maxAxn = (FARM_DURATION / 3600) * rate;
+    const goldPerSecond = rate / 3600;
     farmIntervalRef.current = setInterval(() => {
       setFarmCountdown(prev => Math.max(0, prev - 1));
-      setFarmAccum(prev => parseFloat(Math.min(prev + rate, maxAxn).toFixed(4)));
+      setFarmAccum(prev => parseFloat(Math.min(prev + goldPerSecond, maxAxn).toFixed(4)));
     }, 1000);
     return () => { if (farmIntervalRef.current) clearInterval(farmIntervalRef.current); };
   }, [farmData?.isActive, farmData?.startedAt, farmData?.effectiveRate]);
@@ -245,7 +246,7 @@ export default function Games() {
       return data;
     },
     onSuccess: () => {
-      showNotification('Farming started! Claim anytime — no need to wait.', 'success');
+      showNotification('Mining started! You can claim after the 1-hour cycle completes.', 'success');
       refetchFarm();
     },
     onError: (err: any) => showNotification(err?.message || 'Failed to start farming', 'error'),
