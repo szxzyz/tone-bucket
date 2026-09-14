@@ -4,6 +4,7 @@ import { forwardRef, useImperativeHandle } from "react";
 import { useLocation } from "wouter";
 import { Plus } from "lucide-react";
 import { TonIcon } from "@/components/TonIcon";
+import DepositPopup from "@/components/DepositPopup";
 
 interface HeaderProps {
   onMenuOpen?: () => void;
@@ -26,6 +27,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     const [notifOpen, setNotifOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [overlayTop, setOverlayTop] = useState(0);
+    const [depositOpen, setDepositOpen] = useState(false);
     const innerRef = useRef<HTMLDivElement>(null);
     const seenIds = useRef<Set<string>>(new Set());
     const [, setLocation] = useLocation();
@@ -106,7 +108,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     return (
       <div
         ref={innerRef}
-        className="fixed top-0 left-0 right-0 z-40"
+        className="fixed top-0 left-0 right-0 z-[1200]"
         style={{
           background: "#0a0a0a",
           paddingTop: `${overlayTop + 6}px`,
@@ -176,12 +178,11 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           </div>
 
           {/* Game page: TON balance only, matching the regular Header */}
-          <button aria-label="TON balance" style={{ minWidth: 116, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '6px 9px', background: 'rgba(255,255,255,0.04)', border: 'none', borderRadius: 11 }}>
+          <button onClick={() => setDepositOpen(true)} aria-label="Top up TON balance" style={{ minWidth: 116, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '6px 9px', background: 'rgba(255,255,255,0.04)', border: 'none', borderRadius: 11, cursor: 'pointer' }} className="active:scale-95 transition-transform">
             <TonIcon size={22} />
             <span style={{ color: '#fff', fontSize: 14, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
               {tonBalance === null || !Number.isFinite(tonBalance) ? '—' : tonBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
             </span>
-            <span style={{ color:'rgba(255,255,255,.45)', fontSize:11, fontWeight:800 }}>TON</span>
             <span style={{ width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'rgba(255,255,255,0.16)', color: '#fff' }}><Plus size={12} strokeWidth={3} /></span>
           </button>
 
@@ -269,6 +270,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           </div>
 
         </div>
+        <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
       </div>
     );
   }

@@ -100,7 +100,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     return (
       <div
         ref={innerRef}
-        className="fixed top-0 left-0 right-0 z-40"
+        className="fixed top-0 left-0 right-0 z-[1200]"
         style={{
           background: "#000000",
           paddingTop: `${overlayTop + 6}px`,

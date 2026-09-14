@@ -57,7 +57,9 @@ export default function PromoCodeDialog({ open, onOpenChange }: PromoCodeDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-[20px] bg-black/95">
+      <DialogContent className="sm:max-w-md rounded-[20px] bg-black/95 overflow-hidden border border-white/10 p-0">
+        <div className="h-1 w-full bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+        <div className="p-6 pt-5">
         <DialogHeader>
           <DialogTitle className="text-white">
             Redeem Promo Code
@@ -97,6 +99,7 @@ export default function PromoCodeDialog({ open, onOpenChange }: PromoCodeDialogP
               )}
             </Button>
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
