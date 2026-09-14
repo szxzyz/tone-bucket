@@ -1378,7 +1378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         walletChangeFeeGems,
         minimumWithdrawal,
         minimumWithdrawalUSD,
-        minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '100000')),
+        minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
         minimumWithdrawalTON,
         withdrawalFeeTON,
         withdrawalFeeUSD,
@@ -4804,7 +4804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         l2CommissionPercent: parseFloat(getSetting('l2_commission_percent', '4')),
         walletChangeFee: parseInt(getSetting('wallet_change_fee', '100')), // Return as Gems, default 100
         minimumWithdrawalUSD: parseFloat(getSetting('minimum_withdrawal_usd', '1.00')), // NEW: Min USD withdrawal
-        minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '100000')),
+        minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
         minimumWithdrawalTON: parseFloat(getSetting('minimum_withdrawal_ton', '0.5')), // NEW: Min TON withdrawal
         withdrawalFeeTON: parseFloat(getSetting('withdrawal_fee_ton', '5')), // NEW: TON withdrawal fee %
         withdrawalFeeUSD: parseFloat(getSetting('withdrawal_fee_usd', '3')), // NEW: USD withdrawal fee %
@@ -6593,20 +6593,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestedGold = req.body?.goldAmount === undefined || req.body?.goldAmount === '' ? Number(user.balance || 0) : Number(req.body.goldAmount);
       const gold = Math.trunc(requestedGold);
       const [minimumCashoutSetting] = await db.select({ settingValue: adminSettings.settingValue }).from(adminSettings).where(eq(adminSettings.settingKey, 'minimum_cashout_gold')).limit(1);
-      const minimumCashoutGold = Math.max(1, parseInt(minimumCashoutSetting?.settingValue || '100000', 10) || 100000);
+      const minimumCashoutGold = Math.max(1, parseInt(minimumCashoutSetting?.settingValue || '1000', 10) || 1000);
       if (!Number.isFinite(gold) || gold < minimumCashoutGold) return res.status(400).json({ success: false, message: `Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GOLD` });
       if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GOLD balance' });
       const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), inArray(withdrawals.status, ['pending', 'Approved', 'Processing']))).limit(1);
       if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });
       const usdValue = gold / 100000;
+      const feePercent = 9;
+      const fee = usdValue * (feePercent / 100);
+      const netAmount = usdValue - fee;
       const result = await db.transaction(async (tx) => {
         const locked = await tx.update(users).set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() }).where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`)).returning({ id: users.id });
         if (locked.length === 0) throw new Error('Balance changed; please try again');
-        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: usdValue.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: usdValue.toFixed(10), payoutCurrency: null, cryptoAmount: null, marketRateUsd: null, walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
+        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAmount.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, fee, feePercent, netAmount, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: netAmount.toFixed(10), payoutCurrency: null, cryptoAmount: null, marketRateUsd: null, walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
       });
-      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: usdValue, fee: 0, feePercent: 0, axnAmount: gold });
-      res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue, currency: 'TON' });
+      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, fee, feePercent, axnAmount: gold });
+      res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue: netAmount, fee, feePercent, currency: 'TON' });
     } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not create payout' }); }
   });
 

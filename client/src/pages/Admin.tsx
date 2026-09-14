@@ -2435,7 +2435,7 @@ function SettingsSection() {
     l1CommissionPercent: '20',
     l2CommissionPercent: '4',
     minimumWithdrawAmount: '0.20',
-    minimumCashoutGold: '100000',
+    minimumCashoutGold: '1000',
     maximumWithdrawAmount: '0.50',
     maxWithdrawalsPerDay: '1',
     withdrawalFeeTON: '5',
@@ -2503,7 +2503,7 @@ function SettingsSection() {
         l1CommissionPercent: settingsData.l1CommissionPercent?.toString() || '20',
         l2CommissionPercent: settingsData.l2CommissionPercent?.toString() || '4',
         minimumWithdrawAmount: settingsData.minimumWithdrawAmount?.toString() || '0.20',
-        minimumCashoutGold: settingsData.minimumCashoutGold?.toString() || '100000',
+        minimumCashoutGold: settingsData.minimumCashoutGold?.toString() || '1000',
         maximumWithdrawAmount: settingsData.maximumWithdrawAmount?.toString() || '0.50',
         maxWithdrawalsPerDay: settingsData.maxWithdrawalsPerDay?.toString() || '1',
         withdrawalFeeTON: settingsData.withdrawalFeeTON?.toString() || '5',
@@ -2653,7 +2653,7 @@ function SettingsSection() {
         l1CommissionPercent: parseFloat(settings.l1CommissionPercent) || 20,
         l2CommissionPercent: parseFloat(settings.l2CommissionPercent) || 4,
         minimumWithdrawAmount: minWithdrawAmount,
-        minimumCashoutGold: Math.max(1, parseInt((settings as any).minimumCashoutGold) || 100000),
+        minimumCashoutGold: Math.max(1, parseInt((settings as any).minimumCashoutGold) || 1000),
         maximumWithdrawAmount: maxWithdrawAmount,
         maxWithdrawalsPerDay: maxWithdrawalsPerDay,
         withdrawalFeeTON: withdrawalFeeTON,
@@ -3151,7 +3151,7 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Users must have at least this many GOLD. 100,000 GOLD = $1 USD. Current: {settingsData?.minimumCashoutGold || 100000} GOLD
+                Users must have at least this many GOLD. 1,000 GOLD = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} GOLD
               </p>
             </div>
 
