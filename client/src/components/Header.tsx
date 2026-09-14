@@ -16,6 +16,12 @@ interface HeaderProps {
   onShareOpen?: () => void;
 }
 
+function statusColor(status: string) {
+  if (status === 'approved' || status === 'completed' || status === 'paid') return '#4ade80';
+  if (status === 'rejected') return '#f87171';
+  return '#fbbf24';
+}
+
 const Header = forwardRef<HTMLDivElement, HeaderProps>(
   ({ onMenuOpen }, ref) => {
     const [overlayTop, setOverlayTop] = useState(0);
@@ -133,8 +139,10 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             {notificationOpen && <>
               <div onClick={() => setNotificationOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
               <div style={{ position: 'fixed', top: 'calc(var(--header-height, 62px) + 8px)', right: 12, width: 'min(290px, calc(100vw - 24px))', zIndex: 999, background: '#0d0d0f', border: '1px solid rgba(255,255,255,.08)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,.7)' }}>
-                <div style={{ padding: '13px 16px 10px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: 13, fontWeight: 800 }}>Notifications <button onClick={() => setNotificationOpen(false)} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,.4)' }}><X size={14} /></button></div>
-                {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No notifications yet</div> : withdrawals.slice(0, 6).map((item: any) => <div key={item.id} style={{ padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,.04)', color: '#fff', fontSize: 12 }}>{item.status || 'Pending'} withdrawal request</div>)}
+                <div style={{ padding: '13px 16px 10px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: 13, fontWeight: 800 }}>Transactions <button onClick={() => setNotificationOpen(false)} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,.4)' }}><X size={14} /></button></div>
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 6).map((item: any) => { const color = statusColor(String(item.status || '').toLowerCase()); const date = new Date(item.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={item.id} style={{ padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><div><div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{parseFloat(item.amount).toLocaleString()} GOLD</div><div style={{ color: 'rgba(255,255,255,.28)', fontSize: 10, marginTop: 2 }}>{date}</div></div><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: 'uppercase', letterSpacing: '.04em' }}>{item.status || 'pending'}</span></div>; })}
+                </div>
               </div>
             </>}
           </div>
