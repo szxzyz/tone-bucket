@@ -20,9 +20,10 @@ function getTodayKey() {
 
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
-const FARM_RATE = 0.001;
-const FARM_DURATION = 4 * 3600;
+const FARM_RATE = 23.9574;
+const FARM_DURATION = 3600;
 const FARM_MAX = parseFloat((FARM_DURATION * FARM_RATE).toFixed(4));
+const FARM_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25];
 
 function fmtCountdown(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -265,6 +266,21 @@ export default function Games() {
     onError: (err: any) => showNotification(err?.message || 'Failed to claim', 'error'),
   });
 
+  const farmBoostMutation = useMutation({
+    mutationFn: async () => {
+      await showRewardedInterstitial();
+      const res = await apiRequest('POST', '/api/farming/boost', {});
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to boost mining');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/farming/state'] });
+      showNotification(`Mining boosted to ${data.multiplier}x`, 'success');
+    },
+    onError: (err: any) => showNotification(err?.message || 'Could not boost mining', 'error'),
+  });
+
   return (
     <div style={{ height: '100dvh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
       <style>{`
@@ -498,7 +514,7 @@ export default function Games() {
                   </div>
                 );
               })()}
-              <div style={{ color: 'rgba(255,255,255,0.32)', fontSize: 12, marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>0.001/s · 14.4 Gold per cycle</div>
+              <div style={{ color: 'rgba(255,255,255,0.32)', fontSize: 12, marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(farmData?.effectiveRate ?? FARM_RATE).toFixed(4)} Gold/hour · {farmData?.multiplier ?? 1}x boost</div>
             </div>
           </div>
 
@@ -537,9 +553,8 @@ export default function Games() {
             })()}
             <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
             <button onClick={() => setShowAlertPopup(true)} style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.38)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(168,85,247,0.85)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z"/>
               </svg>
             </button>
           </div>
@@ -561,11 +576,11 @@ export default function Games() {
               </div>
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '4px 0', marginBottom: 20 }}>
                 {[
-                  { label: 'Mining speed', val: '0.001 Gold/s' },
-                  { label: 'Cycle duration', val: '4 hours' },
-                  { label: 'Max per cycle', val: '14.4 Gold' },
-                  { label: 'Claim anytime', val: 'Yes' },
-                  { label: 'Auto-stop', val: 'After 4 hours' },
+                  { label: 'Mining speed', val: '23.9574 Gold/hour' },
+                  { label: 'Cycle duration', val: '1 hour' },
+                  { label: 'Base per cycle', val: '23.9574 Gold' },
+                  { label: 'Claim', val: 'After 1 hour only' },
+                  { label: 'Boost levels', val: '1x → 25x' },
                 ].map((r, i, arr) => (
                   <div key={r.label}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
@@ -591,16 +606,24 @@ export default function Games() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(126,34,206,0.14)', border: '1px solid rgba(168,85,247,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z"/>
                   </svg>
                 </div>
-                <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 10 }}>Coming Soon</div>
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
-                  This feature is coming soon. Stay tuned for updates!
+                <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 10 }}>Upgrade multiplier</div>
+                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.65, marginBottom: 18 }}>
+                  Upgrading increases your earning power during the selected mining duration.<br />
+                  With each upgrade, you can earn more GOLD in the same time frame.<br />
+                  Collect GOLD can later be used to purchase additional hashrate, boosting your mining capacity further.
                 </div>
-                <button onClick={() => setShowAlertPopup(false)} style={{ width: '100%', padding: '14px 0', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }} className="active:scale-95 transition-transform">OK</button>
+                <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', boxSizing: 'border-box', marginBottom: 14 }}>
+                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Current boost</div>
+                  <div style={{ color: '#c084fc', fontSize: 24, fontWeight: 900 }}>{farmData?.multiplier ?? 1}x</div>
+                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 3 }}>Watch an ad to unlock the next level: {(FARM_BOOSTS[Math.min(FARM_BOOSTS.length - 1, Number(farmData?.boostStep ?? 0) + 1)] ?? 25)}x</div>
+                </div>
+                <button onClick={() => farmBoostMutation.mutate()} disabled={!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25} style={{ width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #7e22ce, #a855f7)', border: 0, borderRadius: 14, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: (!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25) ? .45 : 1, marginBottom: 9 }} className="active:scale-95 transition-transform">{farmBoostMutation.isPending ? 'Watching ad…' : Number(farmData?.multiplier ?? 1) >= 25 ? 'Maximum boost reached' : 'Watch ad to boost'}</button>
+                <button onClick={() => setShowAlertPopup(false)} style={{ width: '100%', padding: '14px 0', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }} className="active:scale-95 transition-transform">Close</button>
               </div>
             </div>
           </div>

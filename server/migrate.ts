@@ -129,9 +129,12 @@ export async function ensureDatabaseSchema(): Promise<void> {
 	        platform VARCHAR(20),
 	        monetag_ads_watched_today INTEGER DEFAULT 0,
 	        gigapub_ads_watched_today INTEGER DEFAULT 0,
-	        uslads_ads_watched_today INTEGER DEFAULT 0,
-	        role VARCHAR(20) DEFAULT 'user' NOT NULL,
-	        created_at TIMESTAMP DEFAULT NOW(),
+        uslads_ads_watched_today INTEGER DEFAULT 0,
+        role VARCHAR(20) DEFAULT 'user' NOT NULL,
+        mining_started_at TIMESTAMP,
+        mining_boost_multiplier DECIMAL(8, 4) DEFAULT '1',
+        mining_boost_step INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
 	        updated_at TIMESTAMP DEFAULT NOW()
 	      )
 	    `);
@@ -979,6 +982,9 @@ export async function ensureDatabaseSchema(): Promise<void> {
       await db.execute(sql`
         DO $$
         BEGIN
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_started_at TIMESTAMP;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_boost_multiplier DECIMAL(8, 4) DEFAULT '1';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_boost_step INTEGER DEFAULT 0;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS under_review BOOLEAN DEFAULT false;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS review_reason TEXT;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS rewards_frozen BOOLEAN DEFAULT false;

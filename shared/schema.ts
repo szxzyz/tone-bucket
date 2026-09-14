@@ -139,6 +139,10 @@ export const users = pgTable("users", {
   friendInvited: boolean("friend_invited").default(false),
   // Monthly contest stars — earned by watching ads when contest is active
   weeklyStars: integer("weekly_stars").default(0),
+  // One-hour mining cycle state and ad-boost progression
+  miningStartedAt: timestamp("mining_started_at"),
+  miningBoostMultiplier: decimal("mining_boost_multiplier", { precision: 8, scale: 4 }).default("1"),
+  miningBoostStep: integer("mining_boost_step").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
