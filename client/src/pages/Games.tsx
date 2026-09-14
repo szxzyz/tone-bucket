@@ -485,12 +485,7 @@ export default function Games() {
         <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
           {/* Main row: coin + counting */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
-            <div style={{
-              width: 50, height: 50, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: '#000',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
-            </div>
+            <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 50, height: 50, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
               {(() => {
                 const val = farmAccum.toFixed(3);
@@ -558,9 +553,7 @@ export default function Games() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#000', flexShrink: 0 }}>
-                  <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
-                </div>
+                <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 44, height: 44, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
                 <div>
                   <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Farming Info</div>
                   <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>How it works</div>
@@ -1040,9 +1033,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#000', flexShrink: 0 }}>
-            <img src="/assets/gold-icon.png" alt="Gold" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
-          </div>
+          <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 44, height: 44, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
           <div>
             <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Swap GOLD → USDT</div>
             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{RATE.toLocaleString()} GOLD = 1 USDT</div>

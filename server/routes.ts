@@ -6596,7 +6596,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minimumCashoutGold = Math.max(1, parseInt(minimumCashoutSetting?.settingValue || '1000', 10) || 1000);
       if (!Number.isFinite(gold) || gold < minimumCashoutGold) return res.status(400).json({ success: false, message: `Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GOLD` });
       if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GOLD balance' });
-      const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), inArray(withdrawals.status, ['pending', 'Approved', 'Processing']))).limit(1);
+      // Admin flows have historically stored status values with mixed casing.
+      // Normalize them here so only genuinely active payouts block a new request.
+      const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(
+        eq(withdrawals.userId, userId),
+        sql`LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))) IN ('pending', 'approved', 'processing', 'under_review')`,
+      )).limit(1);
       if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });
       const usdValue = gold / 100000;
       const feePercent = 9;
