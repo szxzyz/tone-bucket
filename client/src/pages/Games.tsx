@@ -519,40 +519,42 @@ export default function Games() {
           {/* Divider */}
           <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
 
-          {/* Start Mining + secondary controls — original button styling */}
-          <div>
-            {(() => {
-              const isActive = farmData?.isActive;
-              const isPending = farmStartMutation.isPending || farmClaimMutation.isPending;
-              if (isPending) return (
-                <button disabled style={{ width: '100%', padding: '11px 0', background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'rgba(255,255,255,0.28)', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.4)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                  {farmClaimMutation.isPending ? 'Claiming…' : 'Starting…'}
-                </button>
-              );
-              if (isActive && farmCountdown <= 0) return (
-                <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '11px 0', background: '#16a34a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
-                  CLAIM
-                </button>
-              );
-              if (isActive) return (
-                <div style={{ width: '100%', padding: '11px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCountdown(farmCountdown)}</span>
-                </div>
-              );
-              return (
-                <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '11px 0', background: '#dc2626', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
-                  START MINING
-                </button>
-              );
-            })()}
-            <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {/* Info and Boost stay inside the original card */}
+          <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Info size={18} strokeWidth={2} /> INFO</button>
               <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
               <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Rocket size={18} strokeWidth={1.8} /> BOOST</button>
-            </div>
           </div>
+        </div>
+
+        {/* Start/Claim control is intentionally detached from the card */}
+        <div style={{ marginTop: 12 }}>
+          {(() => {
+            const isActive = farmData?.isActive;
+            const isPending = farmStartMutation.isPending || farmClaimMutation.isPending;
+            if (isPending) return (
+              <button disabled style={{ width: '100%', padding: '12px 0', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.4)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                {farmClaimMutation.isPending ? 'Claiming…' : 'Starting…'}
+              </button>
+            );
+            if (isActive && farmCountdown <= 0) return (
+              <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#16a34a', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
+                CLAIM
+              </button>
+            );
+            if (isActive) return (
+              <div style={{ width: '100%', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCountdown(farmCountdown)}</span>
+              </div>
+            );
+            return (
+              <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#dc2626', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
+                START MINING
+              </button>
+            );
+          })()}
         </div>
 
         {/* Farm Info Popup — bottom sheet */}
