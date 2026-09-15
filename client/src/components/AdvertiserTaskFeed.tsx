@@ -30,7 +30,7 @@ interface UnifiedTask {
 interface AdvertiserTaskFeedProps {
   kind: AdvertiserTaskKind;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   allowCreate?: boolean;
 }
 
@@ -219,8 +219,8 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
   return (
     <section style={{ marginBottom: 10 }}>
       <div style={{ marginBottom: 8, paddingLeft: 4 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.12em", textTransform: "uppercase" }}>{title}</div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 0 }}>{subtitle}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "0.02em" }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 0 }}>{subtitle}</div>}
       </div>
 
       {allowCreate && (

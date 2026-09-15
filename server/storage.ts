@@ -1478,15 +1478,15 @@ export class DatabaseStorage implements IStorage {
   // Process referral commission (10% of user's earnings)
   async processReferralCommission(userId: string, originalEarningId: number, earningAmount: string): Promise<void> {
     try {
-      // Only process commissions for ad watching earnings
+      // Ads and completed mission tasks generate referral commissions.
       const [earning] = await db
         .select()
         .from(earnings)
         .where(eq(earnings.id, originalEarningId))
         .limit(1);
 
-      if (!earning || earning.source !== 'ad_watch') {
-        // Only ad earnings generate commissions
+      if (!earning || !['ad_watch', 'task_completion'].includes(earning.source)) {
+        // Other rewards do not generate network commissions.
         return;
       }
 

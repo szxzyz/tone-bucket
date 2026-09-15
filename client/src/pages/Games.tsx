@@ -416,10 +416,9 @@ export default function Games() {
 
         {/* DAILY REWARDS */}
         <div style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
             Daily Rewards
           </span>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>Complete daily tasks and get rewards.</div>
         </div>
 
         <div style={{
@@ -437,7 +436,6 @@ export default function Games() {
             </svg>
             <div style={{ flex: 1 }}>
               <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Earn 5 GOLD</div>
             </div>
             <button
               onClick={() => setCheckinSheetOpen(true)}
@@ -471,7 +469,6 @@ export default function Games() {
             </svg>
             <div style={{ flex: 1 }}>
               <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Box</div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>Win 1–100 GOLD</div>
             </div>
             <button
               onClick={handleMysteryOpen}
@@ -493,10 +490,9 @@ export default function Games() {
 
         {/* FARMING label */}
         <div style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
             Farming
           </span>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>Earn additional rewards.</div>
         </div>
 
         {/* FARMING */}
@@ -535,7 +531,7 @@ export default function Games() {
                 </button>
               );
               if (isActive && farmCountdown <= 0) return (
-                <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
+                <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '11px 0', background: '#16a34a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
                   CLAIM
                 </button>
               );
@@ -546,15 +542,15 @@ export default function Games() {
                 </div>
               );
               return (
-                <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
+                <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '11px 0', background: '#dc2626', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
                   START MINING
                 </button>
               );
             })()}
             <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(96,165,250,0.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><Info size={21} strokeWidth={2} /></button>
+              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Info size={18} strokeWidth={2} /> INFO</button>
               <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
-              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><Rocket size={21} color="#60a5fa" strokeWidth={1.8} /></button>
+              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Rocket size={18} strokeWidth={1.8} /> BOOST</button>
             </div>
           </div>
         </div>

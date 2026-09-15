@@ -15,7 +15,7 @@ export default function Mission() {
             <button key={id} onClick={() => setTab(id)} role="tab" aria-selected={tab === id} style={{ flex: 1, height: 40, border: 0, borderRadius: 11, background: tab === id ? 'linear-gradient(135deg, #3d1580, #6b21a8)' : 'rgba(255,255,255,0.07)', color: tab === id ? '#fff' : 'rgba(255,255,255,0.5)', fontWeight: 800, textTransform: 'capitalize' }}>{id} Tasks</button>
           ))}
         </div>
-        {tab === 'social' ? <AdvertiserTaskFeed kind="social" title="Social Missions" subtitle="Complete channel and social tasks to earn rewards." /> : <AdvertiserTaskFeed kind="game" title="Game Missions" subtitle="Launch games and complete tasks to earn rewards." />}
+        {tab === 'social' ? <AdvertiserTaskFeed kind="social" title="Social Missions" /> : <AdvertiserTaskFeed kind="game" title="Game Missions" />}
         <AdWatchingSection user={user} hideTitle={false} />
       </main>
     </Layout>

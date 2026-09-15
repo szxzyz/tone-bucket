@@ -271,9 +271,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
             <h2 className="text-[15px] font-extrabold text-white tracking-widest uppercase mb-0.5">
               Watch Ads
             </h2>
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.12em]">
-              Watch ads to earn CIPHER and boost your income.
-            </p>
           </div>
         )}
 

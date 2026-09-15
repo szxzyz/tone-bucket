@@ -8059,12 +8059,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!claimedClick) {
         return res.status(400).json({ success: false, message: "You have already claimed the reward for this task" });
       }
-      await storage.addEarning({
+      const taskEarning = await storage.addEarning({
         userId,
         amount: String(rewardGems),
         source: 'task_completion',
         description: `Completed ${task.taskType} task: ${task.title}`,
       });
+      await storage.processReferralCommission(userId, taskEarning.id, String(rewardGems));
 
       // Only a successful claim counts against the advertiser's paid click
       // limit. A user opening a task without claiming must not hide/complete it.
