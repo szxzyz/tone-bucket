@@ -2447,7 +2447,7 @@ function SettingsSection() {
     botTaskReward: '100',
     partnerTaskReward: '5000',
     taskRewardNoVerify: '100',
-    taskRewardWithVerify: '200',
+    taskRewardWithVerify: '500',
     mysteryBoxMinReward: '1',
     mysteryBoxMaxReward: '500',
     minimumClicks: '500',
@@ -2480,17 +2480,17 @@ function SettingsSection() {
     gigaPubMissionReward: '50',
     gigaPubMissionLimit: '10',
     // Per-provider ad card settings
-    adsgramAdLimit: '10',
-    adsgramRewardPerAd: '125',
+    adsgramAdLimit: '40',
+    adsgramRewardPerAd: '50',
     adsgramEnabled: true,
-    monetagAdLimit: '10',
-    monetagRewardPerAd: '125',
+    monetagAdLimit: '30',
+    monetagRewardPerAd: '30',
     monetagEnabled: true,
-    gigapubAdLimit: '10',
-    gigapubRewardPerAd: '125',
+    gigapubAdLimit: '30',
+    gigapubRewardPerAd: '30',
     gigapubEnabled: true,
-    usladsAdLimit: '10',
-    usladsRewardPerAd: '125',
+    usladsAdLimit: '20',
+    usladsRewardPerAd: '20',
     usladsEnabled: true,
   });
 
@@ -2515,7 +2515,7 @@ function SettingsSection() {
         botTaskReward: (settingsData as any).taskRewardNoVerify?.toString() || settingsData.botTaskReward?.toString() || '100',
         partnerTaskReward: settingsData.partnerTaskReward?.toString() || '200',
         taskRewardNoVerify: (settingsData as any).taskRewardNoVerify?.toString() || settingsData.channelTaskReward?.toString() || '100',
-        taskRewardWithVerify: (settingsData as any).taskRewardWithVerify?.toString() || '200',
+        taskRewardWithVerify: (settingsData as any).taskRewardWithVerify?.toString() || '500',
         mysteryBoxMinReward: (settingsData as any).mysteryBoxMinReward?.toString() || '1',
         mysteryBoxMaxReward: (settingsData as any).mysteryBoxMaxReward?.toString() || '500',
         minimumClicks: settingsData.minimumClicks?.toString() || '500',
@@ -2548,17 +2548,17 @@ function SettingsSection() {
         gigaPubMissionReward: settingsData.gigaPubMissionReward?.toString() || '50',
         gigaPubMissionLimit: settingsData.gigaPubMissionLimit?.toString() || '10',
         // Per-provider ad card settings
-        adsgramAdLimit: settingsData.adsgramAdLimit?.toString() || '510',
-        adsgramRewardPerAd: settingsData.adsgramRewardPerAd?.toString() || '125',
+        adsgramAdLimit: settingsData.adsgramAdLimit?.toString() || '40',
+        adsgramRewardPerAd: settingsData.adsgramRewardPerAd?.toString() || '50',
         adsgramEnabled: settingsData.adsgramEnabled !== false,
-        monetagAdLimit: settingsData.monetagAdLimit?.toString() || '50',
-        monetagRewardPerAd: settingsData.monetagRewardPerAd?.toString() || '125',
+        monetagAdLimit: settingsData.monetagAdLimit?.toString() || '30',
+        monetagRewardPerAd: settingsData.monetagRewardPerAd?.toString() || '30',
         monetagEnabled: settingsData.monetagEnabled !== false,
-        gigapubAdLimit: settingsData.gigapubAdLimit?.toString() || '50',
-        gigapubRewardPerAd: settingsData.gigapubRewardPerAd?.toString() || '125',
+        gigapubAdLimit: settingsData.gigapubAdLimit?.toString() || '30',
+        gigapubRewardPerAd: settingsData.gigapubRewardPerAd?.toString() || '30',
         gigapubEnabled: settingsData.gigapubEnabled !== false,
-        usladsAdLimit: settingsData.usladsAdLimit?.toString() || '50',
-        usladsRewardPerAd: settingsData.usladsRewardPerAd?.toString() || '125',
+        usladsAdLimit: settingsData.usladsAdLimit?.toString() || '20',
+        usladsRewardPerAd: settingsData.usladsRewardPerAd?.toString() || '20',
         usladsEnabled: settingsData.usladsEnabled !== false,
       });
     }
@@ -2578,17 +2578,17 @@ function SettingsSection() {
     setIsSaving(true);
     try {
       const payload = {
-        adsgramAdLimit: parseInt((settings as any).adsgramAdLimit) || 10,
-        adsgramRewardPerAd: parseInt((settings as any).adsgramRewardPerAd) || 125,
+        adsgramAdLimit: parseInt((settings as any).adsgramAdLimit) || 40,
+        adsgramRewardPerAd: parseInt((settings as any).adsgramRewardPerAd) || 50,
         adsgramEnabled: (settings as any).adsgramEnabled !== false,
-        monetagAdLimit: parseInt((settings as any).monetagAdLimit) || 10,
-        monetagRewardPerAd: parseInt((settings as any).monetagRewardPerAd) || 125,
+        monetagAdLimit: parseInt((settings as any).monetagAdLimit) || 30,
+        monetagRewardPerAd: parseInt((settings as any).monetagRewardPerAd) || 30,
         monetagEnabled: (settings as any).monetagEnabled !== false,
-        gigapubAdLimit: parseInt((settings as any).gigapubAdLimit) || 10,
-        gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 125,
+        gigapubAdLimit: parseInt((settings as any).gigapubAdLimit) || 30,
+        gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 30,
         gigapubEnabled: (settings as any).gigapubEnabled !== false,
-        usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 10,
-        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 125,
+        usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 20,
+        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 20,
         usladsEnabled: (settings as any).usladsEnabled !== false,
       };
       const response = await apiRequest('PUT', '/api/admin/settings', payload);
@@ -2665,7 +2665,7 @@ function SettingsSection() {
         botTaskReward: botReward,
         partnerTaskReward: partnerReward,
         taskRewardNoVerify: parseInt((settings as any).taskRewardNoVerify) || channelReward || 100,
-        taskRewardWithVerify: parseInt((settings as any).taskRewardWithVerify) || 200,
+        taskRewardWithVerify: parseInt((settings as any).taskRewardWithVerify) || 500,
         mysteryBoxMinReward,
         mysteryBoxMaxReward,
         minimumClicks: minClicks,
@@ -2696,17 +2696,17 @@ function SettingsSection() {
         adsgramCheckinReward: parseInt((settings as any).adsgramCheckinReward) || 1000,
         firstActiveReferralReward: parseInt((settings as any).firstActiveReferralReward) || 2500,
         // Per-provider ad card settings
-        adsgramAdLimit: parseInt((settings as any).adsgramAdLimit) || 10,
-        adsgramRewardPerAd: parseInt((settings as any).adsgramRewardPerAd) || 125,
+        adsgramAdLimit: parseInt((settings as any).adsgramAdLimit) || 40,
+        adsgramRewardPerAd: parseInt((settings as any).adsgramRewardPerAd) || 50,
         adsgramEnabled: (settings as any).adsgramEnabled !== false,
-        monetagAdLimit: parseInt((settings as any).monetagAdLimit) || 10,
-        monetagRewardPerAd: parseInt((settings as any).monetagRewardPerAd) || 125,
+        monetagAdLimit: parseInt((settings as any).monetagAdLimit) || 30,
+        monetagRewardPerAd: parseInt((settings as any).monetagRewardPerAd) || 30,
         monetagEnabled: (settings as any).monetagEnabled !== false,
-        gigapubAdLimit: parseInt((settings as any).gigapubAdLimit) || 10,
-        gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 125,
+        gigapubAdLimit: parseInt((settings as any).gigapubAdLimit) || 30,
+        gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 30,
         gigapubEnabled: (settings as any).gigapubEnabled !== false,
-        usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 10,
-        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 125,
+        usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 20,
+        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 20,
         usladsEnabled: (settings as any).usladsEnabled !== false,
       });
 
@@ -2770,7 +2770,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="510"
                     value={(settings as any).adsgramAdLimit}
                     onChange={(e) => setSettings({ ...settings, adsgramAdLimit: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramAdLimit ?? 510}</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramAdLimit ?? 40}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2779,7 +2779,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).adsgramRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, adsgramRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramRewardPerAd ?? 125} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramRewardPerAd ?? 50} Gold</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2811,7 +2811,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="50"
                     value={(settings as any).monetagAdLimit}
                     onChange={(e) => setSettings({ ...settings, monetagAdLimit: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagAdLimit ?? 50}</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagAdLimit ?? 30}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2820,7 +2820,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).monetagRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, monetagRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 125} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 30} Gold</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2852,7 +2852,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="50"
                     value={(settings as any).gigapubAdLimit}
                     onChange={(e) => setSettings({ ...settings, gigapubAdLimit: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubAdLimit ?? 50}</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubAdLimit ?? 30}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2861,7 +2861,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).gigapubRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, gigapubRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubRewardPerAd ?? 125} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubRewardPerAd ?? 30} Gold</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2893,7 +2893,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="50"
                     value={(settings as any).usladsAdLimit}
                     onChange={(e) => setSettings({ ...settings, usladsAdLimit: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsAdLimit ?? 50}</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsAdLimit ?? 20}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2902,7 +2902,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).usladsRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, usladsRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 125} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 20} Gold</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -3379,7 +3379,7 @@ function SettingsSection() {
                 min="1"
                 className="h-8"
               />
-              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 200} Gold · Requires channel join verification</p>
+              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 500} Gold · Requires channel join verification</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-[#6b21a8]/20 bg-[#6b21a8]/5">

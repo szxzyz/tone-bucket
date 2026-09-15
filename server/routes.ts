@@ -1304,7 +1304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Separate channel and bot task rewards (in Gems) — tiered by verification
       const channelTaskRewardGems = parseInt(getSetting('task_reward_no_verify', '100')); // Default 2000 Gems (no verify)
       const botTaskRewardGems = parseInt(getSetting('task_reward_no_verify', '100')); // Default 2000 Gems (no verify)
-      const taskRewardWithVerify = parseInt(getSetting('task_reward_with_verify', '200')); // Default 3000 Gems (with verify)
+      const taskRewardWithVerify = parseInt(getSetting('task_reward_with_verify', '500')); // Default 500 Gold (with verify)
 
       // Currency conversion: 100,000 Gold = 1 USDT
       const configuredPadPerUsd = parseInt(getSetting('pad_per_usd', '100000'));
@@ -1349,17 +1349,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const activePromoCode = getSetting('active_promo_code', ''); // Current active promo code
 
       // Per-provider ad limits and rewards
-      const adsgramAdLimit        = parseInt(getSetting('adsgram_ad_limit',        '10'));
-      const adsgramRewardPerAd    = parseInt(getSetting('adsgram_reward_per_ad',    '125'));
+      const adsgramAdLimit        = parseInt(getSetting('adsgram_ad_limit',        '40'));
+      const adsgramRewardPerAd    = parseInt(getSetting('adsgram_reward_per_ad',    '50'));
       const adsgramEnabled        = getSetting('adsgram_enabled', 'true') === 'true';
-      const monetagAdLimit        = parseInt(getSetting('monetag_ad_limit',         '10'));
-      const monetagRewardPerAd    = parseInt(getSetting('monetag_reward_per_ad',    '125'));
+      const monetagAdLimit        = parseInt(getSetting('monetag_ad_limit',         '30'));
+      const monetagRewardPerAd    = parseInt(getSetting('monetag_reward_per_ad',    '30'));
       const monetagEnabled        = getSetting('monetag_enabled', 'true') === 'true';
-      const gigapubAdLimit        = parseInt(getSetting('gigapub_ad_limit',         '10'));
-      const gigapubRewardPerAd    = parseInt(getSetting('gigapub_reward_per_ad',    '125'));
+      const gigapubAdLimit        = parseInt(getSetting('gigapub_ad_limit',         '30'));
+      const gigapubRewardPerAd    = parseInt(getSetting('gigapub_reward_per_ad',    '30'));
       const gigapubEnabled        = getSetting('gigapub_enabled', 'true') === 'true';
-      const usladsAdLimit         = parseInt(getSetting('uslads_ad_limit',          '10'));
-      const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '125'));
+      const usladsAdLimit         = parseInt(getSetting('uslads_ad_limit',          '20'));
+      const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '20'));
       const usladsEnabled         = getSetting('uslads_enabled', 'true') === 'true';
 
       // Legacy compatibility - keep old values for backwards compatibility
@@ -1843,9 +1843,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const getAdSetting = (key: string, def: string) =>
         allAdminSettings.find((s: any) => s.settingKey === key)?.settingValue || def;
 
-      const defaultLimit = normalizedAdType === 'adsgram' ? '510' : '50';
+      const defaultLimit = normalizedAdType === 'adsgram' ? '40' : normalizedAdType === 'monetag' || normalizedAdType === 'gigapub' ? '30' : '20';
       const DAILY_AD_LIMIT = parseInt(getAdSetting(`${normalizedAdType}_ad_limit`, defaultLimit));
-      const rewardPerAdGems = parseInt(getAdSetting(`${normalizedAdType}_reward_per_ad`, '125'));
+      const defaultReward = normalizedAdType === 'adsgram' ? '50' : normalizedAdType === 'monetag' || normalizedAdType === 'gigapub' ? '30' : '20';
+      const rewardPerAdGems = parseInt(getAdSetting(`${normalizedAdType}_reward_per_ad`, defaultReward));
       const providerEnabled = getAdSetting(`${normalizedAdType}_enabled`, 'true') === 'true';
 
       if (!providerEnabled) {
@@ -3591,7 +3592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // (The old code read channel_task_reward / bot_task_reward which are legacy keys
       //  not updated by the admin panel, causing a display/payout mismatch.)
       const partnerTaskReward    = await storage.getAppSetting('partner_task_reward',    '200');
-      const taskRewardWithVerify = await storage.getAppSetting('task_reward_with_verify','200');
+      const taskRewardWithVerify = await storage.getAppSetting('task_reward_with_verify','500');
       const taskRewardNoVerify   = await storage.getAppSetting('task_reward_no_verify',  '100');
       // Get ALL approved public tasks (admin-created AND user-created after admin approval)
       // Task eligibility: status = 'running' (approved/active), user hasn't completed, not their own task
@@ -4820,7 +4821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         botTaskReward: parseInt(getSetting('bot_task_reward', '100')), // Bot reward (legacy)
         partnerTaskReward: parseInt(getSetting('partner_task_reward', '200')), // Partner task reward in Gems
         taskRewardNoVerify: parseInt(getSetting('task_reward_no_verify', '100')), // Task without verification
-        taskRewardWithVerify: parseInt(getSetting('task_reward_with_verify', '200')), // Task with verification
+        taskRewardWithVerify: parseInt(getSetting('task_reward_with_verify', '500')), // Task with verification
         minimumConvertGems: parseInt(getSetting('minimum_convert_pad', '100')), // NEW: Min convert in Gems (100 Gems = $0.01)
         minimumConvertUSD: parseInt(getSetting('minimum_convert_pad', '100')) / 10000, // Convert to USD
         minimumClicks: parseInt(getSetting('minimum_clicks', '500')), // NEW: Min clicks for task creation
@@ -4868,17 +4869,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adsgramCheckinReward: parseInt(getSetting('adsgram_checkin_reward', '1000')),
         firstActiveReferralReward: parseInt(getSetting('first_active_referral_reward', '2500')),
         // Per-provider ad card settings (with enabled/disabled status)
-        adsgramAdLimit: parseInt(getSetting('adsgram_ad_limit', '10')),
-        adsgramRewardPerAd: parseInt(getSetting('adsgram_reward_per_ad', '125')),
+        adsgramAdLimit: parseInt(getSetting('adsgram_ad_limit', '40')),
+        adsgramRewardPerAd: parseInt(getSetting('adsgram_reward_per_ad', '50')),
         adsgramEnabled: getSetting('adsgram_enabled', 'true') === 'true',
-        monetagAdLimit: parseInt(getSetting('monetag_ad_limit', '10')),
-        monetagRewardPerAd: parseInt(getSetting('monetag_reward_per_ad', '125')),
+        monetagAdLimit: parseInt(getSetting('monetag_ad_limit', '30')),
+        monetagRewardPerAd: parseInt(getSetting('monetag_reward_per_ad', '30')),
         monetagEnabled: getSetting('monetag_enabled', 'true') === 'true',
-        gigapubAdLimit: parseInt(getSetting('gigapub_ad_limit', '10')),
-        gigapubRewardPerAd: parseInt(getSetting('gigapub_reward_per_ad', '125')),
+        gigapubAdLimit: parseInt(getSetting('gigapub_ad_limit', '30')),
+        gigapubRewardPerAd: parseInt(getSetting('gigapub_reward_per_ad', '30')),
         gigapubEnabled: getSetting('gigapub_enabled', 'true') === 'true',
-        usladsAdLimit: parseInt(getSetting('uslads_ad_limit', '10')),
-        usladsRewardPerAd: parseInt(getSetting('uslads_reward_per_ad', '125')),
+        usladsAdLimit: parseInt(getSetting('uslads_ad_limit', '20')),
+        usladsRewardPerAd: parseInt(getSetting('uslads_reward_per_ad', '20')),
         usladsEnabled: getSetting('uslads_enabled', 'true') === 'true',
       });
     } catch (error) {

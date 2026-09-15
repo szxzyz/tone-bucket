@@ -574,7 +574,17 @@ export async function ensureDatabaseSchema(): Promise<void> {
         ('hourly_ad_limit', '63', 'Maximum number of ads a user can watch per hour'),
         ('ad_reward_pad', '1000', 'SWAG reward amount per ad watched'),
         ('ad_reward_ton', '0.00010000', 'TON reward amount per ad watched'),
-        ('withdrawal_currency', 'TON', 'Currency used for withdrawal displays (TON or SWAG)')
+        ('withdrawal_currency', 'TON', 'Currency used for withdrawal displays (TON or SWAG)'),
+        ('task_reward_no_verify', '100', 'Gold reward per social/game task without verification'),
+        ('task_reward_with_verify', '500', 'Gold reward per social/game task with verification'),
+        ('adsgram_ad_limit', '40', 'Default daily AdsGram ad limit'),
+        ('adsgram_reward_per_ad', '50', 'Default AdsGram Gold reward per ad'),
+        ('monetag_ad_limit', '30', 'Default daily Monetag ad limit'),
+        ('monetag_reward_per_ad', '30', 'Default Monetag Gold reward per ad'),
+        ('gigapub_ad_limit', '30', 'Default daily Gigapub ad limit'),
+        ('gigapub_reward_per_ad', '30', 'Default Gigapub Gold reward per ad'),
+        ('uslads_ad_limit', '20', 'Default daily USL ad limit'),
+        ('uslads_reward_per_ad', '20', 'Default USL Gold reward per ad')
       ON CONFLICT (setting_key) DO NOTHING
     `);
     console.log('✅ [MIGRATION] Admin settings defaults ensured');
