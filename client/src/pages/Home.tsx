@@ -593,7 +593,7 @@ export default function Home() {
                   border: 'none',
                   width: 92, height: 38, boxSizing: 'border-box' as const, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer',
-                  flexShrink: 0, letterSpacing: '0.03em',
+                  flexShrink: 0, letterSpacing: '0.03em', whiteSpace: 'nowrap',
                   boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 }}

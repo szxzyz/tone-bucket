@@ -219,7 +219,7 @@ export default function Affiliates() {
             </div>
             <div className="flex items-center gap-2 px-3 pb-3 pt-2">
               <div className="flex-1 inline-flex items-center gap-1 text-white text-base font-black"><img src="/assets/gem-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{formatLargeSWAG(income, false)}</div>
-              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || Number(stats?.availableBonus || 0) <= 0} className="px-4 py-[9px] min-w-[92px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: Number(stats?.availableBonus || 0) > 0 ? '#22c55e' : 'rgba(255,255,255,0.06)', color: Number(stats?.availableBonus || 0) > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
+              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || Number(stats?.availableBonus || 0) <= 0} className="w-[92px] h-[38px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: Number(stats?.availableBonus || 0) > 0 ? '#2B2B2B' : 'rgba(255,255,255,0.06)', color: Number(stats?.availableBonus || 0) > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
             </div>
           </div>
         ))}
