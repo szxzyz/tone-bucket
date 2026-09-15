@@ -184,7 +184,7 @@ export default function Affiliates() {
           <button
             onClick={inviteFriends}
             disabled={isSharing || !user?.referralCode}
-            className="flex-1 h-14 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
+            className="flex-1 h-14 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
             style={{ background: '#252525' }}
           >
             <Send className="w-5 h-5 text-white" />
