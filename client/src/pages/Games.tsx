@@ -48,6 +48,8 @@ export default function Games() {
 
   const [mysteryPhase, setMysteryPhase] = useState<MysteryPhase>('idle');
   const [mysteryReward, setMysteryReward] = useState(0);
+  const [mysteryReel, setMysteryReel] = useState<number[]>([]);
+  const [mysteryReelIndex, setMysteryReelIndex] = useState(0);
   const [isSharing, setIsSharing] = useState(false);
   const mysteryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -162,7 +164,7 @@ export default function Games() {
 
   const handleMysteryOpen = async () => {
     if (mysteryOpened || mysteryPhase !== 'idle') return;
-    setMysteryReward(Math.floor(Math.random() * 100) + 1);
+    setMysteryReward(0);
     setMysteryPhase('revealed');
   };
 
@@ -174,13 +176,22 @@ export default function Games() {
       const res = await apiRequest('POST', '/api/mystery-box', {});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not claim gift');
-      setMysteryReward(data.reward ?? mysteryReward);
+      const actualReward = Number(data.reward ?? mysteryReward);
+      const targetIndex = 36;
+      const reel = Array.from({ length: 44 }, (_, index) => index === targetIndex ? actualReward : Math.floor(Math.random() * 100) + 1);
+      setMysteryReward(actualReward);
+      setMysteryReel(reel);
+      setMysteryReelIndex(0);
+      window.setTimeout(() => setMysteryReelIndex(targetIndex), 40);
       setMysteryOpened(true);
       localStorage.setItem('mystery_box_date', getTodayKey());
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       showNotification(`${data.reward ?? mysteryReward} Gold earned`, 'success');
-      setMysteryPhase('done');
-      mysteryTimerRef.current = setTimeout(() => setMysteryPhase('idle'), 800);
+      setMysteryPhase('opening');
+      mysteryTimerRef.current = setTimeout(() => {
+        setMysteryPhase('done');
+        setTimeout(() => setMysteryPhase('idle'), 500);
+      }, 4200);
     } catch (err: any) {
       setMysteryPhase('revealed');
       showNotification(err?.message || 'Gift claim failed', 'error');
@@ -482,16 +493,33 @@ export default function Games() {
           </div>
         </div>
 
-        {mysteryPhase === 'revealed' || mysteryPhase === 'claiming' ? (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(7px)' }} />
-            <div style={{ position: 'relative', width: '100%', background: '#090909', borderRadius: '28px 28px 0 0', padding: '28px 20px max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', textAlign: 'center', boxSizing: 'border-box' }}>
-              <div style={{ width: 40, height: 4, borderRadius: 3, background: 'rgba(255,255,255,.12)', margin: '0 auto 22px' }} />
-              <div style={{ color: '#fff', fontSize: 20, fontWeight: 900, marginBottom: 18 }}>Gift Reward</div>
-              <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 58, height: 58, objectFit: 'contain', margin: '0 auto 8px' }} />
-              <div style={{ color: '#fff', fontSize: 28, fontWeight: 900, marginBottom: 22 }}>{mysteryReward} Gold</div>
-              <button onClick={handleMysteryClaim} disabled={mysteryPhase === 'claiming'} style={{ width: '100%', height: 48, border: 0, borderRadius: 14, background: '#2563eb', color: '#fff', fontSize: 14, fontWeight: 900 }}>
-                {mysteryPhase === 'claiming' ? 'Watching ad…' : 'Claim Now'}
+        {mysteryPhase === 'revealed' || mysteryPhase === 'claiming' || mysteryPhase === 'opening' ? (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
+            <div style={{ position: 'relative', width: '100%', maxWidth: 390, maxHeight: 'min(88dvh, calc(100dvh - 24px))', overflow: 'hidden', background: '#0a0a0a', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', padding: '22px 18px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))', boxSizing: 'border-box' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                <img src="/assets/mystery-box.png" alt="Gift" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>GIFT <span style={{ color: '#60a5fa' }}>REWARD</span></div>
+                  <div style={{ color: '#60a5fa', fontSize: 11, fontWeight: 700, marginTop: 3 }}>{mysteryPhase === 'opening' ? 'Reward revealed' : 'Open your mystery gift'}</div>
+                </div>
+              </div>
+              <div style={{ position: 'relative', overflow: 'hidden', margin: '0 -18px 16px', padding: '0 18px' }}>
+                <div style={{ position: 'absolute', zIndex: 2, left: '50%', top: 0, bottom: 0, width: 2, transform: 'translateX(-1px)', background: '#60a5fa', boxShadow: '0 0 14px #60a5fa' }} />
+                <div style={{ display: 'flex', gap: 10, transform: `translateX(calc(50% - ${mysteryReelIndex * 90 + 40}px))`, transition: mysteryPhase === 'opening' ? 'transform 4s cubic-bezier(.08,.72,.12,1)' : 'none', padding: '4px 0 16px' }}>
+                  {(mysteryReel.length ? mysteryReel : [0, 0, 0, 0, 0]).map((reward, idx) => (
+                    <div key={idx} style={{ flex: '0 0 auto', width: 80, borderRadius: 16, border: idx === mysteryReelIndex && mysteryPhase === 'opening' ? '2px solid #6b21a8' : '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.04)', padding: '12px 4px 11px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#60a5fa' }}>GIFT</div>
+                      <div style={{ margin: '8px auto 6px' }}><img src="/assets/gem-icon.png" alt="Gold" style={{ width: 36, height: 36, objectFit: 'contain' }} /></div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{reward || '—'}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>Gold</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', color: '#fff', fontSize: 24, fontWeight: 900, marginBottom: 18 }}>{mysteryReward ? `${mysteryReward} Gold` : 'Gift Reward'}</div>
+              <button onClick={handleMysteryClaim} disabled={mysteryPhase !== 'revealed'} style={{ width: '100%', height: 48, borderRadius: 12, border: 'none', background: mysteryPhase === 'revealed' ? 'linear-gradient(135deg, #3d1580, #6b21a8)' : 'rgba(255,255,255,.07)', color: mysteryPhase === 'revealed' ? '#fff' : 'rgba(255,255,255,.35)', fontSize: 14, fontWeight: 800 }}>
+                {mysteryPhase === 'claiming' ? 'Watching ad…' : mysteryPhase === 'opening' ? 'Reward claimed' : 'CLAIM REWARD'}
               </button>
             </div>
           </div>
