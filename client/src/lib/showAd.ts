@@ -12,7 +12,8 @@
  */
 export function showAdgramAd(blockId: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (!blockId) {
+    const id = blockId || import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '';
+    if (!id) {
       reject(new Error("Adsgram block id not configured"));
       return;
     }
@@ -20,7 +21,7 @@ export function showAdgramAd(blockId: string): Promise<void> {
     const startedAt = Date.now();
     const tryShow = () => {
       if (window.Adsgram) {
-        window.Adsgram.init({ blockId })
+        window.Adsgram.init({ blockId: id })
           .show()
           .then(() => resolve())
           .catch((err: any) => reject(err));
@@ -41,7 +42,7 @@ export function showAdgramAd(blockId: string): Promise<void> {
  * Delegates to the same Adsgram rewarded flow as showAdgramAd.
  */
 export function showRewardedInterstitial(blockId?: string): Promise<void> {
-  const id = blockId || import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID || '';
+  const id = blockId || import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '';
   if (!id) return Promise.resolve();
   return showAdgramAd(id);
 }

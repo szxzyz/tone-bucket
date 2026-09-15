@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
 import { useLocation } from "wouter";
+import { getTONPrice } from "@/lib/tonPriceService";
 import { Plus } from "lucide-react";
 import { TonIcon } from "@/components/TonIcon";
 import DepositPopup from "@/components/DepositPopup";
@@ -28,6 +29,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     const [unreadCount, setUnreadCount] = useState(0);
     const [overlayTop, setOverlayTop] = useState(0);
     const [depositOpen, setDepositOpen] = useState(false);
+    const [tonPrice, setTonPrice] = useState(5.5);
     const innerRef = useRef<HTMLDivElement>(null);
     const seenIds = useRef<Set<string>>(new Set());
     const [, setLocation] = useLocation();
@@ -58,6 +60,9 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       null;
 
     const withdrawals: any[] = withdrawalsData?.withdrawals ?? [];
+    useEffect(() => {
+      getTONPrice().then(price => { if (Number.isFinite(price) && price > 0) setTonPrice(price); }).catch(() => {});
+    }, []);
     useEffect(() => {
       if (withdrawals.length === 0) return;
       const stored = JSON.parse(localStorage.getItem('grabpenny_seen_transactions') || '[]') as string[];
@@ -222,7 +227,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
                   <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.1)', margin: '12px auto 20px' }} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>Transactions</div>
                   <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
-                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 30).map((w: any) => { const sc = statusColor(w.status); const date = new Date(w.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={w.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{parseFloat(w.amount).toLocaleString()} GOLD</div><div style={{ color: 'rgba(255,255,255,.35)', fontSize: 10, marginTop: 3 }}>{date}</div></div><span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${sc}18`, border: `1px solid ${sc}40`, color: sc, textTransform: 'uppercase', letterSpacing: '.04em' }}>{w.status}</span></div>; })}
+                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 30).map((w: any) => { const sc = statusColor(w.status); const details = w.details || {}; const gold = Number(w.goldAmount ?? details.goldAmount ?? w.amount ?? 0); const ton = Number(w.cryptoAmount ?? details.cryptoAmount ?? (Number(w.usdValue ?? details.usdValue ?? w.amount ?? 0) / tonPrice)); const date = new Date(w.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={w.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><img src="/assets/gem-icon.png" alt="Gold" style={{ width: 22, height: 22, objectFit: 'contain' }} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{gold.toLocaleString()} GOLD</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{ton.toFixed(6)} TON</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, color: 'rgba(255,255,255,.35)', fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${sc}18`, border: `1px solid ${sc}40`, color: sc, textTransform: 'uppercase', letterSpacing: '.04em' }}>{w.status}</span></div></div>; })}
                   </div>
                 </section>
               </div>

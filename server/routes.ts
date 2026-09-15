@@ -8963,6 +8963,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           id: withdrawals.id,
           amount: withdrawals.amount,
+          goldAmount: withdrawals.goldAmount,
+          cryptoAmount: withdrawals.cryptoAmount,
+          usdValue: withdrawals.usdValue,
+          payoutCurrency: withdrawals.payoutCurrency,
           method: withdrawals.method,
           status: withdrawals.status,
           details: withdrawals.details,
