@@ -3487,7 +3487,7 @@ function SettingsSection() {
               <Button
                 type="button"
                 size="sm"
-                onClick={() => setLocation('/tasks/create')}
+                onClick={() => setCreateTaskOpen(true)}
                 className="shrink-0 bg-[#252525] hover:bg-[#303030] text-white text-xs font-bold rounded-xl"
               >
                 <i className="fas fa-plus mr-1"></i> Add Task
