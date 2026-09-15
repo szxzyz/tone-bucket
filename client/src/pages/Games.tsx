@@ -229,6 +229,7 @@ export default function Games() {
 
   const farmStartMutation = useMutation({
     mutationFn: async () => {
+      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
       const res = await apiRequest('POST', '/api/farming/start', {});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to start');
@@ -243,6 +244,7 @@ export default function Games() {
 
   const farmClaimMutation = useMutation({
     mutationFn: async () => {
+      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
       const res = await apiRequest('POST', '/api/farming/claim', {});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to claim');
