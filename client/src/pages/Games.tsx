@@ -523,8 +523,8 @@ export default function Games() {
           {/* Divider */}
           <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
 
-          {/* Start Mining + secondary controls */}
-          <div style={{ padding: '0 14px 13px' }}>
+          {/* Start Mining + secondary controls — original button styling */}
+          <div>
             {(() => {
               const isActive = farmData?.isActive;
               const isPending = farmStartMutation.isPending || farmClaimMutation.isPending;
@@ -540,7 +540,7 @@ export default function Games() {
                 </button>
               );
               if (isActive) return (
-                <div style={{ width: '100%', padding: '13px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700 }}>
+                <div style={{ width: '100%', padding: '11px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCountdown(farmCountdown)}</span>
                 </div>
@@ -551,9 +551,10 @@ export default function Games() {
                 </button>
               );
             })()}
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 10, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Info size={16} strokeWidth={2} /> INFO</button>
-              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Rocket size={16} strokeWidth={1.8} /> BOOST</button>
+            <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(96,165,250,0.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><Info size={21} strokeWidth={2} /></button>
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
+              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><Rocket size={21} color="#60a5fa" strokeWidth={1.8} /></button>
             </div>
           </div>
         </div>
