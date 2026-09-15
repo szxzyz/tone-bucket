@@ -134,7 +134,7 @@ function TaskCard({
           }}
           disabled={limitReached || directPending}
           style={{
-            padding: "9px 16px", borderRadius: 12, minWidth: 92,
+            padding: "9px 16px", borderRadius: 18, minWidth: 92,
             fontSize: 12, fontWeight: 700, border: "none", cursor: limitReached || directPending ? "default" : "pointer",
             letterSpacing: "0.02em", whiteSpace: "nowrap",
             background: limitReached || directPending ? "rgba(255,255,255,0.06)" : directReady ? "#22c55e" : "#2563eb",
@@ -226,7 +226,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
       {allowCreate && (
         <button
           onClick={() => setLocation("/tasks/create")}
-          style={{ width: "100%", padding: "12px", borderRadius: 14, background: "#171717", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10, border: "none" }}
+          style={{ width: "100%", padding: "12px", borderRadius: 18, background: "#171717", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10, border: "none" }}
           className="active:scale-[0.98] transition-transform"
         >
           <Plus size={18} color="#3b82f6" strokeWidth={3} />

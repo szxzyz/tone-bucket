@@ -367,7 +367,7 @@ export default function TaskSection() {
             <Button
               onClick={handleClick}
               disabled={isCompleted || step === 'countdown' || step === 'claiming' || isClaimPending}
-              className={`h-9 px-4 text-xs flex-shrink-0 min-w-[75px] font-semibold rounded-xl border-0 shadow-md ${getButtonClass()} text-white`}
+              className={`h-9 px-4 text-xs flex-shrink-0 min-w-[75px] font-semibold rounded-[18px] border-0 shadow-md ${getButtonClass()} text-white`}
             >
               {getButtonContent()}
             </Button>
@@ -410,7 +410,7 @@ export default function TaskSection() {
                 <Button
                   onClick={handleClaimStreak}
                   disabled={streakCompleted || claimStreakMutation.isPending}
-                  className={`h-9 px-4 text-xs flex-shrink-0 min-w-[75px] font-semibold rounded-xl border-0 shadow-md ${
+                  className={`h-9 px-4 text-xs flex-shrink-0 min-w-[75px] font-semibold rounded-[18px] border-0 shadow-md ${
                     streakCompleted
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500'
                       : 'bg-gradient-to-r from-[#3d1580] to-[#6b21a8] hover:from-[#1a0d3d] hover:to-[#3d1580]'
