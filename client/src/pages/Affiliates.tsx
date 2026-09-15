@@ -206,7 +206,7 @@ export default function Affiliates() {
                 {/* Income from friends */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-1">Income from friends</div>
         {[{ level: 1, income: l1Income, count: l1Count, percent: l1Percent }, { level: 2, income: l2Income, count: l2Count, percent: l2Percent }].map(({ level, income, count, percent }) => (
-          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#171717' }}>
+          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#2B2B2B' }}>
             <div className="flex items-center justify-between px-3 pt-3">
               <div className="min-w-0">
                 <div className="text-white text-[15px] font-extrabold">Income to collect</div>
