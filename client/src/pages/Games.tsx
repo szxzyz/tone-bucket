@@ -552,8 +552,8 @@ export default function Games() {
               );
             })()}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(96,165,250,0.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Info size={16} strokeWidth={2} /> INFO</button>
-              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#60a5fa', fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Rocket size={16} strokeWidth={1.8} /> BOOST</button>
+              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 10, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Info size={16} strokeWidth={2} /> INFO</button>
+              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Rocket size={16} strokeWidth={1.8} /> BOOST</button>
             </div>
           </div>
         </div>
