@@ -285,7 +285,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
             return (
               <div key={card.id}
-                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#171717", cursor: "pointer", border: "none" }}
+                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg, #3d1580, #6b21a8)", cursor: "pointer", border: "none" }}
                 onClick={() => {
                   if (!isProviderConfigured(card.adType)) return;
                   if (index !== activeIndex) { setActiveIndex(index); return; }
@@ -353,7 +353,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                       padding: "9px 16px", borderRadius: 12, minWidth: 92,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
                       letterSpacing: "0.02em", whiteSpace: "nowrap",
-                      background: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.06)" : "#2563eb",
+                      background: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #2563eb, #3b82f6)",
                       color:      limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.3)"  : "#fff",
                       opacity: isShowingAds && !isActive ? 0.5 : 1,
                       transition: "opacity 0.2s",

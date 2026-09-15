@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAdmin } from "@/hooks/useAdmin";
 import Layout from "@/components/Layout";
 import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -2396,6 +2397,7 @@ type SettingsCategory = 'ads' | 'affiliates' | 'withdrawals' | 'tasks' | 'missio
 
 function SettingsSection() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [isSaving, setIsSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('ads');
   const [isRepairingReferrals, setIsRepairingReferrals] = useState(false);
@@ -3470,9 +3472,19 @@ function SettingsSection() {
 
         {activeCategory === 'missions' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
-              <p className="text-xs text-[#6b21a8] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
-              <p className="text-xs text-muted-foreground">Set reward (Gold per ad) and daily ad limit for each platform shown on the Missions page.</p>
+            <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-[#6b21a8] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
+                <p className="text-xs text-muted-foreground">Set reward (Gold per ad) and daily ad limit for each platform shown on the Missions page.</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setLocation('/tasks/create')}
+                className="shrink-0 bg-[#6b21a8] hover:bg-[#581c87] text-white text-xs font-bold rounded-xl"
+              >
+                <i className="fas fa-plus mr-1"></i> Add Task
+              </Button>
             </div>
 
             {/* Monetag */}

@@ -91,7 +91,7 @@ function TaskCard({
   return (
     <div
       onClick={() => onGo(task)}
-      style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#171717", cursor: "pointer" }}
+      style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg, #3d1580, #6b21a8)", cursor: "pointer" }}
       className="active:scale-[0.98] transition-transform"
     >
       <div className="flex items-center gap-3 px-3 py-2.5">
@@ -226,7 +226,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
       {allowCreate && (
         <button
           onClick={() => setLocation("/tasks/create")}
-          style={{ width: "100%", padding: "12px", borderRadius: 18, background: "#171717", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10, border: "none" }}
+          style={{ width: "100%", padding: "12px", borderRadius: 18, background: "linear-gradient(135deg, #3d1580, #6b21a8)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10, border: "none" }}
           className="active:scale-[0.98] transition-transform"
         >
           <Plus size={18} color="#3b82f6" strokeWidth={3} />
