@@ -5,8 +5,8 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
-const BLUE_ACCENT = "#6b21a8";
-const APP_BLUE = "#6b21a8";
+const BLUE_ACCENT = "#3b82f6";
+const APP_BLUE = "#2563eb";
 
 /** Returns true only for public t.me/username links the avatar proxy can resolve. */
 function hasTelegramAvatar(link: string): boolean {
