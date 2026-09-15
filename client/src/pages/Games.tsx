@@ -11,6 +11,7 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
+import { Info, Sparkles } from "lucide-react";
 import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
 const GEMS_PER_TON = 1000000;
 
@@ -524,7 +525,7 @@ export default function Games() {
 
           {/* Sub-row: Info | Start/Claim/Cooldown | Alert */}
           <div style={{ display: 'flex', alignItems: 'stretch' }}>
-            <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(96,165,250,0.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></button>
+            <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(96,165,250,0.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><Info size={21} strokeWidth={2} /></button>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
             {(() => {
               const isActive = farmData?.isActive;
@@ -554,9 +555,7 @@ export default function Games() {
             })()}
             <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
             <button onClick={() => setShowAlertPopup(true)} style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform">
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m13 2-2 7H5l6 4-2 9 2-5h5l-3-4 6-4h-6l0-7Z"/>
-              </svg>
+              <Sparkles size={21} color="#60a5fa" strokeWidth={1.8} />
             </button>
           </div>
         </div>
@@ -601,11 +600,6 @@ export default function Games() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(37,99,235,0.14)', border: '1px solid rgba(96,165,250,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m13 2-2 7H5l6 4-2 9 2-5h5l-3-4 6-4h-6l0-7Z"/>
-                  </svg>
-                </div>
                 <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 10 }}>Upgrade multiplier</div>
                 <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', boxSizing: 'border-box', marginBottom: 14 }}>
                   <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Current boost</div>
