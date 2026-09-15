@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { forwardRef, useImperativeHandle } from "react";
-import { Plus, Clock, Bell, X } from "lucide-react";
+import { Plus, Clock, Bell } from "lucide-react";
 import DepositPopup from "@/components/DepositPopup";
 import { TonIcon } from "@/components/TonIcon";
 import { useLocation } from "wouter";
@@ -147,18 +147,19 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
               <Bell size={21} strokeWidth={2} />
               {unreadCount > 0 && <span style={{ position: 'absolute', top: 0, right: -1, minWidth: 17, height: 17, padding: '0 4px', boxSizing: 'border-box', borderRadius: 9, background: '#ef4444', border: '1.5px solid #0a0a0a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, lineHeight: 1 }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </button>
-            {notificationOpen && <>
-              <div onClick={() => setNotificationOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
-              <div style={{ position: 'fixed', inset: 0, zIndex: 999, display: 'flex', alignItems: 'flex-end', pointerEvents: 'none' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(6px)', pointerEvents: 'auto' }} onClick={() => setNotificationOpen(false)} />
-                <div style={{ position: 'relative', width: '100%', maxHeight: 'min(72vh, 520px)', zIndex: 1, background: '#090909', border: '1px solid rgba(255,255,255,.08)', borderRadius: '28px 28px 0 0', overflow: 'hidden', boxShadow: '0 -8px 40px rgba(0,0,0,.7)', pointerEvents: 'auto' }}>
-                <div style={{ padding: '13px 16px 10px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: 13, fontWeight: 800 }}>Transactions <button onClick={() => setNotificationOpen(false)} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,.4)' }}><X size={14} /></button></div>
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 6).map((item: any) => { const color = statusColor(String(item.status || '').toLowerCase()); const date = new Date(item.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={item.id} style={{ padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><div><div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{parseFloat(item.amount).toLocaleString()} GOLD</div><div style={{ color: 'rgba(255,255,255,.28)', fontSize: 10, marginTop: 2 }}>{date}</div></div><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: 'uppercase', letterSpacing: '.04em' }}>{item.status || 'pending'}</span></div>; })}
-                </div>
-                </div>
+            {notificationOpen && (
+              <div onClick={() => setNotificationOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
+                <section onClick={event => event.stopPropagation()} style={{ position: 'relative', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#0a0a0a', border: '1px solid rgba(255,255,255,.06)', borderBottom: 0, borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+                  <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.1)', margin: '12px auto 20px' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>Transactions</div>
+                  <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
+                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 30).map((item: any) => { const color = statusColor(String(item.status || '').toLowerCase()); const date = new Date(item.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={item.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{parseFloat(item.amount).toLocaleString()} GOLD</div><div style={{ color: 'rgba(255,255,255,.35)', fontSize: 10, marginTop: 3 }}>{date}</div></div><span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: 'uppercase', letterSpacing: '.04em' }}>{item.status || 'pending'}</span></div>; })}
+                  </div>
+                </section>
               </div>
-            </>}
+            )}
           </div>
 
         </div>

@@ -215,57 +215,17 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             </button>
 
             {notifOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setNotifOpen(false)} />
-                <div style={{
-                  position: 'fixed',
-                  top: 'calc(var(--header-height, 62px) + 8px)',
-                  right: 12, width: 'min(290px, calc(100vw - 24px))', zIndex: 999,
-                  background: '#0d0d0f',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 18,
-                  boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{ padding: '13px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>Withdrawal History</span>
-                    <button onClick={() => setNotifOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: 0 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
+              <div onClick={() => setNotifOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
+                <section onClick={event => event.stopPropagation()} style={{ position: 'relative', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#0a0a0a', border: '1px solid rgba(255,255,255,.06)', borderBottom: 0, borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+                  <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.1)', margin: '12px auto 20px' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>Transactions</div>
+                  <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
+                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 30).map((w: any) => { const sc = statusColor(w.status); const date = new Date(w.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={w.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{parseFloat(w.amount).toLocaleString()} GOLD</div><div style={{ color: 'rgba(255,255,255,.35)', fontSize: 10, marginTop: 3 }}>{date}</div></div><span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${sc}18`, border: `1px solid ${sc}40`, color: sc, textTransform: 'uppercase', letterSpacing: '.04em' }}>{w.status}</span></div>; })}
                   </div>
-                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {withdrawals.length === 0 ? (
-                      <div style={{ padding: '28px 16px', textAlign: 'center', color: 'rgba(255,255,255,0.28)', fontSize: 13 }}>
-                        No withdrawals yet
-                      </div>
-                    ) : (
-                      withdrawals.map((w: any) => {
-                        const sc = statusColor(w.status);
-                        const date = new Date(w.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-                        return (
-                          <div key={w.id} style={{
-                            padding: '11px 16px',
-                            borderBottom: '1px solid rgba(255,255,255,0.04)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          }}>
-                            <div>
-                              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                                {parseFloat(w.amount).toLocaleString()} GOLD
-                              </div>
-                              <div style={{ color: 'rgba(255,255,255,0.28)', fontSize: 10, marginTop: 2 }}>{date}</div>
-                            </div>
-                            <span style={{
-                              fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50,
-                              background: `${sc}18`, border: `1px solid ${sc}40`, color: sc,
-                              textTransform: 'uppercase', letterSpacing: '0.04em',
-                            }}>{w.status}</span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </>
+                </section>
+              </div>
             )}
           </div>
 
