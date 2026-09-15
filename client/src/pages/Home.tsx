@@ -543,7 +543,7 @@ export default function Home() {
   return (
     <Layout>
 
-      <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#000000' }}>
+      <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#090909' }}>
 
         {/* Promo Code */}
         <section style={{ marginBottom: 14 }}>
@@ -567,7 +567,7 @@ export default function Home() {
             Complete daily task and get rewards
           </div>
 
-          <div style={{ background: '#171717', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: '#252525', borderRadius: 14, overflow: 'hidden' }}>
             {/* Daily Check-In */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
               <img

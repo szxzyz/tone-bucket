@@ -285,7 +285,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
             return (
               <div key={card.id}
-                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#2B2B2B", cursor: "pointer", border: "none" }}
+                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#252525", cursor: "pointer", border: "none" }}
                 onClick={() => {
                   if (!isProviderConfigured(card.adType)) return;
                   if (index !== activeIndex) { setActiveIndex(index); return; }

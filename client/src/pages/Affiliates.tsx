@@ -185,7 +185,7 @@ export default function Affiliates() {
             onClick={inviteFriends}
             disabled={isSharing || !user?.referralCode}
             className="flex-1 h-14 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
-            style={{ background: '#2B2B2B' }}
+            style={{ background: '#252525' }}
           >
             <Send className="w-5 h-5 text-white" />
             <span className="text-white font-bold tracking-widest text-sm">Invite Friends</span>
@@ -196,7 +196,7 @@ export default function Affiliates() {
             onClick={copyLink}
             disabled={!user?.referralCode}
             className="w-14 h-14 rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0"
-            style={{ background: '#2B2B2B' }}
+            style={{ background: '#252525' }}
             title="Copy referral link"
           >
             <Copy className="w-5 h-5 text-white" />
@@ -206,7 +206,7 @@ export default function Affiliates() {
                 {/* Income from friends */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-1">Income from friends</div>
         {[{ level: 1, income: l1Income, count: l1Count, percent: l1Percent }, { level: 2, income: l2Income, count: l2Count, percent: l2Percent }].map(({ level, income, count, percent }) => (
-          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#2B2B2B' }}>
+          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#252525' }}>
             <div className="flex items-center justify-between px-3 pt-3">
               <div className="min-w-0">
                 <div className="text-white text-[15px] font-extrabold">Income to collect</div>
@@ -219,7 +219,7 @@ export default function Affiliates() {
             </div>
             <div className="flex items-center gap-2 px-3 pb-3 pt-2">
               <div className="flex-1 inline-flex items-center gap-1 text-white text-base font-black"><img src="/assets/gem-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{formatLargeSWAG(income, false)}</div>
-              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || Number(stats?.availableBonus || 0) <= 0} className="w-[92px] h-[38px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: Number(stats?.availableBonus || 0) > 0 ? '#2B2B2B' : 'rgba(255,255,255,0.06)', color: Number(stats?.availableBonus || 0) > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
+              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || Number(stats?.availableBonus || 0) <= 0} className="w-[92px] h-[38px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: Number(stats?.availableBonus || 0) > 0 ? '#252525' : 'rgba(255,255,255,0.06)', color: Number(stats?.availableBonus || 0) > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
             </div>
           </div>
         ))}

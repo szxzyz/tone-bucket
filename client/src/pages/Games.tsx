@@ -284,7 +284,7 @@ export default function Games() {
   });
 
   return (
-    <div style={{ height: '100dvh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
+    <div style={{ height: '100dvh', background: '#090909', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes boxPulse {
@@ -422,7 +422,7 @@ export default function Games() {
         </div>
 
         <div style={{
-          background: '#2B2B2B', borderRadius: 14,
+          background: '#252525', borderRadius: 14,
           marginBottom: 20, overflow: 'hidden',
         }}>
           {/* Daily Check-In */}
@@ -496,7 +496,7 @@ export default function Games() {
         </div>
 
         {/* FARMING */}
-        <div style={{ background: '#2B2B2B', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{ background: '#252525', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
           {/* Main row: coin + counting */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
             <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 50, height: 50, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
