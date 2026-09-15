@@ -195,7 +195,7 @@ export default function Affiliates() {
           <button
             onClick={copyLink}
             disabled={!user?.referralCode}
-            className="w-14 h-14 rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0"
+            className="w-14 h-14 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0"
             style={{ background: '#252525' }}
             title="Copy referral link"
           >

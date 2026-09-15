@@ -278,7 +278,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[49]"
+            className="fixed inset-0 z-[1999]"
             style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
             onClick={onClose}
           />
@@ -295,7 +295,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="fixed inset-0 z-[68]"
+              className="fixed inset-0 z-[1999]"
               style={{ background: "rgba(0,0,0,0.65)" }}
               onClick={handleClose}
             />
@@ -304,7 +304,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={SHEET_TRANSITION}
-              className="fixed inset-x-0 bottom-0 z-[69]"
+              className="fixed inset-x-0 bottom-0 z-[2000]"
               style={{
                 /* full viewport height → true page feel */
                 height: "100dvh",
@@ -939,4 +939,3 @@ function typeHint(cat: Category, verif: boolean, t: (key: string) => string): st
   }
   return verif ? t("bot_verified_hint") : t("bot_instant_hint");
 }
-
