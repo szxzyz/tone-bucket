@@ -143,6 +143,8 @@ export const users = pgTable("users", {
   miningStartedAt: timestamp("mining_started_at"),
   miningBoostMultiplier: decimal("mining_boost_multiplier", { precision: 8, scale: 4 }).default("1"),
   miningBoostStep: integer("mining_boost_step").default(0),
+  miningAccruedGold: decimal("mining_accrued_gold", { precision: 30, scale: 10 }).default("0"),
+  miningLastAccrualAt: timestamp("mining_last_accrual_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

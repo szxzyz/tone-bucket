@@ -134,6 +134,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
         mining_started_at TIMESTAMP,
         mining_boost_multiplier DECIMAL(8, 4) DEFAULT '1',
         mining_boost_step INTEGER DEFAULT 0,
+        mining_accrued_gold DECIMAL(30, 10) DEFAULT '0',
+        mining_last_accrual_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW(),
 	        updated_at TIMESTAMP DEFAULT NOW()
 	      )
@@ -985,6 +987,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
           ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_started_at TIMESTAMP;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_boost_multiplier DECIMAL(8, 4) DEFAULT '1';
           ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_boost_step INTEGER DEFAULT 0;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_accrued_gold DECIMAL(30, 10) DEFAULT '0';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS mining_last_accrual_at TIMESTAMP;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS under_review BOOLEAN DEFAULT false;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS review_reason TEXT;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS rewards_frozen BOOLEAN DEFAULT false;

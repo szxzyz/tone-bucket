@@ -11,7 +11,7 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
 import { showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
-import { Info, Sparkles } from "lucide-react";
+import { Info, Rocket } from "lucide-react";
 import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
 const GEMS_PER_TON = 1000000;
 
@@ -555,7 +555,7 @@ export default function Games() {
             })()}
             <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
             <button onClick={() => setShowAlertPopup(true)} style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform">
-              <Sparkles size={21} color="#60a5fa" strokeWidth={1.8} />
+              <Rocket size={21} color="#60a5fa" strokeWidth={1.8} />
             </button>
           </div>
         </div>
@@ -607,7 +607,6 @@ export default function Games() {
                   <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 3 }}>Watch an ad to unlock the next level: {(FARM_BOOSTS[Math.min(FARM_BOOSTS.length - 1, Number(farmData?.boostStep ?? 0) + 1)] ?? 25)}x</div>
                 </div>
                 <button onClick={() => farmBoostMutation.mutate()} disabled={!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25} style={{ width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', border: 0, borderRadius: 14, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: (!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25) ? .45 : 1, marginBottom: 9 }} className="active:scale-95 transition-transform">{farmBoostMutation.isPending ? 'Watching ad…' : Number(farmData?.multiplier ?? 1) >= 25 ? 'Maximum boost reached' : 'Watch ad to boost'}</button>
-                <button onClick={() => setShowAlertPopup(false)} style={{ width: '100%', padding: '14px 0', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }} className="active:scale-95 transition-transform">Close</button>
               </div>
             </div>
           </div>
