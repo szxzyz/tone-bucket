@@ -47,9 +47,6 @@ export default function Games() {
   const [mysteryOpened, setMysteryOpened] = useState(() => localStorage.getItem('mystery_box_date') === getTodayKey());
 
   const [mysteryPhase, setMysteryPhase] = useState<MysteryPhase>('idle');
-  const [mysteryReward, setMysteryReward] = useState(0);
-  const [mysteryReel, setMysteryReel] = useState<number[]>([]);
-  const [mysteryReelIndex, setMysteryReelIndex] = useState(0);
   const [isSharing, setIsSharing] = useState(false);
   const mysteryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -164,12 +161,6 @@ export default function Games() {
 
   const handleMysteryOpen = async () => {
     if (mysteryOpened || mysteryPhase !== 'idle') return;
-    setMysteryReward(0);
-    setMysteryPhase('revealed');
-  };
-
-  const handleMysteryClaim = async () => {
-    if (mysteryPhase !== 'revealed') return;
     setMysteryPhase('claiming');
     try {
       // Use the same AdsGram reward block configured for the Ad Watch section.
@@ -177,25 +168,16 @@ export default function Games() {
       const res = await apiRequest('POST', '/api/mystery-box', {});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not claim gift');
-      const actualReward = Number(data.reward ?? mysteryReward);
-      const targetIndex = 36;
-      const reel = Array.from({ length: 44 }, (_, index) => index === targetIndex ? actualReward : Math.floor(Math.random() * 100) + 1);
-      setMysteryReward(actualReward);
-      setMysteryReel(reel);
-      setMysteryReelIndex(0);
-      window.setTimeout(() => setMysteryReelIndex(targetIndex), 40);
       setMysteryOpened(true);
       localStorage.setItem('mystery_box_date', getTodayKey());
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification(`${data.reward ?? mysteryReward} Gold earned`, 'success');
-      setMysteryPhase('opening');
-      mysteryTimerRef.current = setTimeout(() => {
-        setMysteryPhase('done');
-        setTimeout(() => setMysteryPhase('idle'), 500);
-      }, 4200);
+      showNotification(`${data.reward ?? 0} Gold earned`, 'success');
+      setMysteryPhase('done');
+      mysteryTimerRef.current = setTimeout(() => setMysteryPhase('idle'), 800);
     } catch (err: any) {
-      setMysteryPhase('revealed');
-      showNotification(err?.message || 'Gift claim failed', 'error');
+      setMysteryPhase('idle');
+      const message = String(err?.message || '');
+      showNotification(message.toLowerCase().includes('not configured') ? 'Ad unavailable' : (message || 'Ad unavailable'), 'error');
     }
   };
 
@@ -494,38 +476,6 @@ export default function Games() {
           </div>
         </div>
 
-        {mysteryPhase === 'revealed' || mysteryPhase === 'claiming' || mysteryPhase === 'opening' ? (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-            <div onClick={() => { if (mysteryPhase === 'revealed' || mysteryPhase === 'opening') setMysteryPhase('idle'); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
-            <div onClick={(event) => event.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 390, maxHeight: 'min(88dvh, calc(100dvh - 24px))', overflow: 'hidden', background: '#0a0a0a', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', padding: '22px 18px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))', boxSizing: 'border-box' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                <img src="/assets/mystery-box.png" alt="Gift" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>GIFT <span style={{ color: '#60a5fa' }}>REWARD</span></div>
-                  <div style={{ color: '#60a5fa', fontSize: 11, fontWeight: 700, marginTop: 3 }}>{mysteryPhase === 'opening' ? 'Reward revealed' : 'Open your mystery gift'}</div>
-                </div>
-              </div>
-              <div style={{ position: 'relative', overflow: 'hidden', margin: '0 -18px 16px', padding: '0 18px' }}>
-                <div style={{ position: 'absolute', zIndex: 2, left: '50%', top: 0, bottom: 0, width: 2, transform: 'translateX(-1px)', background: '#60a5fa', boxShadow: '0 0 14px #60a5fa' }} />
-                <div style={{ display: 'flex', gap: 10, transform: `translateX(calc(50% - ${mysteryReelIndex * 90 + 40}px))`, transition: mysteryPhase === 'opening' ? 'transform 4s cubic-bezier(.08,.72,.12,1)' : 'none', padding: '4px 0 16px' }}>
-                  {(mysteryReel.length ? mysteryReel : [0, 0, 0, 0, 0]).map((reward, idx) => (
-                    <div key={idx} style={{ flex: '0 0 auto', width: 80, borderRadius: 16, border: idx === mysteryReelIndex && mysteryPhase === 'opening' ? '2px solid #6b21a8' : '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.04)', padding: '12px 4px 11px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#60a5fa' }}>GIFT</div>
-                      <div style={{ margin: '8px auto 6px' }}><img src="/assets/gem-icon.png" alt="Gold" style={{ width: 36, height: 36, objectFit: 'contain' }} /></div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{reward || '—'}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>Gold</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', color: '#fff', fontSize: 24, fontWeight: 900, marginBottom: 18 }}>{mysteryReward ? `${mysteryReward} Gold` : 'Gift Reward'}</div>
-              <button onClick={handleMysteryClaim} disabled={mysteryPhase !== 'revealed'} style={{ width: '100%', height: 48, borderRadius: 12, border: 'none', background: mysteryPhase === 'revealed' ? 'linear-gradient(135deg, #3d1580, #6b21a8)' : 'rgba(255,255,255,.07)', color: mysteryPhase === 'revealed' ? '#fff' : 'rgba(255,255,255,.35)', fontSize: 14, fontWeight: 800 }}>
-                {mysteryPhase === 'claiming' ? 'Watching ad…' : mysteryPhase === 'opening' ? 'Reward claimed' : 'CLAIM REWARD'}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
         {/* FARMING label */}
         <div style={{ marginBottom: 10 }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
@@ -721,82 +671,6 @@ export default function Games() {
         </div>
       )}
 
-      {/* Mystery Box Popup */}
-      {mysteryPhase !== 'idle' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 950, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(8px)' }} />
-          <div style={{
-            position: 'relative', width: '85%', maxWidth: 320,
-            background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-            border: '1px solid rgba(61,21,128,0.25)',
-            borderRadius: 24, padding: '36px 24px 28px',
-            textAlign: 'center', zIndex: 951,
-            boxShadow: '0 0 60px rgba(61,21,128,0.18), 0 -4px 20px rgba(61,21,128,0.1)',
-          }}>
-            <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-              {mysteryPhase === 'opening' && (
-                <div style={{
-                  width: 82, height: 82, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  animation: 'boxPulse 0.65s ease-in-out infinite',
-                }}>
-                  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                    <line x1="12" y1="22.08" x2="12" y2="12"/>
-                  </svg>
-                </div>
-              )}
-              {(mysteryPhase === 'revealed' || mysteryPhase === 'claiming') && (
-                <div style={{ animation: 'rewardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                  <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-2px' }}>{mysteryReward}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#3b82f6', marginTop: 6 }}>GOLD</div>
-                </div>
-              )}
-              {mysteryPhase === 'done' && (
-                <div style={{ animation: 'rewardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                  <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-
-            <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 6 }}>
-              {mysteryPhase === 'opening' ? 'Opening box...'
-                : mysteryPhase === 'revealed' ? `You won ${mysteryReward} GOLD!`
-                : mysteryPhase === 'claiming' ? 'Claiming...'
-                : 'Reward Claimed!'}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.32)', fontSize: 13, marginBottom: 28 }}>
-              {mysteryPhase === 'opening' ? 'Wait for your prize...'
-                : mysteryPhase === 'revealed' ? 'Tap below to claim your GOLD'
-                : mysteryPhase === 'claiming' ? 'Please wait...'
-                : 'GOLD added to your balance'}
-            </div>
-
-            {mysteryPhase === 'revealed' && (
-              <button onClick={handleMysteryClaim} style={{
-                width: '100%', padding: '14px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                border: 'none', borderRadius: 50, color: '#fff',
-                fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(61,21,128,0.4)',
-              }} className="active:scale-95 transition-transform">
-                Claim {mysteryReward} GOLD
-              </button>
-            )}
-            {(mysteryPhase === 'opening' || mysteryPhase === 'claiming') && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#3b82f6', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Please wait</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {menuOpen && <MenuPopup onClose={() => setMenuOpen(false)} />}
       <DailyCheckinSheet
