@@ -6612,10 +6612,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const feePercent = 9;
       const fee = usdValue * (feePercent / 100);
       const netAmount = usdValue - fee;
+      const { getLiveTonPriceUSD } = await import('./tonPriceService');
+      const { price: withdrawalTonPrice } = await getLiveTonPriceUSD();
+      const withdrawalTonAmount = netAmount / withdrawalTonPrice;
       const result = await db.transaction(async (tx) => {
         const locked = await tx.update(users).set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() }).where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`)).returning({ id: users.id });
         if (locked.length === 0) throw new Error('Balance changed; please try again');
-        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAmount.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, fee, feePercent, netAmount, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: netAmount.toFixed(10), payoutCurrency: null, cryptoAmount: null, marketRateUsd: null, walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
+        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAmount.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, fee, feePercent, netAmount, tonAmount: withdrawalTonAmount, marketRateUsd: withdrawalTonPrice, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: netAmount.toFixed(10), payoutCurrency: 'TON', cryptoAmount: withdrawalTonAmount.toFixed(18), marketRateUsd: withdrawalTonPrice.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
       });
       await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, fee, feePercent, axnAmount: gold });
