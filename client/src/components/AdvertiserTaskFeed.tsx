@@ -185,10 +185,10 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/advertiser-tasks/completions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      showNotification("Task completed! Reward added to your balance.", "success");
+      showNotification("Task reward claimed", "success");
       setActiveTask(null);
     },
-    onError: (error: any) => showNotification(error?.message || "Task could not be completed.", "error"),
+    onError: (error: any) => showNotification(error?.message || "Task unavailable", "error"),
   });
 
   const tasks = (data?.tasks || []).filter((task) => task.taskType === taskType);

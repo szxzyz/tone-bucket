@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Crown, BarChart2, ClipboardList, Users, Tag, Wallet, ShieldOff, Settings, Shield, Star, CheckCircle2, XCircle, Plus, Minus, Wrench, Target, ShieldAlert, Eye, Trash2, Award, Handshake, Database, Download, RotateCcw, AlertTriangle, RefreshCw } from "lucide-react";
 import { showNotification } from "@/components/AppNotification";
+import CreatePanel from "@/components/CreatePanel";
 
 function formatLargeNumber(num: number): string {
   if (isNaN(num) || !isFinite(num)) {
@@ -2398,6 +2399,7 @@ type SettingsCategory = 'ads' | 'affiliates' | 'withdrawals' | 'tasks' | 'missio
 function SettingsSection() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('ads');
   const [isRepairingReferrals, setIsRepairingReferrals] = useState(false);
@@ -3346,6 +3348,11 @@ function SettingsSection() {
 
         {activeCategory === 'tasks' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2 flex justify-end">
+              <Button type="button" size="sm" onClick={() => setCreateTaskOpen(true)} className="bg-[#252525] hover:bg-[#303030] text-white text-xs font-bold rounded-xl">
+                <Plus size={14} className="mr-1" /> Add Task
+              </Button>
+            </div>
             {/* Reward tiers info */}
             <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <p className="text-xs text-blue-400 font-semibold mb-1">🎯 Task Reward Tiers</p>
@@ -3695,6 +3702,8 @@ function SettingsSection() {
             )}
           </div>
         </div>
+
+        {createTaskOpen && <CreatePanel open={true} onClose={() => setCreateTaskOpen(false)} />}
 
         <div className="pt-3 border-t flex gap-2">
           <Button

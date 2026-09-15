@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { showNotification } from "@/components/AppNotification";
 import PopupShell from "@/components/PopupShell";
 import { useAdFlow } from "@/hooks/useAdFlow";
@@ -90,7 +89,7 @@ export default function DailyCheckinSheet({
       return data as { success: boolean; reward: number; newStreak: number; isDouble?: boolean };
     },
     onSuccess: (data) => {
-      showNotification(`+${data.reward} Gold claimed!`, "success");
+      showNotification(`${data.reward} Gold claimed`, "success");
       playClaimSuccessEffects();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/daily-checkin/status"] });
@@ -109,14 +108,14 @@ export default function DailyCheckinSheet({
     try {
       const adResult = await showMonetagAd();
       if (!adResult.success) {
-        showNotification(adResult.unavailable ? "Monetag ad is not available right now. Please try again." : "Please watch the Monetag ad completely to claim your check-in reward.", "error");
+        showNotification(adResult.unavailable ? "Ad unavailable" : "Watch the ad to claim", "error");
         setAdLoading(false);
         return;
       }
       claimMutation.mutate({ doubleReward: false });
     } catch {
       setAdLoading(false);
-      showNotification("Please watch the Monetag ad before claiming your reward.", "error");
+      showNotification("Watch the ad to claim", "error");
     }
   };
 
@@ -163,6 +162,12 @@ export default function DailyCheckinSheet({
   };
 
   const isPending = claimMutation.isPending || adLoading;
+  const daysRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const current = daysRef.current?.children?.[Math.min(dayIndex, CHECKIN_REWARDS.length - 1)] as HTMLElement | undefined;
+    current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [open, dayIndex]);
 
   if (!open) return null;
 
@@ -229,32 +234,11 @@ export default function DailyCheckinSheet({
               </span>
             </div>
           )}
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              flexShrink: 0,
-              width: 30,
-              height: 30,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.06)",
-              border: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: "rgba(255,255,255,0.55)",
-              padding: 0,
-            }}
-            className="active:scale-90"
-          >
-            <X style={{ width: 15, height: 15 }} />
-          </button>
         </div>
 
         {/* Horizontal scrolling day cards */}
         <div
+          ref={daysRef}
           style={{
             display: "flex",
             gap: 10,

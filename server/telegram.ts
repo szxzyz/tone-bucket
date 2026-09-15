@@ -1250,8 +1250,7 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('👋 Welcome to Axionet Mining\n\n', { bold: true });
   addSegment('Axionet Mining is currently in ');
   addSegment('Early Access', { bold: true });
-  addSegment(' 🚀\n');
-  addSegment('Start mining Gold, complete tasks, watch ads, and invite friends to grow your earnings.\n\n');
+  addSegment(' 🚀\n\n');
   addSegment('💰 Earn by', { bold: true });
   addSegment(':\n\n');
   addSegment('- ⛏️ Mining Gold daily\n');

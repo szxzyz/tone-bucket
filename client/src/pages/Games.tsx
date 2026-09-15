@@ -9,7 +9,7 @@ import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
-import { showRewardedInterstitial } from "@/lib/showAd";
+import { showAdgramAd, showRewardedInterstitial } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Info, Rocket } from "lucide-react";
 import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
@@ -64,6 +64,7 @@ export default function Games() {
   const { isAdmin } = useAdmin();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], staleTime: 0 });
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], staleTime: 3600000 });
+  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
   const { data: checkinStatus } = useQuery<any>({ queryKey: ['/api/daily-checkin/status'], retry: false });
 
@@ -161,36 +162,29 @@ export default function Games() {
 
   const handleMysteryOpen = async () => {
     if (mysteryOpened || mysteryPhase !== 'idle') return;
-    setMysteryPhase('opening');
-    if (mysteryTimerRef.current) clearTimeout(mysteryTimerRef.current);
-
-    let serverReward = 0;
-    try { await showRewardedInterstitial(); } catch {}
-    try {
-      const res = await apiRequest('POST', '/api/mystery-box', {});
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
-      serverReward = data.reward ?? 0;
-      setMysteryReward(serverReward);
-      localStorage.setItem('mystery_box_date', getTodayKey());
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    } catch (err: any) {
-      setMysteryPhase('idle');
-      showNotification(err?.message || 'Failed to open mystery box. Try again.', 'error');
-      return;
-    }
-
-    mysteryTimerRef.current = setTimeout(() => {
-      setMysteryPhase('revealed');
-    }, 2200);
+    setMysteryReward(Math.floor(Math.random() * 100) + 1);
+    setMysteryPhase('revealed');
   };
 
-  const handleMysteryClaim = () => {
+  const handleMysteryClaim = async () => {
     if (mysteryPhase !== 'revealed') return;
-    setMysteryOpened(true);
-    showNotification(`Mystery Box! You won ${mysteryReward} Gold!`, 'success');
-    setMysteryPhase('done');
-    mysteryTimerRef.current = setTimeout(() => setMysteryPhase('idle'), 1800);
+    setMysteryPhase('claiming');
+    try {
+      await showAdgramAd(appConfig?.adsgramMysteryBoxBlockId || '');
+      const res = await apiRequest('POST', '/api/mystery-box', {});
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Could not claim gift');
+      setMysteryReward(data.reward ?? mysteryReward);
+      setMysteryOpened(true);
+      localStorage.setItem('mystery_box_date', getTodayKey());
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      showNotification(`${data.reward ?? mysteryReward} Gold earned`, 'success');
+      setMysteryPhase('done');
+      mysteryTimerRef.current = setTimeout(() => setMysteryPhase('idle'), 800);
+    } catch (err: any) {
+      setMysteryPhase('revealed');
+      showNotification(err?.message || 'Gift claim failed', 'error');
+    }
   };
 
   const copyLink = () => {
@@ -247,7 +241,7 @@ export default function Games() {
       return data;
     },
     onSuccess: () => {
-      showNotification('Mining started! You can claim after the 1-hour cycle completes.', 'success');
+      showNotification('Mining started', 'success');
       refetchFarm();
     },
     onError: (err: any) => showNotification(err?.message || 'Failed to start farming', 'error'),
@@ -261,7 +255,7 @@ export default function Games() {
       return data;
     },
     onSuccess: (data) => {
-      showNotification(`Farming reward claimed! +${data.amount} Gold`, 'success');
+      showNotification(`${data.amount} Gold claimed`, 'success');
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       refetchFarm();
     },
@@ -270,7 +264,7 @@ export default function Games() {
 
   const farmBoostMutation = useMutation({
     mutationFn: async () => {
-      await showRewardedInterstitial();
+      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
       const res = await apiRequest('POST', '/api/farming/boost', {});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to boost mining');
@@ -488,6 +482,21 @@ export default function Games() {
           </div>
         </div>
 
+        {mysteryPhase === 'revealed' || mysteryPhase === 'claiming' ? (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(7px)' }} />
+            <div style={{ position: 'relative', width: '100%', background: '#090909', borderRadius: '28px 28px 0 0', padding: '28px 20px max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', textAlign: 'center', boxSizing: 'border-box' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 3, background: 'rgba(255,255,255,.12)', margin: '0 auto 22px' }} />
+              <div style={{ color: '#fff', fontSize: 20, fontWeight: 900, marginBottom: 18 }}>Gift Reward</div>
+              <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 58, height: 58, objectFit: 'contain', margin: '0 auto 8px' }} />
+              <div style={{ color: '#fff', fontSize: 28, fontWeight: 900, marginBottom: 22 }}>{mysteryReward} Gold</div>
+              <button onClick={handleMysteryClaim} disabled={mysteryPhase === 'claiming'} style={{ width: '100%', height: 48, border: 0, borderRadius: 14, background: '#2563eb', color: '#fff', fontSize: 14, fontWeight: 900 }}>
+                {mysteryPhase === 'claiming' ? 'Watching ad…' : 'Claim Now'}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {/* FARMING label */}
         <div style={{ marginBottom: 10 }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
@@ -544,7 +553,7 @@ export default function Games() {
               </button>
             );
             if (isActive) return (
-              <div style={{ width: '100%', padding: '12px 0', background: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.03em' }}>
+              <div style={{ width: '100%', padding: '12px 0', background: '#eab308', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.03em' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>MINING · {fmtCountdown(farmCountdown)}</span>
               </div>
