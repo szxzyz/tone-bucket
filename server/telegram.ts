@@ -1247,13 +1247,23 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
     text += seg;
   };
 
-  addSegment('✅ Start Earning Crypto Instantly!\n\n', { bold: true });
-  addSegment('✨ Why Choose Grab Penny Official?\n\n', { bold: true });
-  addSegment('🎮 Watch & Earn\n');
-  addSegment('👥 Referral Power\n');
-  addSegment('🚀 Speed Boosts\n');
-  addSegment('💎 Earn GRAM Token\n\n');
-  addSegment('🌟 Your crypto journey starts NOW!', { bold: true });
+  addSegment('👋 Welcome to Axionet Mining\n\n', { bold: true });
+  addSegment('Axionet Mining is currently in ');
+  addSegment('Early Access', { bold: true });
+  addSegment(' 🚀\n');
+  addSegment('Start mining Gold, complete tasks, watch ads, and invite friends to grow your earnings.\n\n');
+  addSegment('💰 Earn by', { bold: true });
+  addSegment(':\n\n');
+  addSegment('- ⛏️ Mining Gold daily\n');
+  addSegment('- 🎯 Completing tasks\n');
+  addSegment('- 📺 Watching ads\n');
+  addSegment('- 👥 Inviting friends\n');
+  addSegment('- 💸 Withdrawing your Gold\n\n');
+  addSegment('🎁 Early Access Advantage', { bold: true });
+  addSegment('\n\nYou’re joining early! More features, rewards, and exciting updates are coming soon.\n\n');
+  addSegment('Be part of the ');
+  addSegment('Axionet Mining journey', { bold: true });
+  addSegment(' and start earning today. 🌟');
 
   const appUrl = referralCode && config.bot.appUrl
     ? `${config.bot.appUrl}${config.bot.appUrl.includes('?') ? '&' : '?'}startapp=${encodeURIComponent(referralCode)}`
@@ -1263,11 +1273,11 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   // Telegram rejects inline buttons whose URL is empty, so only include
   // buttons backed by configured, valid HTTPS links.
   if (/^https?:\/\//i.test(appUrl)) {
-    buttonRows.push([{ text: '💸 Start earning', url: appUrl }]);
+    buttonRows.push([{ text: '🚀 Start Mining Now!', url: appUrl }]);
   }
   const discussUpdateRow = [
-    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', url: config.bot.discussUrl }] : [] ),
     ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', url: config.bot.updateUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', url: config.bot.discussUrl }] : [] ),
   ];
   if (discussUpdateRow.length > 0) buttonRows.push(discussUpdateRow);
 

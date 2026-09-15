@@ -533,13 +533,13 @@ export default function Games() {
             const isActive = farmData?.isActive;
             const isPending = farmStartMutation.isPending || farmClaimMutation.isPending;
             if (isPending) return (
-              <button disabled style={{ width: '100%', padding: '12px 0', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
+              <button disabled style={{ width: '100%', padding: '12px 0', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.4)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                 {farmClaimMutation.isPending ? 'Claiming…' : 'Starting…'}
               </button>
             );
             if (isActive && farmCountdown <= 0) return (
-              <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#16a34a', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
+              <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#16a34a', border: 'none', borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
                 CLAIM
               </button>
             );
@@ -550,7 +550,7 @@ export default function Games() {
               </div>
             );
             return (
-              <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#dc2626', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
+              <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#dc2626', border: 'none', borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
                 START MINING
               </button>
             );
