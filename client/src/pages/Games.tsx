@@ -172,7 +172,8 @@ export default function Games() {
     if (mysteryPhase !== 'revealed') return;
     setMysteryPhase('claiming');
     try {
-      await showAdgramAd(appConfig?.adsgramMysteryBoxBlockId || '');
+      // Use the same AdsGram reward block configured for the Ad Watch section.
+      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
       const res = await apiRequest('POST', '/api/mystery-box', {});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not claim gift');
@@ -495,8 +496,8 @@ export default function Games() {
 
         {mysteryPhase === 'revealed' || mysteryPhase === 'claiming' || mysteryPhase === 'opening' ? (
           <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
-            <div style={{ position: 'relative', width: '100%', maxWidth: 390, maxHeight: 'min(88dvh, calc(100dvh - 24px))', overflow: 'hidden', background: '#0a0a0a', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', padding: '22px 18px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))', boxSizing: 'border-box' }}>
+            <div onClick={() => { if (mysteryPhase === 'revealed' || mysteryPhase === 'opening') setMysteryPhase('idle'); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
+            <div onClick={(event) => event.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 390, maxHeight: 'min(88dvh, calc(100dvh - 24px))', overflow: 'hidden', background: '#0a0a0a', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', padding: '22px 18px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
                 <img src="/assets/mystery-box.png" alt="Gift" style={{ width: 28, height: 28, objectFit: 'contain' }} />
                 <div style={{ flex: 1 }}>
