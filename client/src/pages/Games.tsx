@@ -524,7 +524,7 @@ export default function Games() {
 
           {/* Sub-row: Info | Start/Claim/Cooldown | Alert */}
           <div style={{ display: 'flex', alignItems: 'stretch' }}>
-            <button onClick={() => setShowFarmInfo(true)} style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', fontSize: 15, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform">?</button>
+            <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: 'rgba(96,165,250,0.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></button>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
             {(() => {
               const isActive = farmData?.isActive;
@@ -548,14 +548,14 @@ export default function Games() {
               );
               return (
                 <button onClick={() => farmStartMutation.mutate()} style={{ flex: 3, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
-                  START
+                  START MINING
                 </button>
               );
             })()}
             <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
             <button onClick={() => setShowAlertPopup(true)} style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="active:scale-95 transition-transform">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(168,85,247,0.85)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z"/>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m13 2-2 7H5l6 4-2 9 2-5h5l-3-4 6-4h-6l0-7Z"/>
               </svg>
             </button>
           </div>
@@ -568,13 +568,7 @@ export default function Games() {
             <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-                <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 44, height: 44, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
-                <div>
-                  <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Farming Info</div>
-                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>How it works</div>
-                </div>
-              </div>
+              <div style={{ color: '#fff', fontSize: 19, fontWeight: 900, textAlign: 'center', marginBottom: 22 }}>Farming Info</div>
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '4px 0', marginBottom: 20 }}>
                 {[
                   { label: 'Mining speed', val: '23.9574 Gold/hour' },
@@ -604,26 +598,21 @@ export default function Games() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={() => setShowAlertPopup(false)} />
             <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(126,34,206,0.14)', border: '1px solid rgba(168,85,247,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z"/>
+                <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(37,99,235,0.14)', border: '1px solid rgba(96,165,250,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m13 2-2 7H5l6 4-2 9 2-5h5l-3-4 6-4h-6l0-7Z"/>
                   </svg>
                 </div>
                 <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 10 }}>Upgrade multiplier</div>
-                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.65, marginBottom: 18 }}>
-                  Upgrading increases your earning power during the selected mining duration.<br />
-                  With each upgrade, you can earn more GOLD in the same time frame.<br />
-                  Collect GOLD can later be used to purchase additional hashrate, boosting your mining capacity further.
-                </div>
                 <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', boxSizing: 'border-box', marginBottom: 14 }}>
                   <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Current boost</div>
                   <div style={{ color: '#c084fc', fontSize: 24, fontWeight: 900 }}>{farmData?.multiplier ?? 1}x</div>
                   <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 3 }}>Watch an ad to unlock the next level: {(FARM_BOOSTS[Math.min(FARM_BOOSTS.length - 1, Number(farmData?.boostStep ?? 0) + 1)] ?? 25)}x</div>
                 </div>
-                <button onClick={() => farmBoostMutation.mutate()} disabled={!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25} style={{ width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #7e22ce, #a855f7)', border: 0, borderRadius: 14, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: (!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25) ? .45 : 1, marginBottom: 9 }} className="active:scale-95 transition-transform">{farmBoostMutation.isPending ? 'Watching ad…' : Number(farmData?.multiplier ?? 1) >= 25 ? 'Maximum boost reached' : 'Watch ad to boost'}</button>
+                <button onClick={() => farmBoostMutation.mutate()} disabled={!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25} style={{ width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', border: 0, borderRadius: 14, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: (!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25) ? .45 : 1, marginBottom: 9 }} className="active:scale-95 transition-transform">{farmBoostMutation.isPending ? 'Watching ad…' : Number(farmData?.multiplier ?? 1) >= 25 ? 'Maximum boost reached' : 'Watch ad to boost'}</button>
                 <button onClick={() => setShowAlertPopup(false)} style={{ width: '100%', padding: '14px 0', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }} className="active:scale-95 transition-transform">Close</button>
               </div>
             </div>
@@ -635,7 +624,8 @@ export default function Games() {
       {showPromoPopup && (
         <div style={{ position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'flex-end' }}>
           <div onClick={() => setShowPromoPopup(false)} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.75)', backdropFilter:'blur(8px)' }} />
-          <div onClick={e => e.stopPropagation()} style={{ position:'relative', width:'100%', background:'#0a0a0a', borderRadius:'28px 28px 0 0', padding:'24px 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))', boxSizing:'border-box' }}>
+          <div onClick={e => e.stopPropagation()} style={{ position:'relative', width:'100%', background:'#0a0a0a', borderRadius:'28px 28px 0 0', padding:'24px 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))', boxSizing:'border-box', overflow:'hidden' }}>
+            <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
             <div style={{ width:40, height:4, borderRadius:3, background:'rgba(255,255,255,.1)', margin:'0 auto 20px' }} />
             <div style={{ display:'flex', justifyContent:'center', alignItems:'center', marginBottom:16, paddingTop:2 }}><span style={{ color:'#fff', fontSize:18, fontWeight:900 }}>Promo Code</span></div>
             <PromoCodeInput />
