@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowDown, Loader2 } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
 import { getTONPrice } from "@/lib/tonPriceService";
 import { showNotification } from "@/components/AppNotification";
 
@@ -90,7 +90,7 @@ export default function SwapSheet({
   const bg = "#0d0d0d";
   const cardBg = "#1a1a1a";
   const border = "rgba(255,255,255,0.08)";
-  const accent = "#6b21a8";
+  const accent = "#3b82f6";
   const textPrimary = "#ffffff";
   const textMuted = "rgba(255,255,255,0.45)";
 
@@ -118,25 +118,21 @@ export default function SwapSheet({
             transition={{ type: "spring", damping: 32, stiffness: 340 }}
             style={{
               position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 101,
-              background: bg,
-              borderTop: `1px solid ${border}`,
-              borderTopLeftRadius: 20, borderTopRightRadius: 20,
-              padding: "14px 16px 32px",
-              maxWidth: 480, margin: "0 auto",
+              background: "linear-gradient(160deg, #0d0d0f, #111118)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: 0,
+              borderTopLeftRadius: 28, borderTopRightRadius: 28,
+              padding: "0 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))",
+              maxWidth: 480, margin: "0 auto", overflow: "hidden",
             }}
           >
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)" }} />
             {/* Drag handle */}
-            <div style={{ width: 32, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.2)", margin: "0 auto 14px" }} />
+            <div style={{ width: 32, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.1)", margin: "12px auto 20px" }} />
 
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontSize: 17, fontWeight: 700, color: textPrimary }}>Swap GOLD</span>
-              <button
-                onClick={handleClose}
-                style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-              >
-                <X size={14} color="rgba(255,255,255,0.7)" />
-              </button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: textPrimary }}>Swap GOLD</span>
             </div>
 
             {/* FROM */}
@@ -163,7 +159,7 @@ export default function SwapSheet({
                   <button
                     onClick={() => setInputValue(String(balanceGold))}
                     style={{
-                      background: "rgba(76,211,255,0.12)", border: `1px solid rgba(76,211,255,0.25)`,
+                      background: "rgba(37,99,235,0.16)", border: `1px solid rgba(96,165,250,0.3)`,
                       borderRadius: 8, padding: "4px 10px",
                       fontSize: 11, fontWeight: 700, color: accent, cursor: "pointer",
                       letterSpacing: "0.04em",
@@ -241,7 +237,7 @@ export default function SwapSheet({
               style={{
                 width: "100%", padding: "14px 0", borderRadius: 12,
                 background: clampedAmount > 0 ? accent : "rgba(255,255,255,0.1)",
-                color: clampedAmount > 0 ? "#000" : "rgba(255,255,255,0.3)",
+                color: clampedAmount > 0 ? "#fff" : "rgba(255,255,255,0.3)",
                 fontSize: 15, fontWeight: 700, border: "none",
                 cursor: clampedAmount > 0 ? "pointer" : "not-allowed",
                 opacity: isPending ? 0.7 : 1,
