@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Wallet, HelpCircle, Info, Lock, Check, Gem, DollarSign, Star } from "lucide-react";
+import { HelpCircle, Info, Lock, Check, Gem, DollarSign, Star } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
@@ -280,8 +280,8 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#6b21a8] text-lg">
-            <Wallet className="w-5 h-5" />
-            Setup Wallets
+            <img src="/wallet-connection.png" alt="Axionet wallet" className="w-7 h-7 rounded-full object-cover" />
+            Axionet Wallet Setup
           </DialogTitle>
         </DialogHeader>
 

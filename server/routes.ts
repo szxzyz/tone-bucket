@@ -5155,7 +5155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/notify-incomplete-tasks', authenticateAdmin, async (req: any, res) => {
     try {
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const botUsername = process.env.BOT_USERNAME || process.env.VITE_BOT_USERNAME || 'SwagBuxBot';
+      const { getBotUsername: getBotUsernameForTaskNotice } = await import('./telegram');
+      const botUsername = await getBotUsernameForTaskNotice();
 
       if (!botToken) {
         return res.status(400).json({ success: false, message: 'Bot token not configured' });

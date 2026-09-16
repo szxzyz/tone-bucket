@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showNotification } from '@/components/AppNotification';
 import { apiRequest } from '@/lib/queryClient';
-import { Gem, Star, Settings2 } from 'lucide-react';
+import { Gem, Star } from 'lucide-react';
 
 interface WalletDetails {
   tonWalletAddress: string;
@@ -83,8 +83,8 @@ export default function WalletDialog({ open, onOpenChange }: WalletDialogProps) 
       <DialogContent className="sm:max-w-md rounded-[20px] bg-black/95">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-blue-500" />
-            Wallet Setup
+            <img src="/wallet-connection.png" alt="Axionet wallet" className="w-7 h-7 rounded-full object-cover" />
+            Axionet Wallet Setup
           </DialogTitle>
           <DialogDescription className="text-gray-400">
             Enter your payment details to withdraw earned funds

@@ -881,7 +881,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
 ${payoutLine}
 📅 <b>Date:</b> ${currentDate}
 
-👇 <b>Join Swag Bux and start earning USDT today!</b>`;
+👇 <b>Join Axionet and start earning TON today!</b>`;
 
     // Inline keyboard: "💸 Start Earning" button linking to the bot
     const replyMarkup = {
@@ -1250,7 +1250,7 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('👋 Welcome to Axionet Mining\n\n', { bold: true });
   addSegment('Axionet Mining is currently in ');
   addSegment('Early Access', { bold: true });
-  addSegment(' 🚀\n\n');
+  addSegment('.\n\n');
   addSegment('💰 Earn by', { bold: true });
   addSegment(':\n\n');
   addSegment('- ⛏️ Mining Gold daily\n');

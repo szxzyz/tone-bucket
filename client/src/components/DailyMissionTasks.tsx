@@ -72,7 +72,11 @@ export default function DailyMissionTasks() {
         icon="/assets/check-updates.png" title="Check for updates" subtitle="" buttonLabel="Go" goldReward={100}
         isCompleted={missionStatus?.checkForUpdates?.completed} isClaimed={missionStatus?.checkForUpdates?.claimed}
         onAction={() => {
-          const url = appConfig?.updateUrl || appConfig?.channelUrl || 'https://t.me/SwagBuxBot';
+          const url = appConfig?.updateUrl || appConfig?.channelUrl;
+          if (!url) {
+            showNotification('Update link is not configured yet', 'error');
+            return;
+          }
           if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url); else window.open(url, '_blank');
           setTimeout(() => claimMissionMutation.mutate({ type: 'check_for_updates' }), 2000);
         }}
