@@ -882,9 +882,13 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
 
     const botUsername = await getBotUsername();
     const botLink = `https://t.me/${botUsername}/MyWAdz`;
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(`Withdrawal successful for ${userName}: ${tonAmount.toFixed(6)} TON`)}`;
+    const referralLink = user?.referralCode
+      ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}`
+      : botLink;
+    const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nWant to earn free TON?👀\nJoin Axionet using my referral link and start earning together! 🚀`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
 
-    const payoutLine = `💸 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💎 <b>Gold:</b> ${goldAmount.toLocaleString()}\n📍 <b>TON Wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🔗 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
+    const payoutLine = `💸 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💎 <b>Gold:</b> ${goldAmount.toLocaleString()}\n💵 <b>USD/USDT value:</b> ${netAmount.toFixed(6)}\n📍 <b>TON Wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🔗 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
 
     const groupMessage = `🚀 <b>New Withdrawal Success!</b>
 
@@ -900,7 +904,7 @@ ${payoutLine}
     const replyMarkup = {
       inline_keyboard: [[
         { text: '🚀 Start mining', url: botLink },
-        { text: '↗️ Share on group', url: shareUrl }
+        { text: '↗️ Share with friends', url: shareUrl }
       ]]
     };
 
@@ -2316,6 +2320,8 @@ Share your unique referral link and earn Gold when your friends join:
           const currentPage = pageMatch ? parseInt(pageMatch[1]) : 0;
           const itemsPerPage = 10;
           const offset = currentPage * itemsPerPage;
+          const { getLiveTonPriceUSD } = await import('./tonPriceService');
+          const { price: pendingTonPrice } = await getLiveTonPriceUSD();
           
           // Fetch pending withdrawals with user information
           const pendingWithdrawals = await db
@@ -2362,6 +2368,8 @@ Share your unique referral link and earn Gold when your friends join:
             const feeAmount = parseFloat(withdrawalDetails?.fee || '0');
             const feePercent = withdrawalDetails?.feePercent || '0';
             const walletAddress = withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
+            const goldAmount = Number(withdrawal.goldAmount || withdrawalDetails?.axnAmount || 0);
+            const tonAmount = Number(withdrawal.cryptoAmount || withdrawalDetails?.tonAmount || (netAmount / pendingTonPrice));
             const userName = user?.firstName || user?.username || 'Unknown';
             const userTelegramId = user?.telegram_id || '';
             const userTelegramUsername = user?.username ? `@${user.username}` : 'N/A';
@@ -2375,7 +2383,10 @@ Share your unique referral link and earn Gold when your friends join:
 💳 Username: ${userTelegramUsername}
 🌐 Address:
 ${walletAddress}
-💸 Amount: ${netAmount.toFixed(5)} USD
+💎 Gold: ${Math.round(goldAmount).toLocaleString()} GOLD
+💸 TON: ${tonAmount.toFixed(6)} TON
+💵 USD/USDT: ${netAmount.toFixed(6)} USD
+📈 TON price at request: $${pendingTonPrice.toFixed(4)}
 🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
 📅 Date: ${createdAt}
 🤖 Bot: @${await getBotUsername()}`;
@@ -2962,11 +2973,14 @@ ${walletAddress}
           const userTelegramId = String(user?.telegram_id || '');
           const currentDate = new Date().toUTCString();
           const botUsername = await getBotUsername();
-          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(`https://t.me/${botUsername}/MyWAdz`)}&text=${encodeURIComponent(`Withdrawal successful for ${userName}: ${tonAmount.toFixed(6)} TON`)}`;
+          const botLink = `https://t.me/${botUsername}/MyWAdz`;
+          const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
+          const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nWant to earn free TON?👀\nJoin Axionet using my referral link and start earning together! 🚀`;
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
           const successKeyboard = {
             inline_keyboard: [[
-              { text: '🚀 Start mining', url: `https://t.me/${botUsername}/MyWAdz` },
-              { text: '↗️ Share on group', url: shareUrl },
+              { text: '🚀 Start mining', url: botLink },
+              { text: '↗️ Share with friends', url: shareUrl },
             ]],
           };
 
@@ -2974,7 +2988,7 @@ ${walletAddress}
           if (userTelegramId) {
             await sendUserTelegramNotification(
               userTelegramId,
-              `✅ <b>Withdrawal successful</b>\n\n<b>Name:</b> ${escapeHtml(userName)}\n<b>Amount:</b> ${tonAmount.toFixed(6)} TON\n<b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n<b>Date:</b> ${currentDate}`,
+              `🎉 <b>Withdrawal successful!</b>\n\n<b>Name:</b> ${escapeHtml(userName)}\n<b>Amount:</b> ${tonAmount.toFixed(6)} TON\n<b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n<b>USD/USDT value:</b> ${Number(details?.netAmount || withdrawal.amount).toFixed(6)}\n<b>TON wallet:</b> <code>${escapeHtml(withdrawal.walletAddress || details?.paymentDetails || details?.walletAddress || 'N/A')}</code>\n<b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n<b>Date:</b> ${currentDate}\n\n${shareText}`,
               successKeyboard,
               'HTML',
             );
