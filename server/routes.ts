@@ -7772,10 +7772,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Minimum clicks: 1 for partner tasks, use admin settings for others.
-      // Fixed advertiser package tiers (100/500/1000/2000/5000/10000) are always
+      // Fixed advertiser package tiers are always
       // accepted regardless of the generic admin minimum — that setting is meant
       // to guard arbitrary/manual click counts, not the official package sizes.
-      const ADVERTISER_PACKAGE_SIZES = [100, 500, 1000, 2000, 5000, 10000];
+      const CHANNEL_PACKAGE_SIZES = [100, 500, 1000, 2000, 5000, 10000];
+      const BOT_PACKAGE_SIZES = [200, 500, 1000, 2000, 5000, 10000];
       const minClicksSetting = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, 'minimum_clicks')).limit(1);
       const minClicksFromSettings = parseInt(minClicksSetting[0]?.settingValue || '500');
       const minClicks = taskType === "partner" ? 1 : minClicksFromSettings;
@@ -7786,7 +7787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Invalid number of completions"
         });
       }
-      const isValidPackageSize = ADVERTISER_PACKAGE_SIZES.includes(parsedClicksRequired);
+      const isValidPackageSize = (taskType === 'bot' ? BOT_PACKAGE_SIZES : CHANNEL_PACKAGE_SIZES).includes(parsedClicksRequired);
       if (!isValidPackageSize && parsedClicksRequired < minClicks) {
         return res.status(400).json({
           success: false,
@@ -7863,8 +7864,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Regular users: TON-based costs from package pricing table
         console.log('👤 Regular user task creation - using package pricing (TON)');
 
-        // Package pricing (same as frontend CreatePanel.tsx PACKAGES)
-        const ADVERTISER_PACKAGES = [
+        // Channel pricing remains unchanged. Bots use a separate 200-click
+        // entry package priced at 0.15 TON.
+        const CHANNEL_PACKAGES = [
           { clicks: 100,   price: 0.1500, verified: 0.2000 },
           { clicks: 500,   price: 0.7500, verified: 1.0000 },
           { clicks: 1000,  price: 1.5000, verified: 2.0000 },
@@ -7872,8 +7874,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { clicks: 5000,  price: 7.5000, verified: 10.000 },
           { clicks: 10000, price: 15.000, verified: 20.000 },
         ];
+        const BOT_PACKAGES = [
+          { clicks: 200,   price: 0.1500, verified: 0.1500 },
+          ...CHANNEL_PACKAGES.slice(1),
+        ];
 
-        const pkg = ADVERTISER_PACKAGES.find(p => p.clicks === parsedClicksRequired);
+        const pkg = (taskType === 'bot' ? BOT_PACKAGES : CHANNEL_PACKAGES).find(p => p.clicks === parsedClicksRequired);
         const totalCostTON = pkg
           ? (verificationRequired === true ? pkg.verified : pkg.price)
           : (() => {

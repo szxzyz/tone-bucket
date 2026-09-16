@@ -21,6 +21,13 @@ const PACKAGES = [
   { clicks: 10000, price: 15.000, verified: 20.000 },
 ];
 
+// Bot advertising starts at 200 clicks for 0.15 TON. Channel pricing above
+// is intentionally kept separate and unchanged.
+const BOT_PACKAGES = [
+  { clicks: 200,   price: 0.1500, verified: 0.1500 },
+  ...PACKAGES.slice(1),
+];
+
 type Flow       = "advertise" | "giveaway" | null;
 type Category   = "channel" | "bot";
 interface Props { open: boolean; onClose: () => void; onFlowChange?: (flow: Flow) => void; }
@@ -417,6 +424,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                         onChange={v => {
                           setCategory(v as Category);
                           setChannelLink(""); setBotUser(""); resetCh();
+                          setSelectedPkg(null);
                         }}
                       />
                     </Field>
@@ -494,7 +502,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                     {/* COMPLETIONS */}
                     <Field label={t("number_of_completions")}>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                        {PACKAGES.map(pkg => {
+                        {(category === "bot" ? BOT_PACKAGES : PACKAGES).map(pkg => {
                           const sel   = selectedPkg === pkg.clicks;
                           const price = isVerif ? pkg.verified : pkg.price;
                           return (
