@@ -5669,7 +5669,7 @@ function PartnerTasksSection() {
             <p className="text-[9px] font-semibold text-white/40 uppercase tracking-[0.06em] mb-2">Task Name</p>
             <input
               type="text"
-              placeholder={category === "channel" ? "e.g. Join Swag Bux Official Channel" : "e.g. Start Swag Bux Bot"}
+              placeholder={category === "channel" ? "e.g. Join My Channel" : "e.g. Start My Earning Bot"}
               value={taskName}
               onChange={e => setTaskName(e.target.value)}
               style={INPUT_STYLE}

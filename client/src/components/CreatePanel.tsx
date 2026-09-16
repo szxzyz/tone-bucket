@@ -399,7 +399,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                     <Field label={t("task_name_label")} icon={<Type size={13} />}>
                       <input
                         type="text"
-                        placeholder={category === "channel" ? "e.g. Join Swag Bux Channel" : "e.g. Start My Earning Bot"}
+                        placeholder={category === "channel" ? "e.g. Join My Channel" : "e.g. Start My Earning Bot"}
                         value={taskName}
                         onChange={e => setTaskName(e.target.value)}
                         style={INPUT}
