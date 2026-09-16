@@ -717,7 +717,10 @@ function escapeHtml(text: string): string {
 // ── Withdrawal notification channel — env-based (WITHDRAWAL_GROUP_CHAT_ID) ──
 // This is the ONLY channel where withdrawal requests and approvals are posted.
 // The value is read from environment variables — never hardcoded.
-const WITHDRAWAL_GROUP_CHAT_ID = process.env.WITHDRAWAL_GROUP_CHAT_ID || config.withdrawals.groupChatId;
+function getWithdrawalGroupChatId(): string {
+  return String(process.env.WITHDRAWAL_GROUP_CHAT_ID || config.withdrawals.groupChatId || '').trim();
+}
+const WITHDRAWAL_SUPPORT_LINK = 'https://t.me/szxzyz';
 
 // Post a new withdrawal REQUEST to the group chat with Approve / Reject buttons
 export async function sendWithdrawalRequestToGroup(withdrawalData: {
@@ -740,7 +743,7 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
   }
 
   try {
-    const groupChatId = WITHDRAWAL_GROUP_CHAT_ID;
+    const groupChatId = getWithdrawalGroupChatId();
     if (!groupChatId) {
       console.error('❌ Withdrawal group is not configured. Set WITHDRAWAL_GROUP_CHAT_ID.');
       return false;
@@ -858,11 +861,12 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
 
   try {
     // Approved withdrawals are posted only to the admin withdrawal group.
-    if (!WITHDRAWAL_GROUP_CHAT_ID) {
+    const groupChatId = getWithdrawalGroupChatId();
+    if (!groupChatId) {
       console.warn('⚠️ WITHDRAWAL_GROUP_CHAT_ID not set — skipping withdrawal approval notification');
       return false;
     }
-    console.log(`📤 Sending withdrawal approval notification to admin group: ${WITHDRAWAL_GROUP_CHAT_ID}`);
+    console.log(`📤 Sending withdrawal approval notification to admin group: ${groupChatId}`);
 
     const user = await storage.getUser(withdrawal.userId);
     
@@ -886,7 +890,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
       ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}`
       : botLink;
     const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
+    const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
 
     const payoutLine = `💎 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💰 <b>Gold:</b> ${goldAmount.toLocaleString()}\n👛 <b>TON wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
 
@@ -908,25 +912,21 @@ ${payoutLine}
       ]
     };
 
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: WITHDRAWAL_GROUP_CHAT_ID,
-        text: groupMessage,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      })
-    });
-
-    const responseData = await response.json() as any;
-    if (response.ok && responseData.ok) {
-      console.log('✅ Group notification for withdrawal approval sent successfully');
-      return true;
-    } else {
-      console.error('❌ Failed to send group notification for withdrawal approval:', JSON.stringify(responseData));
-      return false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: groupChatId, text: groupMessage, parse_mode: 'HTML', reply_markup: replyMarkup })
+      });
+      const responseData = await response.json() as any;
+      if (response.ok && responseData.ok) {
+        console.log('✅ Group notification for withdrawal approval sent successfully');
+        return true;
+      }
+      console.error(`❌ Failed to send group notification for withdrawal approval (attempt ${attempt}):`, JSON.stringify(responseData));
+      if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 1000));
     }
+    return false;
   } catch (error) {
     console.error('❌ Error sending withdrawal approval group notification:', error);
     return false;
@@ -2765,7 +2765,7 @@ ${walletAddress}
               await sendUserTelegramNotification(
                 rejectedUser.telegram_id,
                 `❌ Your withdrawal request of <b>${rejectedAmount} USD</b> has been rejected.\n\nYour balance has been refunded. Please contact support if you have any questions.`,
-                { inline_keyboard: [[{ text: '📩 Contact Support', url: 'https://t.me/PaidAdsSupportbot' }]] }
+                { inline_keyboard: [[{ text: '📩 Contact Support', url: WITHDRAWAL_SUPPORT_LINK }]] }
               );
             }
             
@@ -2976,7 +2976,7 @@ ${walletAddress}
           const botLink = `https://t.me/${botUsername}/MyWAdz`;
           const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
           const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
-          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
+          const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
           const successKeyboard = {
             inline_keyboard: [
               [{ text: '🚀 Start earning', url: referralLink }],
@@ -2993,11 +2993,12 @@ ${walletAddress}
               'HTML',
             );
           }
-          if (hashState.messageId && WITHDRAWAL_GROUP_CHAT_ID) {
+          const withdrawalGroupChatId = getWithdrawalGroupChatId();
+          if (hashState.messageId && withdrawalGroupChatId) {
             await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: WITHDRAWAL_GROUP_CHAT_ID, message_id: hashState.messageId, reply_markup: successKeyboard }),
+              body: JSON.stringify({ chat_id: withdrawalGroupChatId, message_id: hashState.messageId, reply_markup: successKeyboard }),
             }).catch(() => {});
           }
           await sendUserTelegramNotification(chatId, `✅ Withdrawal completed and posted in the admin group.\nHash: <code>${escapeHtml(transactionHash)}</code>`, undefined, 'HTML');
