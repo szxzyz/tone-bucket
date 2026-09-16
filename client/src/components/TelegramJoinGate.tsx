@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -57,6 +57,7 @@ const openTelegramLink = (link: string) => {
 
 export default function TelegramJoinGate() {
   const { user } = useAuth();
+  const [showFallbackGate, setShowFallbackGate] = useState(false);
   const { data, isLoading, isError, refetch, isFetching } = useQuery<JoinStatusResponse>({
     queryKey: ['/api/telegram/join-status', user?.id],
     queryFn: fetchJoinStatus,
@@ -74,6 +75,19 @@ export default function TelegramJoinGate() {
     refetchOnMount: 'always',
     staleTime: 0,
   });
+
+  useEffect(() => {
+    if (!user) {
+      setShowFallbackGate(false);
+      return;
+    }
+
+    // Do not make users wait for the Telegram API retries before seeing the
+    // required action. The gate disappears immediately if the response confirms
+    // that joining is not required or the user is already verified.
+    const timer = window.setTimeout(() => setShowFallbackGate(true), 350);
+    return () => window.clearTimeout(timer);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -103,7 +117,8 @@ export default function TelegramJoinGate() {
   // Never render the blocking UI before the server has returned an explicit
   // verification result. This prevents the popup from looking like a splash
   // screen during app startup and avoids gating users on transient failures.
-  if (!user || isLoading || isError || !data || data.required === false || data.verified) return null;
+  if (!user || data?.required === false || data?.verified) return null;
+  if (!showFallbackGate && (isLoading || isError || !data)) return null;
 
   const resources = data?.resources ?? [
     { key: 'channel' as const, title: 'Official Channel', link: '', joined: false },
@@ -118,18 +133,21 @@ export default function TelegramJoinGate() {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 100,
+        zIndex: 9999,
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.62)',
+        padding: '20px 16px max(20px, env(safe-area-inset-bottom, 0px))',
+        background: 'rgba(0,0,0,0.72)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 430, maxHeight: '82vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: '#1c1c1e', borderRadius: '26px 26px 0 0', padding: '14px 16px calc(28px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', boxShadow: '0 -12px 40px rgba(0,0,0,0.35)' }}>
-        <div style={{ width: 56, height: 5, borderRadius: 5, background: 'rgba(255,255,255,0.16)', margin: '0 auto 18px' }} />
-        <div style={{ fontSize: 38, lineHeight: 1, marginBottom: 14 }}>🔔</div>
+      <div style={{ width: '100%', maxWidth: 390, maxHeight: '88vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: 'linear-gradient(180deg, #1a1a1e 0%, #111114 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 70px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+        <div style={{ height: 6, width: '100%', background: 'linear-gradient(90deg, #1677ff 0%, #38bdf8 50%, #1677ff 100%)' }} />
+        <div style={{ padding: '24px 18px max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}>
         <h1 id="telegram-join-title" style={{ margin: 0, fontSize: 19, lineHeight: 1.2, fontWeight: 900 }}>
-          Welcome to Axionet
+          Join to Continue
         </h1>
         <p style={{ margin: '8px 0 20px', color: 'rgba(255,255,255,0.56)', fontSize: 13, lineHeight: 1.45 }}>
           to access this app please join our official Telegram resources.
@@ -184,6 +202,7 @@ export default function TelegramJoinGate() {
         >
           Verify &amp; enter app
         </button>
+        </div>
       </div>
     </div>
   );
