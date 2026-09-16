@@ -3048,7 +3048,7 @@ ${walletAddress}
           if (userTelegramId) {
             await sendUserTelegramNotification(
               userTelegramId,
-              `🎉 <b>Withdrawal successful!</b>\n\n📛 <b>Name:</b> ${escapeHtml(userName)}\n💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON\n💰 <b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n👛 <b>TON wallet:</b> <code>${escapeHtml(withdrawal.walletAddress || details?.paymentDetails || details?.walletAddress || 'N/A')}</code>\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n📅 <b>Date:</b> ${currentDate}`,
+              `🎉 <b>Withdrawal successful!</b>\n\n💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON\n💰 <b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n\n📅 <b>Date:</b> ${currentDate}`,
               successKeyboard,
               'HTML',
             );
