@@ -1,6 +1,6 @@
 // TON price fetching service - gets live market data
 let cachedPrice: { price: number; lastUpdated: number } | null = null;
-const CACHE_DURATION = 60000; // Cache for 60 seconds
+const CACHE_DURATION = 15000; // Match the server quote cache.
 
 export async function getTONPrice(): Promise<number> {
   const now = Date.now();
@@ -11,19 +11,17 @@ export async function getTONPrice(): Promise<number> {
   }
 
   try {
-    // Fetch from CoinGecko free API (no key required)
-    const response = await fetch(
-      'https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd',
-      { 
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      }
-    );
+    // Always use the server's aggregated quote so app and Telegram agree.
+    const response = await fetch('/api/ton-price', {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' },
+    });
     
     if (!response.ok) throw new Error('Failed to fetch TON price');
     
     const data = await response.json();
-    const price = data['the-open-network']?.usd;
+    const price = Number(data?.price);
     
     if (!price || typeof price !== 'number') {
       throw new Error('Invalid price data');
@@ -35,13 +33,7 @@ export async function getTONPrice(): Promise<number> {
   } catch (error) {
     console.error('Error fetching TON price:', error);
     
-    // Fallback to cached price if available, even if expired
-    if (cachedPrice) {
-      return cachedPrice.price;
-    }
-    
-    // Fallback to a reasonable default (will update when API works)
-    return 5.5; // Conservative default
+    throw error;
   }
 }
 
@@ -63,13 +55,13 @@ export function calculateConversions(tonPriceUSD: number) {
 
 // Gold -> TON conversion based on market price
 // Calculation: (Gold / 100,000) / tonPriceUSD
-export function gemsToTon(gems: number, tonPriceUSD: number = 5.5): number {
+export function gemsToTon(gems: number, tonPriceUSD: number): number {
   const usdValue = (Number(gems) || 0) / 100_000;
   return usdValue / tonPriceUSD;
 }
 
 // TON -> USD conversion using live market price
-export function tonToUsd(ton: number, tonPriceUSD: number = 5.5): number {
+export function tonToUsd(ton: number, tonPriceUSD: number): number {
   return Number((Number(ton) * tonPriceUSD).toFixed(6));
 }
 
