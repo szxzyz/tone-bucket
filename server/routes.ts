@@ -41,7 +41,7 @@ import {
 import { db } from "./db";
 import { eq, sql, desc, and, gte, inArray } from "drizzle-orm";
 import crypto from "crypto";
-import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToGroup } from "./telegram";
+import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToAdmins } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
 import {
   requireVerifiedSession,
@@ -6656,8 +6656,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAmount.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, fee, feePercent, netAmount, tonAmount: withdrawalTonAmount, marketRateUsd: withdrawalTonPrice, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: netAmount.toFixed(10), payoutCurrency: 'TON', cryptoAmount: withdrawalTonAmount.toFixed(18), marketRateUsd: withdrawalTonPrice.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
       });
-      const notificationSent = await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, usdAmount: netAmount, fee, feePercent, axnAmount: gold, tonAmount: withdrawalTonAmount, tonPrice: withdrawalTonPrice });
-      if (!notificationSent) console.error(`❌ Withdrawal ${result.id} created but Telegram group delivery failed`);
+      const notificationSent = await sendWithdrawalRequestToAdmins({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, usdAmount: netAmount, fee, feePercent, axnAmount: gold, tonAmount: withdrawalTonAmount, tonPrice: withdrawalTonPrice });
+      if (!notificationSent) console.error(`❌ Withdrawal ${result.id} created but private admin delivery failed`);
       res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue: netAmount, fee, feePercent, currency: 'TON' });
     } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not create payout' }); }
   });
@@ -9661,7 +9661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const walletAddress = newWithdrawal.walletAddress || 'N/A';
       const feeAmount = newWithdrawal.fee;
       const feePercent = newWithdrawal.feePercent;
-      const { sendWithdrawalRequestToGroup } = await import('./telegram');
+      const { sendWithdrawalRequestToAdmins } = await import('./telegram');
       const { getLiveTonPriceUSD } = await import('./tonPriceService');
       const { price: currentTonPrice, source: currentTonPriceSource } = await getLiveTonPriceUSD();
       if (currentTonPriceSource.includes('(stale)')) {
@@ -9671,7 +9671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const axnAmtForGroup = (newWithdrawal.withdrawal.details as any)?.axnAmount
         ? parseFloat((newWithdrawal.withdrawal.details as any).axnAmount)
         : undefined;
-      await sendWithdrawalRequestToGroup({
+      await sendWithdrawalRequestToAdmins({
         withdrawalId: newWithdrawal.withdrawal.id,
         userTelegramId,
         userName,
@@ -9684,7 +9684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tonPrice: currentTonPrice,
         tonAmount: Number((newWithdrawal.withdrawal as any).cryptoAmount || (newWithdrawal.withdrawal.details as any)?.tonAmount || (newWithdrawal.withdrawnAmount / currentTonPrice)),
         usdAmount: newWithdrawal.withdrawnAmount,
-      }).catch(err => console.error('❌ Group withdrawal request post failed:', err));
+      }).catch(err => console.error('❌ Private admin withdrawal request delivery failed:', err));
 
 
       res.json({

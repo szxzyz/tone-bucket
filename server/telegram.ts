@@ -816,6 +816,52 @@ ${axnLine}💵 USDT value: <b>${Number(withdrawalData.usdAmount ?? withdrawalDat
   }
 }
 
+// Withdrawal requests are private admin notifications. The withdrawal group
+// is reserved for successful approved-payment announcements only.
+export async function sendWithdrawalRequestToAdmins(withdrawalData: Parameters<typeof sendWithdrawalRequestToGroup>[0]): Promise<boolean> {
+  if (!TELEGRAM_BOT_TOKEN) return false;
+  const adminIds = Array.from(new Set([
+    process.env.TELEGRAM_ADMIN_ID,
+    process.env.SUPER_ADMIN_ID,
+    ...(process.env.TELEGRAM_ADMIN_IDS || '').split(','),
+  ].map(id => String(id || '').trim()).filter(id => /^\d+$/.test(id))));
+  if (adminIds.length === 0) {
+    console.error('❌ No private admin Telegram ID configured for withdrawal requests. Set TELEGRAM_ADMIN_ID.');
+    return false;
+  }
+  const currentDate = new Date().toUTCString();
+  const text = `💰 <b>Withdrawal Request</b>\n\n` +
+    `🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>\n` +
+    `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>\n` +
+    `💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}\n` +
+    `🌐 Wallet: <code>${escapeHtml(withdrawalData.walletAddress)}</code>\n` +
+    `💎 Gold: <b>${Math.round(withdrawalData.axnAmount || 0).toLocaleString()} GOLD</b>\n` +
+    `💵 USD/USDT: <b>${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)}</b>\n` +
+    `💸 TON: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>\n` +
+    `📈 TON price: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>\n` +
+    `🛂 Fee: ${withdrawalData.fee.toFixed(4)} (${withdrawalData.feePercent}%)\n` +
+    `📅 Date: ${currentDate}`;
+  const replyMarkup = { inline_keyboard: [[
+    { text: '✅ Approve', callback_data: `withdraw_paid_${withdrawalData.withdrawalId}` },
+    { text: '❌ Reject', callback_data: `withdraw_reject_${withdrawalData.withdrawalId}` },
+  ]] };
+  let delivered = false;
+  for (const adminId of adminIds) {
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: adminId, text, parse_mode: 'HTML', reply_markup: replyMarkup }),
+      });
+      const result = await response.json() as any;
+      if (response.ok && result.ok) delivered = true;
+      else console.error(`❌ Admin withdrawal request failed for ${adminId}:`, JSON.stringify(result));
+    } catch (error) {
+      console.error(`❌ Admin withdrawal request error for ${adminId}:`, error);
+    }
+  }
+  return delivered;
+}
+
 // DM the user themselves right after they submit a withdrawal request — distinct
 // from sendWithdrawalRequestToGroup (posts to the admin group) and from the
 // approved/rejected notifications (sent once admin acts on it).
