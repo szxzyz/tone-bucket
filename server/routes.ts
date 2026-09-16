@@ -6645,7 +6645,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fee = usdValue * (feePercent / 100);
       const netAmount = usdValue - fee;
       const { getLiveTonPriceUSD } = await import('./tonPriceService');
-      const { price: withdrawalTonPrice } = await getLiveTonPriceUSD();
+      const { price: withdrawalTonPrice, source: withdrawalPriceSource } = await getLiveTonPriceUSD();
+      if (withdrawalPriceSource.includes('(stale)')) {
+        throw new Error('Live TON price is temporarily unavailable. Please try again in a few seconds.');
+      }
       const withdrawalTonAmount = netAmount / withdrawalTonPrice;
       const result = await db.transaction(async (tx) => {
         const locked = await tx.update(users).set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() }).where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`)).returning({ id: users.id });
@@ -9660,7 +9663,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const feePercent = newWithdrawal.feePercent;
       const { sendWithdrawalRequestToGroup } = await import('./telegram');
       const { getLiveTonPriceUSD } = await import('./tonPriceService');
-      const { price: currentTonPrice } = await getLiveTonPriceUSD();
+      const { price: currentTonPrice, source: currentTonPriceSource } = await getLiveTonPriceUSD();
+      if (currentTonPriceSource.includes('(stale)')) {
+        console.warn(`⚠️ Withdrawal ${newWithdrawal.withdrawal.id} notification uses stale TON price source: ${currentTonPriceSource}`);
+      }
 
       const axnAmtForGroup = (newWithdrawal.withdrawal.details as any)?.axnAmount
         ? parseFloat((newWithdrawal.withdrawal.details as any).axnAmount)

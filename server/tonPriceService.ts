@@ -1,8 +1,9 @@
 /**
  * SERVER-SIDE TON price service.
  * 
- * Aggregates live TON/USD price from CoinGecko → Binance → OKX with a 
- * 60-second server-side cache to avoid hammering external APIs.
+ * Aggregates live TON/USD price from CoinGecko, Binance, and OKX with a
+ * short server-side cache. A withdrawal must never silently use a hardcoded
+ * price when market providers are unavailable.
  * 
  * Exports used by routes.ts:
  *   getLiveTonPriceUSD() → { price, source }
@@ -23,7 +24,7 @@ interface PriceResult {
 }
 
 let priceCache: PriceResult | null = null;
-const CACHE_MS = 60_000; // 60-second server-side cache
+const CACHE_MS = 15_000; // Keep withdrawal snapshots close to market price.
 
 /** Fetch TON/USD from CoinGecko. */
 async function fetchCoinGecko(): Promise<number> {
@@ -65,8 +66,9 @@ async function fetchOKX(): Promise<number> {
 }
 
 /**
- * Returns live TON/USD price, aggregating from multiple exchanges.
- * Falls back through CoinGecko → Binance → OKX → stale cache → 5.5 default.
+ * Returns a live TON/USD price aggregated from every provider that responds.
+ * The median prevents one exchange/API outlier from setting the withdrawal
+ * value. A stale cache is labelled explicitly and is never presented as live.
  */
 export async function getLiveTonPriceUSD(): Promise<PriceResult> {
   const now = Date.now();
@@ -82,14 +84,24 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
     { name: 'OKX',       fn: fetchOKX },
   ];
 
-  for (const source of sources) {
+  const results = await Promise.all(sources.map(async (source) => {
     try {
-      const price = await source.fn();
-      priceCache = { price, source: source.name, fetchedAt: now };
-      return priceCache;
+      return { name: source.name, price: await source.fn() };
     } catch (err) {
       console.warn(`[TON price] ${source.name} failed:`, err instanceof Error ? err.message : err);
+      return null;
     }
+  }));
+  const liveResults = results.filter((result): result is { name: string; price: number } => result !== null);
+  if (liveResults.length > 0) {
+    const sortedPrices = liveResults.map(result => result.price).sort((a, b) => a - b);
+    const middle = Math.floor(sortedPrices.length / 2);
+    const price = sortedPrices.length % 2 === 1
+      ? sortedPrices[middle]
+      : (sortedPrices[middle - 1] + sortedPrices[middle]) / 2;
+    priceCache = { price, source: liveResults.map(result => result.name).join('+'), fetchedAt: now };
+    console.log(`[TON price] live ${price.toFixed(6)} USD from ${priceCache.source}`);
+    return priceCache;
   }
 
   // All sources failed — use stale cache if available
@@ -98,9 +110,9 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
     return { ...priceCache, source: `${priceCache.source} (stale)` };
   }
 
-  // Last-resort default
-  console.error('[TON price] All sources failed and no cache — using default 5.5');
-  return { price: 5.5, source: 'default', fetchedAt: now };
+  // Do not invent a market price. Callers can decide whether a stale quote is
+  // acceptable; withdrawal routes explicitly reject this source.
+  throw new Error('Live TON price unavailable from CoinGecko, Binance, and OKX');
 }
 
 /**
