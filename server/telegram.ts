@@ -950,28 +950,24 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 
     const botUsername = await getBotUsername();
     const botLink = `https://t.me/${botUsername}/MyWAdz`;
-    const referralLink = user?.referralCode
-      ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}`
-      : botLink;
-    const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
-    const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
+    const transactionUrl = `https://tonviewer.com/transaction/${encodeURIComponent(transactionHash)}`;
+    const groupMessage = `🚀 <b>New Withdrawal Success!</b>
 
-    const payoutLine = `💎 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💰 <b>Gold:</b> ${goldAmount.toLocaleString()}\n👛 <b>TON wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
-
-    const groupMessage = `🎉 <b>Withdrawal successful!</b>
-
-📛 <b>Name:</b> <a href="tg://user?id=${userTelegramId}">${escapeHtml(userName)}</a>
+📛 <b>Name:</b> ${escapeHtml(userName)}
 🆔 <b>User ID:</b> <code>${userTelegramId}</code>
 💳 <b>Username:</b> ${userTelegramUsername}
-${payoutLine}
+💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON
+💰 <b>Gold:</b> ${goldAmount.toLocaleString()}
+👛 <b>TON wallet:</b> <code>${escapeHtml(walletAddress)}</code>
 📅 <b>Date:</b> ${currentDate}
-`;
+
+🕐 <b>Time:</b> ${currentDate}`;
 
     // Inline keyboard: "💸 Start Earning" button linking to the bot
     const replyMarkup = {
       inline_keyboard: [
-        [{ text: '🚀 Start earning', url: referralLink }],
-        [{ text: '👤 Share with friends', url: shareUrl }]
+        [{ text: '💵 Start earning', url: botLink }],
+        [{ text: '🛂 Transaction hash', url: transactionUrl }]
       ]
     };
 
