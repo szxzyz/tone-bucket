@@ -885,10 +885,10 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const referralLink = user?.referralCode
       ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}`
       : botLink;
-    const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nWant to earn free TON?👀\nJoin Axionet using my referral link and start earning together! 🚀`;
+    const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
 
-    const payoutLine = `💸 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💎 <b>Gold:</b> ${goldAmount.toLocaleString()}\n💵 <b>USD/USDT value:</b> ${netAmount.toFixed(6)}\n📍 <b>TON Wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🔗 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
+    const payoutLine = `💎 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💰 <b>Gold:</b> ${goldAmount.toLocaleString()}\n👛 <b>TON wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
 
     const groupMessage = `🚀 <b>New Withdrawal Success!</b>
 
@@ -902,10 +902,10 @@ ${payoutLine}
 
     // Inline keyboard: "💸 Start Earning" button linking to the bot
     const replyMarkup = {
-      inline_keyboard: [[
-        { text: '🚀 Start mining', url: botLink },
-        { text: '↗️ Share with friends', url: shareUrl }
-      ]]
+      inline_keyboard: [
+        [{ text: '🚀 Start earning', url: referralLink }],
+        [{ text: '👤 Share with friends', url: shareUrl }]
+      ]
     };
 
     const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -2975,20 +2975,20 @@ ${walletAddress}
           const botUsername = await getBotUsername();
           const botLink = `https://t.me/${botUsername}/MyWAdz`;
           const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
-          const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nWant to earn free TON?👀\nJoin Axionet using my referral link and start earning together! 🚀`;
+          const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
           const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
           const successKeyboard = {
-            inline_keyboard: [[
-              { text: '🚀 Start mining', url: botLink },
-              { text: '↗️ Share with friends', url: shareUrl },
-            ]],
+            inline_keyboard: [
+              [{ text: '🚀 Start earning', url: referralLink }],
+              [{ text: '👤 Share with friends', url: shareUrl }],
+            ],
           };
 
           await sendWithdrawalApprovedNotification(withdrawal);
           if (userTelegramId) {
             await sendUserTelegramNotification(
               userTelegramId,
-              `🎉 <b>Withdrawal successful!</b>\n\n<b>Name:</b> ${escapeHtml(userName)}\n<b>Amount:</b> ${tonAmount.toFixed(6)} TON\n<b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n<b>USD/USDT value:</b> ${Number(details?.netAmount || withdrawal.amount).toFixed(6)}\n<b>TON wallet:</b> <code>${escapeHtml(withdrawal.walletAddress || details?.paymentDetails || details?.walletAddress || 'N/A')}</code>\n<b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n<b>Date:</b> ${currentDate}\n\n${shareText}`,
+              `🎉 <b>Withdrawal successful!</b>\n\n📛 <b>Name:</b> ${escapeHtml(userName)}\n💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON\n💰 <b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n👛 <b>TON wallet:</b> <code>${escapeHtml(withdrawal.walletAddress || details?.paymentDetails || details?.walletAddress || 'N/A')}</code>\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n📅 <b>Date:</b> ${currentDate}`,
               successKeyboard,
               'HTML',
             );
