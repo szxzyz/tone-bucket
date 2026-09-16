@@ -981,11 +981,10 @@ export class DatabaseStorage implements IStorage {
       // Standard referral reward: 250 GOLD per qualifying invite.
       if (adsWatched < referralAdsRequired) return activatedReferrerIds;
 
-      // Get referral reward settings from admin (no hardcoded values)
-      // FIX: User wants Gems rewards only. We now ignore USD settings for the
-      // referral bonus and force SWAG if referral_reward_enabled is true.
-      const referralRewardSWAG = 250;
-      const giveSWAG = true;
+      // Read the admin-configured Gold reward. It is accumulated as pending
+      // income and is credited only when the referrer presses Collect.
+      const referralRewardSWAG = parseInt(await this.getAppSetting('referral_reward_pad', '50')) || 0;
+      const giveSWAG = (await this.getAppSetting('referral_reward_pad_enabled', 'true')) === 'true';
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition
       // double-payments. Only credit reward if this process was the one that flipped the status.
@@ -1008,12 +1007,10 @@ export class DatabaseStorage implements IStorage {
         }
 
         if (giveSWAG && referralRewardSWAG > 0) {
-          await this.addEarning({
-            userId: referral.referrerId,
-            amount: String(referralRewardSWAG),
-            source: 'referral',
-            description: `Referral bonus (Gems) for inviting a friend`,
-          });
+          await db.update(users).set({
+            pendingReferralBonus: sql`COALESCE(${users.pendingReferralBonus}, 0) + ${referralRewardSWAG}`,
+            updatedAt: new Date(),
+          }).where(eq(users.id, referral.referrerId));
         }
 
         // Track this referrer so caller can push WebSocket update
@@ -1046,7 +1043,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Claim any accumulated pending referral bonus for a user.
-  // Bonuses are normally auto-credited, but this handles any leftover pendingReferralBonus.
+  // Move accumulated referral income into the user's Gold balance only on claim.
   async claimReferralBonus(userId: string): Promise<{ success: boolean; message: string; amount?: string }> {
     try {
       // FIX: entire check-clear-credit sequence now runs inside a single
@@ -1085,8 +1082,7 @@ export class DatabaseStorage implements IStorage {
       });
 
       if (pendingAmount <= 0) {
-        // Bonuses are auto-credited on activation — nothing extra to claim
-        return { success: true, message: 'No pending bonus to claim. Bonuses are credited automatically when your friends complete their first ad.', amount: '0' };
+        return { success: true, message: 'No referral bonus is ready to collect yet.', amount: '0' };
       }
 
       // Credit the pending bonus to the user's balance (slot is already locked/cleared above)

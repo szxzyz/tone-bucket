@@ -92,11 +92,6 @@ export default function Affiliates() {
   const l1Percent = appSettings?.l1CommissionPercent ?? 20;
   const l2Percent = appSettings?.l2CommissionPercent ?? 4;
 
-  const referralRewardSWAGEnabled = appSettings?.referralRewardSWAGEnabled;
-  const referralRewardUSDEnabled = appSettings?.referralRewardUSDEnabled;
-
-  const totalPowEarned: number = stats?.totalPowEarned ?? stats?.totalStarEarned ?? 0;
-
   // Copy referral link (was the main button, now the small circular button)
   const copyLink = () => {
     if (!referralLink) return;
@@ -144,12 +139,8 @@ export default function Affiliates() {
 
   const l1Count = stats?.totalInvites ?? 0;
   const l2Count = stats?.l2Count ?? 0;
-  const l1Income = Number(stats?.totalL1Earned ?? totalPowEarned);
-  const l2Income = Number(stats?.totalL2Earned ?? 0);
-  const rewardSWAG = appSettings?.referralRewardSWAG ?? 0;
-  const powActive = referralRewardSWAGEnabled;
-  const bonusLabel = powActive && rewardSWAG > 0 ? <>{rewardSWAG} <img src="/assets/gem-icon.png" style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle' }} /></> : null;
-
+  const pendingReferralBonus = Number(stats?.availableBonus ?? 0);
+  const totalReferralBonusEarned = Number(stats?.totalReferralBonusEarned ?? (Number(stats?.totalClaimed ?? 0) + pendingReferralBonus));
   const myReferrals: any[] = myReferralsData?.referrals ?? [];
 
   // Render referrals in pages of 40 instead of dumping the whole list into
@@ -205,24 +196,47 @@ export default function Affiliates() {
 
                 {/* Income from friends */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-1">Income from friends</div>
-        {[{ level: 1, income: l1Income, count: l1Count, percent: l1Percent }, { level: 2, income: l2Income, count: l2Count, percent: l2Percent }].map(({ level, income, count, percent }) => (
-          <div key={level} className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#252525' }}>
+        <div className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#252525' }}>
             <div className="flex items-center justify-between px-3 pt-3">
               <div className="min-w-0">
                 <div className="text-white text-[15px] font-extrabold">Income to collect</div>
-                <div className="text-white/40 text-xs mt-1">Level {level} · {percent}% from friends</div>
+                <div className="text-white/40 text-xs mt-1">L1 {l1Percent}% · L2 {l2Percent}% from friends</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-white/30 text-[9px] font-bold uppercase tracking-[0.1em] mb-0.5">Friends</div>
-                <div className="text-white text-[13px] font-extrabold">{count}</div>
+                <div className="text-white text-[13px] font-extrabold">{l1Count + l2Count}</div>
               </div>
             </div>
             <div className="flex items-center gap-2 px-3 pb-3 pt-2">
-              <div className="flex-1 inline-flex items-center gap-1 text-white text-base font-black"><img src="/assets/gem-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{formatLargeSWAG(income, false)}</div>
-              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || Number(stats?.availableBonus || 0) <= 0} className="w-[92px] h-[38px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: Number(stats?.availableBonus || 0) > 0 ? '#252525' : 'rgba(255,255,255,0.06)', color: Number(stats?.availableBonus || 0) > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
+              <div className="flex-1 inline-flex items-center gap-1 text-white text-base font-black"><img src="/assets/gem-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{formatLargeSWAG(pendingReferralBonus, false)}</div>
+              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || pendingReferralBonus <= 0} className="w-[92px] h-[38px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: pendingReferralBonus > 0 ? '#252525' : 'rgba(255,255,255,0.06)', color: pendingReferralBonus > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
             </div>
           </div>
-        ))}
+
+        {/* Referral bonuses are accumulated here and never auto-added to balance. */}
+        <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mt-5 mb-2 px-1">Bonuses</div>
+        <div className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: 'linear-gradient(135deg, #252525 0%, #1d2b24 100%)' }}>
+          <div className="flex items-center justify-between px-3 pt-3">
+            <div>
+              <div className="text-white text-[15px] font-extrabold">Referral Bonuses</div>
+              <div className="text-white/45 text-xs mt-1">Gold rewards from your invited friends</div>
+            </div>
+            <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+          </div>
+          <div className="grid grid-cols-2 gap-2 px-3 pt-3 pb-3">
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Ready to collect</div>
+              <div className="text-white text-base font-black mt-1">{formatLargeSWAG(pendingReferralBonus, false)} Gold</div>
+            </div>
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Total earned</div>
+              <div className="text-white text-base font-black mt-1">{formatLargeSWAG(totalReferralBonusEarned, false)} Gold</div>
+            </div>
+          </div>
+          <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || pendingReferralBonus <= 0} className="mx-3 mb-3 w-[calc(100%-24px)] h-10 rounded-xl text-white text-xs font-bold border-none disabled:opacity-40" style={{ background: pendingReferralBonus > 0 ? '#16a34a' : 'rgba(255,255,255,0.08)' }}>
+            {claimReferralMutation.isPending ? 'Collecting…' : pendingReferralBonus > 0 ? 'Collect Gold Bonus' : 'No bonus ready'}
+          </button>
+        </div>
 
         {/* Bottom clearance for the 88px floating nav so the last card is never covered */}
         <div style={{ height: 104, flexShrink: 0 }} />

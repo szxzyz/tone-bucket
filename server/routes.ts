@@ -2032,12 +2032,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Use Math.ceil and ensure minimum 1 Gems commission so small rewards never round to 0
               const l1CommissionGems = Math.max(1, Math.ceil(adRewardGems * l1Rate));
               const l1RateDisplay = Math.round(l1Rate * 100);
-              const l1Earning = await storage.addEarning({
-                userId: l1Referrer.id,
-                amount: String(l1CommissionGems),
-                source: 'referral_commission',
-                description: `${l1RateDisplay}% L1 commission from ${user.username || user.telegram_id}'s ad watch`,
-              });
+              await db.update(users).set({
+                pendingReferralBonus: sql`COALESCE(${users.pendingReferralBonus}, 0) + ${l1CommissionGems}`,
+                updatedAt: new Date(),
+              }).where(eq(users.id, l1Referrer.id));
               // Store in referralCommissions table for audit trail and affiliate statistics
               try {
                 await db.insert(referralCommissions).values({
@@ -2069,12 +2067,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   if (l2Referrer) {
                     const l2CommissionGems = Math.max(1, Math.ceil(adRewardGems * l2Rate));
                     const l2RateDisplay = Math.round(l2Rate * 100);
-                    await storage.addEarning({
-                      userId: l2Referrer.id,
-                      amount: String(l2CommissionGems),
-                      source: 'referral_commission_l2',
-                      description: `${l2RateDisplay}% L2 commission from ${user.username || user.telegram_id}'s ad watch`,
-                    });
+                    await db.update(users).set({
+                      pendingReferralBonus: sql`COALESCE(${users.pendingReferralBonus}, 0) + ${l2CommissionGems}`,
+                      updatedAt: new Date(),
+                    }).where(eq(users.id, l2Referrer.id));
                     // Store L2 in referralCommissions table
                     try {
                       await db.insert(referralCommissions).values({
@@ -3026,6 +3022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalClaimed: user?.totalClaimedReferralBonus || '0',
         availableBonus: user?.pendingReferralBonus || '0',
         readyToClaim: user?.pendingReferralBonus || '0',
+        totalReferralBonusEarned: (totalPowEarned + totalL2Earned + Number(user?.pendingReferralBonus || 0)).toString(),
         totalPowEarned,
         totalL1Earned: totalPowEarned,
         totalL2Earned,
