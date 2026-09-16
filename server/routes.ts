@@ -7672,7 +7672,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/advertiser-tasks/create', authenticateTelegram, async (req: any, res) => {
     try {
       const userId = req.user.user.id;
-      const { taskType, title, link, totalClicksRequired, verificationRequired, channelVerified } = req.body;
+      const { taskType, title, link, totalClicksRequired, channelVerified } = req.body;
+      const verificationRequired = taskType === 'channel';
 
       console.log('📝 Task creation request:', { userId, taskType, title, link, totalClicksRequired, verificationRequired, channelVerified });
 
@@ -7689,6 +7690,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({
           success: false,
           message: "Task type must be 'channel', 'bot', or 'partner'"
+        });
+      }
+
+      if (taskType === "channel" && channelVerified !== true) {
+        return res.status(400).json({
+          success: false,
+          message: "Channel tasks must be verified before creation"
         });
       }
 

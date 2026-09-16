@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   X, Loader2, AlertTriangle, ClipboardList,
-  CheckCircle2, ShieldCheck, ShieldOff, Plus, ChevronLeft,
+  CheckCircle2, Plus, ChevronLeft,
   Type, LayoutGrid, ArrowUpRight, Trash2, Pause, Play,
   Radio, Rocket, Wallet,
 } from "lucide-react";
@@ -24,7 +24,6 @@ const PACKAGES = [
 
 type Flow       = "advertise" | "giveaway" | null;
 type Category   = "channel" | "bot";
-type VerifyType = "verification" | "without";
 interface Props { open: boolean; onClose: () => void; onFlowChange?: (flow: Flow) => void; }
 interface MyTask {
   id: string;
@@ -35,13 +34,9 @@ interface MyTask {
   totalClicksRequired: number;
 }
 
-// Bot username shown in the ambassador/advertise flow — env-based (BOT_USERNAME).
-// Falls back to "GoldBuxBot" only when the env is not set at build time.
-const FALLBACK_BOT_NAME = "GoldBuxBot";
-const ENV_BOT_NAME = ((import.meta as any).env?.VITE_BOT_USERNAME || '').replace(/^@/, '');
 const getBotName = (appConfigBotName?: string) => {
-  const name = appConfigBotName || ENV_BOT_NAME || FALLBACK_BOT_NAME;
-  return name.startsWith('@') ? name : `@${name}`;
+  const name = appConfigBotName?.replace(/^@/, '').trim();
+  return name ? `@${name}` : 'your bot';
 };
 
 // spring preset — very fast, no bounce (pill stack)
@@ -61,11 +56,9 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
   // ── state
   const [flow,         setFlow]         = useState<Flow>(null);
   const [category,     setCategory]     = useState<Category>("channel");
-  const [verifyType,   setVerifyType]   = useState<VerifyType>("verification");
   const [taskName,     setTaskName]     = useState("");
   const [channelLink,  setChannelLink]  = useState("");
   const [botUser,      setBotUser]      = useState("");
-  const [botStart,     setBotStart]     = useState("");
   const [selectedPkg,  setSelectedPkg]  = useState<number | null>(null);
   const [chState,      setChState]      = useState<"idle" | "checking" | "ok" | "err">("idle");
   const [chError,      setChError]      = useState("");
@@ -74,9 +67,8 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
   const [addClicksValue,  setAddClicksValue]  = useState("500");
   const [depositOpen, setDepositOpen] = useState(false);
 
-  // Env-based config (BOT_USERNAME etc.)
-  const { data: appConfig } = useQuery<any>({
-    queryKey: ['/api/config/app'],
+  const { data: botInfo } = useQuery<{ username?: string }>({
+    queryKey: ['/api/bot-info'],
     staleTime: 5 * 60_000,
     retry: false,
   });
@@ -89,7 +81,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
   const tonFormatted = tonBalance >= 1000 ? (tonBalance / 1000).toFixed(1) + "k" : tonBalance.toFixed(2);
   const usdBalance   = parseFloat(authUser?.usdBalance || "0");
 
-  const isVerif     = verifyType === "verification";
+  const isVerif     = category === "channel";
   const pkgData     = PACKAGES.find(p => p.clicks === selectedPkg);
   const cost        = pkgData ? (isVerif ? pkgData.verified : pkgData.price).toFixed(4) : null;
   const chVerified  = chState === "ok";
@@ -121,8 +113,8 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
   }, [open, flow, onFlowChange]);
 
   const reset = useCallback(() => {
-    setFlowWithNotify(null); setCategory("channel"); setVerifyType("verification");
-    setTaskName(""); setChannelLink(""); setBotUser(""); setBotStart("");
+    setFlowWithNotify(null); setCategory("channel");
+    setTaskName(""); setChannelLink(""); setBotUser("");
     setSelectedPkg(null); setChState("idle"); setChError("");
     setAdvTab("add"); setAddClicksTaskId(null); setAddClicksValue("500");
   }, [setFlowWithNotify]);
@@ -215,18 +207,14 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
         // Bare domain or domain/path (e.g. example.com, timebucks.com/?refID=123) → external website
         return `https://${trimmed}`;
       };
-      const link = category === "channel"
-        ? channelLink.trim()
-        : isVerif
-          ? botStart.trim()
-          : buildWebsiteLink(botUser);
+      const link = category === "channel" ? channelLink.trim() : buildWebsiteLink(botUser);
       const res = await fetch("/api/advertiser-tasks/create", {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskType: category, title: taskName.trim(), link,
           totalClicksRequired: selectedPkg,
-          verificationRequired: isVerif,
+          verificationRequired: category === "channel",
           channelVerified: category === "channel" ? chVerified : false,
         }),
       });
@@ -243,24 +231,16 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
     onError: (e: Error) => showNotification(e.message, "error"),
   });
 
-  const botStartInvalidForVerif = category === "bot" && isVerif && botStart.trim().length > 0 && !botStart.includes("t.me");
-
   const canSubmit = (() => {
     if (!taskName.trim() || !selectedPkg || createMutation.isPending) return false;
     if (category === "channel") {
       if (!channelLink.trim() || !channelLink.includes("t.me/")) return false;
       if (isVerif && !chVerified) return false;
     } else {
-      if (isVerif && (!botStart.trim() || !botStart.includes("t.me"))) return false;
-      if (!isVerif) {
-        const raw = botUser.trim();
-        if (!raw) return false;
-        // Must either look like a URL (has a dot or starts with http/@ ) or be a plain username
-        // Reject obviously malformed input (spaces, no scheme and no dot = ambiguous junk)
-        if (raw.includes(' ')) return false;
-        // If it contains a protocol, it must be http or https
-        if (raw.includes('://') && !raw.startsWith('http://') && !raw.startsWith('https://')) return false;
-      }
+      const raw = botUser.trim();
+      if (!raw) return false;
+      if (raw.includes(' ')) return false;
+      if (raw.includes('://') && !raw.startsWith('http://') && !raw.startsWith('https://')) return false;
     }
     return true;
   })();
@@ -438,24 +418,9 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                         value={category}
                         onChange={v => {
                           setCategory(v as Category);
-                          setChannelLink(""); setBotUser(""); setBotStart(""); resetCh();
+                          setChannelLink(""); setBotUser(""); resetCh();
                         }}
                       />
-                    </Field>
-
-                    {/* TYPE */}
-                    <Field label={t("verification_type_label")} icon={<ShieldCheck size={13} />}>
-                      <PillToggle
-                        options={[
-                          { id: "verification", label: t("with_verification"),    icon: <ShieldCheck size={12} /> },
-                          { id: "without",      label: t("without_verification"), icon: <ShieldOff   size={12} /> },
-                        ]}
-                        value={verifyType}
-                        onChange={v => { setVerifyType(v as VerifyType); resetCh(); }}
-                      />
-                      <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11.5, marginTop: 8, lineHeight: 1.6, paddingLeft: 2 }}>
-                        {typeHint(category, isVerif, t)}
-                      </p>
                     </Field>
 
                     {/* ── CHANNEL fields ── */}
@@ -501,7 +466,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                                 <p style={{ color: "rgba(253,230,138,0.8)", fontSize: 12, lineHeight: 1.6 }}>
                                   {chState === "err" && chError
                                     ? chError
-                                    : <>Add <strong style={{ color: "#fbbf24" }}>{getBotName(appConfig?.botUsername)}</strong> as <strong>Admin</strong> in your channel, then tap <strong>Verify</strong>.</>
+                                    : <>Add <strong style={{ color: "#fbbf24" }}>{getBotName(botInfo?.username)}</strong> as <strong>Admin</strong> in your channel, then tap <strong>Verify</strong>.</>
                                   }
                                 </p>
                               </div>
@@ -514,41 +479,17 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
 
                     {/* ── BOT/WEBSITE fields ── */}
                     {category === "bot" && (
-                      <Field label={isVerif ? t("referral_start_link") : "Website or Bot Link"}>
-                        {isVerif ? (
-                          <>
-                            <input
-                              type="text"
-                              placeholder="https://t.me/YourBot?start=REF_CODE"
-                              value={botStart}
-                              onChange={e => setBotStart(e.target.value)}
-                              style={{ ...INPUT, ...(botStartInvalidForVerif ? { borderColor: "rgba(248,113,113,0.5)" } : {}) }}
-                            />
-                            {botStartInvalidForVerif ? (
-                              <p style={{ color: "#f87171", fontSize: 11.5, marginTop: 6, lineHeight: 1.6, display: "flex", alignItems: "flex-start", gap: 5 }}>
-                                <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
-                                Verification is only supported for Telegram (t.me) links. Please disable verification for external websites.
-                              </p>
-                            ) : (
-                              <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 11.5, marginTop: 6, lineHeight: 1.6 }}>
-                                Users must start via your referral link — verified before reward is granted.
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <input
-                              type="url"
-                              placeholder="https://example.com or https://t.me/YourBot"
-                              value={botUser}
-                              onChange={e => setBotUser(e.target.value)}
-                              style={INPUT}
-                            />
-                            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 11.5, marginTop: 6, lineHeight: 1.6 }}>
-                              Any website or Telegram bot link — users visit the page, no verification required.
-                            </p>
-                          </>
-                        )}
+                      <Field label="Website or Bot Link">
+                        <input
+                          type="url"
+                          placeholder="https://example.com or https://t.me/YourBot"
+                          value={botUser}
+                          onChange={e => setBotUser(e.target.value)}
+                          style={INPUT}
+                        />
+                        <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 11.5, marginTop: 6, lineHeight: 1.6 }}>
+                          Website and bot tasks are always without verification.
+                        </p>
                       </Field>
                     )}
 
@@ -931,11 +872,4 @@ function verifyBtnStyle(state: "idle" | "checking" | "ok" | "err", hasLink: bool
     cursor: state === "checking" || ok ? "default" : "pointer",
     transition: "background 150ms, color 150ms",
   };
-}
-
-function typeHint(cat: Category, verif: boolean, t: (key: string) => string): string {
-  if (cat === "channel") {
-    return verif ? t("channel_verified_hint") : t("channel_instant_hint");
-  }
-  return verif ? t("bot_verified_hint") : t("bot_instant_hint");
 }
