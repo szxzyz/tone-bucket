@@ -10,7 +10,6 @@ import {
 import { showNotification } from "@/components/AppNotification";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
-import DepositPopup from "@/components/DepositPopup";
 
 // ─── Pricing ───────────────────────────────────────────────────
 const PACKAGES = [
@@ -45,7 +44,7 @@ const SPRING = { type: "spring" as const, stiffness: 500, damping: 42, mass: 0.9
 // native iOS-style sheet easing (matches vaul's drawer feel used elsewhere in the app)
 const SHEET_TRANSITION = { type: "tween" as const, duration: 0.28, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
 
-const BLUE = "#6b21a8";
+const BLUE = "#2563eb";
 const BLUE_HOVER = "#6ddeff";
 
 export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
@@ -65,7 +64,6 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
   const [advTab,       setAdvTab]       = useState<"add" | "mine">("add");
   const [addClicksTaskId, setAddClicksTaskId] = useState<string | null>(null);
   const [addClicksValue,  setAddClicksValue]  = useState("500");
-  const [depositOpen, setDepositOpen] = useState(false);
 
   const { data: botInfo } = useQuery<{ username?: string }>({
     queryKey: ['/api/bot-info'],
@@ -505,8 +503,8 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                               onClick={() => setSelectedPkg(pkg.clicks)}
                               style={{
                                 padding: "12px 4px", borderRadius: 12, border: "none",
-                                background: sel ? "rgba(76,211,255,0.14)" : "#1a1a1a",
-                                outline: `1.5px solid ${sel ? "rgba(76,211,255,0.6)" : "transparent"}`,
+                                background: sel ? "rgba(37,99,235,0.18)" : "#1a1a1a",
+                                outline: `1.5px solid ${sel ? "rgba(37,99,235,0.75)" : "transparent"}`,
                                 cursor: "pointer", textAlign: "center",
                                 transition: "background 120ms, outline-color 120ms",
                               }}
@@ -514,7 +512,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                               <p style={{ color: sel ? BLUE : "#fff", fontWeight: 700, fontSize: 15, lineHeight: 1 }}>
                                 {pkg.clicks >= 1000 ? `${pkg.clicks / 1000}K` : pkg.clicks}
                               </p>
-                              <p style={{ color: sel ? "rgba(76,211,255,0.7)" : "rgba(255,255,255,0.28)", fontSize: 10.5, marginTop: 4, fontWeight: 500 }}>
+                              <p style={{ color: sel ? "rgba(96,165,250,0.9)" : "rgba(255,255,255,0.28)", fontSize: 10.5, marginTop: 4, fontWeight: 500 }}>
                                 {price.toFixed(4)} TON
                               </p>
                             </button>
@@ -548,7 +546,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
                   }}>
                     {/* TON balance + top-up */}
                     <button
-                      onClick={() => setDepositOpen(true)}
+                      onClick={() => undefined}
                       style={{
                         display: "flex", alignItems: "center", gap: 8, padding: "0 16px 0 18px",
                         background: "transparent", border: "none", cursor: "pointer"
@@ -615,7 +613,6 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
         )}
       </AnimatePresence>
 
-      <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </>
   );
@@ -652,7 +649,7 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
             {icon}
           </div>
         )}
-        <p style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "0.02em" }}>
           {label}
         </p>
       </div>

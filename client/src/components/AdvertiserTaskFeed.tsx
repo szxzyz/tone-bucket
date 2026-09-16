@@ -121,7 +121,7 @@ function TaskCard({
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <img src="/assets/gold-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
+              <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
               <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{reward.toLocaleString()}</span>
             </span>
           </div>
@@ -154,6 +154,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
   const [activeTask, setActiveTask] = React.useState<UnifiedTask | null>(null);
   const [directTaskId, setDirectTaskId] = React.useState<string | null>(null);
   const [directClaimReady, setDirectClaimReady] = React.useState(false);
+  const [claimedTaskIds, setClaimedTaskIds] = React.useState<Set<string>>(new Set());
   const directTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const taskType = kind === "social" ? "channel" : "bot";
 
@@ -184,14 +185,22 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/advertiser-tasks/completions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/home/unified"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       showNotification("Task reward claimed", "success");
       setActiveTask(null);
     },
-    onError: (error: any) => showNotification(error?.message || "Task unavailable", "error"),
+    onError: (error: any, taskId: string) => {
+      setClaimedTaskIds((previous) => {
+        const next = new Set(previous);
+        next.delete(taskId);
+        return next;
+      });
+      showNotification(error?.message || "Task unavailable", "error");
+    },
   });
 
-  const tasks = (data?.tasks || []).filter((task) => task.taskType === taskType);
+  const tasks = (data?.tasks || []).filter((task) => task.taskType === taskType && !claimedTaskIds.has(task.id));
 
   React.useEffect(() => () => {
     if (directTimerRef.current) clearTimeout(directTimerRef.current);
@@ -204,12 +213,14 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     openTaskLink(task.link);
     if (directTimerRef.current) clearTimeout(directTimerRef.current);
     setDirectTaskId(task.id);
-    setDirectClaimReady(false);
-    directTimerRef.current = setTimeout(() => setDirectClaimReady(true), 5_000);
+    setDirectClaimReady(true);
   };
 
   const handleDirectClaim = (taskId: string) => {
     if (!directClaimReady || directTaskId !== taskId || clickTaskMutation.isPending) return;
+    setClaimedTaskIds((previous) => new Set(previous).add(taskId));
+    setDirectTaskId(null);
+    setDirectClaimReady(false);
     clickTaskMutation.mutate(taskId);
   };
 

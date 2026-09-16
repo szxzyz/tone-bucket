@@ -80,21 +80,22 @@ export default function TelegramJoinGate() {
         inset: 0,
         zIndex: 100,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: 24,
-        background: 'rgba(0,0,0,0.96)',
+        background: 'rgba(0,0,0,0.62)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 320, textAlign: 'center', color: '#fff' }}>
-        <h1 id="telegram-join-title" style={{ margin: 0, fontSize: 18, lineHeight: 1.2, fontWeight: 900 }}>
+      <div style={{ width: '100%', maxWidth: 430, maxHeight: '82vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: '#1c1c1e', borderRadius: '26px 26px 0 0', padding: '14px 16px calc(28px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', boxShadow: '0 -12px 40px rgba(0,0,0,0.35)' }}>
+        <div style={{ width: 56, height: 5, borderRadius: 5, background: 'rgba(255,255,255,0.16)', margin: '0 auto 18px' }} />
+        <div style={{ fontSize: 38, lineHeight: 1, marginBottom: 14 }}>🔔</div>
+        <h1 id="telegram-join-title" style={{ margin: 0, fontSize: 19, lineHeight: 1.2, fontWeight: 900 }}>
           Welcome to Axionet
         </h1>
-        <p style={{ margin: '8px 0 18px', color: 'rgba(255,255,255,0.56)', fontSize: 12, lineHeight: 1.45 }}>
+        <p style={{ margin: '8px 0 20px', color: 'rgba(255,255,255,0.56)', fontSize: 13, lineHeight: 1.45 }}>
           to access this app please join our official Telegram resources.
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
           {resources.map((resource) => (
             <button
               key={resource.key}
@@ -105,11 +106,11 @@ export default function TelegramJoinGate() {
               className="w-full flex items-center justify-between active:scale-[0.98] transition-transform"
               style={{
                 border: 'none',
-                borderRadius: 10,
+                borderRadius: 18,
                 background: resource.joined ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.08)',
                 color: resource.joined ? '#22c55e' : '#fff',
-                padding: '10px 13px',
-                fontSize: 13,
+                padding: '13px 15px',
+                fontSize: 14,
                 fontWeight: 700,
                 textAlign: 'left',
                 cursor: resource.link ? 'pointer' : 'default',
@@ -130,11 +131,12 @@ export default function TelegramJoinGate() {
           disabled={isLoading || isFetching}
           style={{
             border: 'none',
-            borderRadius: 8,
-            background: '#fff',
-            color: '#000',
-            padding: '9px 18px',
-            fontSize: 12,
+            width: '100%',
+            borderRadius: 16,
+            background: '#1677ff',
+            color: '#fff',
+            padding: '13px 18px',
+            fontSize: 15,
             fontWeight: 800,
             cursor: isLoading || isFetching ? 'wait' : 'pointer',
             opacity: isLoading || isFetching ? 0.65 : 1,
