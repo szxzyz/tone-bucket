@@ -953,8 +953,9 @@ export class DatabaseStorage implements IStorage {
             ))
         : [];
 
-      // Get admin-configured referral ads requirement (default 10 — must watch 10 ads to activate)
-      const referralAdsRequired = parseInt(await this.getAppSetting('referral_ads_required', '10'));
+      // A referral qualifies only after five Adsgram ads (not ads from another
+      // provider). This is intentionally independent of the general ad count.
+      const referralAdsRequired = 5;
 
       // Count ads watched by this user (from earnings table so timing is always accurate)
       const [adCount] = await db
@@ -962,7 +963,8 @@ export class DatabaseStorage implements IStorage {
         .from(earnings)
         .where(and(
           eq(earnings.userId, userId),
-          eq(earnings.source, 'ad_watch')
+          eq(earnings.source, 'ad_watch'),
+          sql`LOWER(COALESCE(${earnings.description}, '')) LIKE '%adsgram%'`
         ));
       const adsWatched = Number(adCount?.count || 0);
 
@@ -983,7 +985,10 @@ export class DatabaseStorage implements IStorage {
 
       // Read the admin-configured Gold reward. It is accumulated as pending
       // income and is credited only when the referrer presses Collect.
-      const referralRewardSWAG = parseInt(await this.getAppSetting('referral_reward_pad', '50')) || 0;
+      const configuredReward = parseInt(await this.getAppSetting('referral_reward_pad', '2500')) || 0;
+      // 50 was the old legacy default; migrate that implicit default to the
+      // requested 2500 Gold without overriding a deliberate admin value.
+      const referralRewardSWAG = configuredReward === 50 ? 2500 : configuredReward;
       const giveSWAG = (await this.getAppSetting('referral_reward_pad_enabled', 'true')) === 'true';
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition

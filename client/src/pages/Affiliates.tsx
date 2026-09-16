@@ -219,7 +219,7 @@ export default function Affiliates() {
           <div className="flex items-center justify-between px-3 pt-3">
             <div>
               <div className="text-white text-[15px] font-extrabold">Referral Bonuses</div>
-              <div className="text-white/45 text-xs mt-1">Gold rewards from your invited friends</div>
+              <div className="text-white/45 text-xs mt-1">2,500 Gold per friend after 5 Adsgram ads</div>
             </div>
             <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
           </div>

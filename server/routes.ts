@@ -1351,10 +1351,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Referral reward settings
       const referralRewardEnabled = getSetting('referral_reward_enabled', 'false') === 'true';
       const referralRewardUSD = parseFloat(getSetting('referral_reward_usd', '0.0005'));
-      const referralRewardGems = parseInt(getSetting('referral_reward_pad', '50'));
+      const referralRewardGems = parseInt(getSetting('referral_reward_pad', '2500'));
       const referralRewardGemsEnabled = getSetting('referral_reward_pad_enabled', 'true') === 'true';
       const referralRewardUSDEnabled = getSetting('referral_reward_usd_enabled', 'false') === 'true';
-      const referralAdsRequired = parseInt(getSetting('referral_ads_required', '1')); // Ads needed for affiliate bonus
+      const referralAdsRequired = 5; // Five Adsgram ads are required for affiliate bonus
       const l1CommissionPercent = parseFloat(getSetting('l1_commission_percent', '20')); // Level 1: 20%
       const l2CommissionPercent = parseFloat(getSetting('l2_commission_percent', '4')); // Level 2: 4%
 
@@ -4857,10 +4857,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hourlyAdLimit: parseInt(getSetting('hourly_ad_limit', '63')),
         referralRewardEnabled: getSetting('referral_reward_enabled', 'false') === 'true',
         referralRewardUSD: parseFloat(getSetting('referral_reward_usd', '0.0005')),
-        referralRewardGems: parseInt(getSetting('referral_reward_pad', '50')),
+        referralRewardGems: parseInt(getSetting('referral_reward_pad', '2500')),
         referralRewardGemsEnabled: getSetting('referral_reward_pad_enabled', 'true') === 'true',
         referralRewardUSDEnabled: getSetting('referral_reward_usd_enabled', 'false') === 'true',
-        referralAdsRequired: parseInt(getSetting('referral_ads_required', '1')),
+        referralAdsRequired: 5,
         // Daily task rewards
         streakReward: parseInt(getSetting('streak_reward', '100')),
         shareTaskReward: parseInt(getSetting('share_task_reward', '1000')),

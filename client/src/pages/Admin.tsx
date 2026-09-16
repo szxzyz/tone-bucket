@@ -2460,8 +2460,8 @@ function SettingsSection() {
     referralRewardSWAGEnabled: false,
     referralRewardUSDEnabled: false,
     referralRewardUSD: '0.0005',
-    referralRewardSWAG: '50',
-    referralAdsRequired: '1',
+    referralRewardSWAG: '2500',
+    referralAdsRequired: '5',
     // Withdrawal requirements
     withdrawalAdRequirementEnabled: true,
     minimumAdsForWithdrawal: '100',
@@ -2528,8 +2528,8 @@ function SettingsSection() {
         referralRewardSWAGEnabled: settingsData.referralRewardSWAGEnabled || false,
         referralRewardUSDEnabled: settingsData.referralRewardUSDEnabled || false,
         referralRewardUSD: settingsData.referralRewardUSD?.toString() || '0.0005',
-        referralRewardSWAG: settingsData.referralRewardSWAG?.toString() || '50',
-        referralAdsRequired: settingsData.referralAdsRequired?.toString() || '1',
+        referralRewardSWAG: settingsData.referralRewardSWAG?.toString() || '2500',
+        referralAdsRequired: settingsData.referralAdsRequired?.toString() || '5',
         // Withdrawal requirements
         withdrawalAdRequirementEnabled: settingsData.withdrawalAdRequirementEnabled !== false,
         minimumAdsForWithdrawal: settingsData.minimumAdsForWithdrawal?.toString() || '100',
@@ -2987,7 +2987,7 @@ function SettingsSection() {
             <div className="space-y-2 p-3 border rounded-lg bg-green-50/5 border-green-500/20 md:col-span-2">
               <Label className="text-sm font-semibold block mb-2">
                 <i className="fas fa-gift mr-2 text-green-500"></i>
-                Referral Bonus — When friend watches 1 ad
+                Referral Bonus — 2500 Gold after 5 Adsgram ads
               </Label>
               <p className="text-xs text-muted-foreground mb-3">Enable Gold and/or USD independently. Users receive whichever are enabled. Affiliate page shows accordingly.</p>
 
