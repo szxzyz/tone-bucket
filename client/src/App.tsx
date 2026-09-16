@@ -4,6 +4,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import AppNotification from "@/components/AppNotification";
+import TelegramJoinGate from "@/components/TelegramJoinGate";
 import { useEffect, lazy, Suspense, useState, memo, useCallback, useRef } from "react";
 import { setupDeviceTracking } from "@/lib/deviceId";
 import BanScreen from "@/components/BanScreen";
@@ -136,6 +137,7 @@ function AppContent() {
       <DeepLinkRedirector />
       {shouldShowSeasonEnd && <SeasonEndOverlay onClose={handleCloseSeasonEnd} isLocked={seasonLockActive} />}
       <Router />
+      <TelegramJoinGate />
     </SeasonEndContext.Provider>
   );
 }

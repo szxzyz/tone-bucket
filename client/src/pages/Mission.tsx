@@ -29,15 +29,20 @@ export default function Mission() {
           onClick={() => setCreateTaskOpen(true)}
           style={{
             position: 'fixed', left: '50%', bottom: 78, transform: 'translateX(-50%)', zIndex: 60,
-            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px',
-            border: 0, borderRadius: 14, background: '#252525', color: '#fff',
-            boxShadow: '0 8px 24px rgba(0,0,0,.45)', fontSize: 13, fontWeight: 800,
+            display: 'flex', alignItems: 'center', gap: 8, padding: '11px 18px',
+            border: 0, borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#fff',
+            boxShadow: '0 8px 24px rgba(37,99,235,.38)', fontSize: 13, fontWeight: 800,
             whiteSpace: 'nowrap', cursor: 'pointer',
           }}
         >
-          <Plus size={17} strokeWidth={3} color="#3b82f6" />
+          <Plus size={17} strokeWidth={3} color="#fff" />
           Add Task
-          <span style={{ color: '#60a5fa', fontSize: 10, fontWeight: 900 }}>30% OFF</span>
+          <span style={{
+            position: 'absolute', top: -8, right: -9, minWidth: 25, height: 20,
+            padding: '0 5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 10, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 900,
+            lineHeight: 1, boxShadow: '0 3px 8px rgba(0,0,0,.3)',
+          }}>30%</span>
         </button>
         <CreatePanel open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
       </main>
