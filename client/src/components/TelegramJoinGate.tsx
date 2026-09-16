@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -19,6 +20,16 @@ const fetchJoinStatus = async (): Promise<JoinStatusResponse> => {
   const telegramInitData = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initData : '';
   if (telegramInitData) {
     headers['x-telegram-data'] = telegramInitData;
+  }
+  // Keep the request useful when Telegram briefly recreates the WebView without
+  // exposing initData yet. The session is still sent below and the backend can
+  // use it as the authenticated fallback.
+  try {
+    const cachedUser = localStorage.getItem('tg_user');
+    const parsedUser = cachedUser ? JSON.parse(cachedUser) : null;
+    if (parsedUser?.id) headers['x-user-id'] = String(parsedUser.id);
+  } catch {
+    // Ignore malformed local cache; Telegram initData/session remains authoritative.
   }
 
   const response = await fetch('/api/telegram/join-status', {
@@ -55,10 +66,39 @@ export default function TelegramJoinGate() {
     // false-positive gate with an empty/unauthenticated response.
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
-    refetchInterval: 30000,
+    // A user can leave from Telegram and return to the mini app before the old
+    // 30s poll fires. Keep the fallback poll short, but use the lifecycle
+    // listeners below for the immediate check.
+    refetchInterval: 15000,
     refetchOnWindowFocus: true,
-    staleTime: 15000,
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
+
+  useEffect(() => {
+    if (!user) return;
+
+    let refreshTimer: number | undefined;
+    const refreshMembership = () => {
+      if (document.visibilityState === 'hidden') return;
+      window.clearTimeout(refreshTimer);
+      // Telegram finishes restoring the WebView a moment after pageshow/focus.
+      refreshTimer = window.setTimeout(() => {
+        void refetch({ cancelRefetch: false });
+      }, 250);
+    };
+
+    window.addEventListener('focus', refreshMembership);
+    window.addEventListener('pageshow', refreshMembership);
+    document.addEventListener('visibilitychange', refreshMembership);
+
+    return () => {
+      window.clearTimeout(refreshTimer);
+      window.removeEventListener('focus', refreshMembership);
+      window.removeEventListener('pageshow', refreshMembership);
+      document.removeEventListener('visibilitychange', refreshMembership);
+    };
+  }, [user, refetch]);
 
   // Never render the blocking UI before the server has returned an explicit
   // verification result. This prevents the popup from looking like a splash

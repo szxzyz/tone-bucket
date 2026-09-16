@@ -717,7 +717,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mandatory app access verification. Telegram must be able to look up the
   // configured official channel and community group; payout is not required.
 
-  app.get('/api/telegram/join-status', authenticateTelegram, async (req: any, res) => {
+  // Telegram can briefly omit initData while a Mini App is being restored after
+  // the user returns from a channel/group. Reuse the already-authenticated
+  // session in that case, while retaining initData authentication for fresh
+  // launches.
+  const authenticateTelegramOrSession = (req: any, res: any, next: any) => {
+    if (req.session?.user?.user) {
+      req.user = req.session.user;
+      return next();
+    }
+    return authenticateTelegram(req, res, next);
+  };
+
+  app.get('/api/telegram/join-status', authenticateTelegramOrSession, async (req: any, res) => {
     res.set('Cache-Control', 'no-store');
     const required = process.env.REQUIRE_CHANNEL_JOIN !== 'false';
     const configuredResources = [
