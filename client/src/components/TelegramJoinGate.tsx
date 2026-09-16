@@ -135,15 +135,14 @@ export default function TelegramJoinGate() {
         inset: 0,
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: '20px 16px max(20px, env(safe-area-inset-bottom, 0px))',
         background: 'rgba(0,0,0,0.72)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 390, maxHeight: '88vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: 'linear-gradient(180deg, #1a1a1e 0%, #111114 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 70px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+      <div style={{ width: '100%', maxWidth: 430, maxHeight: '82vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: 'linear-gradient(180deg, #1a1a1e 0%, #111114 100%)', borderRadius: '26px 26px 0 0', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', boxShadow: '0 -12px 40px rgba(0,0,0,0.45)', overflow: 'hidden' }}>
         <div style={{ height: 6, width: '100%', background: 'linear-gradient(90deg, #1677ff 0%, #38bdf8 50%, #1677ff 100%)' }} />
         <div style={{ padding: '24px 18px max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}>
         <h1 id="telegram-join-title" style={{ margin: 0, fontSize: 19, lineHeight: 1.2, fontWeight: 900 }}>
