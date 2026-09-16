@@ -88,7 +88,7 @@ export default function TelegramJoinGate() {
     >
       <div style={{ width: '100%', maxWidth: 320, textAlign: 'center', color: '#fff' }}>
         <h1 id="telegram-join-title" style={{ margin: 0, fontSize: 18, lineHeight: 1.2, fontWeight: 900 }}>
-          Welcome to SWAG BUX
+          Welcome to Axionet
         </h1>
         <p style={{ margin: '8px 0 18px', color: 'rgba(255,255,255,0.56)', fontSize: 12, lineHeight: 1.45 }}>
           to access this app please join our official Telegram resources.

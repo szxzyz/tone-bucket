@@ -1264,9 +1264,13 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('Axionet Mining journey', { bold: true });
   addSegment(' and start earning today. 🌟');
 
-  const appUrl = referralCode && config.bot.appUrl
-    ? `${config.bot.appUrl}${config.bot.appUrl.includes('?') ? '&' : '?'}startapp=${encodeURIComponent(referralCode)}`
+  const botUsername = await getBotUsername();
+  const botAppUrl = botUsername
+    ? `https://t.me/${botUsername}/MyWAdz`
     : config.bot.appUrl;
+  const appUrl = referralCode && botAppUrl
+    ? `${botAppUrl}${botAppUrl.includes('?') ? '&' : '?'}startapp=${encodeURIComponent(referralCode)}`
+    : botAppUrl;
   const buttonRows: any[][] = [];
 
   // Telegram rejects inline buttons whose URL is empty, so only include
