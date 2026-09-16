@@ -58,7 +58,7 @@ const openTelegramLink = (link: string) => {
 export default function TelegramJoinGate() {
   const { user } = useAuth();
   const [verificationMessage, setVerificationMessage] = useState('');
-  const { data, isLoading, isError, refetch, isFetching } = useQuery<JoinStatusResponse>({
+  const { data, isLoading, isError, refetch, isFetching, isFetchedAfterMount } = useQuery<JoinStatusResponse>({
     queryKey: ['/api/telegram/join-status', user?.id],
     queryFn: fetchJoinStatus,
     enabled: Boolean(user),
@@ -101,10 +101,17 @@ export default function TelegramJoinGate() {
     };
   }, [user, refetch]);
 
-  // Never render the blocking UI before the server has returned an explicit
-  // verification result. This prevents the popup from looking like a splash
-  // screen during app startup and avoids gating users on transient failures.
-  if (!user || isLoading || isError || !data || data.required === false || data.verified) return null;
+  if (!user) return null;
+
+  // Cached React Query data must never grant access while the current launch or
+  // a Telegram resume is being checked. Keep the app covered until the server
+  // returns a fresh result; this removes the 1–3 second access window for users
+  // who are not members without flashing the join sheet for verified users.
+  if (!isFetchedAfterMount || isLoading || isFetching || isError || !data) {
+    return <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a0a' }} />;
+  }
+
+  if (data.required === false || data.verified) return null;
 
   const resources = data.resources ?? [];
   const hasUnjoinedResource = resources.some((resource) => !resource.joined);
