@@ -29,6 +29,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     const [unreadCount, setUnreadCount] = useState(0);
     const [overlayTop, setOverlayTop] = useState(0);
     const [depositOpen, setDepositOpen] = useState(false);
+    const [transactionPage, setTransactionPage] = useState(0);
     const [tonPrice, setTonPrice] = useState(5.5);
     const innerRef = useRef<HTMLDivElement>(null);
     const seenIds = useRef<Set<string>>(new Set());
@@ -61,6 +62,12 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       null;
 
     const withdrawals: any[] = withdrawalsData?.withdrawals ?? [];
+    const transactionsPerPage = 5;
+    const transactionPageCount = Math.max(1, Math.ceil(withdrawals.length / transactionsPerPage));
+    const visibleWithdrawals = withdrawals.slice(transactionPage * transactionsPerPage, (transactionPage + 1) * transactionsPerPage);
+    useEffect(() => {
+      setTransactionPage(page => Math.min(page, transactionPageCount - 1));
+    }, [transactionPageCount]);
     useEffect(() => {
       getTONPrice().then(price => { if (Number.isFinite(price) && price > 0) setTonPrice(price); }).catch(() => {});
     }, []);
@@ -72,7 +79,10 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     }, [withdrawalsData]);
 
     const handleBellClick = () => {
-      setNotifOpen(v => !v);
+      setNotifOpen(v => {
+        if (!v) setTransactionPage(0);
+        return !v;
+      });
       const ids = withdrawals.map(w => String(w.id));
       localStorage.setItem('grabpenny_seen_transactions', JSON.stringify(ids));
       seenIds.current = new Set(ids);
@@ -227,8 +237,15 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
                   <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.1)', margin: '12px auto 20px' }} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>Transactions</div>
                   <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
-                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 30).map((w: any) => { const sc = statusColor(w.status); const details = w.details || {}; const gold = Number(w.goldAmount ?? details.goldAmount ?? w.amount ?? 0); const ton = Number(details.tonAmount ?? w.cryptoAmount ?? details.cryptoAmount ?? (Number(w.usdValue ?? details.usdValue ?? w.amount ?? 0) / tonPrice)); const date = new Date(w.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={w.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><img src="/assets/gem-icon.png" alt="Gold" style={{ width: 22, height: 22, objectFit: 'contain' }} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{gold.toLocaleString()} GOLD</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{ton.toFixed(6)} TON</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, color: 'rgba(255,255,255,.35)', fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${sc}18`, border: `1px solid ${sc}40`, color: sc, textTransform: 'uppercase', letterSpacing: '.04em' }}>{w.status}</span></div></div>; })}
+                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : visibleWithdrawals.map((w: any) => { const sc = statusColor(w.status); const details = w.details || {}; const gold = Number(w.goldAmount ?? details.goldAmount ?? w.amount ?? 0); const ton = Number(details.tonAmount ?? w.cryptoAmount ?? details.cryptoAmount ?? (Number(w.usdValue ?? details.usdValue ?? w.amount ?? 0) / tonPrice)); const date = new Date(w.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={w.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><img src="/assets/gem-icon.png" alt="Gold" style={{ width: 22, height: 22, objectFit: 'contain' }} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{gold.toLocaleString()} GOLD</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{ton.toFixed(6)} TON</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, color: 'rgba(255,255,255,.35)', fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${sc}18`, border: `1px solid ${sc}40`, color: sc, textTransform: 'uppercase', letterSpacing: '.04em' }}>{w.status}</span></div></div>; })}
                   </div>
+                  {transactionPageCount > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 14 }}>
+                      <button type="button" onClick={() => setTransactionPage(page => Math.max(0, page - 1))} disabled={transactionPage === 0} style={{ flex: 1, border: 'none', borderRadius: 12, padding: '11px 12px', background: transactionPage === 0 ? 'rgba(255,255,255,.05)' : 'rgba(37,99,235,.18)', color: transactionPage === 0 ? 'rgba(255,255,255,.25)' : '#93c5fd', fontSize: 12, fontWeight: 800 }}>← Previous</button>
+                      <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>{transactionPage + 1} / {transactionPageCount}</span>
+                      <button type="button" onClick={() => setTransactionPage(page => Math.min(transactionPageCount - 1, page + 1))} disabled={transactionPage >= transactionPageCount - 1} style={{ flex: 1, border: 'none', borderRadius: 12, padding: '11px 12px', background: transactionPage >= transactionPageCount - 1 ? 'rgba(255,255,255,.05)' : 'rgba(37,99,235,.18)', color: transactionPage >= transactionPageCount - 1 ? 'rgba(255,255,255,.25)' : '#93c5fd', fontSize: 12, fontWeight: 800 }}>Next →</button>
+                    </div>
+                  )}
                 </section>
               </div>
             )}
