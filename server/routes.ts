@@ -7007,13 +7007,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { getLiveTonPriceUSD, GEMS_PER_USD } = await import('./tonPriceService');
       const result = await getLiveTonPriceUSD();
-      if (result.source.includes('(stale)')) {
-        return res.status(503).json({ error: 'TON live price temporarily unavailable' });
-      }
       res.json({
         price: result.price,
         source: result.source,
-        cached: (result as any).cached ?? false,
+        cached: Boolean((result as any).stale),
+        stale: Boolean((result as any).stale),
         fetchedAt: result.fetchedAt,
         // Helpful display info
         powPerUsd: GEMS_PER_USD,

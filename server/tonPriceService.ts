@@ -21,6 +21,7 @@ interface PriceResult {
   price: number;
   source: string;
   fetchedAt: number;
+  stale?: boolean;
 }
 
 let priceCache: PriceResult | null = null;
@@ -65,6 +66,35 @@ async function fetchOKX(): Promise<number> {
   return price;
 }
 
+/** Fetch TON/USD from TonAPI (TON-native rate service). */
+async function fetchTonAPI(): Promise<number> {
+  const res = await fetch(
+    'https://tonapi.io/v2/rates?tokens=ton&currencies=usd',
+    { signal: AbortSignal.timeout(8_000) }
+  );
+  if (!res.ok) throw new Error(`TonAPI ${res.status}`);
+  const data: any = await res.json();
+  const price = Number(data?.rates?.TON?.prices?.USD);
+  if (!isFinite(price) || price <= 0) throw new Error('TonAPI: invalid price');
+  return price;
+}
+
+/** Fetch TON/USD from STON.fi's public TON asset catalogue. */
+async function fetchSTONFi(): Promise<number> {
+  const res = await fetch(
+    'https://api.ston.fi/v1/assets',
+    { signal: AbortSignal.timeout(8_000) }
+  );
+  if (!res.ok) throw new Error(`STON.fi ${res.status}`);
+  const data: any = await res.json();
+  const tonAsset = Array.isArray(data?.asset_list)
+    ? data.asset_list.find((asset: any) => asset?.symbol === 'TON' || asset?.display_name === 'Toncoin')
+    : undefined;
+  const price = Number(tonAsset?.third_party_usd_price ?? tonAsset?.dex_usd_price);
+  if (!isFinite(price) || price <= 0) throw new Error('STON.fi: invalid price');
+  return price;
+}
+
 /**
  * Returns a live TON/USD price aggregated from every provider that responds.
  * The median prevents one exchange/API outlier from setting the withdrawal
@@ -82,6 +112,8 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
     { name: 'CoinGecko', fn: fetchCoinGecko },
     { name: 'Binance',   fn: fetchBinance },
     { name: 'OKX',       fn: fetchOKX },
+    { name: 'TonAPI',    fn: fetchTonAPI },
+    { name: 'STON.fi',   fn: fetchSTONFi },
   ];
 
   const results = await Promise.all(sources.map(async (source) => {
@@ -107,7 +139,7 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
   // All sources failed — use stale cache if available
   if (priceCache) {
     console.warn('[TON price] All sources failed, serving stale cache');
-    return { ...priceCache, source: `${priceCache.source} (stale)` };
+    return { ...priceCache, source: `${priceCache.source} (stale)`, stale: true };
   }
 
   // Do not invent a market price. Callers can decide whether a stale quote is
