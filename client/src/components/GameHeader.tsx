@@ -24,7 +24,7 @@ function statusColor(status: string) {
 }
 
 const Header = forwardRef<HTMLDivElement, HeaderProps>(
-  ({ onMenuOpen }, ref) => {
+  (_, ref) => {
     const [notifOpen, setNotifOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [overlayTop, setOverlayTop] = useState(0);
@@ -45,6 +45,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
     const firstName: string = user?.firstName || user?.username || "Miner";
+    const isAdminUser = user?.isAdmin === true;
     const profileImageUrl: string | null =
       user?.profileImageUrl ||
       (typeof window !== "undefined" && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) ||
@@ -130,8 +131,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           {/* Left — Profile photo + name + UID */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
             <button
-              onClick={onMenuOpen}
-              onDoubleClick={() => setLocation('/admin')}
+              onDoubleClick={() => { if (isAdminUser) setLocation('/admin'); }}
               style={{
                 width: 36, height: 36, borderRadius: "50%",
                 overflow: "hidden", display: "flex",

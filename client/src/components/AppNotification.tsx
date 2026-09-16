@@ -129,7 +129,7 @@ export default function AppNotification() {
 
   const notificationElement = (
     <div 
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] px-4 py-3 rounded-xl shadow-2xl text-white font-medium text-sm flex items-center gap-2 animate-slideDown max-w-[90vw]"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] px-4 py-3 rounded-xl shadow-2xl text-white font-medium text-sm flex items-start gap-2 animate-slideDown w-[min(92vw,420px)] max-w-[92vw]"
       style={{
         backgroundColor: '#1534A1',
         animation: isVisible ? "slideDown 0.3s ease-out" : "slideUp 0.3s ease-out",
@@ -139,7 +139,7 @@ export default function AppNotification() {
       <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 flex-shrink-0">
         {getIcon()}
       </div>
-      <div className="whitespace-nowrap">{message}</div>
+      <div className="min-w-0 flex-1 break-words whitespace-normal leading-5 max-h-20 overflow-y-auto">{message}</div>
     </div>
   );
 

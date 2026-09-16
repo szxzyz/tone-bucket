@@ -1239,11 +1239,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add referral link - bot username cached to avoid hitting Telegram API on every request
       const botUsername = await getCachedBotUsername();
       const referralLink = `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`;
+      const isAdminUser = await isAdminAsync(String(user.telegram_id || ''));
 
       res.json({
         ...user,
         friendsInvited,
-        referralLink
+        referralLink,
+        isAdmin: isAdminUser,
       });
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -6635,7 +6637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Normalize them here so only genuinely active payouts block a new request.
       const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(
         eq(withdrawals.userId, userId),
-        sql`LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))) IN ('pending', 'approved', 'processing', 'under_review')`,
+        sql`LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))) IN ('pending', 'processing', 'under_review')`,
       )).limit(1);
       if (existing) return res.status(409).json({ success: false, message: 'A payout is already awaiting admin approval or processing' });
       const usdValue = gold / 100000;
