@@ -732,6 +732,7 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
   axnAmount?: number;
   tonPrice?: number;
   tonAmount?: number;
+  usdAmount?: number;
 }): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.warn('⚠️ Telegram bot token not set — skipping group withdrawal request notification');
@@ -740,6 +741,10 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
 
   try {
     const groupChatId = WITHDRAWAL_GROUP_CHAT_ID;
+    if (!groupChatId) {
+      console.error('❌ Withdrawal group is not configured. Set WITHDRAWAL_GROUP_CHAT_ID.');
+      return false;
+    }
 
     const botUsername = await getBotUsername();
     const currentDate = new Date().toUTCString();
@@ -755,7 +760,9 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
 💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}
 🌐 Address:
 <code>${escapeHtml(withdrawalData.walletAddress)}</code>
-${axnLine}💸 TON amount: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>
+${axnLine}💵 USDT value: <b>${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} USDT</b>
+💸 TON amount: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>
+📈 TON price at request: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>
 🪙 Payment: <b>Manual TON payment by admin after approval</b>
 🛂 Fee: ${withdrawalData.fee.toFixed(4)} (${withdrawalData.feePercent}%)
 📅 Date: ${currentDate}
@@ -768,25 +775,21 @@ ${axnLine}💸 TON amount: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)
       ]]
     };
 
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: groupChatId,
-        text,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      })
-    });
-
-    const data = await response.json() as any;
-    if (response.ok && data.ok) {
-      console.log(`✅ Withdrawal request posted to group ${groupChatId} for withdrawal ${withdrawalData.withdrawalId}`);
-      return true;
-    } else {
-      console.error(`❌ Failed to post withdrawal request to group ${groupChatId}:`, JSON.stringify(data));
-      return false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: groupChatId, text, parse_mode: 'HTML', reply_markup: replyMarkup })
+      });
+      const data = await response.json() as any;
+      if (response.ok && data.ok) {
+        console.log(`✅ Withdrawal request posted to group ${groupChatId} for withdrawal ${withdrawalData.withdrawalId}`);
+        return true;
+      }
+      console.error(`❌ Failed to post withdrawal request (attempt ${attempt}) to group ${groupChatId}:`, JSON.stringify(data));
+      if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 1000));
     }
+    return false;
   } catch (error) {
     console.error('❌ Error posting withdrawal request to group:', error);
     return false;

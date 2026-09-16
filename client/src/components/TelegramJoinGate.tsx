@@ -108,7 +108,7 @@ export default function TelegramJoinGate() {
   // returns a fresh result; this removes the 1–3 second access window for users
   // who are not members without flashing the join sheet for verified users.
   if (!isFetchedAfterMount || isLoading || isFetching || isError || !data) {
-    return <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a0a' }} />;
+    return <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(10,10,10,0.12)', backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', pointerEvents: 'auto' }} />;
   }
 
   if (data.required === false || data.verified) return null;

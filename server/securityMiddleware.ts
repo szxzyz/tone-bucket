@@ -246,14 +246,14 @@ export function rateLimit(opts: RateLimitOptions = {}): RequestHandler {
 }
 
 // Pre-built limiters for common endpoints
-export const authRateLimit = rateLimit({ limit: 30, windowMs: 60_000, cooldownMs: 30_000 });
-export const adWatchRateLimit = rateLimit({ limit: 15, windowMs: 60_000, cooldownMs: 120_000 });
+export const authRateLimit = rateLimit({ limit: 60, windowMs: 60_000, cooldownMs: 10_000, maxCooldownMs: 60_000 });
+export const adWatchRateLimit = rateLimit({ limit: 30, windowMs: 60_000, cooldownMs: 30_000, maxCooldownMs: 120_000 });
 // Was limit:5/60s with a 300s base cooldown (doubling per strike, so a second
 // strike within the window produced the 600s lockout users were hitting).
 // Withdrawals are already capped by the daily-limit + pending-withdrawal
 // checks in the route itself, so this only needs to stop rapid-fire spam,
 // not double as the primary defense — loosened to avoid false-positive
 // lockouts from normal double-taps/retries.
-export const withdrawRateLimit = rateLimit({ limit: 5, windowMs: 60_000, cooldownMs: 30_000, maxCooldownMs: 120_000 });
-export const walletMutationRateLimit = rateLimit({ limit: 10, windowMs: 60_000, cooldownMs: 60_000 });
-export const taskRateLimit = rateLimit({ limit: 20, windowMs: 60_000, cooldownMs: 30_000 });
+export const withdrawRateLimit = rateLimit({ limit: 10, windowMs: 60_000, cooldownMs: 10_000, maxCooldownMs: 60_000 });
+export const walletMutationRateLimit = rateLimit({ limit: 30, windowMs: 60_000, cooldownMs: 15_000, maxCooldownMs: 60_000 });
+export const taskRateLimit = rateLimit({ limit: 60, windowMs: 60_000, cooldownMs: 10_000, maxCooldownMs: 60_000 });
