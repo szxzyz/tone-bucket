@@ -25,7 +25,20 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
     onError: (e: any) => showNotification(e.message || 'Could not save TON address', 'error'),
   });
   const withdrawal = useMutation({
-    mutationFn: async () => (await apiRequest('POST', '/api/payouts', { goldAmount: Number(amount) })).json(),
+    mutationFn: async () => {
+      // A connected TON wallet is usable for payout only after it is persisted
+      // on the user's account. Save it automatically instead of making the user
+      // press a second button and then receiving "Save your TON address first".
+      if (connectedAddress && !saved) {
+        const walletResponse = await apiRequest('PATCH', '/api/wallet/payout', {
+          currency: 'TON',
+          address: connectedAddress.trim(),
+        });
+        const walletData = await walletResponse.json();
+        if (!walletData.success) throw new Error(walletData.message || 'Could not save TON wallet');
+      }
+      return (await apiRequest('POST', '/api/payouts', { goldAmount: Number(amount) })).json();
+    },
     onSuccess: (data) => { if (!data.success) throw new Error(data.message); queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] }); showNotification('Gold withdrawal request sent to admin', 'success'); onClose(); },
     onError: (e: any) => showNotification(e.message || 'Could not create withdrawal request', 'error'),
   });

@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { storage } from './storage';
 import { db } from './db';
-import { earnings } from '../shared/schema';
+import { earnings, withdrawals } from '../shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { config } from './config';
 // The centralized env config (server/config.ts) is also used at line ~665
@@ -93,6 +93,12 @@ const TELEGRAM_ADMIN_ID = process.env.TELEGRAM_ADMIN_ID;
 
 // State management for admin rejection flow
 const pendingRejections = new Map<string, {
+  withdrawalId: string;
+  messageId: number;
+  timestamp: number;
+}>();
+
+const pendingWithdrawalHashes = new Map<string, {
   withdrawalId: string;
   messageId: number;
   timestamp: number;
@@ -725,6 +731,7 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
   feePercent: string | number;
   axnAmount?: number;
   tonPrice?: number;
+  tonAmount?: number;
 }): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.warn('⚠️ Telegram bot token not set — skipping group withdrawal request notification');
@@ -748,7 +755,8 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
 💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}
 🌐 Address:
 <code>${escapeHtml(withdrawalData.walletAddress)}</code>
-${axnLine}🪙 Payment: <b>Manual TON payment by admin after approval</b>
+${axnLine}💸 TON amount: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>
+🪙 Payment: <b>Manual TON payment by admin after approval</b>
 🛂 Fee: ${withdrawalData.fee.toFixed(4)} (${withdrawalData.feePercent}%)
 📅 Date: ${currentDate}
 🤖 Bot: @${botUsername}`;
@@ -846,13 +854,12 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
   }
 
   try {
-    // Post approved withdrawals to the dedicated public payout channel, never the admin group.
-    const WITHDRAWAL_CHANNEL_ID = config.telegram.payoutChannelId;
-    if (!WITHDRAWAL_CHANNEL_ID) {
-      console.warn('⚠️ TELEGRAM_PAYOUT_CHANNEL_ID not set — skipping public withdrawal approval notification');
+    // Approved withdrawals are posted only to the admin withdrawal group.
+    if (!WITHDRAWAL_GROUP_CHAT_ID) {
+      console.warn('⚠️ WITHDRAWAL_GROUP_CHAT_ID not set — skipping withdrawal approval notification');
       return false;
     }
-    console.log(`📤 Sending public withdrawal approval notification to channel: ${WITHDRAWAL_CHANNEL_ID}`);
+    console.log(`📤 Sending withdrawal approval notification to admin group: ${WITHDRAWAL_GROUP_CHAT_ID}`);
 
     const user = await storage.getUser(withdrawal.userId);
     
@@ -862,6 +869,8 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const feePercent = withdrawalDetails?.feePercent || '0';
     const walletAddress = withdrawal.walletAddress || withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
     const goldAmount = Number(withdrawal.goldAmount || withdrawalDetails?.axnAmount || 0);
+    const tonAmount = Number(withdrawal.cryptoAmount || withdrawalDetails?.tonAmount || 0);
+    const transactionHash = withdrawal.transactionHash || 'N/A';
     
     const userName = user?.firstName || user?.username || 'Unknown';
     const userTelegramId = user?.telegram_id || '';
@@ -869,9 +878,10 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
     const currentDate = new Date().toUTCString();
 
     const botUsername = await getBotUsername();
-    const botLink = `https://t.me/${botUsername}`;
+    const botLink = `https://t.me/${botUsername}/MyWAdz`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(`Withdrawal successful for ${userName}: ${tonAmount.toFixed(6)} TON`)}`;
 
-    const payoutLine = `💸 <b>Amount:</b> <b>${goldAmount.toLocaleString()} GOLD</b>\n🪙 <b>Payment:</b> Manual TON payment by admin\n📍 <b>TON Wallet:</b> <code>${escapeHtml(walletAddress)}</code>`;
+    const payoutLine = `💸 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💎 <b>Gold:</b> ${goldAmount.toLocaleString()}\n📍 <b>TON Wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🔗 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
 
     const groupMessage = `🚀 <b>New Withdrawal Success!</b>
 
@@ -881,12 +891,13 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
 ${payoutLine}
 📅 <b>Date:</b> ${currentDate}
 
-👇 <b>Join Axionet and start earning TON today!</b>`;
+🕐 <b>Time:</b> ${currentDate}`;
 
     // Inline keyboard: "💸 Start Earning" button linking to the bot
     const replyMarkup = {
       inline_keyboard: [[
-        { text: '💸 Start Earning', url: botLink }
+        { text: '🚀 Start mining', url: botLink },
+        { text: '↗️ Share on group', url: shareUrl }
       ]]
     };
 
@@ -894,7 +905,7 @@ ${payoutLine}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: WITHDRAWAL_CHANNEL_ID,
+        chat_id: WITHDRAWAL_GROUP_CHAT_ID,
         text: groupMessage,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
@@ -2653,91 +2664,27 @@ ${walletAddress}
         }
         
         try {
-          const result = await storage.approveWithdrawal(withdrawalId, `Approved by admin ${chatId}`);
-          
-          if (result.success && result.withdrawal) {
-            const user = await storage.getUser(result.withdrawal.userId);
-            
-            const withdrawalDetails = result.withdrawal.details as any;
-            const netAmount = parseFloat(withdrawalDetails?.netAmount || result.withdrawal.amount);
-            const feeAmount = parseFloat(withdrawalDetails?.fee || '0');
-            // Use stored fee percentage from admin settings (already saved when withdrawal was created)
-            const feePercent = withdrawalDetails?.feePercent || '0';
-            const walletAddress = withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
-            const userName = user?.firstName || user?.username || 'Unknown';
-            const userTelegramId = user?.telegram_id || '';
-            const userTelegramUsername = user?.username ? `@${user.username}` : 'N/A';
-            const currentDate = new Date().toUTCString();
-            const method = result.withdrawal.method || 'USD';
-            const paymentSystemId = withdrawalDetails?.paymentSystemId || '';
-            
-            const approvalBotUsername = await getBotUsername();
-            const adminSuccessMessage = `✅ Withdrawal Approved
-
-🗣 User: <a href="tg://user?id=${userTelegramId}">${userName}</a>
-🆔 User ID: ${userTelegramId}
-💳 Username: ${userTelegramUsername}
-🌐 Address:
-${walletAddress}
-💸 Amount: ${netAmount.toFixed(2)} USDT
-🛂 Fee: ${feeAmount.toFixed(4)} (${feePercent}%)
-📅 Date: ${currentDate}
-🤖 Bot: @${approvalBotUsername}`;
-            
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: chatId,
-                message_id: callbackQuery.message.message_id,
-                text: adminSuccessMessage,
-                parse_mode: 'HTML'
-              })
-            });
-
-            // Remove Approve/Reject buttons from all other admins' copies
-            await clearWithdrawalAdminButtons(withdrawalId);
-
-            // Send group notification for approval
-            await sendWithdrawalApprovedNotification(result.withdrawal);
-            
-            if (userTelegramId) {
-              // User confirmation message with Amount (net after fee) and Fee with percentage
-              const userConfirmationMessage = `🚀 Your payout has been successfully processed.
-
-💵 Amount: ${netAmount.toFixed(3)} USD
-🛂 Fee: ${feeAmount.toFixed(3)} (${feePercent}%)`;
-              
-              // Mini App button — same format as welcome message "Let's GOOO!!" button
-              const miniAppBotUsername = await getBotUsername();
-              const openAppButton = {
-                inline_keyboard: [[
-                  { text: "🚀 Let's GOOO!!", url: `https://t.me/${miniAppBotUsername}/MyWAdz` }
-                ]]
-              };
-              
-              await sendUserTelegramNotification(userTelegramId, userConfirmationMessage, openAppButton);
-            }
-            
+          const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId)).limit(1);
+          if (!withdrawal || withdrawal.status !== 'pending') {
             await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                callback_query_id: callbackQuery.id,
-                text: '✅ Payout approved successfully'
-              })
+              body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Withdrawal is no longer pending', show_alert: true })
             });
-          } else {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                callback_query_id: callbackQuery.id,
-                text: result.message,
-                show_alert: true
-              })
-            });
+            return true;
           }
+
+          pendingWithdrawalHashes.set(chatId, {
+            withdrawalId,
+            messageId: callbackQuery.message?.message_id || 0,
+            timestamp: Date.now(),
+          });
+          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Send the TON transaction hash in chat' })
+          });
+          await sendUserTelegramNotification(chatId, `✅ Approval selected for withdrawal <code>${withdrawalId}</code>.\n\nSend the TON transaction hash now to complete the payout.\nSend /cancel to abort.`, undefined, 'HTML');
         } catch (error) {
           console.error('Error approving withdrawal:', error);
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
@@ -2980,6 +2927,72 @@ ${walletAddress}
     });
 
     console.log(`📝 User upserted: ID=${dbUser.id}, TelegramID=${dbUser.telegram_id}, RefCode=${dbUser.referralCode}, IsNew=${isNewUser}`);
+
+    // An admin must provide the real TON transaction hash after choosing
+    // Approve. Only then is the withdrawal finalized and announced.
+    if (await isAdminAsync(chatId) && pendingWithdrawalHashes.has(chatId)) {
+      const hashState = pendingWithdrawalHashes.get(chatId)!;
+      const transactionHash = text.trim();
+      if (transactionHash.toLowerCase() === '/cancel') {
+        pendingWithdrawalHashes.delete(chatId);
+        await sendUserTelegramNotification(chatId, 'Withdrawal approval cancelled.');
+        return true;
+      }
+      if (!transactionHash || transactionHash.startsWith('/')) {
+        await sendUserTelegramNotification(chatId, 'Please send a valid TON transaction hash, or /cancel.');
+        return true;
+      }
+
+      try {
+        const result = await storage.approveWithdrawal(
+          hashState.withdrawalId,
+          `Approved by admin ${chatId}`,
+          transactionHash,
+        );
+        if (result.success && result.withdrawal) {
+          pendingWithdrawalHashes.delete(chatId);
+          const withdrawal = result.withdrawal;
+          const user = await storage.getUser(withdrawal.userId);
+          const details = withdrawal.details as any;
+          const tonAmount = Number(withdrawal.cryptoAmount || details?.tonAmount || 0);
+          const userName = user?.firstName || user?.username || 'Unknown';
+          const userTelegramId = String(user?.telegram_id || '');
+          const currentDate = new Date().toUTCString();
+          const botUsername = await getBotUsername();
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(`https://t.me/${botUsername}/MyWAdz`)}&text=${encodeURIComponent(`Withdrawal successful for ${userName}: ${tonAmount.toFixed(6)} TON`)}`;
+          const successKeyboard = {
+            inline_keyboard: [[
+              { text: '🚀 Start mining', url: `https://t.me/${botUsername}/MyWAdz` },
+              { text: '↗️ Share on group', url: shareUrl },
+            ]],
+          };
+
+          await sendWithdrawalApprovedNotification(withdrawal);
+          if (userTelegramId) {
+            await sendUserTelegramNotification(
+              userTelegramId,
+              `✅ <b>Withdrawal successful</b>\n\n<b>Name:</b> ${escapeHtml(userName)}\n<b>Amount:</b> ${tonAmount.toFixed(6)} TON\n<b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n<b>Date:</b> ${currentDate}`,
+              successKeyboard,
+              'HTML',
+            );
+          }
+          if (hashState.messageId && WITHDRAWAL_GROUP_CHAT_ID) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: WITHDRAWAL_GROUP_CHAT_ID, message_id: hashState.messageId, reply_markup: successKeyboard }),
+            }).catch(() => {});
+          }
+          await sendUserTelegramNotification(chatId, `✅ Withdrawal completed and posted in the admin group.\nHash: <code>${escapeHtml(transactionHash)}</code>`, undefined, 'HTML');
+        } else {
+          await sendUserTelegramNotification(chatId, `❌ ${result.message}`);
+        }
+      } catch (error) {
+        console.error('Error finalizing withdrawal with transaction hash:', error);
+        await sendUserTelegramNotification(chatId, '❌ Could not finalize this withdrawal. Please try again.');
+      }
+      return true;
+    }
 
     // Check if admin has a pending rejection waiting for a reason
     if (await isAdminAsync(chatId) && pendingRejections.has(chatId)) {

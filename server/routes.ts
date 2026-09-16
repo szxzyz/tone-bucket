@@ -6651,7 +6651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAmount.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, fee, feePercent, netAmount, tonAmount: withdrawalTonAmount, marketRateUsd: withdrawalTonPrice, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: netAmount.toFixed(10), payoutCurrency: 'TON', cryptoAmount: withdrawalTonAmount.toFixed(18), marketRateUsd: withdrawalTonPrice.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
       });
-      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, fee, feePercent, axnAmount: gold });
+      await sendWithdrawalRequestToGroup({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, fee, feePercent, axnAmount: gold, tonAmount: withdrawalTonAmount, tonPrice: withdrawalTonPrice });
       res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue: netAmount, fee, feePercent, currency: 'TON' });
     } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not create payout' }); }
   });
@@ -9648,16 +9648,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'You have sent a withdrawal request.'
       });
 
-      // Send withdrawal notification — (1) to the group chat, (2) to individual admins
+      // Send the request only to the configured admin withdrawal group.
       const userName = newWithdrawal.firstName;
       const userTelegramId = newWithdrawal.userTelegramId || '';
       const userTelegramUsername = newWithdrawal.username ? `@${newWithdrawal.username}` : 'N/A';
       const walletAddress = newWithdrawal.walletAddress || 'N/A';
       const feeAmount = newWithdrawal.fee;
       const feePercent = newWithdrawal.feePercent;
-
-      // (1) Post to the withdrawal group chat with Approve / Reject buttons
-      const { sendWithdrawalRequestToGroup, sendWithdrawalSubmittedNotification } = await import('./telegram');
+      const { sendWithdrawalRequestToGroup } = await import('./telegram');
       const { getLiveTonPriceUSD } = await import('./tonPriceService');
       const { price: currentTonPrice } = await getLiveTonPriceUSD();
 
@@ -9675,72 +9673,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         feePercent,
         axnAmount: axnAmtForGroup,
         tonPrice: currentTonPrice,
+        tonAmount: Number((newWithdrawal.withdrawal as any).cryptoAmount || (newWithdrawal.withdrawal.details as any)?.tonAmount || 0),
       }).catch(err => console.error('❌ Group withdrawal request post failed:', err));
-
-      // (1b) DM the user their own "submitted" confirmation (include axnAmount for Gems withdrawals)
-      sendWithdrawalSubmittedNotification(userTelegramId, {
-        amount: newWithdrawal.withdrawnAmount,
-        walletAddress,
-        withdrawalId: newWithdrawal.withdrawal.id,
-        axnAmount: axnAmtForGroup,
-        tonPrice: currentTonPrice,
-      } as any).catch(err => console.error('❌ Withdrawal-submitted DM to user failed:', err));
-
-      // (2) Also DM each individual admin with the same message + buttons
-      if (process.env.TELEGRAM_BOT_TOKEN) {
-        const { getBotUsername: getBotUsernameForWithdrawal } = await import('./telegram');
-        const botUsernameForWithdrawal = await getBotUsernameForWithdrawal();
-        const currentDate = new Date().toUTCString();
-
-        const axnAmtForNotif = (newWithdrawal.withdrawal.details as any)?.axnAmount;
-      const axnNotifLine = axnAmtForNotif
-        ? `💎 Gems: ${parseFloat(axnAmtForNotif).toLocaleString()} Gems ($${newWithdrawal.withdrawnAmount.toFixed(2)} USD)\n`
-        : `💸 Amount: ${newWithdrawal.withdrawnAmount.toFixed(5)} USD\n`;
-
-      const adminMessage = `💰 Withdrawal Request
-
-🗣 User: <a href="tg://user?id=${userTelegramId}">${userName}</a>
-🆔 User ID: ${userTelegramId}
-💳 Username: ${userTelegramUsername}
-🌐 Address:
-${walletAddress}
-${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
-📅 Date: ${currentDate}
-🤖 Bot: @${botUsernameForWithdrawal}`;
-
-        const inlineKeyboard = {
-          inline_keyboard: [[
-            { text: "✅ Approve", callback_data: `withdraw_paid_${newWithdrawal.withdrawal.id}` },
-            { text: "❌ Reject",  callback_data: `withdraw_reject_${newWithdrawal.withdrawal.id}` }
-          ]]
-        };
-
-        getAllAdminTelegramIds().then(allAdminIds => {
-          const withdrawalId = newWithdrawal.withdrawal.id;
-          allAdminIds.forEach(adminId => {
-            fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: adminId,
-                text: adminMessage,
-                parse_mode: 'HTML',
-                reply_markup: inlineKeyboard
-              })
-            }).then(r => r.json()).then((data: any) => {
-              if (data.ok && data.result?.message_id) {
-                const existing = withdrawalAdminMessages.get(withdrawalId) || [];
-                existing.push({ chatId: adminId, messageId: data.result.message_id });
-                withdrawalAdminMessages.set(withdrawalId, existing);
-              }
-            }).catch(err => {
-              console.error(`❌ Failed to send withdrawal notification to admin ${adminId}:`, err);
-            });
-          });
-        }).catch(err => {
-          console.error('❌ Failed to fetch admin list for withdrawal notification:', err);
-        });
-      }
 
 
       res.json({
@@ -9975,15 +9909,18 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
   app.post('/api/admin/withdrawals/:withdrawalId/approve', authenticateAdmin, async (req: any, res) => {
     try {
       const { withdrawalId } = req.params;
-      const { adminNotes } = req.body;
+      const { adminNotes, transactionHash } = req.body;
 
-      // Approve the withdrawal using existing storage method (no transaction hash required)
-      const result = await storage.approveWithdrawal(withdrawalId, adminNotes, 'N/A');
+      if (!transactionHash || !String(transactionHash).trim()) {
+        return res.status(400).json({ success: false, message: 'TON transaction hash is required before approval' });
+      }
+
+      const result = await storage.approveWithdrawal(withdrawalId, adminNotes, String(transactionHash).trim());
 
       if (result.success) {
         console.log(`✅ Withdrawal ${withdrawalId} approved by admin ${req.user.telegramUser.id}`);
 
-        // Approval posts the manual TON payment instruction to the public channel.
+        // Approval posts the completed payment only to the admin withdrawal group.
         if (result.withdrawal) {
           const { sendWithdrawalApprovedNotification } = await import('./telegram');
           await sendWithdrawalApprovedNotification(result.withdrawal);
