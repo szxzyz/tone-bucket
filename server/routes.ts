@@ -735,7 +735,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const configuredResources = [
       { key: 'channel' as const, title: config.telegram.channelName || 'Official Channel', link: config.telegram.channelUrl, id: config.telegram.channelId },
       { key: 'group' as const, title: config.telegram.groupName || 'Community group', link: config.telegram.groupUrl, id: config.telegram.groupId },
-    ].filter((resource) => Boolean(resource.id?.trim()));
+    ].map((resource) => {
+      // Some deployments configure only TELEGRAM_*_LINK. Convert public t.me
+      // links into a Telegram username so membership verification still works.
+      // Numeric IDs remain preferred, especially for private groups/channels.
+      let id = resource.id?.trim() || '';
+      if (!id && resource.link?.trim()) {
+        const match = resource.link.trim().match(/^https?:\/\/t\.me\/([^/?#]+)/i);
+        if (match && !match[1].startsWith('+') && !match[1].startsWith('joinchat')) {
+          id = `@${match[1].replace(/^@/, '')}`;
+        }
+      }
+      return { ...resource, id };
+    }).filter((resource) => Boolean(resource.id || resource.link?.trim()));
 
     // A missing optional resource must not be reported as "not joined" forever.
     // Only resources with a Telegram chat ID can be checked by getChatMember.
@@ -768,7 +780,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const results = await Promise.all(configuredResources.map(async (resource) => {
-        const joined = await verifyChannelMembership(telegramId, resource.id, botToken);
+        // Private invite links cannot be resolved to a chat ID from the URL.
+        // Keep them visible in the gate, but report them as unverified until a
+        // numeric TELEGRAM_*_ID is configured for server-side verification.
+        const joined = resource.id
+          ? await verifyChannelMembership(telegramId, resource.id, botToken)
+          : false;
         return { key: resource.key, title: resource.title, link: resource.link, joined };
       }));
 
