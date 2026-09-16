@@ -9,7 +9,7 @@ import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
-import { showAdgramAd, showRewardedInterstitial } from "@/lib/showAd";
+import { showAdgramAd } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Info, Rocket } from "lucide-react";
 import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
@@ -66,6 +66,38 @@ export default function Games() {
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
   const { data: checkinStatus } = useQuery<any>({ queryKey: ['/api/daily-checkin/status'], retry: false });
+
+  const runVerifiedAdsgramReward = async (context: 'daily_checkin' | 'mystery_box') => {
+    const sessionId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    let backgroundEntered = false;
+    let backgroundStartedAt = 0;
+    let backgroundDuration = 0;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        backgroundEntered = true;
+        backgroundStartedAt = Date.now();
+      } else if (backgroundStartedAt) {
+        backgroundDuration += Date.now() - backgroundStartedAt;
+        backgroundStartedAt = 0;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    try {
+      const register = await apiRequest('POST', '/api/ads/register-session', { sessionId, adType: 'adsgram', context });
+      if (!register.ok) throw new Error('Could not start ad session');
+      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
+      if (document.visibilityState === 'hidden') {
+        await new Promise<void>(resolve => {
+          const onVisible = () => { if (document.visibilityState === 'visible') { document.removeEventListener('visibilitychange', onVisible); resolve(); } };
+          document.addEventListener('visibilitychange', onVisible);
+        });
+      }
+      if (backgroundStartedAt) backgroundDuration += Date.now() - backgroundStartedAt;
+      return { sessionId, backgroundEntered, backgroundDuration };
+    } finally {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }
+  };
 
   const axnRaw = parseFloat(user?.walletBalance ?? user?.balance ?? '0');
   const axnBalance = Math.floor(axnRaw);
@@ -134,8 +166,8 @@ export default function Games() {
   }, [user]);
 
   const dailyCheckMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/daily-checkin', {});
+    mutationFn: async (session: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number }) => {
+      const res = await apiRequest('POST', '/api/daily-checkin', session);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed');
       return data;
@@ -154,18 +186,18 @@ export default function Games() {
   const handleDailyCheck = async () => {
     if (dailyChecked || dailyAdLoading || dailyCheckMutation.isPending) return;
     setDailyAdLoading(true);
-    try { await showRewardedInterstitial(); } catch {}
+    let session;
+    try { session = await runVerifiedAdsgramReward('daily_checkin'); } catch (error: any) { setDailyAdLoading(false); showNotification(error?.message || 'Ad could not be completed', 'error'); return; }
     setDailyAdLoading(false);
-    dailyCheckMutation.mutate();
+    dailyCheckMutation.mutate(session);
   };
 
   const handleMysteryOpen = async () => {
     if (mysteryOpened || mysteryPhase !== 'idle') return;
     setMysteryPhase('claiming');
     try {
-      // Use the same AdsGram reward block configured for the Ad Watch section.
-      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
-      const res = await apiRequest('POST', '/api/mystery-box', {});
+      const session = await runVerifiedAdsgramReward('mystery_box');
+      const res = await apiRequest('POST', '/api/mystery-box', session);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not claim gift');
       setMysteryOpened(true);

@@ -1445,7 +1445,7 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
     }
 
     // Get the share banner image URL - use public URL
-    const shareImageUrl = `${appUrl}/images/share_v5.jpg?v=swagbux-20260826`;
+    const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
     
     console.log(`📷 Share image URL: ${shareImageUrl}`);
     console.log(`🔗 Referral Link: ${referralLink}`);
@@ -1457,9 +1457,9 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: '💵 Get USDT with Swag Bux!',
-        description: 'Complete tasks and watch ads to earn USDT with Swag Bux.',
-        caption: '💵 Get USDT for completing tasks and watching ads.\n\n👇 Join Swag Bux using the button below and earn with me 🔥',
+        title: '💵 Join Axionet and earn TON!',
+        description: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
+        caption: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -1477,10 +1477,10 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         type: 'article',
         id: `article_${user.referralCode}_${Date.now()}`,
         title: '💸 Share with friends',
-        description: 'Join Swag Bux and start earning with me.',
+        description: 'Join Axionet and start earning with me.',
         thumbnail_url: shareImageUrl,
         input_message_content: {
-          message_text: '💵 Get USDT for completing tasks and watching ads.\n\n👇 Join Swag Bux using the button below and earn with me 🔥',
+          message_text: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
           parse_mode: 'HTML'
         },
         reply_markup: {

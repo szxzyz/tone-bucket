@@ -3748,10 +3748,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const webAppUrl = `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`;
 
       // Get share banner image URL
-      const shareImageUrl = `${appUrl}/images/share_v5.jpg?v=swagbux`;
+      const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
 
       // Caption for the share message
-      const caption = '💵 Get paid for completing tasks and watching ads.';
+      const caption = '💵 Join Axionet and earn TON just by Mining & completing tasks!';
 
       // Send the photo message with inline button
       const result = await sendSharePhotoToChat(
@@ -11877,7 +11877,7 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
                     (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null) ||
                     'https://vuuug.onrender.com';
 
-      const shareImageUrl = `${appUrl}/images/share_v5.jpg?v=swagbux`;
+      const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
       const webAppUrl = referralLink;
 
       console.log(`📤 Preparing share message for user ${userId}`);
@@ -11893,9 +11893,9 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: '💵 Get USDT with Swag Bux!',
-        description: 'Join Swag Bux and earn USDT by completing tasks and watching ads!',
-        caption: '💵 Get USDT for completing tasks and watching ads.\n\n👇 Join Swag Bux using the button below and earn with me 🔥',
+        title: '💵 Join Axionet and earn TON!',
+        description: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
+        caption: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -11944,7 +11944,7 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
             success: false,
             error: prepareResult.description || 'Failed to prepare message',
             referralLink,
-            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('💵 Get USDT for completing tasks and watching ads.\n\n👇 Join Swag Bux using the button below and earn with me 🔥')}`
+            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('💵 Join Axionet and earn TON just by Mining & completing tasks!')}`
           });
         }
       } catch (telegramError: any) {
@@ -11953,7 +11953,7 @@ ${axnNotifLine}🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
           success: false,
           error: telegramError.message || 'Telegram API error',
           referralLink,
-          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('💵 Get USDT for completing tasks and watching ads.\n\n👇 Join Swag Bux using the button below and earn with me 🔥')}`
+          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('💵 Join Axionet and earn TON just by Mining & completing tasks!')}`
         });
       }
 
