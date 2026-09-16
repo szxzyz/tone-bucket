@@ -90,7 +90,8 @@ app.get('/api/test-direct', (req: any, res) => {
 });
 
 // Dynamic TON Connect manifest — Mini App URL must be provided through TELEGRAM_APP_URL.
-app.get('/tonconnect-manifest.json', (req, res) => {
+app.get('/tonconnect-manifest.json', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   let appUrl = (process.env.TELEGRAM_APP_URL || '').trim().replace(/\/+$/, '');
   if (!appUrl) {
     return res.status(503).json({ error: 'TELEGRAM_APP_URL is not configured' });
@@ -101,8 +102,16 @@ app.get('/tonconnect-manifest.json', (req, res) => {
     appUrl = 'https://' + appUrl;
   }
 
+  // Use the bot username returned by Telegram's Bot API so the wallet's
+  // "Axionet" app link always opens the currently connected Mini App bot.
+  const { getBotUsername } = await import('./telegram');
+  const botUsername = await getBotUsername();
+  const miniAppUrl = botUsername
+    ? `https://t.me/${botUsername}/MyWAdz`
+    : appUrl;
+
   res.json({
-    url: appUrl,
+    url: miniAppUrl,
     name: "Axionet",
     iconUrl: `${req.protocol}://${req.get('host')}/wallet-connection.png`,
     termsOfUseUrl: `${appUrl}/terms`,
