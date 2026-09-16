@@ -103,8 +103,8 @@ app.get('/tonconnect-manifest.json', (req, res) => {
 
   res.json({
     url: appUrl,
-    name: "Swag Bux",
-    iconUrl: `${req.protocol}://${req.get('host')}/swag-icon.png`,
+    name: "Axionet",
+    iconUrl: `${req.protocol}://${req.get('host')}/wallet-connection.png`,
     termsOfUseUrl: `${appUrl}/terms`,
     privacyPolicyUrl: `${appUrl}/privacy`
   });
