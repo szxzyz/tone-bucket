@@ -57,7 +57,7 @@ const openTelegramLink = (link: string) => {
 
 export default function TelegramJoinGate() {
   const { user } = useAuth();
-  const [showFallbackGate, setShowFallbackGate] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
   const { data, isLoading, isError, refetch, isFetching } = useQuery<JoinStatusResponse>({
     queryKey: ['/api/telegram/join-status', user?.id],
     queryFn: fetchJoinStatus,
@@ -75,19 +75,6 @@ export default function TelegramJoinGate() {
     refetchOnMount: 'always',
     staleTime: 0,
   });
-
-  useEffect(() => {
-    if (!user) {
-      setShowFallbackGate(false);
-      return;
-    }
-
-    // Do not make users wait for the Telegram API retries before seeing the
-    // required action. The gate disappears immediately if the response confirms
-    // that joining is not required or the user is already verified.
-    const timer = window.setTimeout(() => setShowFallbackGate(true), 350);
-    return () => window.clearTimeout(timer);
-  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -117,13 +104,18 @@ export default function TelegramJoinGate() {
   // Never render the blocking UI before the server has returned an explicit
   // verification result. This prevents the popup from looking like a splash
   // screen during app startup and avoids gating users on transient failures.
-  if (!user || data?.required === false || data?.verified) return null;
-  if (!showFallbackGate && (isLoading || isError || !data)) return null;
+  if (!user || isLoading || isError || !data || data.required === false || data.verified) return null;
 
-  const resources = data?.resources ?? [
-    { key: 'channel' as const, title: 'Official Channel', link: '', joined: false },
-    { key: 'group' as const, title: 'Community group', link: '', joined: false },
-  ];
+  const resources = data.resources ?? [];
+  const hasUnjoinedResource = resources.some((resource) => !resource.joined);
+  const handleVerify = () => {
+    if (hasUnjoinedResource) {
+      setVerificationMessage('Please join the channel and group first, then tap Verify.');
+      return;
+    }
+    setVerificationMessage('');
+    void refetch();
+  };
 
   return (
     <div
@@ -142,15 +134,12 @@ export default function TelegramJoinGate() {
         WebkitBackdropFilter: 'blur(8px)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 430, maxHeight: '82vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: 'linear-gradient(180deg, #1a1a1e 0%, #111114 100%)', borderRadius: '26px 26px 0 0', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', boxShadow: '0 -12px 40px rgba(0,0,0,0.45)', overflow: 'hidden' }}>
-        <div style={{ height: 6, width: '100%', background: 'linear-gradient(90deg, #1677ff 0%, #38bdf8 50%, #1677ff 100%)' }} />
-        <div style={{ padding: '24px 18px max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}>
-        <h1 id="telegram-join-title" style={{ margin: 0, fontSize: 19, lineHeight: 1.2, fontWeight: 900 }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '90vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.06)', borderBottom: 0, borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
+        <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '12px auto 20px' }} />
+        <div id="telegram-join-title" style={{ marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>
           Join to Continue
-        </h1>
-        <p style={{ margin: '8px 0 20px', color: 'rgba(255,255,255,0.56)', fontSize: 13, lineHeight: 1.45 }}>
-          to access this app please join our official Telegram resources.
-        </p>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
           {resources.map((resource) => (
@@ -182,15 +171,21 @@ export default function TelegramJoinGate() {
           ))}
         </div>
 
+        {verificationMessage && (
+          <div role="alert" style={{ margin: '-4px 0 14px', padding: '10px 12px', borderRadius: 12, background: 'rgba(248,113,113,0.12)', color: '#fca5a5', fontSize: 12, fontWeight: 700 }}>
+            {verificationMessage}
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={handleVerify}
           disabled={isLoading || isFetching}
           style={{
             border: 'none',
             width: '100%',
             borderRadius: 16,
-            background: '#1677ff',
+            background: 'linear-gradient(135deg,#2563eb,#3b82f6)',
             color: '#fff',
             padding: '13px 18px',
             fontSize: 15,
@@ -203,6 +198,5 @@ export default function TelegramJoinGate() {
         </button>
         </div>
       </div>
-    </div>
   );
 }
