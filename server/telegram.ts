@@ -101,6 +101,7 @@ const pendingRejections = new Map<string, {
 const pendingWithdrawalHashes = new Map<string, {
   withdrawalId: string;
   messageId: number;
+  groupChatId?: string;
   timestamp: number;
 }>();
 
@@ -853,7 +854,7 @@ You will receive a notification once it has been processed. <tg-emoji emoji-id="
   }
 }
 
-export async function sendWithdrawalApprovedNotification(withdrawal: any): Promise<boolean> {
+export async function sendWithdrawalApprovedNotification(withdrawal: any, targetGroupChatId?: string): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.error('❌ Telegram bot token not configured for withdrawal approval notification');
     return false;
@@ -861,7 +862,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any): Promi
 
   try {
     // Approved withdrawals are posted only to the admin withdrawal group.
-    const groupChatId = getWithdrawalGroupChatId();
+    const groupChatId = String(targetGroupChatId || getWithdrawalGroupChatId()).trim();
     if (!groupChatId) {
       console.warn('⚠️ WITHDRAWAL_GROUP_CHAT_ID not set — skipping withdrawal approval notification');
       return false;
@@ -2691,6 +2692,7 @@ ${walletAddress}
           pendingWithdrawalHashes.set(chatId, {
             withdrawalId,
             messageId: callbackQuery.message?.message_id || 0,
+            groupChatId: callbackQuery.message?.chat?.id ? String(callbackQuery.message.chat.id) : undefined,
             timestamp: Date.now(),
           });
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
@@ -2984,7 +2986,7 @@ ${walletAddress}
             ],
           };
 
-          await sendWithdrawalApprovedNotification(withdrawal);
+          const groupPostSent = await sendWithdrawalApprovedNotification(withdrawal, hashState.groupChatId);
           if (userTelegramId) {
             await sendUserTelegramNotification(
               userTelegramId,
@@ -3001,7 +3003,9 @@ ${walletAddress}
               body: JSON.stringify({ chat_id: withdrawalGroupChatId, message_id: hashState.messageId, reply_markup: successKeyboard }),
             }).catch(() => {});
           }
-          await sendUserTelegramNotification(chatId, `✅ Withdrawal completed and posted in the admin group.\nHash: <code>${escapeHtml(transactionHash)}</code>`, undefined, 'HTML');
+          await sendUserTelegramNotification(chatId, groupPostSent
+            ? `✅ Withdrawal completed and posted in the admin group.\nHash: <code>${escapeHtml(transactionHash)}</code>`
+            : `⚠️ Withdrawal approved, but the success post could not be sent to the group. Please check that the bot is an admin with permission to send messages.\nHash: <code>${escapeHtml(transactionHash)}</code>`, undefined, 'HTML');
         } else {
           await sendUserTelegramNotification(chatId, `❌ ${result.message}`);
         }
