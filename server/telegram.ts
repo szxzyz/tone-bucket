@@ -719,7 +719,23 @@ function escapeHtml(text: string): string {
 // This is the ONLY channel where withdrawal requests and approvals are posted.
 // The value is read from environment variables — never hardcoded.
 function getWithdrawalGroupChatId(): string {
-  return String(process.env.WITHDRAWAL_GROUP_CHAT_ID || config.withdrawals.groupChatId || '').trim();
+  const configuredId = String(
+    process.env.WITHDRAWAL_GROUP_CHAT_ID ||
+    config.withdrawals.groupChatId ||
+    process.env.TELEGRAM_GROUP_ID ||
+    config.telegram.groupId ||
+    '',
+  ).trim();
+  // Telegram user IDs are positive numbers. Withdrawal notifications must
+  // never be sent to an admin DM; only a group/supergroup ID is accepted.
+  if (!/^-\d+$/.test(configuredId)) {
+    if (configuredId) console.error(`❌ Invalid withdrawal group ID "${configuredId}". Use the group's negative chat ID (usually -100...).`);
+    return '';
+  }
+  return configuredId;
+}
+function isTelegramGroupChatId(value: string | undefined): value is string {
+  return Boolean(value && /^-\d+$/.test(String(value).trim()));
 }
 const WITHDRAWAL_SUPPORT_LINK = 'https://t.me/szxzyz';
 
@@ -862,7 +878,8 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 
   try {
     // Approved withdrawals are posted only to the admin withdrawal group.
-    const groupChatId = String(targetGroupChatId || getWithdrawalGroupChatId()).trim();
+    const requestedTarget = String(targetGroupChatId || '').trim();
+    const groupChatId = isTelegramGroupChatId(requestedTarget) ? requestedTarget : getWithdrawalGroupChatId();
     if (!groupChatId) {
       console.warn('⚠️ WITHDRAWAL_GROUP_CHAT_ID not set — skipping withdrawal approval notification');
       return false;
@@ -895,15 +912,14 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 
     const payoutLine = `💎 <b>Amount:</b> <b>${tonAmount.toFixed(6)} TON</b>\n💰 <b>Gold:</b> ${goldAmount.toLocaleString()}\n👛 <b>TON wallet:</b> <code>${escapeHtml(walletAddress)}</code>\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>`;
 
-    const groupMessage = `🚀 <b>New Withdrawal Success!</b>
+    const groupMessage = `🎉 <b>Withdrawal successful!</b>
 
-🗣 <b>User:</b> <a href="tg://user?id=${userTelegramId}">${escapeHtml(userName)}</a>
+📛 <b>Name:</b> <a href="tg://user?id=${userTelegramId}">${escapeHtml(userName)}</a>
 🆔 <b>User ID:</b> <code>${userTelegramId}</code>
 💳 <b>Username:</b> ${userTelegramUsername}
 ${payoutLine}
 📅 <b>Date:</b> ${currentDate}
-
-🕐 <b>Time:</b> ${currentDate}`;
+`;
 
     // Inline keyboard: "💸 Start Earning" button linking to the bot
     const replyMarkup = {
@@ -2995,7 +3011,9 @@ ${walletAddress}
               'HTML',
             );
           }
-          const withdrawalGroupChatId = getWithdrawalGroupChatId();
+          const withdrawalGroupChatId = isTelegramGroupChatId(hashState.groupChatId)
+            ? hashState.groupChatId
+            : getWithdrawalGroupChatId();
           if (hashState.messageId && withdrawalGroupChatId) {
             await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
               method: 'POST',
