@@ -1719,14 +1719,6 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async setWithdrawalTransactionHash(withdrawalId: string, transactionHash: string): Promise<Withdrawal | undefined> {
-    const [result] = await db.update(withdrawals)
-      .set({ transactionHash, updatedAt: new Date() })
-      .where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending')))
-      .returning();
-    return result;
-  }
-
   async approveWithdrawal(withdrawalId: string, adminNotes?: string, transactionHash?: string): Promise<{ success: boolean; message: string; withdrawal?: Withdrawal }> {
     try {
       // Get withdrawal details
