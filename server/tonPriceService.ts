@@ -1,7 +1,7 @@
 /**
  * SERVER-SIDE TON price service.
  * 
- * Aggregates live TON/USD price from CoinGecko, Binance, and OKX with a
+ * Aggregates live TON/USD price from CoinGecko, TonAPI, and Binance with a
  * short server-side cache. A withdrawal must never silently use a hardcoded
  * price when market providers are unavailable.
  * 
@@ -79,22 +79,6 @@ async function fetchTonAPI(): Promise<number> {
   return price;
 }
 
-/** Fetch TON/USD from STON.fi's public TON asset catalogue. */
-async function fetchSTONFi(): Promise<number> {
-  const res = await fetch(
-    'https://api.ston.fi/v1/assets',
-    { signal: AbortSignal.timeout(8_000) }
-  );
-  if (!res.ok) throw new Error(`STON.fi ${res.status}`);
-  const data: any = await res.json();
-  const tonAsset = Array.isArray(data?.asset_list)
-    ? data.asset_list.find((asset: any) => asset?.symbol === 'TON' || asset?.display_name === 'Toncoin')
-    : undefined;
-  const price = Number(tonAsset?.third_party_usd_price ?? tonAsset?.dex_usd_price);
-  if (!isFinite(price) || price <= 0) throw new Error('STON.fi: invalid price');
-  return price;
-}
-
 /**
  * Returns a live TON/USD price aggregated from every provider that responds.
  * The median prevents one exchange/API outlier from setting the withdrawal
@@ -111,9 +95,7 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
   const sources: Array<{ name: string; fn: () => Promise<number> }> = [
     { name: 'CoinGecko', fn: fetchCoinGecko },
     { name: 'Binance',   fn: fetchBinance },
-    { name: 'OKX',       fn: fetchOKX },
     { name: 'TonAPI',    fn: fetchTonAPI },
-    { name: 'STON.fi',   fn: fetchSTONFi },
   ];
 
   const results = await Promise.all(sources.map(async (source) => {
@@ -126,12 +108,17 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
   }));
   const liveResults = results.filter((result): result is { name: string; price: number } => result !== null);
   if (liveResults.length > 0) {
-    const sortedPrices = liveResults.map(result => result.price).sort((a, b) => a - b);
+    // CoinGecko and TonAPI are the primary TON-native/reference quotes.
+    // Binance remains a fallback, but must not average an exchange outlier
+    // into the withdrawal price when both primary sources are available.
+    const primaryResults = liveResults.filter(result => result.name === 'CoinGecko' || result.name === 'TonAPI');
+    const selectedResults = primaryResults.length > 0 ? primaryResults : liveResults;
+    const sortedPrices = selectedResults.map(result => result.price).sort((a, b) => a - b);
     const middle = Math.floor(sortedPrices.length / 2);
     const price = sortedPrices.length % 2 === 1
       ? sortedPrices[middle]
       : (sortedPrices[middle - 1] + sortedPrices[middle]) / 2;
-    priceCache = { price, source: liveResults.map(result => result.name).join('+'), fetchedAt: now };
+    priceCache = { price, source: selectedResults.map(result => result.name).join('+'), fetchedAt: now };
     console.log(`[TON price] live ${price.toFixed(6)} USD from ${priceCache.source}`);
     return priceCache;
   }
@@ -144,7 +131,7 @@ export async function getLiveTonPriceUSD(): Promise<PriceResult> {
 
   // Do not invent a market price. Callers can decide whether a stale quote is
   // acceptable; withdrawal routes explicitly reject this source.
-  throw new Error('Live TON price unavailable from CoinGecko, Binance, and OKX');
+  throw new Error('Live TON price unavailable from CoinGecko, TonAPI, and Binance');
 }
 
 /**
