@@ -105,6 +105,8 @@ const pendingWithdrawalHashes = new Map<string, {
   timestamp: number;
 }>();
 
+const automaticPayoutsInFlight = new Set<string>();
+
 // Tracks which admin chats received the withdrawal notification, keyed by withdrawalId
 // Used to remove Approve/Reject buttons from all admins once any one acts on it
 export const withdrawalAdminMessages = new Map<string, Array<{ chatId: string; messageId: number }>>();
@@ -990,6 +992,44 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
     console.error('❌ Error sending withdrawal approval group notification:', error);
     return false;
   }
+}
+
+async function announceCompletedWithdrawal(withdrawal: any, transactionHash: string, adminChatId: string, messageId: number, groupChatId?: string) {
+  const user = await storage.getUser(withdrawal.userId);
+  const details = withdrawal.details as any;
+  const tonAmount = Number(withdrawal.cryptoAmount || details?.tonAmount || 0);
+  const userTelegramId = String(user?.telegram_id || '');
+  const currentDate = new Date().toUTCString();
+  const botUsername = await getBotUsername();
+  const botLink = `https://t.me/${botUsername}/MyWAdz`;
+  const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
+  const shareText = `🎉 My withdrawal of ${tonAmount.toFixed(6)} TON has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
+  const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
+  const successKeyboard = {
+    inline_keyboard: [
+      [{ text: '🚀 Start earning', url: referralLink }],
+      [{ text: '👤 Share with friends', url: shareUrl }],
+    ],
+  };
+  const groupPostSent = await sendWithdrawalApprovedNotification(withdrawal, groupChatId);
+  if (userTelegramId) {
+    await sendUserTelegramNotification(
+      userTelegramId,
+      `🎉 <b>Withdrawal successful!</b>\n\n💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON\n💰 <b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n\n📅 <b>Date:</b> ${currentDate}`,
+      successKeyboard,
+      'HTML',
+    );
+  }
+  const targetChat = isTelegramGroupChatId(groupChatId) ? groupChatId : getWithdrawalGroupChatId();
+  if (messageId && targetChat) {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: targetChat, message_id: messageId, reply_markup: successKeyboard }),
+    }).catch(() => {});
+  }
+  await sendUserTelegramNotification(adminChatId, groupPostSent
+    ? `✅ Automatic TON payout completed and posted in the admin group.\nHash: <code>${escapeHtml(transactionHash)}</code>`
+    : `⚠️ TON payout completed, but the group success post failed. Check bot admin permissions.\nHash: <code>${escapeHtml(transactionHash)}</code>`, undefined, 'HTML');
 }
 
 export async function sendWithdrawalRejectedNotification(withdrawal: any, reason: string): Promise<boolean> {
@@ -2747,18 +2787,47 @@ Share your unique referral link and earn Gold when your friends join:
             return true;
           }
 
-          pendingWithdrawalHashes.set(chatId, {
-            withdrawalId,
-            messageId: callbackQuery.message?.message_id || 0,
-            groupChatId: callbackQuery.message?.chat?.id ? String(callbackQuery.message.chat.id) : undefined,
-            timestamp: Date.now(),
-          });
+          if (automaticPayoutsInFlight.has(withdrawalId)) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Payout is already processing' })
+            });
+            return true;
+          }
+          automaticPayoutsInFlight.add(withdrawalId);
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Send the TON transaction hash in chat' })
+            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Automatic TON payout started' })
           });
-          await sendUserTelegramNotification(chatId, `✅ Approval selected for withdrawal <code>${withdrawalId}</code>.\n\nSend the TON transaction hash now to complete the payout.\nSend /cancel to abort.`, undefined, 'HTML');
+          try {
+            const details = withdrawal.details as any;
+            const recipientAddress = withdrawal.walletAddress || details?.paymentDetails || details?.walletAddress;
+            const amountTon = String(withdrawal.cryptoAmount || details?.tonAmount || '0');
+            if (!recipientAddress) throw new Error('Withdrawal wallet address is missing');
+            let transactionHash = String(withdrawal.transactionHash || '').trim();
+            if (!transactionHash) {
+              const { sendAutomaticTonPayout } = await import('./tonPayoutService');
+              const payout = await sendAutomaticTonPayout({ withdrawalId, recipientAddress, amountTon });
+              transactionHash = payout.transactionHash;
+              await storage.setWithdrawalTransactionHash(withdrawalId, transactionHash);
+            }
+            const result = await storage.approveWithdrawal(withdrawalId, `Automatic TON payout approved by admin ${chatId}`, transactionHash);
+            if (!result.success || !result.withdrawal) throw new Error(result.message || 'Could not finalize withdrawal');
+            await clearWithdrawalAdminButtons(withdrawalId);
+            await announceCompletedWithdrawal(
+              result.withdrawal,
+              transactionHash,
+              chatId,
+              callbackQuery.message?.message_id || 0,
+              callbackQuery.message?.chat?.id ? String(callbackQuery.message.chat.id) : undefined,
+            );
+          } catch (payoutError) {
+            console.error(`❌ Automatic TON payout failed for ${withdrawalId}:`, payoutError);
+            await sendUserTelegramNotification(chatId, `⚠️ Automatic TON payout failed; withdrawal remains pending.\n\n${payoutError instanceof Error ? payoutError.message : 'Please try again later.'}`);
+          } finally {
+            automaticPayoutsInFlight.delete(withdrawalId);
+          }
         } catch (error) {
           console.error('Error approving withdrawal:', error);
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
