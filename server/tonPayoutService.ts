@@ -8,6 +8,7 @@ const TON_RPC_URL = process.env.TON_RPC_URL || 'https://toncenter.com/api/v2/jso
 const TON_RPC_API_KEY = process.env.TON_RPC_API_KEY;
 const PAYOUT_MNEMONIC = process.env.TON_PAYOUT_MNEMONIC?.trim();
 const EXPECTED_WALLET = process.env.TON_PAYOUT_WALLET_ADDRESS?.trim();
+const PAYOUT_FEE_RESERVE = process.env.TON_PAYOUT_FEE_RESERVE?.trim() || '0.01';
 const PAYOUT_COUNTER_KEY = 'automatic_ton_payout_counter';
 
 export interface TonPayoutResult {
@@ -90,11 +91,11 @@ export async function sendAutomaticTonPayout(input: {
   const client = getClient();
   const openedWallet = client.open(wallet);
   const balance = await client.getBalance(wallet.address);
-  // The transfer fee is charged by TON from the sender wallet. Do not impose
-  // an artificial fixed reserve here; the RPC broadcast will fail normally if
-  // the wallet cannot cover the transfer plus the network fee.
-  if (balance < amountNano) {
-    throw new Error(`Insufficient TON payout wallet balance: need at least ${amount} TON plus the TON network fee`);
+  // Keep a small configurable reserve for wallet/message forwarding fees.
+  // This is a safety balance check, not an amount charged to the user.
+  const feeReserve = toNano(PAYOUT_FEE_RESERVE);
+  if (balance < amountNano + feeReserve) {
+    throw new Error(`Insufficient TON payout wallet balance: need ${amount} TON plus fees`);
   }
 
   const seqno = await openedWallet.getSeqno();
