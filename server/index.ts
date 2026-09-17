@@ -89,33 +89,43 @@ app.get('/api/test-direct', (req: any, res) => {
   res.json({ status: 'Direct API route working!', timestamp: new Date().toISOString() });
 });
 
-// Dynamic TON Connect manifest — Mini App URL must be provided through TELEGRAM_APP_URL.
+// Dynamic TON Connect manifest. The manifest `url` must be the real HTTPS web
+// app origin; a t.me Mini App deep link is not a valid TON Connect app URL.
 app.get('/tonconnect-manifest.json', async (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  let appUrl = (process.env.TELEGRAM_APP_URL || '').trim().replace(/\/+$/, '');
+
+  const configuredUrl = (
+    process.env.TELEGRAM_APP_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.WEBAPP_URL ||
+    ''
+  ).trim().replace(/\/+$/, '');
+  let appUrl = configuredUrl;
   if (!appUrl) {
-    return res.status(503).json({ error: 'TELEGRAM_APP_URL is not configured' });
-  }
-  
-  // Ensure protocol is present for wallet compatibility
-  if (!appUrl.startsWith('http')) {
-    appUrl = 'https://' + appUrl;
+    return res.status(503).json({ error: 'Public HTTPS app URL is not configured' });
   }
 
-  // Use the bot username returned by Telegram's Bot API so the wallet's
-  // "Axionet" app link always opens the currently connected Mini App bot.
-  const { getBotUsername } = await import('./telegram');
-  const botUsername = await getBotUsername();
-  const miniAppUrl = botUsername
-    ? `https://t.me/${botUsername}/MyWAdz`
-    : appUrl;
+  // Ensure protocol is present for wallet compatibility and normalize the URL
+  // to its origin so path/query values cannot produce invalid manifest links.
+  if (!/^https?:\/\//i.test(appUrl)) appUrl = `https://${appUrl}`;
+  let appOrigin: string;
+  try {
+    const parsed = new URL(appUrl);
+    if (parsed.protocol !== 'https:') {
+      return res.status(503).json({ error: 'TON Connect requires an HTTPS app URL' });
+    }
+    appOrigin = parsed.origin;
+  } catch {
+    return res.status(503).json({ error: 'Invalid public app URL configuration' });
+  }
 
   res.json({
-    url: miniAppUrl,
+    url: appOrigin,
     name: "Axionet",
-    iconUrl: `${req.protocol}://${req.get('host')}/wallet-connection.png`,
-    termsOfUseUrl: `${appUrl}/terms`,
-    privacyPolicyUrl: `${appUrl}/privacy`
+    iconUrl: `${appOrigin}/wallet-connection.png`,
+    termsOfUseUrl: `${appOrigin}/terms`,
+    privacyPolicyUrl: `${appOrigin}/privacy`
   });
 });
 
