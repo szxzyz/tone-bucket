@@ -30,6 +30,7 @@ function normalizeConnectionString(value: string): { connectionString: string; s
 const { connectionString, sslDisabled } = normalizeConnectionString(rawConnectionString);
 // Local PostgreSQL (localhost / 127.0.0.1) does NOT need SSL.
 const isLocalDb = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+const effectiveSslDisabled = sslDisabled && isLocalDb;
 
 export const pool = new Pool({
   connectionString,
@@ -41,7 +42,7 @@ export const pool = new Pool({
   idleTimeoutMillis: 30000,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
-  ...(isLocalDb || sslDisabled ? {} : { ssl: { rejectUnauthorized: false } }),
+  ...(isLocalDb || effectiveSslDisabled ? {} : { ssl: { rejectUnauthorized: false } }),
 });
 
 pool.on('error', (error) => {

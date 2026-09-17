@@ -10,8 +10,10 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
   let connectionString = rawConnectionString;
   let sslDisabled = false;
+  let isLocalDb = false;
   try {
     const url = new URL(rawConnectionString);
+    isLocalDb = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     sslDisabled = url.searchParams.get('sslmode')?.toLowerCase() === 'disable';
     url.searchParams.delete('sslmode');
     url.searchParams.delete('sslcert');
@@ -24,7 +26,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
   const pool = new Pool({
     connectionString,
-    ssl: sslDisabled ? false : { rejectUnauthorized: false },
+    ssl: sslDisabled && isLocalDb ? false : { rejectUnauthorized: false },
     connectionTimeoutMillis: 15000,
     statement_timeout: 60000,
   });
