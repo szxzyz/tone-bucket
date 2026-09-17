@@ -19,6 +19,7 @@ function normalizeDatabaseUrl(value: string): { connectionString: string; sslDis
     url.searchParams.delete('sslcert');
     url.searchParams.delete('sslkey');
     url.searchParams.delete('sslrootcert');
+    if (!isLocal) url.searchParams.set('sslmode', 'require');
     return { connectionString: url.toString(), sslDisabled, isLocal };
   } catch {
     return { connectionString: value, sslDisabled: value.includes('sslmode=disable') && !process.env.NODE_ENV?.includes('production'), isLocal: false };
