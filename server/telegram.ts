@@ -2441,9 +2441,9 @@ Share your unique referral link and earn Gold when your friends join:
 🆔 User ID: ${userTelegramId}
 💳 Username: ${userTelegramUsername}
 🌐 Address:
-${walletAddress}
+<code>${escapeHtml(walletAddress)}</code>
 💎 Gold: ${Math.round(goldAmount).toLocaleString()} GOLD
-💸 TON: ${tonAmount.toFixed(6)} TON
+💸 TON: <code>${tonAmount.toFixed(6)} TON</code>
 💵 USD/USDT: ${netAmount.toFixed(6)} USD
 📈 TON price at request: $${pendingTonPrice.toFixed(4)}
 🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
