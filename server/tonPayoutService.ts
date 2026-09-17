@@ -1,17 +1,38 @@
 import { mnemonicToPrivateKey } from '@ton/crypto';
 import { Address, internal, TonClient, WalletContractV4, toNano } from '@ton/ton';
+import { sql } from 'drizzle-orm';
+import { db } from './db';
+import { adminSettings } from '../shared/schema';
 
 const TON_RPC_URL = process.env.TON_RPC_URL || 'https://toncenter.com/api/v2/jsonRPC';
 const TON_RPC_API_KEY = process.env.TON_RPC_API_KEY;
 const PAYOUT_MNEMONIC = process.env.TON_PAYOUT_MNEMONIC?.trim();
 const EXPECTED_WALLET = process.env.TON_PAYOUT_WALLET_ADDRESS?.trim();
-const COMMENT_PREFIX = 'GrabPenny withdrawal';
+const PAYOUT_COUNTER_KEY = 'automatic_ton_payout_counter';
 
 export interface TonPayoutResult {
   transactionHash: string;
   senderAddress: string;
   recipientAddress: string;
   amountTon: string;
+  memo: string;
+}
+
+async function allocatePayoutMemo(): Promise<string> {
+  // The previous manual payout was #125, so the first automatic payout is #126.
+  // The upsert increment is performed by PostgreSQL, making it safe if two
+  // admins approve different withdrawals at the same time.
+  const [row] = await db.insert(adminSettings).values({
+    settingKey: PAYOUT_COUNTER_KEY,
+    settingValue: '126',
+    description: 'Next automatic TON payout number',
+  }).onConflictDoUpdate({
+    target: adminSettings.settingKey,
+    set: { settingValue: sql`(${adminSettings.settingValue}::bigint + 1)::text`, updatedAt: new Date() },
+  }).returning({ value: adminSettings.settingValue });
+  const number = Number(row?.value);
+  if (!Number.isSafeInteger(number) || number < 126) throw new Error('Invalid automatic payout counter');
+  return `Axionet payout #${number}`;
 }
 
 function getClient(): TonClient {
@@ -43,6 +64,7 @@ export async function sendAutomaticTonPayout(input: {
   const amount = String(input.amountTon).trim();
   const amountNano = toNano(amount);
   if (amountNano <= 0n) throw new Error('TON payout amount must be greater than zero');
+  const memo = await allocatePayoutMemo();
 
   const keyPair = await mnemonicToPrivateKey(requireMnemonic());
   const wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
@@ -72,7 +94,7 @@ export async function sendAutomaticTonPayout(input: {
       to: recipient,
       value: amountNano,
       bounce: false,
-      body: `${COMMENT_PREFIX} ${input.withdrawalId}`,
+      body: `${memo} (${input.withdrawalId})`,
     })],
   });
 
@@ -95,6 +117,7 @@ export async function sendAutomaticTonPayout(input: {
     senderAddress,
     recipientAddress: recipient.toString({ bounceable: false, testOnly: false }),
     amountTon: amount,
+    memo,
   };
 }
 
