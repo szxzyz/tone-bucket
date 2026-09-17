@@ -61,7 +61,17 @@ export async function sendAutomaticTonPayout(input: {
   amountTon: string;
 }): Promise<TonPayoutResult> {
   const recipient = Address.parse(String(input.recipientAddress).trim());
-  const amount = String(input.amountTon).trim();
+  const rawAmount = String(input.amountTon).trim().replace(',', '.');
+  const parsedAmount = Number(rawAmount);
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    throw new Error(`Invalid TON payout amount: ${rawAmount || '(empty)'}`);
+  }
+  // TON supports nanoTON precision (9 decimals). Database decimal columns can
+  // contain trailing precision beyond that, which toNano() rejects as an
+  // invalid number. Normalize without ever rounding a payout upward.
+  const nanoTonAmount = Math.floor(parsedAmount * 1_000_000_000);
+  const amount = (nanoTonAmount / 1_000_000_000).toFixed(9).replace(/0+$/, '').replace(/\.$/, '');
+  if (!amount || amount === '0') throw new Error('TON payout amount is below 1 nanoTON');
   const amountNano = toNano(amount);
   if (amountNano <= 0n) throw new Error('TON payout amount must be greater than zero');
   const memo = await allocatePayoutMemo();
