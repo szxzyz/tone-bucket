@@ -194,24 +194,32 @@ export default function Affiliates() {
           </button>
         </div>
 
-                {/* Income from friends */}
+        {/* Income from friends — informational only; claims live in Bonuses. */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-1">Income from friends</div>
         <div className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#252525' }}>
-            <div className="flex items-center justify-between px-3 pt-3">
-              <div className="min-w-0">
-                <div className="text-white text-[15px] font-extrabold">Income to collect</div>
-                <div className="text-white/40 text-xs mt-1">L1 {l1Percent}% · L2 {l2Percent}% from friends</div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-white/30 text-[9px] font-bold uppercase tracking-[0.1em] mb-0.5">Friends</div>
-                <div className="text-white text-[13px] font-extrabold">{l1Count + l2Count}</div>
-              </div>
+          <div className="flex items-center justify-between px-3 pt-3 pb-2">
+            <div>
+              <div className="text-white text-[15px] font-extrabold">Referral income</div>
+              <div className="text-white/40 text-xs mt-1">L1 {l1Percent}% · L2 {l2Percent}% from friends</div>
             </div>
-            <div className="flex items-center gap-2 px-3 pb-3 pt-2">
-              <div className="flex-1 inline-flex items-center gap-1 text-white text-base font-black"><img src="/assets/gem-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{formatLargeSWAG(pendingReferralBonus, false)}</div>
-              <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || pendingReferralBonus <= 0} className="w-[92px] h-[38px] rounded-xl text-white text-xs font-bold border-none transition-opacity disabled:opacity-100" style={{ background: pendingReferralBonus > 0 ? '#252525' : 'rgba(255,255,255,0.06)', color: pendingReferralBonus > 0 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{claimReferralMutation.isPending ? '...' : 'Collect'}</button>
+            <div className="text-right shrink-0">
+              <div className="text-white/30 text-[9px] font-bold uppercase tracking-[0.1em] mb-0.5">Total friends</div>
+              <div className="text-white text-[13px] font-extrabold">{l1Count + l2Count}</div>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-2 px-3 pb-3">
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Level 1</div>
+              <div className="text-white text-sm font-black mt-1">{l1Count} friends</div>
+              <div className="text-white/65 text-xs mt-1">{formatLargeSWAG(Number(stats?.totalL1Earned ?? 0), false)} Gold earned</div>
+            </div>
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Level 2</div>
+              <div className="text-white text-sm font-black mt-1">{l2Count} friends</div>
+              <div className="text-white/65 text-xs mt-1">{formatLargeSWAG(Number(stats?.totalL2Earned ?? 0), false)} Gold earned</div>
+            </div>
+          </div>
+        </div>
 
         {/* Referral bonuses are accumulated here and never auto-added to balance. */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mt-5 mb-2 px-1">Bonuses</div>
