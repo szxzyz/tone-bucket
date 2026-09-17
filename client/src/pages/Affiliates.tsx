@@ -155,20 +155,6 @@ export default function Affiliates() {
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 bg-black pb-0">
 
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-white tracking-tight mb-2">
-            {t('affiliates_program')}
-          </h1>
-          <p className="text-[#888] text-sm leading-relaxed">
-            {t('we_pay_out')}{' '}
-            <span className="text-white font-semibold">{l1Percent}%</span>{' '}
-            {t('from_l1_income')}{' '}
-            <span className="text-white font-semibold">{l2Percent}%</span>{' '}
-            {t('from_l2_income')}
-          </p>
-        </div>
-
         {/* Main: Invite Friends button + Copy circular button */}
         <div className="mb-4 flex items-center gap-3">
           {/* PRIMARY: Invite Friends — opens Telegram share sheet */}
