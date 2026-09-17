@@ -7934,7 +7934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('👤 Regular user task creation - using package pricing (TON)');
 
         // Channel pricing remains unchanged. Bots use a separate 200-click
-        // entry package priced at 0.15 TON.
+        // entry package priced at 0.2 TON.
         const CHANNEL_PACKAGES = [
           { clicks: 100,   price: 0.1500, verified: 0.2000 },
           { clicks: 500,   price: 0.7500, verified: 1.0000 },
@@ -7944,7 +7944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { clicks: 10000, price: 15.000, verified: 20.000 },
         ];
         const BOT_PACKAGES = [
-          { clicks: 200,   price: 0.1500, verified: 0.1500 },
+          { clicks: 200,   price: 0.2000, verified: 0.2000 },
           ...CHANNEL_PACKAGES.slice(1),
         ];
 

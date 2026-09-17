@@ -21,10 +21,10 @@ const PACKAGES = [
   { clicks: 10000, price: 15.000, verified: 20.000 },
 ];
 
-// Bot advertising starts at 200 clicks for 0.15 TON. Channel pricing above
+// Bot advertising starts at 200 clicks for 0.2 TON. Channel pricing above
 // is intentionally kept separate and unchanged.
 const BOT_PACKAGES = [
-  { clicks: 200,   price: 0.1500, verified: 0.1500 },
+  { clicks: 200,   price: 0.2000, verified: 0.2000 },
   ...PACKAGES.slice(1),
 ];
 
@@ -87,7 +87,8 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
   const usdBalance   = parseFloat(authUser?.usdBalance || "0");
 
   const isVerif     = category === "channel";
-  const pkgData     = PACKAGES.find(p => p.clicks === selectedPkg);
+  const selectedPackages = category === "bot" ? BOT_PACKAGES : PACKAGES;
+  const pkgData     = selectedPackages.find(p => p.clicks === selectedPkg);
   const cost        = pkgData ? (isVerif ? pkgData.verified : pkgData.price).toFixed(4) : null;
   const chVerified  = chState === "ok";
 
