@@ -33,9 +33,21 @@ const isLocalDb = connectionString.includes('localhost') || connectionString.inc
 
 export const pool = new Pool({
   connectionString,
-  connectionTimeoutMillis: 10000,
-  statement_timeout: 30000,
+  // Fail fast when the managed database is unavailable instead of holding
+  // Telegram/API requests for 10–60 seconds while every auth query waits.
+  connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS || 5000),
+  statement_timeout: Number(process.env.DB_STATEMENT_TIMEOUT_MS || 15000),
+  max: Number(process.env.DB_POOL_MAX || 15),
+  idleTimeoutMillis: 30000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
   ...(isLocalDb || sslDisabled ? {} : { ssl: { rejectUnauthorized: false } }),
+});
+
+pool.on('error', (error) => {
+  // Prevent idle-client errors from becoming uncaught process errors. The
+  // next query will obtain a fresh connection from the pool.
+  console.error('⚠️ PostgreSQL pool client error:', error.message);
 });
 
 export const db = drizzle(pool as any, { schema });

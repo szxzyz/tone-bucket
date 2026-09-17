@@ -429,7 +429,12 @@ export const authenticateTelegram: RequestHandler = async (req: any, res, next) 
     next();
   } catch (error) {
     console.error("❌ Telegram authentication error:", error);
-    res.status(500).json({ message: "Authentication failed" });
+    if (!res.headersSent) {
+      res.status(503).json({
+        message: "Database temporarily unavailable. Please try again in a moment.",
+        error_code: "DATABASE_UNAVAILABLE",
+      });
+    }
   }
 };
 
