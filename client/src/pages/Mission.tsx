@@ -3,6 +3,7 @@ import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AdWatchingSection from '@/components/AdWatchingSection';
+import GigapubShortLinkTasks from '@/components/GigapubShortLinkTasks';
 import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
@@ -18,7 +19,10 @@ export default function Mission() {
           ))}
         </div>
         {tab === 'daily' ? (
-          <AdWatchingSection user={user} hideTitle={false} />
+          <div className="space-y-4">
+            <AdWatchingSection user={user} hideTitle={false} />
+            <GigapubShortLinkTasks />
+          </div>
         ) : (
           <div className="space-y-4">
             <AdvertiserTaskFeed kind="social" title="Social Tasks" />

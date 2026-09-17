@@ -3562,7 +3562,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           taskShareCompleted: users.taskShareCompletedToday,
           taskChannelCompleted: users.taskChannelCompletedToday,
           taskCommunityCompleted: users.taskCommunityCompletedToday,
-          lastStreakDate: users.lastStreakDate
+          lastStreakDate: users.lastStreakDate,
+          gigapubShortLink1Claimed: users.gigapubShortLink1Claimed,
+          gigapubShortLink2Claimed: users.gigapubShortLink2Claimed,
+          gigapubShortLink3Claimed: users.gigapubShortLink3Claimed,
         })
         .from(users)
         .where(eq(users.id, userId));
@@ -3580,6 +3583,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      if (user?.gigapubShortLink1Claimed) completedTasks.push('gigapub-short-link-1');
+      if (user?.gigapubShortLink2Claimed) completedTasks.push('gigapub-short-link-2');
+      if (user?.gigapubShortLink3Claimed) completedTasks.push('gigapub-short-link-3');
+
       res.json({
         success: true,
         completedTasks
@@ -3588,6 +3595,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching task status:', error);
       res.json({ success: true, completedTasks: [] });
+    }
+  });
+
+  // Gigapub short-link tasks. The server records the start time so the client
+  // cannot claim immediately by skipping its visible countdown.
+  const GIGAPUB_SHORT_LINKS = [
+    'https://link.gigapub.tech/l/c8hd9h0d7',
+    'https://link.gigapub.tech/l/9ttyplb0va',
+    'https://link.gigapub.tech/l/vkcp91if6',
+  ] as const;
+  const GIGAPUB_SHORT_LINK_REWARD = '20';
+
+  app.post('/api/tasks/gigapub-short-link/start', authenticateTelegram, taskRateLimit, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      const taskId = Number(req.body?.taskId);
+      if (!userId || !Number.isInteger(taskId) || taskId < 1 || taskId > 3) {
+        return res.status(400).json({ success: false, message: 'Invalid Gigapub task' });
+      }
+
+      const claimedColumn = [users.gigapubShortLink1Claimed, users.gigapubShortLink2Claimed, users.gigapubShortLink3Claimed][taskId - 1];
+      const [user] = await db.select({ claimed: claimedColumn }).from(users).where(eq(users.id, userId));
+      if (user?.claimed) return res.status(400).json({ success: false, message: 'Task already completed' });
+
+      await db.update(users).set({ gigapubShortLinkStartedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
+      res.json({ success: true, url: GIGAPUB_SHORT_LINKS[taskId - 1] });
+    } catch (error) {
+      console.error('Error starting Gigapub short-link task:', error);
+      res.status(500).json({ success: false, message: 'Failed to start task' });
+    }
+  });
+
+  app.post('/api/tasks/gigapub-short-link/claim', authenticateTelegram, taskRateLimit, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      const taskId = Number(req.body?.taskId);
+      if (!userId || !Number.isInteger(taskId) || taskId < 1 || taskId > 3) {
+        return res.status(400).json({ success: false, message: 'Invalid Gigapub task' });
+      }
+
+      const claimedColumn = [users.gigapubShortLink1Claimed, users.gigapubShortLink2Claimed, users.gigapubShortLink3Claimed][taskId - 1];
+      const [user] = await db.select({ claimed: claimedColumn, startedAt: users.gigapubShortLinkStartedAt }).from(users).where(eq(users.id, userId));
+      if (user?.claimed) return res.status(400).json({ success: false, message: 'Task already completed' });
+      if (!user?.startedAt || Date.now() - new Date(user.startedAt).getTime() < 3_000) {
+        return res.status(400).json({ success: false, message: 'Please stay on the Gigapub page for at least 3 seconds' });
+      }
+
+      const claimUpdate = [
+        { gigapubShortLink1Claimed: true },
+        { gigapubShortLink2Claimed: true },
+        { gigapubShortLink3Claimed: true },
+      ][taskId - 1];
+      const result = await db.transaction(async (tx) => {
+        const updated = await tx.update(users).set({ ...claimUpdate, updatedAt: new Date() }).where(and(eq(users.id, userId), eq(claimedColumn, false))).returning({ id: users.id });
+        if (updated.length === 0) return false;
+        await tx.update(users).set({ balance: sql`${users.balance} + ${GIGAPUB_SHORT_LINK_REWARD}::numeric` }).where(eq(users.id, userId));
+        await tx.insert(earnings).values({ userId, amount: GIGAPUB_SHORT_LINK_REWARD, source: 'gigapub_short_link', description: `Gigapub short-link task ${taskId} completed`, currency: 'GOLD' });
+        return true;
+      });
+      if (!result) return res.status(400).json({ success: false, message: 'Task already completed' });
+      res.json({ success: true, reward: Number(GIGAPUB_SHORT_LINK_REWARD), message: 'Gigapub task completed' });
+    } catch (error) {
+      console.error('Error claiming Gigapub short-link task:', error);
+      res.status(500).json({ success: false, message: 'Failed to claim task' });
     }
   });
 
