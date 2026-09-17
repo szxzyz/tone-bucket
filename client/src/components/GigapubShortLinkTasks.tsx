@@ -8,7 +8,7 @@ const LINKS = [
   'https://link.gigapub.tech/l/9ttyplb0va',
   'https://link.gigapub.tech/l/vkcp91if6',
 ] as const;
-const REWARD = 20;
+const REWARD = 50;
 type Step = 'idle' | 'waiting' | 'ready' | 'claiming' | 'completed';
 
 function openExternalLink(url: string) {
@@ -66,6 +66,9 @@ export default function GigapubShortLinkTasks() {
 
   const startTask = async (index: number) => {
     if (steps[index] !== 'idle') return;
+    // Open synchronously from the button gesture. Waiting for the start API
+    // response first can make Telegram/browser block the external link.
+    openExternalLink(LINKS[index]);
     const response = await fetch('/api/tasks/gigapub-short-link/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -78,7 +81,6 @@ export default function GigapubShortLinkTasks() {
       return;
     }
     updateTask(index, { step: 'waiting', startedAt: Date.now(), returned: false });
-    openExternalLink(data.url || LINKS[index]);
   };
 
   const claimTask = async (index: number) => {

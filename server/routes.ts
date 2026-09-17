@@ -3605,7 +3605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     'https://link.gigapub.tech/l/9ttyplb0va',
     'https://link.gigapub.tech/l/vkcp91if6',
   ] as const;
-  const GIGAPUB_SHORT_LINK_REWARD = '20';
+  const GIGAPUB_SHORT_LINK_REWARD = '50';
 
   app.post('/api/tasks/gigapub-short-link/start', authenticateTelegram, taskRateLimit, async (req: any, res) => {
     try {
