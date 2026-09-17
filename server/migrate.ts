@@ -1028,6 +1028,23 @@ export async function ensureDatabaseSchema(): Promise<void> {
       console.log('ℹ️ [MIGRATION] Daily Challenges table already removed');
     }
 
+    // Gigapub sponsored short-link tasks — one-time claim state and the
+    // server-side start timestamp used for the minimum visit duration.
+    try {
+      await db.execute(sql`
+        DO $$
+        BEGIN
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS gigapub_short_link_1_claimed BOOLEAN DEFAULT false;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS gigapub_short_link_2_claimed BOOLEAN DEFAULT false;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS gigapub_short_link_3_claimed BOOLEAN DEFAULT false;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS gigapub_short_link_started_at TIMESTAMP;
+        END $$
+      `);
+      console.log('✅ [MIGRATION] Gigapub short-link columns ensured on users table');
+    } catch (err) {
+      console.error('⚠️ [MIGRATION] Could not ensure Gigapub short-link columns:', err);
+    }
+
     console.log('✅ [MIGRATION] Anti-fraud tables and columns ready');
 
   } catch (error) {
