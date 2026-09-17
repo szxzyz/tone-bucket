@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
-import { Copy, Users, Send } from 'lucide-react';
+import { Copy, Users, Send, Megaphone, ChevronRight } from 'lucide-react';
 import { formatLargeSWAG } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useAdmin } from '@/hooks/useAdmin';
 import {
   Drawer,
   DrawerContent,
@@ -32,6 +34,8 @@ function StatSkeleton() {
 
 export default function Affiliates() {
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
+  const { isAdmin } = useAdmin();
   const [referralsOpen, setReferralsOpen] = useState(false);
   const queryClient = useQueryClient();
   const claimReferralMutation = useMutation<any, Error, number | undefined>({
@@ -231,6 +235,25 @@ export default function Affiliates() {
             {claimReferralMutation.isPending ? 'Collecting…' : pendingReferralBonus > 0 ? 'Collect Gold Bonus' : 'No bonus ready'}
           </button>
         </div>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setLocation('/ambassador')}
+            className="w-full mb-2 rounded-[14px] px-3 py-3 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+            style={{ background: '#252525', border: '1px solid rgba(236,72,153,0.25)' }}
+            aria-label="Open Ambassador page"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(236,72,153,0.14)' }}>
+              <Megaphone className="w-5 h-5" style={{ color: '#ec4899' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white text-sm font-extrabold">Ambassador</div>
+              <div className="text-white/40 text-xs mt-1">Open ambassador campaigns</div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40 shrink-0" />
+          </button>
+        )}
 
         {/* Bottom clearance for the 88px floating nav so the last card is never covered */}
         <div style={{ height: 104, flexShrink: 0 }} />
