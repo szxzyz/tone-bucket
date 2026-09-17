@@ -100,8 +100,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
         telegram_username_wallet TEXT,
         cwallet_id TEXT,
         wallet_updated_at TIMESTAMP,
-        pending_referral_bonus DECIMAL(12, 8) DEFAULT '0',
-        total_claimed_referral_bonus DECIMAL(12, 8) DEFAULT '0',
+        pending_referral_bonus DECIMAL(30, 10) DEFAULT '0',
+        total_claimed_referral_bonus DECIMAL(30, 10) DEFAULT '0',
         ton_balance DECIMAL(30, 10) DEFAULT '0',
         usd_balance DECIMAL(30, 10) DEFAULT '0',
         pdz_balance DECIMAL(30, 10) DEFAULT '0',
@@ -244,7 +244,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         referrer_id VARCHAR NOT NULL REFERENCES users(id),
         referred_user_id VARCHAR NOT NULL REFERENCES users(id),
         original_earning_id INTEGER NOT NULL REFERENCES earnings(id),
-        commission_amount DECIMAL(12, 2) NOT NULL,
+        commission_amount DECIMAL(30, 10) NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
@@ -1043,6 +1043,27 @@ export async function ensureDatabaseSchema(): Promise<void> {
       console.log('✅ [MIGRATION] Gigapub short-link columns ensured on users table');
     } catch (err) {
       console.error('⚠️ [MIGRATION] Could not ensure Gigapub short-link columns:', err);
+    }
+
+    // Older deployments created referral bonus/commission fields with small
+    // numeric limits. Gold totals can exceed those limits, which otherwise
+    // breaks L2 accumulation and the user's bonus claim transaction.
+    try {
+      await db.execute(sql`
+        ALTER TABLE users
+          ALTER COLUMN pending_referral_bonus TYPE NUMERIC(30, 10)
+            USING COALESCE(pending_referral_bonus, 0)::NUMERIC(30, 10),
+          ALTER COLUMN total_claimed_referral_bonus TYPE NUMERIC(30, 10)
+            USING COALESCE(total_claimed_referral_bonus, 0)::NUMERIC(30, 10)
+      `);
+      await db.execute(sql`
+        ALTER TABLE referral_commissions
+          ALTER COLUMN commission_amount TYPE NUMERIC(30, 10)
+            USING COALESCE(commission_amount, 0)::NUMERIC(30, 10)
+      `);
+      console.log('✅ [MIGRATION] Referral bonus/commission precision upgraded');
+    } catch (err) {
+      console.error('⚠️ [MIGRATION] Could not upgrade referral precision:', err);
     }
 
     console.log('✅ [MIGRATION] Anti-fraud tables and columns ready');
