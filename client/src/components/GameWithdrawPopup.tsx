@@ -11,7 +11,7 @@ type Props = { open: boolean; onClose: () => void; userBalance: number };
 export default function GameWithdrawPopup({ open, onClose, userBalance }: Props) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
-  const [tonPrice, setTonPrice] = useState(5.5);
+  const [tonPrice, setTonPrice] = useState(0);
   const connectedAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], enabled: open, retry: false });
@@ -45,16 +45,17 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   if (!open) return null;
   const saved = Boolean(user?.payoutWalletAddress);
   const value = Number(amount || 0);
-  const canSubmit = Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && !withdrawal.isPending;
+  const netUsd = (value * 0.91) / 100000;
+  const canSubmit = Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && tonPrice > 0 && !withdrawal.isPending;
   return <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'flex-end' }}>
     <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)' }} />
     <section onClick={e => e.stopPropagation()} style={{ position:'relative', width:'100%', maxHeight:'90vh', overflowY:'auto', background:'#0a0a0a', border:'1px solid rgba(255,255,255,0.06)', borderBottom:0, borderRadius:'20px 20px 0 0', padding:'0 16px max(32px, calc(env(safe-area-inset-bottom,0px) + 16px))' }}>
       <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
       <div style={{ width:32, height:3, borderRadius:2, background:'rgba(255,255,255,0.1)', margin:'12px auto 20px' }} />
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, color:'#fff', fontSize:18, fontWeight:800 }}>Withdraw Gold</div>
-      <div style={{ background:'rgba(255,255,255,0.07)', borderRadius:14, marginBottom:14, overflow:'hidden' }}><Row label="Your balance" value={`${Math.floor(userBalance).toLocaleString()} GOLD`} /><Divider /><Row label="Minimum" value={`${minimum.toLocaleString()} GOLD`} /><Divider /><Row label="Withdrawal fee" value="9%" /><Divider /><Row label="You will receive" value={`${(((value * 0.91) / 100000) / tonPrice).toFixed(6)} TON`} /></div>
+      <div style={{ background:'rgba(255,255,255,0.07)', borderRadius:14, marginBottom:14, overflow:'hidden' }}><Row label="Your balance" value={`${Math.floor(userBalance).toLocaleString()} GOLD`} /><Divider /><Row label="Minimum" value={`${minimum.toLocaleString()} GOLD`} /><Divider /><Row label="Withdrawal fee" value="9%" /><Divider /><Row label="You will receive" value={tonPrice > 0 ? `$${netUsd.toFixed(6)} USD` : 'Loading live value…'} sub="TON amount is calculated at request time" /></div>
       <div style={{ marginBottom:14 }}><div style={labelStyle}>TON Wallet</div>{address ? <div style={{ ...inputStyle, display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:9 }}><span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#fff', fontSize:12 }}>{address}</span><button onClick={() => tonConnectUI.openModal()} style={{ background:'none', border:0, color:'#60a5fa', fontSize:11, fontWeight:800, flexShrink:0 }}>CHANGE</button></div> : <button onClick={() => tonConnectUI.openModal()} style={{ ...primaryButton, display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:9 }}>Connect TON Wallet</button>}{connectedAddress && !saved && <button onClick={()=>saveWallet.mutate()} disabled={saveWallet.isPending} style={{ ...primaryButton, opacity: saveWallet.isPending ? .45 : 1 }}>{saveWallet.isPending ? 'Saving…' : 'Use Connected Wallet'}</button>}</div>
-      <div style={{ marginBottom:16 }}><div style={labelStyle}>Amount</div><div style={{ ...inputWrap }}><input inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9]/g,''))} placeholder={`Min ${minimum.toLocaleString()}`} style={{ ...inputStyle, margin:0, background:'transparent', padding:0, border:0 }} /><button onClick={()=>setAmount(String(Math.floor(userBalance)))} style={{ background:'none', border:0, color:'#60a5fa', fontSize:11, fontWeight:800 }}>MAX</button><span style={{ color:'rgba(255,255,255,.3)', fontSize:13, fontWeight:700 }}>GOLD</span></div>{value > 0 && value < minimum && <div style={{ color:'#f87171', fontSize:11, marginTop:6 }}>Minimum {minimum.toLocaleString()} GOLD required</div>}</div>
+      <div style={{ marginBottom:16 }}><div style={labelStyle}>GOLD amount</div><div style={{ ...inputWrap }}><input inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9]/g,''))} placeholder={`Min ${minimum.toLocaleString()}`} style={{ ...inputStyle, margin:0, background:'transparent', padding:0, border:0 }} /><button onClick={()=>setAmount(String(Math.floor(userBalance)))} style={{ background:'none', border:0, color:'#60a5fa', fontSize:11, fontWeight:800 }}>MAX</button><span style={{ color:'rgba(255,255,255,.3)', fontSize:13, fontWeight:700 }}>GOLD</span></div>{value > 0 && value < minimum && <div style={{ color:'#f87171', fontSize:11, marginTop:6 }}>Minimum {minimum.toLocaleString()} GOLD required</div>}</div>
       <button onClick={()=>withdrawal.mutate()} disabled={!canSubmit} style={{ ...primaryButton, height:48, opacity:canSubmit?1:.4, display:'flex', justifyContent:'center', alignItems:'center', gap:8 }}>{withdrawal.isPending && <Loader2 size={16} style={{ animation:'spin 1s linear infinite' }} />}{withdrawal.isPending ? 'Submitting…' : 'Submit Withdrawal Request'}</button>
     </section>
   </div>;

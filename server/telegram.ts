@@ -780,9 +780,9 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
 💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}
 🌐 Address:
 <code>${escapeHtml(withdrawalData.walletAddress)}</code>
-${axnLine}💵 USDT value: <b>${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} USDT</b>
-💸 TON amount: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>
-📈 TON price at request: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>
+${axnLine}💵 User value (after fee): <b>$${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} USD</b>
+💸 TON to send: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>
+📈 Live TON price at request: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>
 🪙 Payment: <b>Manual TON payment by admin after approval</b>
 🛂 Fee: ${withdrawalData.fee.toFixed(4)} (${withdrawalData.feePercent}%)
 📅 Date: ${currentDate}
@@ -836,9 +836,9 @@ export async function sendWithdrawalRequestToAdmins(withdrawalData: Parameters<t
     `💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}\n` +
     `🌐 Wallet: <code>${escapeHtml(withdrawalData.walletAddress)}</code>\n` +
     `💎 Gold: <b>${Math.round(withdrawalData.axnAmount || 0).toLocaleString()} GOLD</b>\n` +
-    `💵 USD/USDT: <b>${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)}</b>\n` +
-    `💸 TON: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>\n` +
-    `📈 TON price: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>\n` +
+    `💵 User value (after fee): <b>$${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} USD</b>\n` +
+    `💸 TON to send: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>\n` +
+    `📈 Live TON price at request: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>\n` +
     `🛂 Fee: ${withdrawalData.fee.toFixed(4)} (${withdrawalData.feePercent}%)\n` +
     `📅 Date: ${currentDate}`;
   const replyMarkup = { inline_keyboard: [[
@@ -2443,9 +2443,9 @@ Share your unique referral link and earn Gold when your friends join:
 🌐 Address:
 <code>${escapeHtml(walletAddress)}</code>
 💎 Gold: ${Math.round(goldAmount).toLocaleString()} GOLD
-💸 TON: <code>${tonAmount.toFixed(6)} TON</code>
-💵 USD/USDT: ${netAmount.toFixed(6)} USD
-📈 TON price at request: $${pendingTonPrice.toFixed(4)}
+💵 User value (after fee): <code>$${netAmount.toFixed(6)} USD</code>
+💸 TON to send: <code>${tonAmount.toFixed(6)} TON</code>
+📈 Live TON price at request: $${pendingTonPrice.toFixed(4)}
 🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
 📅 Date: ${createdAt}
 🤖 Bot: @${await getBotUsername()}`;
