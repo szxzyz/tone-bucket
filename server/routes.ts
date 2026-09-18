@@ -5844,6 +5844,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin linked-account view. Device identity is the hard link; IP is shown
+  // as supporting information only because shared networks are common.
+  app.get('/api/admin/secondary-accounts', authenticateAdmin, async (_req: any, res) => {
+    try {
+      const result = await db.execute(sql`
+        WITH ranked AS (
+          SELECT
+            u.*,
+            ROW_NUMBER() OVER (
+              PARTITION BY u.device_id
+              ORDER BY u.created_at NULLS LAST, u.id
+            ) AS device_rank
+          FROM users u
+          WHERE u.device_id IS NOT NULL AND TRIM(u.device_id) <> ''
+        )
+        SELECT
+          secondary.id AS secondary_id,
+          secondary.telegram_id AS secondary_telegram_id,
+          secondary.username AS secondary_username,
+          secondary.first_name AS secondary_first_name,
+          secondary.last_name AS secondary_last_name,
+          secondary.banned AS secondary_banned,
+          secondary.banned_reason AS secondary_banned_reason,
+          secondary.device_id,
+          secondary.last_login_ip AS secondary_last_login_ip,
+          secondary.created_at AS secondary_created_at,
+          primary_user.id AS primary_id,
+          primary_user.telegram_id AS primary_telegram_id,
+          primary_user.username AS primary_username,
+          primary_user.first_name AS primary_first_name,
+          primary_user.last_name AS primary_last_name,
+          primary_user.created_at AS primary_created_at
+        FROM ranked secondary
+        JOIN ranked primary_user
+          ON primary_user.device_id = secondary.device_id
+         AND primary_user.device_rank = 1
+        WHERE secondary.device_rank > 1
+        ORDER BY secondary.created_at DESC NULLS LAST
+      `);
+      res.json({ success: true, accounts: result.rows });
+    } catch (error) {
+      console.error('Error fetching secondary accounts:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch secondary accounts' });
+    }
+  });
+
   // Admin: manually trigger full referral repair (sync + activate)
   app.post('/api/admin/referrals/sync', authenticateAdmin, async (req: any, res) => {
     try {

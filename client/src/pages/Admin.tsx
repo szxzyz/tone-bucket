@@ -139,6 +139,71 @@ function StatCard({ icon, label, value, iconColor }: {
   );
 }
 
+function SecondaryAccountsSection() {
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: ['/api/admin/secondary-accounts'],
+    queryFn: () => apiRequest('GET', '/api/admin/secondary-accounts').then(res => res.json()),
+    staleTime: 30000,
+  });
+  const accounts = data?.accounts || [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Secondary Accounts</h2>
+          <p className="text-xs text-gray-500 mt-1">Accounts linked to the same device, with their original primary account.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} className="h-8 px-3 text-xs">
+          <RefreshCw size={13} className={isFetching ? 'animate-spin mr-1' : 'mr-1'} /> Refresh
+        </Button>
+      </div>
+
+      {isLoading && <div className="bg-[#121212] border border-white/10 rounded-xl p-6 text-sm text-gray-400">Loading linked accounts…</div>}
+      {isError && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm text-red-300">Could not load secondary accounts.</div>}
+      {!isLoading && !isError && accounts.length === 0 && (
+        <div className="bg-[#121212] border border-white/10 rounded-xl p-6 text-center text-sm text-gray-400">No linked secondary accounts found.</div>
+      )}
+      <div className="grid gap-3">
+        {accounts.map((account: any) => {
+          const secondaryName = [account.secondary_first_name, account.secondary_last_name].filter(Boolean).join(' ') || account.secondary_username || 'Unknown';
+          const primaryName = [account.primary_first_name, account.primary_last_name].filter(Boolean).join(' ') || account.primary_username || 'Unknown';
+          return (
+            <Card key={`${account.secondary_id}-${account.primary_id}`} className="bg-[#121212] border-white/10">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="destructive" className="text-[10px] shrink-0">SECONDARY</Badge>
+                    <span className="font-semibold text-white truncate">{secondaryName}</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 shrink-0">{account.secondary_banned ? 'Banned' : 'Withdrawal blocked'}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-[#1a1a1a] p-3">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">Secondary account</p>
+                    <p className="text-gray-200">@{account.secondary_username || 'N/A'}</p>
+                    <p className="text-gray-500 mt-1">Telegram: {account.secondary_telegram_id || 'N/A'}</p>
+                  </div>
+                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wide text-emerald-400 mb-1">Primary account</p>
+                    <p className="text-emerald-100 font-semibold">{primaryName}</p>
+                    <p className="text-emerald-300/60 mt-1">@{account.primary_username || 'N/A'} · Telegram: {account.primary_telegram_id || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-gray-500">
+                  <span>Device: {account.device_id || 'N/A'}</span>
+                  <span>IP: {account.secondary_last_login_ip || 'N/A'}</span>
+                </div>
+                {account.secondary_banned_reason && <p className="text-[11px] text-red-300/80">Reason: {account.secondary_banned_reason}</p>}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { isAdmin, isLoading: adminLoading, role, can } = useAdmin();
   const queryClient = useQueryClient();
@@ -244,6 +309,7 @@ export default function AdminPage() {
               { value: 'promos',   icon: <Tag size={13}/>,           label: 'Promos' },
               { value: 'payouts',  icon: <Wallet size={13}/>,        label: 'Payouts' },
               { value: 'bans',     icon: <ShieldOff size={13}/>,     label: 'Bans' },
+              { value: 'secondary', icon: <Users size={13}/>,         label: 'Secondary Accounts' },
               { value: 'security', icon: <ShieldAlert size={13}/>,   label: 'Security' },
               { value: 'settings', icon: <Settings size={13}/>,      label: 'Settings' },
               { value: 'contests', icon: <Crown size={13}/>,         label: 'Contests' },
@@ -358,6 +424,11 @@ export default function AdminPage() {
           {/* Ban Logs Tab */}
           <TabsContent value="bans" className="mt-0">
             <BanLogsSection />
+          </TabsContent>
+
+          {/* Same-device secondary accounts */}
+          <TabsContent value="secondary" className="mt-0">
+            <SecondaryAccountsSection />
           </TabsContent>
 
           {/* Security Tab */}
