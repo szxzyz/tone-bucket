@@ -286,7 +286,16 @@ export const authenticateTelegram: RequestHandler = async (req: any, res, next) 
               lastLoginUserAgent: userAgent,
             }).where(eq(users.id, primaryUser.id));
 
-            req.user = { telegramUser, user: primaryUser };
+            // Keep the original account visible, but retain a server-side
+            // marker so the secondary Telegram account cannot withdraw from
+            // the primary account's balance.
+            req.user = {
+              telegramUser,
+              user: primaryUser,
+              secondaryAccountBlocked: true,
+              primaryAccountName: primaryUser.firstName || primaryUser.username || 'your primary account',
+              primaryTelegramId: primaryUser.telegram_id,
+            };
             req.session.user = req.user;
             return next();
           }

@@ -43,6 +43,7 @@ import { eq, sql, desc, and, gte, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToAdmins } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
+import { validateDeviceAndDetectDuplicate } from "./deviceTracking";
 import {
   requireVerifiedSession,
   requireStrictAuth,
@@ -1078,6 +1079,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid Telegram authentication data' });
       }
 
+      // Apply the same-device policy before upserting a Telegram account. A
+      // shared IP alone is not enough evidence (Wi-Fi, hotspots and mobile
+      // carriers commonly share IPs), so device identity remains the hard
+      // signal and IP is retained only as supporting telemetry.
+      const rawDeviceId = req.headers['x-device-id'] as string | undefined;
+      const rawFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
+      let deviceFingerprint: any = null;
+      try { deviceFingerprint = rawFingerprint ? JSON.parse(rawFingerprint) : null; } catch { deviceFingerprint = null; }
+      if (rawDeviceId || clientIp !== 'unknown') {
+        const duplicate = await validateDeviceAndDetectDuplicate(telegramUser.id.toString(), {
+          deviceId: rawDeviceId || `ip_${clientIp}`,
+          fingerprint: deviceFingerprint,
+          ip: clientIp,
+          userAgent: req.headers['user-agent'] as string | undefined,
+        });
+        if (duplicate.redirectToPrimary && duplicate.primaryAccountId) {
+          const [primaryUser] = await db.select().from(users).where(eq(users.id, duplicate.primaryAccountId)).limit(1);
+          if (primaryUser && !primaryUser.banned) {
+            return res.json({
+              ...primaryUser,
+              secondaryAccountBlocked: true,
+              primaryAccountName: primaryUser.firstName || primaryUser.username || 'your primary account',
+              primaryTelegramId: primaryUser.telegram_id,
+              referralProcessed: false,
+            });
+          }
+        }
+      }
+
       // Use upsertTelegramUser method which properly handles telegram_id
       const { user: upsertedUser, isNewUser } = await storage.upsertTelegramUser(telegramUser.id.toString(), {
         email: `${telegramUser.username || telegramUser.id}@telegram.user`,
@@ -1246,6 +1276,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         friendsInvited,
         referralLink,
         isAdmin: isAdminUser,
+        secondaryAccountBlocked: Boolean(req.user.secondaryAccountBlocked),
+        primaryAccountName: req.user.primaryAccountName || undefined,
+        primaryTelegramId: req.user.primaryTelegramId || undefined,
       });
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -6691,6 +6724,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/payouts', authenticateTelegram, requireVerifiedSession, withdrawRateLimit, async (req: any, res) => {
     try {
+      if (req.user?.secondaryAccountBlocked) {
+        return res.status(403).json({
+          success: false,
+          code: 'SECONDARY_ACCOUNT_BLOCKED',
+          message: `This is not your active account. Your original account is ${req.user.primaryAccountName || 'the first account created on this device'}. Withdrawals are disabled here.`,
+          primaryAccountName: req.user.primaryAccountName || null,
+        });
+      }
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -9164,6 +9205,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new withdrawal request
   app.post('/api/withdrawals', authenticateTelegram, requireVerifiedSession, withdrawRateLimit, async (req: any, res) => {
     try {
+      if (req.user?.secondaryAccountBlocked) {
+        return res.status(403).json({
+          success: false,
+          code: 'SECONDARY_ACCOUNT_BLOCKED',
+          message: `This is not your active account. Your original account is ${req.user.primaryAccountName || 'the first account created on this device'}. Withdrawals are disabled here.`,
+          primaryAccountName: req.user.primaryAccountName || null,
+        });
+      }
       // Get userId from session or req.user (lenient check)
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
 
