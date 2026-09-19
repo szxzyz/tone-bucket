@@ -22,10 +22,8 @@
 
     <!-- Ad SDKs — all async so a slow/blocked network never hangs the app -->
 
-    <!-- Monetag Rewarded Interstitial SDK — zone id injected at build time from VITE_MONETAG_ZONE_ID -->
-    <script src='//libtl.com/sdk.js' data-zone='%VITE_MONETAG_ZONE_ID%' data-sdk='show_%VITE_MONETAG_ZONE_ID%'></script>
-
-    <!-- GiGaPub Ad Network — loaded dynamically in useAdFlow.ts -->
+    <!-- Monetag and GiGaPub are loaded dynamically in useAdFlow.ts so an
+         unset ad configuration never leaves an invalid script placeholder. -->
 
     <!-- AdsGram SDK -->
     <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>

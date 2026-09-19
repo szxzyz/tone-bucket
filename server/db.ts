@@ -1,3 +1,4 @@
+import './env';
 import pkg from 'pg';
 const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -6,7 +7,9 @@ import * as schema from "../shared/schema";
 const rawConnectionString = process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!rawConnectionString) {
-  throw new Error("DATABASE_URL must be set for database connection");
+  throw new Error(
+    "Database connection is not configured. Set DATABASE_URL or AIVEN_DATABASE_URL before starting the server.",
+  );
 }
 
 // pg's connection-string parser can let sslmode query parameters override the
