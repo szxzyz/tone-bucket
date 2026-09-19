@@ -29,7 +29,7 @@ const CountryControls = lazy(() => import("@/pages/CountryControls"));
 const AmbassadorPage = lazy(() => import("@/pages/Ambassador"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 // Single lightweight logo — replaces the old 7-image frame sequence (~243KB → ~13KB, no blocking preloads)
-const LOGO_SRC = '/axn-coin.png';
+const LOGO_SRC = '/axionet-logo-new.png';
 function LoadingFallback() {
   return (
     <div className="fixed inset-0 overflow-hidden" style={{
