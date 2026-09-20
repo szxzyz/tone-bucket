@@ -48,26 +48,16 @@ function HomeStatistics() {
         <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>App Statistics</span>
         {isLoading && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Updating…</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 7, marginBottom: 16 }}>
         {statCards.map(card => (
-          <div key={card.label} style={{ background: '#252525', borderRadius: 14, padding: '14px 13px', minWidth: 0, border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: card.accent, boxShadow: `0 0 10px ${card.accent}`, marginBottom: 9 }} />
-            <div style={{ color: '#fff', fontSize: 'clamp(17px, 5vw, 23px)', fontWeight: 900, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</div>
+          <div key={card.label} style={{ background: '#252525', borderRadius: 12, padding: '10px 11px', minWidth: 0, border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: card.accent, boxShadow: `0 0 8px ${card.accent}`, marginBottom: 6 }} />
+            <div style={{ color: '#fff', fontSize: 'clamp(16px, 4.5vw, 21px)', fontWeight: 900, lineHeight: 1.05, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</div>
           </div>
         ))}
       </div>
-      <div style={{ background: '#252525', borderRadius: 14, padding: '15px 14px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Our social networks</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-          {[{ label: 'News', url: data?.social?.news, icon: '▣' }, { label: 'Chat', url: data?.social?.chat, icon: '◉' }].map(social => (
-            <button key={social.label} onClick={() => social.url && window.open(social.url, '_blank', 'noopener,noreferrer')} disabled={!social.url} style={{ border: '1px solid rgba(255,255,255,0.06)', background: social.url ? 'rgba(37,99,235,0.16)' : 'rgba(255,255,255,0.04)', borderRadius: 11, padding: '11px 10px', color: social.url ? '#fff' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: social.url ? 'pointer' : 'default', fontSize: 12, fontWeight: 800 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ color: '#93c5fd', fontSize: 15 }}>{social.icon}</span>{social.label}</span><span style={{ color: 'rgba(255,255,255,0.45)' }}>↗</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(255,255,255,0.04))', border: '1px solid rgba(96,165,250,0.14)', borderRadius: 14, padding: '15px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#252525', borderRadius: 12, padding: '12px 13px', marginBottom: 16, border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div><div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em' }}>Project running</div><div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginTop: 4 }}>Since launch</div></div>
         <div style={{ color: '#93c5fd', fontSize: 23, fontWeight: 900 }}>{data ? formatHomeStat(data.projectDays) : '—'} <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 700 }}>days</span></div>
       </div>
@@ -269,7 +259,7 @@ export default function Games() {
 
 
   return (
-    <div style={{ height: '100dvh', background: '#090909', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
+    <div style={{ height: '100dvh', background: '#090909', overflowY: 'auto', overflowX: 'hidden', width: '100%' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes boxPulse {
@@ -290,7 +280,6 @@ export default function Games() {
 
       {/* Balance Section */}
       <div style={{
-        flexShrink: 0,
         paddingTop: 'calc(var(--header-height, 62px) + 14px)',
         paddingLeft: 'clamp(12px, 4vw, 24px)',
         paddingRight: 'clamp(12px, 4vw, 24px)',
@@ -397,7 +386,7 @@ export default function Games() {
       </div>
 
       {/* Scrollable Content */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '8px clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%' }}>
+      <div style={{ padding: '8px clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
 
         {/* DAILY REWARDS */}
         <div style={{ marginBottom: 10 }}>

@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/public/statistics', async (_req: any, res) => {
     try {
       const adminPeriodStart = getAdminPeriodStart().toISOString();
-      const [totalUsers, totalEarned, totalWithdrawn, activeToday, tasksCreated, taskCompletionsCount, dailyTaskCompletionsCount, projectStart] = await Promise.all([
+      const results = await Promise.allSettled([
         db.select({ count: sql<number>`count(*)` }).from(users),
         db.select({ total: sql<string>`COALESCE(SUM(${users.totalEarned}), '0')` }).from(users),
         db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.amount}), '0')` }).from(withdrawals).where(sql`${withdrawals.status} IN ('completed', 'success', 'paid', 'Approved')`),
@@ -731,6 +731,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         db.select({ count: sql<number>`count(*)` }).from(dailyTaskCompletions).where(eq(dailyTaskCompletions.completed, true)),
         db.select({ startedAt: sql<Date | null>`MIN(${users.createdAt})` }).from(users),
       ]);
+      const resultAt = <T,>(index: number, fallback: T): T => results[index].status === 'fulfilled' ? results[index].value as T : fallback;
+      const totalUsers = resultAt(0, [{ count: 0 }]);
+      const totalEarned = resultAt(1, [{ total: '0' }]);
+      const totalWithdrawn = resultAt(2, [{ total: '0' }]);
+      const activeToday = resultAt(3, [{ count: 0 }]);
+      const tasksCreated = resultAt(4, [{ count: 0 }]);
+      const taskCompletionsCount = resultAt(5, [{ count: 0 }]);
+      const dailyTaskCompletionsCount = resultAt(6, [{ count: 0 }]);
+      const projectStart = resultAt(7, [{ startedAt: null as Date | null }]);
       const startedAt = projectStart[0]?.startedAt ? new Date(projectStart[0].startedAt).getTime() : Date.now();
       const projectDays = Math.max(0, Math.floor((Date.now() - startedAt) / 86400000));
       res.set('Cache-Control', 'no-store');
@@ -742,10 +751,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         taskCreated: Number(tasksCreated[0]?.count || 0),
         taskCompleted: Number(taskCompletionsCount[0]?.count || 0) + Number(dailyTaskCompletionsCount[0]?.count || 0),
         projectDays,
-        social: {
-          news: config.bot.updateUrl || config.telegram.channelUrl || '',
-          chat: config.bot.discussUrl || config.telegram.groupUrl || '',
-        },
       });
     } catch (error) {
       console.error('Error fetching public statistics:', error);
