@@ -11,7 +11,7 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
 import { showAdgramAd } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
-import { Info, Rocket } from "lucide-react";
+
 import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
 const GEMS_PER_TON = 1000000;
 
@@ -20,18 +20,6 @@ function getTodayKey() {
 }
 
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
-
-const FARM_RATE = 23.9574;
-const FARM_DURATION = 3600;
-const FARM_MAX = parseFloat((FARM_DURATION * FARM_RATE).toFixed(4));
-const FARM_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25];
-
-function fmtCountdown(secs: number): string {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
 
 export default function Games() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,13 +37,6 @@ export default function Games() {
   const [mysteryPhase, setMysteryPhase] = useState<MysteryPhase>('idle');
   const [isSharing, setIsSharing] = useState(false);
   const mysteryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Farming state
-  const [farmCountdown, setFarmCountdown] = useState(FARM_DURATION);
-  const [farmAccum, setFarmAccum] = useState(0);
-  const [showFarmInfo, setShowFarmInfo] = useState(false);
-  const [showAlertPopup, setShowAlertPopup] = useState(false);
-  const farmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -232,78 +213,6 @@ export default function Games() {
     setIsSharing(false);
   };
 
-  // Farming query & mutations
-  const { data: farmData, refetch: refetchFarm } = useQuery<any>({
-    queryKey: ['/api/farming/state'],
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-  });
-
-  useEffect(() => {
-    if (!farmData) return;
-    setFarmCountdown(farmData.remainingSeconds ?? FARM_DURATION);
-    setFarmAccum(farmData.minedAxn ?? 0);
-  }, [farmData]);
-
-  useEffect(() => {
-    if (farmIntervalRef.current) clearInterval(farmIntervalRef.current);
-    const isActive = farmData?.isActive;
-    if (!isActive) return;
-    const rate = farmData?.effectiveRate ?? FARM_RATE;
-    const maxAxn = (FARM_DURATION / 3600) * rate;
-    const goldPerSecond = rate / 3600;
-    farmIntervalRef.current = setInterval(() => {
-      setFarmCountdown(prev => Math.max(0, prev - 1));
-      setFarmAccum(prev => parseFloat(Math.min(prev + goldPerSecond, maxAxn).toFixed(4)));
-    }, 1000);
-    return () => { if (farmIntervalRef.current) clearInterval(farmIntervalRef.current); };
-  }, [farmData?.isActive, farmData?.startedAt, farmData?.effectiveRate]);
-
-  const farmStartMutation = useMutation({
-    mutationFn: async () => {
-      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
-      const res = await apiRequest('POST', '/api/farming/start', {});
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to start');
-      return data;
-    },
-    onSuccess: () => {
-      showNotification('Mining started', 'success');
-      refetchFarm();
-    },
-    onError: (err: any) => showNotification(err?.message || 'Failed to start farming', 'error'),
-  });
-
-  const farmClaimMutation = useMutation({
-    mutationFn: async () => {
-      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
-      const res = await apiRequest('POST', '/api/farming/claim', {});
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to claim');
-      return data;
-    },
-    onSuccess: (data) => {
-      showNotification(`${data.amount} Gold claimed`, 'success');
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      refetchFarm();
-    },
-    onError: (err: any) => showNotification(err?.message || 'Failed to claim', 'error'),
-  });
-
-  const farmBoostMutation = useMutation({
-    mutationFn: async () => {
-      await showAdgramAd(appConfig?.adsgramRewardBlockId || '');
-      const res = await apiRequest('POST', '/api/farming/boost', {});
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to boost mining');
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/farming/state'] });
-      showNotification(`Mining boosted to ${data.multiplier}x`, 'success');
-    },
-    onError: (err: any) => showNotification(err?.message || 'Could not boost mining', 'error'),
-  });
 
   return (
     <div style={{ height: '100dvh', background: '#090909', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
@@ -510,126 +419,6 @@ export default function Games() {
           </div>
         </div>
 
-        {/* FARMING label */}
-        <div style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
-            Farming
-          </span>
-        </div>
-
-        {/* FARMING */}
-        <div style={{ background: '#252525', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
-          {/* Main row: coin + counting */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
-            <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 50, height: 50, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
-            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              {(() => {
-                const val = farmAccum.toFixed(3);
-                const [intPart, decPart] = val.split('.');
-                return (
-                  <div style={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', minWidth: 0 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 'clamp(24px, 8vw, 36px)', fontWeight: 800 }}>{intPart}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 'clamp(16px, 5vw, 22px)', fontWeight: 700 }}>.{decPart}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 600, marginLeft: 5 }}>Gold</span>
-                  </div>
-                );
-              })()}
-              <div style={{ color: 'rgba(255,255,255,0.32)', fontSize: 12, marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(farmData?.effectiveRate ?? FARM_RATE).toFixed(4)} Gold/hour · {farmData?.multiplier ?? 1}x boost</div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
-
-          {/* Info and Boost stay inside the original card */}
-          <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <button onClick={() => setShowFarmInfo(true)} aria-label="Farming info" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Info size={18} strokeWidth={2} /> INFO</button>
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.05)' }} />
-              <button onClick={() => setShowAlertPopup(true)} aria-label="Mining boost" style={{ flex: 1, padding: '11px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 11, fontWeight: 800 }} className="active:scale-95 transition-transform"><Rocket size={18} strokeWidth={1.8} /> BOOST</button>
-          </div>
-        </div>
-
-        {/* Start/Claim control is intentionally detached from the card */}
-        <div style={{ marginTop: 12 }}>
-          {(() => {
-            const isActive = farmData?.isActive;
-            const isPending = farmStartMutation.isPending || farmClaimMutation.isPending;
-            if (isPending) return (
-              <button disabled style={{ width: '100%', padding: '12px 0', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.4)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                {farmClaimMutation.isPending ? 'Claiming…' : 'Starting…'}
-              </button>
-            );
-            if (isActive && farmCountdown <= 0) return (
-              <button onClick={() => farmClaimMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#16a34a', border: 'none', borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
-                CLAIM
-              </button>
-            );
-            if (isActive) return (
-              <div style={{ width: '100%', padding: '12px 0', background: '#eab308', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.03em' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>MINING · {fmtCountdown(farmCountdown)}</span>
-              </div>
-            );
-            return (
-              <button onClick={() => farmStartMutation.mutate()} style={{ width: '100%', padding: '12px 0', background: '#dc2626', border: 'none', borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.05em' }} className="active:scale-95 transition-transform">
-                START MINING
-              </button>
-            );
-          })()}
-        </div>
-
-        {/* Farm Info Popup — bottom sheet */}
-        {showFarmInfo && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={() => setShowFarmInfo(false)} />
-            <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
-              <div style={{ color: '#fff', fontSize: 19, fontWeight: 900, textAlign: 'center', marginBottom: 22 }}>Farming Info</div>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '4px 0', marginBottom: 20 }}>
-                {[
-                  { label: 'Mining speed', val: '23.9574 Gold/hour' },
-                  { label: 'Cycle duration', val: '1 hour' },
-                  { label: 'Base per cycle', val: '23.9574 Gold' },
-                  { label: 'Claim', val: 'After 1 hour only' },
-                  { label: 'Boost levels', val: '1x → 25x' },
-                ].map((r, i, arr) => (
-                  <div key={r.label}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>{r.label}</span>
-                      <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{r.val}</span>
-                    </div>
-                    {i < arr.length - 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />}
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setShowFarmInfo(false)} style={{ width: '100%', padding: '14px 0', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }} className="active:scale-95 transition-transform">Got it</button>
-            </div>
-          </div>
-        )}
-
-        {/* Speed Up Popup — bottom sheet */}
-
-        {/* Alert Popup — bottom sheet */}
-        {showAlertPopup && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'flex-end' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={() => setShowAlertPopup(false)} />
-            <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(160deg, #0d0d0f, #111118)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px))', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginBottom: 10 }}>Upgrade multiplier</div>
-                <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', boxSizing: 'border-box', marginBottom: 14 }}>
-                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Current boost</div>
-                  <div style={{ color: '#c084fc', fontSize: 24, fontWeight: 900 }}>{farmData?.multiplier ?? 1}x</div>
-                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 3 }}>Watch an ad to unlock the next level: {(FARM_BOOSTS[Math.min(FARM_BOOSTS.length - 1, Number(farmData?.boostStep ?? 0) + 1)] ?? 25)}x</div>
-                </div>
-                <button onClick={() => farmBoostMutation.mutate()} disabled={!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25} style={{ width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', border: 0, borderRadius: 14, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: (!farmData?.isActive || farmBoostMutation.isPending || Number(farmData?.multiplier ?? 1) >= 25) ? .45 : 1, marginBottom: 9 }} className="active:scale-95 transition-transform">{farmBoostMutation.isPending ? 'Watching ad…' : Number(farmData?.multiplier ?? 1) >= 25 ? 'Maximum boost reached' : 'Watch ad to boost'}</button>
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
 

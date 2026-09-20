@@ -21,6 +21,7 @@ import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
 import Games from "@/pages/Games";
+import Mining from "@/pages/Mining";
 import Affiliates from "@/pages/Affiliates";
 
 // Lazy-load heavy/rare pages only
@@ -83,6 +84,7 @@ function Router() {
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Games} />
+        <Route path="/mine" component={Mining} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Games} />
         <Route path="/profile" component={Profile} />
