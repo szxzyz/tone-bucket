@@ -2668,7 +2668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const periodKey = getCheckinDayKey();
-      if (user.dailyCheckinClaimed && normalizeCheckinDayKey(user.lastResetPeriod) === periodKey) {
+      if (user.dailyCheckinClaimed && normalizeCheckinDayKey(user.dailyCheckinLastClaimDate || user.dailyTasksDate) === periodKey) {
         return res.status(400).json({ message: "Daily check-in already claimed for this period" });
       }
 
@@ -2690,7 +2690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .where(and(
             eq(users.id, userId),
-            sql`NOT (daily_checkin_claimed = true AND (last_reset_period = ${periodKey} OR last_reset_period LIKE ${periodKey} || '-%'))`,
+            sql`NOT (daily_checkin_claimed = true AND daily_checkin_last_claim_date IS NOT NULL AND DATE(daily_checkin_last_claim_date AT TIME ZONE 'Asia/Kolkata') = ${periodKey})`,
           ))
           .returning({ tonBalance: users.tonBalance });
         if (updated.length === 0) return { error: 'already_claimed' as const };
@@ -11712,9 +11712,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
   // Daily Check-In is once per IST calendar day. Older releases stored the
   // 12-hour AM/PM reset key, so normalize both formats when reading history.
-  const getCheckinDayKey = (): string => getResetPeriodKey().replace(/-(AM|PM)$/, '');
-  const normalizeCheckinDayKey = (value: string | null | undefined): string | null =>
-    value ? value.replace(/-(AM|PM)$/, '') : null;
+  const getCheckinDayKey = (date = new Date()): string => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  };
+  const normalizeCheckinDayKey = (value: string | Date | null | undefined): string | null => {
+    if (!value) return null;
+    const parsed = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T00:00:00Z`)
+      : new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : getCheckinDayKey(parsed);
+  };
+  const getLastCheckinClaim = (user: any): string | null =>
+    normalizeCheckinDayKey(user.dailyCheckinLastClaimDate || user.dailyTasksDate);
 
   // GET /api/daily-checkin/status — streak state for the 7-day carousel
   app.get('/api/daily-checkin/status', requireAuth, async (req: any, res) => {
@@ -11725,7 +11738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) return res.status(404).json({ error: 'User not found' });
 
       const today = getCheckinDayKey();
-      const lastClaimDate = normalizeCheckinDayKey(user.lastResetPeriod);
+      const lastClaimDate = getLastCheckinClaim(user);
       
       // Streak continues only if last claim was in the current or immediately previous period
       let streak = user.dailyCheckinStreak || 0;
@@ -11763,7 +11776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      const lastClaimDate = normalizeCheckinDayKey(user.lastResetPeriod);
+      const lastClaimDate = getLastCheckinClaim(user);
 
       if (lastClaimDate === today) {
         return res.status(400).json({ error: 'Already checked in for this period' });
