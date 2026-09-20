@@ -1,4 +1,6 @@
 import { useLocation } from "wouter";
+import { useAdmin } from "@/hooks/useAdmin";
+import { showNotification } from "@/components/AppNotification";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
@@ -14,7 +16,8 @@ const TABS = [
 ] as const;
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
+  const { isAdmin, isLoading } = useAdmin();
   return <nav style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:600, display:"flex", alignItems:"stretch", height:72, paddingBottom:"max(var(--tg-content-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 6px)", background:"#0a0a0a" }}>
-    {TABS.map(tab => { const on = location === tab.path || (tab.id === "home" && location === "/game"); const c = on ? ACTIVE : DIM; return <button key={tab.id} onClick={() => setLocation(tab.path)} style={{ flex:1, height:"100%", border:"none", background:"transparent", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:5, position:"relative", padding:"6px 0 4px" }}>{on && <div style={{ position:"absolute", top:0, left:"25%", right:"25%", height:2, borderRadius:"0 0 3px 3px", background:ACTIVE }} />}<div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:40, height:30 }}>{tab.id === "home" ? <HomeIcon active={on} c={c} /> : tab.id === "mine" ? <MineIcon active={on} c={c} /> : tab.id === "tasks" ? <TasksIcon active={on} c={c} /> : <FriendsIcon active={on} c={c} />}</div><span style={{ fontSize:10, fontWeight:on?700:500, letterSpacing:".03em", color:c, lineHeight:1 }}>{tab.label}</span></button>; })}
+    {TABS.map(tab => { const on = location === tab.path || (tab.id === "home" && location === "/game"); const c = on ? ACTIVE : DIM; return <button key={tab.id} onClick={() => { if (tab.id === "mine" && !isLoading && !isAdmin) { showNotification("Mining Under Update — page access is temporarily restricted.", "error"); return; } setLocation(tab.path); }} style={{ flex:1, height:"100%", border:"none", background:"transparent", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:5, position:"relative", padding:"6px 0 4px" }}>{on && <div style={{ position:"absolute", top:0, left:"25%", right:"25%", height:2, borderRadius:"0 0 3px 3px", background:ACTIVE }} />}<div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:40, height:30 }}>{tab.id === "home" ? <HomeIcon active={on} c={c} /> : tab.id === "mine" ? <MineIcon active={on} c={c} /> : tab.id === "tasks" ? <TasksIcon active={on} c={c} /> : <FriendsIcon active={on} c={c} />}</div><span style={{ fontSize:10, fontWeight:on?700:500, letterSpacing:".03em", color:c, lineHeight:1 }}>{tab.label}</span></button>; })}
   </nav>;
 }
