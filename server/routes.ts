@@ -11797,58 +11797,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Reward is now always 100% as requested by user
       const isFullReward = true;
 
-      // Create or update mission record
-      const existingMission = await db.query.dailyMissions.findFirst({
-        where: and(
-          eq(dailyMissions.userId, userId),
-          eq(dailyMissions.missionType, 'daily_checkin'),
-          eq(dailyMissions.resetDate, today)
-        ),
-      });
+      const claimDescription = `Daily Check-in Day ${dayIndex + 1} Reward (streak ${streak + 1})`;
+      const claim = await db.transaction(async (tx) => {
+        // The conditional update is the single source of truth for duplicate
+        // protection; it also makes two simultaneous taps safe.
+        const updated = await tx.update(users).set({
+          dailyCheckinClaimed: true,
+          dailyTasksDate: new Date(),
+          dailyCheckinStreak: streak + 1,
+          dailyCheckinLastClaimDate: new Date(),
+          lastResetPeriod: today,
+          balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
+          withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${reward.toString()}`,
+          totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${reward.toString()}`,
+          totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${reward.toString()}`,
+          updatedAt: new Date(),
+        }).where(and(
+          eq(users.id, userId),
+          sql`NOT (daily_checkin_claimed = true AND daily_checkin_last_claim_date IS NOT NULL AND DATE(daily_checkin_last_claim_date AT TIME ZONE 'Asia/Kolkata') = ${today})`,
+        )).returning({ balance: users.balance });
+        if (updated.length === 0) return { alreadyClaimed: true as const };
 
-      if (existingMission) {
-        await db.update(dailyMissions).set({
-          completed: true,
-          claimedAt: new Date(),
-        }).where(eq(dailyMissions.id, existingMission.id));
-      } else {
-        await db.insert(dailyMissions).values({
+        await tx.insert(dailyMissions).values({
           userId,
           missionType: 'daily_checkin',
           completed: true,
           claimedAt: new Date(),
           resetDate: today,
+        }).onConflictDoUpdate({
+          target: [dailyMissions.userId, dailyMissions.missionType, dailyMissions.resetDate],
+          set: { completed: true, claimedAt: new Date() },
         });
-      }
-
-      // Atomic claim: streak + balances + state
-      await db.update(users).set({
-        dailyCheckinClaimed: true,
-        dailyTasksDate: new Date(),
-        dailyCheckinStreak: streak + 1,
-        dailyCheckinLastClaimDate: new Date(),
-        lastResetPeriod: today,
-        balance: sql`COALESCE(${users.balance}, 0) + ${reward.toString()}`,
-        updatedAt: new Date(),
-      }).where(eq(users.id, userId));
-      await db.update(userBalances).set({
-        balance: sql`COALESCE(${userBalances.balance}, 0) + ${reward.toString()}`,
-        updatedAt: new Date(),
-      }).where(eq(userBalances.userId, userId));
-
-      // Record transaction
-      await db.insert(transactions).values({
-        userId,
-        amount: reward.toString(),
-        type: 'addition',
-        source: 'mission_daily_checkin',
-        description: `Daily Check-in Day ${dayIndex + 1} Reward (streak ${streak + 1})`,
+        await tx.insert(userBalances).values({ userId, balance: reward.toString() })
+          .onConflictDoUpdate({
+            target: userBalances.userId,
+            set: { balance: sql`COALESCE(${userBalances.balance}, 0) + ${reward.toString()}`, updatedAt: new Date() },
+          });
+        const [earning] = await tx.insert(earnings).values({
+          userId,
+          amount: reward.toString(),
+          source: 'mission_daily_checkin',
+          description: claimDescription,
+          currency: 'GOLD',
+        }).returning({ id: earnings.id });
+        await tx.insert(transactions).values({
+          userId,
+          amount: reward.toString(),
+          type: 'addition',
+          source: 'mission_daily_checkin',
+          description: claimDescription,
+          metadata: { earningId: earning.id },
+        });
+        return { alreadyClaimed: false as const, balance: updated[0].balance };
       });
+      if (claim.alreadyClaimed) {
+        return res.status(400).json({ error: 'Already checked in for this period' });
+      }
 
       res.json({
         success: true,
         reward,
         newStreak: streak + 1,
+        newBalance: claim.balance || '0',
         dayIndex,
         isFullReward,
         message: `You earned ${reward} Gems!`,
