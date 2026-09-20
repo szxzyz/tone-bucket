@@ -11,6 +11,7 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import { useLocation } from "wouter";
 import { showAdgramAd } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
+import { Users, Activity, Coins, ArrowDownToLine, ClipboardList, CheckCircle2 } from "lucide-react";
 
 import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
 const GEMS_PER_TON = 1000000;
@@ -35,12 +36,12 @@ function HomeStatistics() {
     retry: 1,
   });
   const statCards = [
-    { label: 'Total users', value: data ? formatHomeStat(data.totalUsers) : '—', accent: '#60a5fa' },
-    { label: 'Active today', value: data ? formatHomeStat(data.activeToday) : '—', accent: '#34d399' },
-    { label: 'Gold earned', value: data ? formatHomeStat(data.goldEarned) : '—', accent: '#fbbf24' },
-    { label: 'Total withdrawal', value: data ? formatHomeStat(data.totalWithdrawal) : '—', accent: '#c084fc' },
-    { label: 'Tasks created', value: data ? formatHomeStat(data.taskCreated) : '—', accent: '#fb7185' },
-    { label: 'Tasks completed', value: data ? formatHomeStat(data.taskCompleted) : '—', accent: '#2dd4bf' },
+    { label: 'Total users', value: data ? formatHomeStat(data.totalUsers) : '—', icon: Users },
+    { label: 'Active today', value: data ? formatHomeStat(data.activeToday) : '—', icon: Activity },
+    { label: 'Gold earned', value: data ? formatHomeStat(data.goldEarned) : '—', icon: Coins },
+    { label: 'Total withdrawal', value: data ? `${formatHomeStat(data.totalWithdrawal)} TON` : '—', icon: ArrowDownToLine },
+    { label: 'Tasks created', value: data ? formatHomeStat(data.taskCreated) : '—', icon: ClipboardList },
+    { label: 'Tasks completed', value: data ? formatHomeStat(data.taskCompleted) : '—', icon: CheckCircle2 },
   ];
   return (
     <>
@@ -51,15 +52,11 @@ function HomeStatistics() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 7, marginBottom: 16 }}>
         {statCards.map(card => (
           <div key={card.label} style={{ background: '#252525', borderRadius: 12, padding: '10px 11px', minWidth: 0, border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: card.accent, boxShadow: `0 0 8px ${card.accent}`, marginBottom: 6 }} />
+            <card.icon size={16} strokeWidth={2.1} color="rgba(255,255,255,0.58)" style={{ marginBottom: 6 }} />
             <div style={{ color: '#fff', fontSize: 'clamp(16px, 4.5vw, 21px)', fontWeight: 900, lineHeight: 1.05, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</div>
             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</div>
           </div>
         ))}
-      </div>
-      <div style={{ background: '#252525', borderRadius: 12, padding: '12px 13px', marginBottom: 16, border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div><div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em' }}>Project running</div><div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginTop: 4 }}>Since launch</div></div>
-        <div style={{ color: '#93c5fd', fontSize: 23, fontWeight: 900 }}>{data ? formatHomeStat(data.projectDays) : '—'} <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 700 }}>days</span></div>
       </div>
     </>
   );

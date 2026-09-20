@@ -727,9 +727,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.amount}), '0')` }).from(withdrawals).where(sql`${withdrawals.status} IN ('completed', 'success', 'paid', 'Approved')`),
         db.select({ count: sql<number>`count(distinct ${earnings.userId})` }).from(earnings).where(sql`${earnings.createdAt} >= ${adminPeriodStart}::timestamptz`),
         db.select({ count: sql<number>`count(*)` }).from(advertiserTasks),
+        db.select({ count: sql<number>`count(*)` }).from(transactions).where(eq(transactions.source, 'task_creation')),
         db.select({ count: sql<number>`count(*)` }).from(taskCompletions),
         db.select({ count: sql<number>`count(*)` }).from(dailyTaskCompletions).where(eq(dailyTaskCompletions.completed, true)),
-        db.select({ startedAt: sql<Date | null>`MIN(${users.createdAt})` }).from(users),
+        db.select({ count: sql<number>`count(*)` }).from(promotionClaims),
       ]);
       const resultAt = <T,>(index: number, fallback: T): T => results[index].status === 'fulfilled' ? results[index].value as T : fallback;
       const totalUsers = resultAt(0, [{ count: 0 }]);
@@ -737,20 +738,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalWithdrawn = resultAt(2, [{ total: '0' }]);
       const activeToday = resultAt(3, [{ count: 0 }]);
       const tasksCreated = resultAt(4, [{ count: 0 }]);
-      const taskCompletionsCount = resultAt(5, [{ count: 0 }]);
-      const dailyTaskCompletionsCount = resultAt(6, [{ count: 0 }]);
-      const projectStart = resultAt(7, [{ startedAt: null as Date | null }]);
-      const startedAt = projectStart[0]?.startedAt ? new Date(projectStart[0].startedAt).getTime() : Date.now();
-      const projectDays = Math.max(0, Math.floor((Date.now() - startedAt) / 86400000));
+      const taskCreationHistory = resultAt(5, [{ count: 0 }]);
+      const taskCompletionsCount = resultAt(6, [{ count: 0 }]);
+      const dailyTaskCompletionsCount = resultAt(7, [{ count: 0 }]);
+      const promotionClaimsCount = resultAt(8, [{ count: 0 }]);
       res.set('Cache-Control', 'no-store');
       res.json({
         totalUsers: Number(totalUsers[0]?.count || 0),
         activeToday: Number(activeToday[0]?.count || 0),
         goldEarned: totalEarned[0]?.total || '0',
         totalWithdrawal: totalWithdrawn[0]?.total || '0',
-        taskCreated: Number(tasksCreated[0]?.count || 0),
-        taskCompleted: Number(taskCompletionsCount[0]?.count || 0) + Number(dailyTaskCompletionsCount[0]?.count || 0),
-        projectDays,
+        taskCreated: Math.max(Number(tasksCreated[0]?.count || 0), Number(taskCreationHistory[0]?.count || 0)),
+        taskCompleted: Number(taskCompletionsCount[0]?.count || 0) + Number(dailyTaskCompletionsCount[0]?.count || 0) + Number(promotionClaimsCount[0]?.count || 0),
       });
     } catch (error) {
       console.error('Error fetching public statistics:', error);
