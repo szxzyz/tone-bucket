@@ -83,7 +83,7 @@ export const config = {
 
     // USL Ads / TowerAds SDK credentials (env: VITE_USL_ADS_API_KEY / VITE_USL_ADS_PLACEMENT_ID)
     uslAdsApiKey: process.env.VITE_USL_ADS_API_KEY || process.env.USL_ADS_API_KEY || '',
-    uslAdsPlacementId: process.env.VITE_USL_ADS_PLACEMENT_ID || process.env.USL_ADS_PLACEMENT_ID || '',
+    uslAdsPlacementId: process.env.VITE_USL_ADS_PLACEMENT_ID || process.env.USL_ADS_PLACEMENT_ID || 'plc_992db36dbed33f7c',
 
   },
 };

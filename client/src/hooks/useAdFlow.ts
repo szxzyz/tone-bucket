@@ -66,7 +66,7 @@ async function ensureMonetagScript(zoneId: string): Promise<boolean> {
 async function getUslAdsConfig(): Promise<{ apiKey: string; placementId: string }> {
   const cfg = await getAppConfig();
   const apiKey = cfg?.uslAdsApiKey || import.meta.env.VITE_USL_ADS_API_KEY || '';
-  const placementId = cfg?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID || '';
+  const placementId = cfg?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID || 'plc_992db36dbed33f7c';
   return { apiKey, placementId };
 }
 
