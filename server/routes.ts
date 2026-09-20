@@ -731,6 +731,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         db.select({ count: sql<number>`count(*)` }).from(taskCompletions),
         db.select({ count: sql<number>`count(*)` }).from(dailyTaskCompletions).where(eq(dailyTaskCompletions.completed, true)),
         db.select({ count: sql<number>`count(*)` }).from(promotionClaims),
+        db.select({ count: sql<number>`count(*)` }).from(earnings).where(inArray(earnings.source, [
+          'task_completion', 'daily_task_completion', 'task_share', 'task_channel', 'task_community',
+          'gigapub_short_link', 'mission_check_for_updates', 'mission_daily_checkin',
+          'mission_share_referral', 'mission_share_story', 'mission_ad',
+        ])),
       ]);
       const resultAt = <T,>(index: number, fallback: T): T => results[index].status === 'fulfilled' ? results[index].value as T : fallback;
       const totalUsers = resultAt(0, [{ count: 0 }]);
@@ -742,6 +747,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taskCompletionsCount = resultAt(6, [{ count: 0 }]);
       const dailyTaskCompletionsCount = resultAt(7, [{ count: 0 }]);
       const promotionClaimsCount = resultAt(8, [{ count: 0 }]);
+      const taskEarningsCount = resultAt(9, [{ count: 0 }]);
+      const completionRecords = Number(taskCompletionsCount[0]?.count || 0) + Number(dailyTaskCompletionsCount[0]?.count || 0) + Number(promotionClaimsCount[0]?.count || 0);
       res.set('Cache-Control', 'no-store');
       res.json({
         totalUsers: Number(totalUsers[0]?.count || 0),
@@ -749,7 +756,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goldEarned: totalEarned[0]?.total || '0',
         totalWithdrawal: totalWithdrawn[0]?.total || '0',
         taskCreated: Math.max(Number(tasksCreated[0]?.count || 0), Number(taskCreationHistory[0]?.count || 0)),
-        taskCompleted: Number(taskCompletionsCount[0]?.count || 0) + Number(dailyTaskCompletionsCount[0]?.count || 0) + Number(promotionClaimsCount[0]?.count || 0),
+        // Earnings is the canonical all-user completion ledger. The table
+        // counts remain as a compatibility fallback for older deployments.
+        taskCompleted: Math.max(completionRecords, Number(taskEarningsCount[0]?.count || 0)),
       });
     } catch (error) {
       console.error('Error fetching public statistics:', error);
