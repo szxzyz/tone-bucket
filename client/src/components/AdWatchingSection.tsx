@@ -4,7 +4,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { FiShield, FiZap } from "react-icons/fi";
 import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
-import AdFailurePopup from "@/components/AdFailurePopup";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAdFlow } from "@/hooks/useAdFlow";
 
@@ -37,7 +36,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const [activeIndex,    setActiveIndex]    = useState(0);
   const [isShowingAds,   setIsShowingAds]   = useState(false);
   const [currentAdStep,  setCurrentAdStep]  = useState<"idle" | "loading" | "verifying">("idle");
-  const [showFailurePopup, setShowFailurePopup] = useState(false);
 
   const sessionRewardedRef = useRef(false);
   const currentAdTypeRef   = useRef<string>("adsgram");
@@ -92,7 +90,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     },
     onError: (error: any) => {
       sessionRewardedRef.current = false;
-      if (error.errorType === "insufficient_background") { setShowFailurePopup(true); }
+      if (error.errorType === "insufficient_background") {
+        showNotification("Watch the full ad to earn your reward.", "error");
+      }
       else showNotification(error.message || "Failed to claim reward", "error");
     },
   });
@@ -380,12 +380,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         </div>
       </div>
 
-      {showFailurePopup && (
-        <AdFailurePopup
-          onClose={() => setShowFailurePopup(false)}
-          reason="ad_not_counted"
-        />
-      )}
     </>
   );
 }
