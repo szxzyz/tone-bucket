@@ -21,6 +21,60 @@ function getTodayKey() {
 
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
+function formatHomeStat(value: unknown): string {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return '0';
+  return numeric.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function HomeStatistics() {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ['/api/public/statistics'],
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+  const statCards = [
+    { label: 'Total users', value: data ? formatHomeStat(data.totalUsers) : '—', accent: '#60a5fa' },
+    { label: 'Active today', value: data ? formatHomeStat(data.activeToday) : '—', accent: '#34d399' },
+    { label: 'Gold earned', value: data ? formatHomeStat(data.goldEarned) : '—', accent: '#fbbf24' },
+    { label: 'Total withdrawal', value: data ? formatHomeStat(data.totalWithdrawal) : '—', accent: '#c084fc' },
+    { label: 'Tasks created', value: data ? formatHomeStat(data.taskCreated) : '—', accent: '#fb7185' },
+    { label: 'Tasks completed', value: data ? formatHomeStat(data.taskCompleted) : '—', accent: '#2dd4bf' },
+  ];
+  return (
+    <>
+      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>App Statistics</span>
+        {isLoading && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Updating…</span>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 20 }}>
+        {statCards.map(card => (
+          <div key={card.label} style={{ background: '#252525', borderRadius: 14, padding: '14px 13px', minWidth: 0, border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: card.accent, boxShadow: `0 0 10px ${card.accent}`, marginBottom: 9 }} />
+            <div style={{ color: '#fff', fontSize: 'clamp(17px, 5vw, 23px)', fontWeight: 900, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: '#252525', borderRadius: 14, padding: '15px 14px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Our social networks</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+          {[{ label: 'News', url: data?.social?.news, icon: '▣' }, { label: 'Chat', url: data?.social?.chat, icon: '◉' }].map(social => (
+            <button key={social.label} onClick={() => social.url && window.open(social.url, '_blank', 'noopener,noreferrer')} disabled={!social.url} style={{ border: '1px solid rgba(255,255,255,0.06)', background: social.url ? 'rgba(37,99,235,0.16)' : 'rgba(255,255,255,0.04)', borderRadius: 11, padding: '11px 10px', color: social.url ? '#fff' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: social.url ? 'pointer' : 'default', fontSize: 12, fontWeight: 800 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ color: '#93c5fd', fontSize: 15 }}>{social.icon}</span>{social.label}</span><span style={{ color: 'rgba(255,255,255,0.45)' }}>↗</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(255,255,255,0.04))', border: '1px solid rgba(96,165,250,0.14)', borderRadius: 14, padding: '15px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div><div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em' }}>Project running</div><div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginTop: 4 }}>Since launch</div></div>
+        <div style={{ color: '#93c5fd', fontSize: 23, fontWeight: 900 }}>{data ? formatHomeStat(data.projectDays) : '—'} <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 700 }}>days</span></div>
+      </div>
+    </>
+  );
+}
+
 export default function Games() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [balanceHidden, setBalanceHidden] = useState(false);
@@ -419,6 +473,7 @@ export default function Games() {
           </div>
         </div>
 
+        <HomeStatistics />
 
       </div>
 

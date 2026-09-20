@@ -715,6 +715,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(getAppConfig());
   });
 
+  // Public Home-page statistics. This intentionally mirrors the admin KPI
+  // definitions while keeping admin authentication and sensitive fields out
+  // of the response.
+  app.get('/api/public/statistics', async (_req: any, res) => {
+    try {
+      const adminPeriodStart = getAdminPeriodStart().toISOString();
+      const [totalUsers, totalEarned, totalWithdrawn, activeToday, tasksCreated, taskCompletionsCount, dailyTaskCompletionsCount, projectStart] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(users),
+        db.select({ total: sql<string>`COALESCE(SUM(${users.totalEarned}), '0')` }).from(users),
+        db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.amount}), '0')` }).from(withdrawals).where(sql`${withdrawals.status} IN ('completed', 'success', 'paid', 'Approved')`),
+        db.select({ count: sql<number>`count(distinct ${earnings.userId})` }).from(earnings).where(sql`${earnings.createdAt} >= ${adminPeriodStart}::timestamptz`),
+        db.select({ count: sql<number>`count(*)` }).from(advertiserTasks),
+        db.select({ count: sql<number>`count(*)` }).from(taskCompletions),
+        db.select({ count: sql<number>`count(*)` }).from(dailyTaskCompletions).where(eq(dailyTaskCompletions.completed, true)),
+        db.select({ startedAt: sql<Date | null>`MIN(${users.createdAt})` }).from(users),
+      ]);
+      const startedAt = projectStart[0]?.startedAt ? new Date(projectStart[0].startedAt).getTime() : Date.now();
+      const projectDays = Math.max(0, Math.floor((Date.now() - startedAt) / 86400000));
+      res.set('Cache-Control', 'no-store');
+      res.json({
+        totalUsers: Number(totalUsers[0]?.count || 0),
+        activeToday: Number(activeToday[0]?.count || 0),
+        goldEarned: totalEarned[0]?.total || '0',
+        totalWithdrawal: totalWithdrawn[0]?.total || '0',
+        taskCreated: Number(tasksCreated[0]?.count || 0),
+        taskCompleted: Number(taskCompletionsCount[0]?.count || 0) + Number(dailyTaskCompletionsCount[0]?.count || 0),
+        projectDays,
+        social: {
+          news: config.bot.updateUrl || config.telegram.channelUrl || '',
+          chat: config.bot.discussUrl || config.telegram.groupUrl || '',
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching public statistics:', error);
+      res.status(500).json({ message: 'Failed to fetch statistics' });
+    }
+  });
+
   // Mandatory app access verification. Telegram must be able to look up the
   // configured official channel and community group; payout is not required.
 
