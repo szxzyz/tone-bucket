@@ -141,9 +141,11 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
   const isProviderConfigured = (adType: string) => {
     if (adType === 'gigapub') return Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID);
+    // Keep the USL card actionable so a missing secret never appears as a
+    // misleading "SETUP NEEDED" state. The SDK call reports a clear error if
+    // the deployment has not supplied the real TowerAds API key yet.
     if (adType === 'uslads') return Boolean(
-      (appConfig?.uslAdsApiKey || import.meta.env.VITE_USL_ADS_API_KEY) &&
-      (appConfig?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID),
+      appConfig?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID || 'plc_992db36dbed33f7c',
     );
     return true;
   };
@@ -194,7 +196,12 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       }
 
       if (result.unavailable) { showNotification("Ads not available", "error"); return; }
-      if (!result.success) return;
+      if (!result.success) {
+        showNotification(card.adType === "uslads"
+          ? "USL Ads API key is missing. Add VITE_USL_ADS_API_KEY in deployment settings."
+          : "Please watch the ad completely to claim your reward.", "error");
+        return;
+      }
 
       // AdsGram and Gigapub can move the Mini App behind a native ad overlay.
       // Wait for the user to return before claiming, then keep Gigapub sessions

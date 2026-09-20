@@ -224,6 +224,12 @@ export function useAdFlow() {
 
   const showUSLAd = useCallback((): Promise<{ success: boolean; unavailable: boolean }> => {
     return new Promise(async (resolve) => {
+      const uslConfig = await getUslAdsConfig();
+      if (!uslConfig.apiKey || uslConfig.apiKey === 'YOUR_API_KEY') {
+        console.error('USL Ads API key is missing. Set VITE_USL_ADS_API_KEY in the deployment environment.');
+        resolve({ success: false, unavailable: false });
+        return;
+      }
       const ready = await waitForFn('TowerAds', 10_000);
       if (!ready) { resolve({ success: false, unavailable: true }); return; }
 
@@ -240,7 +246,6 @@ export function useAdFlow() {
 
       try {
         if (!uslAdsInstanceRef.current) {
-          const uslConfig = await getUslAdsConfig();
           uslAdsInstanceRef.current = new window.TowerAds({
             apiKey: uslConfig.apiKey,
             placementId: uslConfig.placementId,
