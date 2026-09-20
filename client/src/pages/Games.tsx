@@ -87,7 +87,12 @@ export default function Games() {
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], staleTime: 3600000 });
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
-  const { data: checkinStatus } = useQuery<any>({ queryKey: ['/api/daily-checkin/status'], retry: false });
+  const { data: checkinStatus } = useQuery<any>({
+    queryKey: ['/api/daily-checkin/status'],
+    retry: false,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
 
   const runVerifiedAdsgramReward = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -158,20 +163,28 @@ export default function Games() {
 
   useEffect(() => {
     if (!user) return;
-    const todayKey = getTodayKey();
-    if (user.dailyCheckinClaimed && user.dailyTasksDate) {
-      const serverDate = new Date(user.dailyTasksDate).toISOString().slice(0, 10);
-      if (serverDate === todayKey) {
-        setDailyChecked(true);
-        localStorage.setItem('daily_check_date', todayKey);
-      } else {
+    // The server owns the IST-midnight reset boundary. Prefer its status so
+    // stale UTC localStorage/user fields cannot keep a new-day claim locked.
+    if (checkinStatus && typeof checkinStatus.alreadyClaimedToday === 'boolean') {
+      setDailyChecked(checkinStatus.alreadyClaimedToday);
+      if (!checkinStatus.alreadyClaimedToday) localStorage.removeItem('daily_check_date');
+    } else {
+      const todayKey = getTodayKey();
+      if (user.dailyCheckinClaimed && user.dailyTasksDate) {
+        const serverDate = new Date(user.dailyTasksDate).toISOString().slice(0, 10);
+        if (serverDate === todayKey) {
+          setDailyChecked(true);
+          localStorage.setItem('daily_check_date', todayKey);
+        } else {
+          setDailyChecked(false);
+          localStorage.removeItem('daily_check_date');
+        }
+      } else if (!user.dailyCheckinClaimed) {
         setDailyChecked(false);
         localStorage.removeItem('daily_check_date');
       }
-    } else if (!user.dailyCheckinClaimed) {
-      setDailyChecked(false);
-      localStorage.removeItem('daily_check_date');
     }
+    const todayKey = getTodayKey();
     if (user.mysteryBoxDate) {
       const serverDate = new Date(user.mysteryBoxDate).toISOString().slice(0, 10);
       if (serverDate === todayKey) {
@@ -185,7 +198,7 @@ export default function Games() {
       setMysteryOpened(false);
       localStorage.removeItem('mystery_box_date');
     }
-  }, [user]);
+  }, [user, checkinStatus]);
 
   const dailyCheckMutation = useMutation({
     mutationFn: async (session: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number }) => {

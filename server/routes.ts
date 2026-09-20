@@ -2667,8 +2667,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      const periodKey = getResetPeriod();
-      if (user.dailyCheckinClaimed && user.lastResetPeriod === periodKey) {
+      const periodKey = getCheckinDayKey();
+      if (user.dailyCheckinClaimed && normalizeCheckinDayKey(user.lastResetPeriod) === periodKey) {
         return res.status(400).json({ message: "Daily check-in already claimed for this period" });
       }
 
@@ -2690,7 +2690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .where(and(
             eq(users.id, userId),
-            sql`NOT (daily_checkin_claimed = true AND last_reset_period = ${periodKey})`,
+            sql`NOT (daily_checkin_claimed = true AND (last_reset_period = ${periodKey} OR last_reset_period LIKE ${periodKey} || '-%'))`,
           ))
           .returning({ tonBalance: users.tonBalance });
         if (updated.length === 0) return { error: 'already_claimed' as const };
@@ -11710,6 +11710,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/missions/daily-checkin/claim - Claim daily check-in reward
   // 7-day check-in streak rewards (Gems) — matches the 7-day carousel UI
   const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
+  // Daily Check-In is once per IST calendar day. Older releases stored the
+  // 12-hour AM/PM reset key, so normalize both formats when reading history.
+  const getCheckinDayKey = (): string => getResetPeriodKey().replace(/-(AM|PM)$/, '');
+  const normalizeCheckinDayKey = (value: string | null | undefined): string | null =>
+    value ? value.replace(/-(AM|PM)$/, '') : null;
 
   // GET /api/daily-checkin/status — streak state for the 7-day carousel
   app.get('/api/daily-checkin/status', requireAuth, async (req: any, res) => {
@@ -11719,8 +11724,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      const today = getResetPeriod();
-      const lastClaimDate = user.lastResetPeriod;
+      const today = getCheckinDayKey();
+      const lastClaimDate = normalizeCheckinDayKey(user.lastResetPeriod);
       
       // Streak continues only if last claim was in the current or immediately previous period
       let streak = user.dailyCheckinStreak || 0;
@@ -11753,21 +11758,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'User not authenticated' });
       }
 
-      const today = getResetPeriod();
+      const today = getCheckinDayKey();
 
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      const lastClaimDate = user.lastResetPeriod;
+      const lastClaimDate = normalizeCheckinDayKey(user.lastResetPeriod);
 
       if (lastClaimDate === today) {
         return res.status(400).json({ error: 'Already checked in for this period' });
       }
 
       let streak = user.dailyCheckinStreak || 0;
-      // Reset streak if not claimed in this or previous period (omitted complex previous-period check for now)
+      // Preserve the streak only when the previous claim was yesterday.
       if (lastClaimDate && lastClaimDate !== today) {
-         // Logic for streak preservation across 12h windows could be added here
+        const todayDate = new Date(`${today}T00:00:00.000Z`);
+        const previousDay = new Date(todayDate);
+        previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+        const previousDayKey = previousDay.toISOString().slice(0, 10);
+        if (lastClaimDate !== previousDayKey) streak = 0;
       }
       const dayIndex = streak % CHECKIN_REWARDS.length;
       let reward = CHECKIN_REWARDS[dayIndex];
@@ -11801,6 +11810,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Atomic claim: streak + balances + state
       await db.update(users).set({
+        dailyCheckinClaimed: true,
+        dailyTasksDate: new Date(),
         dailyCheckinStreak: streak + 1,
         dailyCheckinLastClaimDate: new Date(),
         lastResetPeriod: today,
