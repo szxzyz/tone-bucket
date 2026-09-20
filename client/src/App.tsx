@@ -12,6 +12,7 @@ import CountryBlockedScreen from "@/components/CountryBlockedScreen";
 import SeasonEndOverlay from "@/components/SeasonEndOverlay";
 import { SeasonEndContext } from "@/lib/SeasonEndContext";
 import { useAdmin } from "@/hooks/useAdmin";
+import BottomNav from "@/components/BottomNav";
 
 import { LanguageProvider } from "@/hooks/useLanguage";
 
@@ -21,7 +22,6 @@ import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
 import Games from "@/pages/Games";
-import Mining from "@/pages/Mining";
 import Affiliates from "@/pages/Affiliates";
 
 // Lazy-load heavy/rare pages only
@@ -79,12 +79,34 @@ function LoadingFallback() {
     </div>
   );
 }
+
+function MiningUnderUpdate() {
+  return (
+    <div style={{ minHeight: '100dvh', background: '#080808', color: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px 110px' }}>
+        <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
+          <div style={{ width: 76, height: 76, margin: '0 auto 22px', borderRadius: 24, display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(37,99,235,0.24), rgba(255,255,255,0.06))', border: '1px solid rgba(96,165,250,0.22)', boxShadow: '0 14px 40px rgba(37,99,235,0.16)' }}>
+            <span style={{ fontSize: 34 }}>⛏</span>
+          </div>
+          <div style={{ fontSize: 23, fontWeight: 900, letterSpacing: '-0.03em' }}>Mining Under Update</div>
+          <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.48)', fontSize: 14, lineHeight: 1.55 }}>
+            Mining page abhi update ho raha hai. Please thodi der baad dobara try karein.
+          </div>
+          <div style={{ margin: '24px auto 0', padding: '12px 16px', borderRadius: 14, background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: 700 }}>
+            Your mining balance is safe.
+          </div>
+        </div>
+      </div>
+      <BottomNav />
+    </div>
+  );
+}
 function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Games} />
-        <Route path="/mine" component={Mining} />
+        <Route path="/mine" component={MiningUnderUpdate} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Games} />
         <Route path="/profile" component={Profile} />
