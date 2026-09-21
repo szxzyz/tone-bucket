@@ -210,7 +210,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         setCurrentAdStep("verifying");
         await waitForForeground();
       }
-      if (card.adType === "monetag" || card.adType === "gigapub") {
+      if (card.adType === "monetag" || card.adType === "gigapub" || card.adType === "uslads") {
         const remaining = 3_200 - (Date.now() - getSessionStart());
         if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
       }
@@ -288,7 +288,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 	            const reward       = getCardReward(card.adType);
 		            const limitReached = isCardLimitReached(card.adType);
             const isActive     = index === activeIndex;
-            const isLoading    = isShowingAds && isActive;
+            const isLoading    = isShowingAds || watchAdMutation.isPending;
 
             return (
               <div key={card.id}
@@ -355,7 +355,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                       if (index !== activeIndex) { setActiveIndex(index); return; }
                       handleStartEarning(card.id);
                     }}
-                    disabled={isShowingAds || limitReached || !isProviderConfigured(card.adType)}
+                    disabled={isShowingAds || watchAdMutation.isPending || limitReached || !isProviderConfigured(card.adType)}
                     style={{
                       padding: "9px 16px", borderRadius: 12, minWidth: 92,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
@@ -367,12 +367,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     }}
                   >
                     {isLoading ? (
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                        {currentAdStep === "verifying"
-                          ? <><FiShield size={11} style={{ animation: "pulse 1s infinite" }} />Verifying</>
-                          : <><FiZap    size={11} style={{ animation: "spin 0.8s linear infinite" }} />Loading</>
-                        }
-                      </span>
+                      <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "spin 0.8s linear infinite" }} aria-label="Loading" />
                     ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET GOLD"}
                   </button>
                 </div>
