@@ -1881,7 +1881,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (serverAdType !== 'adsgram' && serverSessionAgeMs < MIN_PROVIDER_SESSION_MS) {
+      // TowerAds supplies its own rewarded completion callback. Unlike generic
+      // client-timed providers, a valid USL reward must not be rejected because
+      // the SDK callback arrives before the generic 3-second window expires.
+      if (serverAdType !== 'adsgram' && serverAdType !== 'uslads' && serverSessionAgeMs < MIN_PROVIDER_SESSION_MS) {
         await db.update(adSessions)
           .set({ status: 'failed', usedAt: new Date(), backgroundEntered: bgEntered, backgroundDurationMs: bgDuration })
           .where(eq(adSessions.id, sessionId));
@@ -2237,6 +2240,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rewardGems: adRewardGems,
         newBalance: finalUpdatedUser.balance,
         adsWatchedToday: finalUpdatedUser.adsWatchedToday,
+        adType: normalizedAdType,
+        adTypeWatchedToday: updatedTypeWatched,
       });
     } catch (error) {
       console.error("❌ Unexpected error in ad watch endpoint:", error);

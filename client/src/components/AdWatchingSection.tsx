@@ -73,10 +73,10 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         const updates: any = {
           balance: data?.newBalance !== undefined ? String(data.newBalance) : old.balance,
         };
-        if      (adType === "adsgram") updates.adsWatchedToday        = (old.adsWatchedToday        || 0) + 1;
-        else if (adType === "monetag") updates.monetagAdsWatchedToday = (old.monetagAdsWatchedToday || 0) + 1;
-        else if (adType === "gigapub") updates.gigapubAdsWatchedToday = (old.gigapubAdsWatchedToday || 0) + 1;
-        else if (adType === "uslads")  updates.usladsAdsWatchedToday  = (old.usladsAdsWatchedToday  || 0) + 1;
+        if      (adType === "adsgram") updates.adsWatchedToday        = data?.adType === "adsgram" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.adsWatchedToday || 0) + 1;
+        else if (adType === "monetag") updates.monetagAdsWatchedToday = data?.adType === "monetag" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.monetagAdsWatchedToday || 0) + 1;
+        else if (adType === "gigapub") updates.gigapubAdsWatchedToday = data?.adType === "gigapub" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.gigapubAdsWatchedToday || 0) + 1;
+        else if (adType === "uslads")  updates.usladsAdsWatchedToday  = data?.adType === "uslads" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.usladsAdsWatchedToday || 0) + 1;
         return { ...old, ...updates };
       });
 
