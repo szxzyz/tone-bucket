@@ -56,7 +56,13 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       backgroundDuration: number; backgroundEntered: boolean; sessionStart: number;
     }) => {
       const r = await apiRequest("POST", "/api/ads/watch", payload);
-      return r.json();
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.success === false) {
+        const error: any = new Error(data?.message || "Failed to claim ad reward");
+        error.errorType = data?.errorType;
+        throw error;
+      }
+      return data;
     },
     onSuccess: (data: any) => {
       const rewardGems = data?.rewardGems || 0;
@@ -218,7 +224,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       const session = endSession();
       if (!sessionRewardedRef.current) {
         sessionRewardedRef.current = true;
-        watchAdMutation.mutate({
+        await watchAdMutation.mutateAsync({
           adType:             card.adType,
           sessionId:          session.sessionId,
           backgroundDuration: session.backgroundDuration,

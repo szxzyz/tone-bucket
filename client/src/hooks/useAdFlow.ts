@@ -273,20 +273,13 @@ export function useAdFlow() {
         uslAdsInstanceRef.current.loadAndShow()
           .then(() => {
             clearTimeout(hardTimer);
-            // loadAndShow() resolving does not by itself mean a reward was earned
-            // (the user may have closed the ad early) — onRewardEarned is the
-            // only source of truth. Give it a brief grace window in case it
-            // fires just after the promise settles; if it hasn't fired by then,
-            // settle as not rewarded.
-            // Some TowerAds builds resolve loadAndShow before dispatching the
-            // reward callback. Give that callback enough time to arrive, while
-            // still recovering if the SDK silently returns without a reward.
+            // TowerAds v4 builds differ: some fire onRewardEarned, while others
+            // resolve loadAndShow only after the rewarded ad completes. Prefer
+            // the callback, but accept a successful completed promise after a
+            // short grace period so a valid watched ad is not lost.
             setTimeout(() => {
-              if (!settled) {
-                console.warn('USL Ads: loadAndShow resolved but onRewardEarned never fired within grace window — not rewarding.');
-              }
-              settle({ success: false, unavailable: false });
-            }, 2_000);
+              if (!settled) settle({ success: true, unavailable: false });
+            }, 1_000);
           })
           .catch((error: any) => {
             clearTimeout(hardTimer);
