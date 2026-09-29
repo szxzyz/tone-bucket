@@ -9,7 +9,7 @@ import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
 import { useLocation } from "wouter";
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
+import { CalendarDays } from "lucide-react";
 
 
 function getTodayKey() {
@@ -18,25 +18,64 @@ function getTodayKey() {
 
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
-const GIVEAWAY_SLIDES = [
-  {
-    title: 'Weekly Contest',
-    subtitle: 'Compete on the weekly leaderboard',
-    image: '/assets/weekly-contest-banner.webp',
-    tab: 'monthly',
-  },
-  {
-    title: 'Referral Contest',
-    subtitle: 'Invite friends and earn rewards',
-    image: '/assets/referral-contest-banner.webp',
-    tab: 'referral',
-  },
-] as const;
+type GameActionCardProps = {
+  title: string;
+  description: string;
+  illustration: React.ReactNode;
+  illustrationBackground: string;
+  actionLabel: string;
+  actionBackground: string;
+  disabled?: boolean;
+  busy?: boolean;
+  onClick: () => void;
+};
+
+function GameActionCard({ title, description, illustration, illustrationBackground, actionLabel, actionBackground, disabled = false, busy = false, onClick }: GameActionCardProps) {
+  const unavailable = disabled || busy;
+  return (
+    <button
+      type="button"
+      aria-label={`${title}: ${busy ? 'Loading' : actionLabel}`}
+      onClick={onClick}
+      disabled={unavailable}
+      className="group active:scale-[0.98] transition-transform"
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 11,
+        minWidth: 0, minHeight: 218, width: '100%', padding: 12,
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+        background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)',
+        color: '#fff', textAlign: 'left', cursor: unavailable ? 'not-allowed' : 'pointer',
+        boxShadow: '0 8px 22px rgba(0,0,0,0.25)', opacity: unavailable ? 0.68 : 1,
+      }}
+    >
+      <span aria-hidden="true" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '100%', height: 104, flexShrink: 0, overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14,
+        background: illustrationBackground,
+      }}>
+        {illustration}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+        <span style={{ color: '#fff', fontSize: 14, lineHeight: 1.2, fontWeight: 900 }}>{title}</span>
+        <span style={{ color: 'rgba(255,255,255,0.48)', fontSize: 10, lineHeight: 1.35, fontWeight: 500 }}>{description}</span>
+      </span>
+      <span style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        width: '100%', height: 34, marginTop: 'auto', borderRadius: 10,
+        background: unavailable ? 'rgba(255,255,255,0.06)' : actionBackground,
+        color: unavailable ? 'rgba(255,255,255,0.45)' : '#fff',
+        fontSize: 10, lineHeight: 1, fontWeight: 900, letterSpacing: '0.06em',
+      }}>
+        {busy && <span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
+        {busy ? 'PLEASE WAIT' : actionLabel}
+      </span>
+    </button>
+  );
+}
 
 export default function Games() {
   const [, navigate] = useLocation();
-  const [giveawayCarouselApi, setGiveawayCarouselApi] = useState<CarouselApi>();
-  const [activeGiveawaySlide, setActiveGiveawaySlide] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
@@ -58,20 +97,6 @@ export default function Games() {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-
-  useEffect(() => {
-    if (!giveawayCarouselApi) return;
-    const syncSelectedSlide = () => setActiveGiveawaySlide(giveawayCarouselApi.selectedScrollSnap());
-    syncSelectedSlide();
-    giveawayCarouselApi.on('select', syncSelectedSlide);
-    const autoAdvance = window.setInterval(() => {
-      if (document.visibilityState === 'visible') giveawayCarouselApi.scrollNext();
-    }, 5000);
-    return () => {
-      window.clearInterval(autoAdvance);
-      giveawayCarouselApi.off('select', syncSelectedSlide);
-    };
-  }, [giveawayCarouselApi]);
 
   const runVerifiedAdsgramReward = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -210,128 +235,51 @@ export default function Games() {
         @keyframes axn-glow { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
         @keyframes axn-pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
         @keyframes popup-glow { 0%,100%{opacity:0.5} 50%{opacity:1} }
+        .game-action-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 680px; margin: 0 auto; }
+        @media (min-width: 640px) { .game-action-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
       `}</style>
 
       <Header onMenuOpen={() => setMenuOpen(true)} />
 
       {/* Scrollable Content */}
       <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
-
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em' }}>Giveaways</h1>
-          <p style={{ margin: '5px 0 13px', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 500 }}>
-            Take part in giveaways and get rewards.
-          </p>
-          <div style={{ maxWidth: 520, margin: '0' }}>
-            <Carousel opts={{ align: 'start', loop: true }} setApi={setGiveawayCarouselApi}>
-              <CarouselContent className="ml-0">
-                {GIVEAWAY_SLIDES.map((slide, index) => (
-                  <CarouselItem key={slide.tab} className="pl-0">
-                    <button
-                      type="button"
-                      aria-label={`Open ${slide.title} leaderboard`}
-                      onClick={() => navigate(`/leaderboard?tab=${slide.tab}`)}
-                      className="active:scale-[0.99] transition-transform"
-                      style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '2.33 / 1', overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, background: '#10192a', cursor: 'pointer', textAlign: 'left' }}
-                    >
-                      <img
-                        src={slide.image}
-                        alt={slide.title}
-                        loading={index === 0 ? 'eager' : 'lazy'}
-                        decoding="async"
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-                      />
-                      <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,0,0,0.76) 0%, rgba(0,0,0,0.48) 42%, rgba(0,0,0,0.03) 100%)' }} />
-                      <span style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5, maxWidth: '68%' }}>
-                        <span style={{ color: '#facc15', fontSize: 9, lineHeight: 1.2, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Giveaway</span>
-                        <span style={{ color: '#fff', fontSize: 'clamp(16px, 4vw, 22px)', lineHeight: 1.1, fontWeight: 900, textShadow: '0 1px 8px rgba(0,0,0,0.55)' }}>{slide.title}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.82)', fontSize: 10, lineHeight: 1.25, fontWeight: 600 }}>{slide.subtitle}</span>
-                      </span>
-                    </button>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-            <div aria-label="Giveaway banner slides" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 9 }}>
-              {GIVEAWAY_SLIDES.map((slide, index) => (
-                <button
-                  key={slide.tab}
-                  type="button"
-                  aria-label={`Show ${slide.title} banner`}
-                  aria-current={activeGiveawaySlide === index ? 'true' : undefined}
-                  onClick={() => giveawayCarouselApi?.scrollTo(index)}
-                  style={{ width: activeGiveawaySlide === index ? 18 : 6, height: 6, padding: 0, border: 'none', borderRadius: 99, background: activeGiveawaySlide === index ? '#facc15' : 'rgba(255,255,255,0.24)', cursor: 'pointer', transition: 'all 180ms ease' }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          background: '#1b1b1b', borderRadius: 14,
-          marginBottom: 20, overflow: 'hidden',
-        }}>
-          {/* Daily Check-In */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-              <polyline points="9 16 11 18 15 14"/>
-            </svg>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
-            </div>
-            <button
-              onClick={() => setCheckinSheetOpen(true)}
-              disabled={dailyChecked || dailyAdLoading || dailyCheckMutation.isPending}
-              style={{
-                background: dailyChecked ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                color: dailyChecked ? 'rgba(255,255,255,0.3)' : '#fff',
-                border: 'none',
-                width: 92, height: 38, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
-                cursor: (dailyChecked || dailyAdLoading) ? 'not-allowed' : 'pointer',
-                flexShrink: 0, letterSpacing: '0.03em', whiteSpace: 'nowrap', justifyContent: 'center',
-                boxShadow: dailyChecked ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}
-              className="active:scale-95 transition-transform"
-            >
-              {(dailyAdLoading || dailyCheckMutation.isPending) ? (
-                <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-              ) : dailyChecked ? 'DONE' : 'CHECK'}
-            </button>
-          </div>
-
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />
-
-          {/* Mystery Box */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-              <line x1="12" y1="22.08" x2="12" y2="12"/>
-            </svg>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Box</div>
-            </div>
-            <button
-              onClick={handleMysteryOpen}
-              disabled={mysteryOpened || mysteryPhase !== 'idle'}
-              style={{
-                background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
-                border: 'none',
-                width: 92, height: 38, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
-                cursor: mysteryOpened ? 'not-allowed' : 'pointer', flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
-              }}
-              className="active:scale-95 transition-transform"
-            >
-              {mysteryOpened ? 'DONE' : 'OPEN'}
-            </button>
-          </div>
+        <div className="game-action-card-grid">
+          <GameActionCard
+            title="Daily Rewards"
+            description="Check in daily and claim Gold"
+            illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
+            actionLabel={dailyChecked ? 'CLAIMED' : 'CHECK IN'}
+            actionBackground="linear-gradient(135deg, #2563eb, #4f46e5)"
+            disabled={dailyChecked}
+            busy={dailyAdLoading || dailyCheckMutation.isPending}
+            onClick={() => setCheckinSheetOpen(true)}
+            illustration={(
+              <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72, color: '#93c5fd' }}>
+                <CalendarDays size={60} strokeWidth={1.65} />
+                <span style={{ position: 'absolute', bottom: 12, left: 0, right: 0, color: '#bfdbfe', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', textAlign: 'center' }}>TODAY</span>
+              </span>
+            )}
+          />
+          <GameActionCard
+            title="Mystery Box"
+            description="Open a box for a surprise reward"
+            illustrationBackground="linear-gradient(135deg, rgba(249,115,22,0.19), rgba(239,68,68,0.10))"
+            actionLabel={mysteryOpened ? 'CLAIMED' : 'OPEN BOX'}
+            actionBackground="linear-gradient(135deg, #ea580c, #ef4444)"
+            disabled={mysteryOpened}
+            busy={mysteryPhase !== 'idle'}
+            onClick={handleMysteryOpen}
+            illustration={<img src="/assets/mystery-box.png" alt="" style={{ width: 86, height: 86, objectFit: 'contain' }} />}
+          />
+          <GameActionCard
+            title="Watch Ad"
+            description="Watch ads to earn more Gold"
+            illustrationBackground="linear-gradient(135deg, rgba(124,58,237,0.2), rgba(37,99,235,0.12))"
+            actionLabel="WATCH ADS"
+            actionBackground="linear-gradient(135deg, #7c3aed, #2563eb)"
+            onClick={() => navigate('/ads')}
+            illustration={<img src="/assets/view-ads.png" alt="" style={{ width: 86, height: 86, objectFit: 'contain' }} />}
+          />
         </div>
 
 

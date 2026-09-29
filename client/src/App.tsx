@@ -23,6 +23,7 @@ import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
 import Games from "@/pages/Games";
 import Affiliates from "@/pages/Affiliates";
+import Ads from "@/pages/Ads";
 
 // Lazy-load heavy/rare pages only
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -86,6 +87,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Games} />
         <Route path="/mission" component={Mission} />
+        <Route path="/ads" component={Ads} />
         <Route path="/game" component={Games} />
         <Route path="/profile" component={Profile} />
         <Route path="/admin" component={Admin} />
