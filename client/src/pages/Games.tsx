@@ -20,7 +20,6 @@ type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
 type GameActionCardProps = {
   title: string;
-  description: string;
   illustration: React.ReactNode;
   illustrationBackground: string;
   actionLabel: string;
@@ -30,7 +29,7 @@ type GameActionCardProps = {
   onClick: () => void;
 };
 
-function GameActionCard({ title, description, illustration, illustrationBackground, actionLabel, actionBackground, disabled = false, busy = false, onClick }: GameActionCardProps) {
+function GameActionCard({ title, illustration, illustrationBackground, actionLabel, actionBackground, disabled = false, busy = false, onClick }: GameActionCardProps) {
   const unavailable = disabled || busy;
   return (
     <button
@@ -40,9 +39,9 @@ function GameActionCard({ title, description, illustration, illustrationBackgrou
       disabled={unavailable}
       className="group active:scale-[0.98] transition-transform"
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 11,
-        minWidth: 0, minHeight: 218, width: '100%', padding: 12,
-        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+        display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 7,
+        minWidth: 0, minHeight: 156, width: '100%', padding: 8,
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
         background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)',
         color: '#fff', textAlign: 'left', cursor: unavailable ? 'not-allowed' : 'pointer',
         boxShadow: '0 8px 22px rgba(0,0,0,0.25)', opacity: unavailable ? 0.68 : 1,
@@ -50,22 +49,21 @@ function GameActionCard({ title, description, illustration, illustrationBackgrou
     >
       <span aria-hidden="true" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '100%', height: 104, flexShrink: 0, overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14,
+        width: '100%', height: 72, flexShrink: 0, overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12,
         background: illustrationBackground,
       }}>
         {illustration}
       </span>
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-        <span style={{ color: '#fff', fontSize: 14, lineHeight: 1.2, fontWeight: 900 }}>{title}</span>
-        <span style={{ color: 'rgba(255,255,255,0.48)', fontSize: 10, lineHeight: 1.35, fontWeight: 500 }}>{description}</span>
+      <span style={{ display: 'flex', alignItems: 'center', minWidth: 0, minHeight: 17 }}>
+        <span style={{ width: '100%', color: '#fff', fontSize: 11, lineHeight: 1.2, fontWeight: 900, textAlign: 'center', whiteSpace: 'nowrap' }}>{title}</span>
       </span>
       <span style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-        width: '100%', height: 34, marginTop: 'auto', borderRadius: 10,
+        width: '100%', height: 28, marginTop: 'auto', borderRadius: 9,
         background: unavailable ? 'rgba(255,255,255,0.06)' : actionBackground,
         color: unavailable ? 'rgba(255,255,255,0.45)' : '#fff',
-        fontSize: 10, lineHeight: 1, fontWeight: 900, letterSpacing: '0.06em',
+        fontSize: 9, lineHeight: 1, fontWeight: 900, letterSpacing: '0.04em',
       }}>
         {busy && <span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
         {busy ? 'PLEASE WAIT' : actionLabel}
@@ -235,8 +233,7 @@ export default function Games() {
         @keyframes axn-glow { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
         @keyframes axn-pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
         @keyframes popup-glow { 0%,100%{opacity:0.5} 50%{opacity:1} }
-        .game-action-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 680px; margin: 0 auto; }
-        @media (min-width: 640px) { .game-action-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .game-action-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 680px; margin: 0 auto; }
       `}</style>
 
       <Header onMenuOpen={() => setMenuOpen(true)} />
@@ -246,7 +243,6 @@ export default function Games() {
         <div className="game-action-card-grid">
           <GameActionCard
             title="Daily Rewards"
-            description="Check in daily and claim Gold"
             illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
             actionLabel={dailyChecked ? 'CLAIMED' : 'CHECK IN'}
             actionBackground="linear-gradient(135deg, #2563eb, #4f46e5)"
@@ -254,31 +250,29 @@ export default function Games() {
             busy={dailyAdLoading || dailyCheckMutation.isPending}
             onClick={() => setCheckinSheetOpen(true)}
             illustration={(
-              <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72, color: '#93c5fd' }}>
-                <CalendarDays size={60} strokeWidth={1.65} />
-                <span style={{ position: 'absolute', bottom: 12, left: 0, right: 0, color: '#bfdbfe', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', textAlign: 'center' }}>TODAY</span>
+              <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, color: '#93c5fd' }}>
+                <CalendarDays size={48} strokeWidth={1.65} />
+                <span style={{ position: 'absolute', bottom: 9, left: 0, right: 0, color: '#bfdbfe', fontSize: 7, fontWeight: 900, letterSpacing: '0.08em', textAlign: 'center' }}>TODAY</span>
               </span>
             )}
           />
           <GameActionCard
             title="Mystery Box"
-            description="Open a box for a surprise reward"
             illustrationBackground="linear-gradient(135deg, rgba(249,115,22,0.19), rgba(239,68,68,0.10))"
             actionLabel={mysteryOpened ? 'CLAIMED' : 'OPEN BOX'}
             actionBackground="linear-gradient(135deg, #ea580c, #ef4444)"
             disabled={mysteryOpened}
             busy={mysteryPhase !== 'idle'}
             onClick={handleMysteryOpen}
-            illustration={<img src="/assets/mystery-box.png" alt="" style={{ width: 86, height: 86, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/mystery-box.png" alt="" style={{ width: 62, height: 62, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Watch Ad"
-            description="Watch ads to earn more Gold"
             illustrationBackground="linear-gradient(135deg, rgba(124,58,237,0.2), rgba(37,99,235,0.12))"
             actionLabel="WATCH ADS"
             actionBackground="linear-gradient(135deg, #7c3aed, #2563eb)"
             onClick={() => navigate('/ads')}
-            illustration={<img src="/assets/view-ads.png" alt="" style={{ width: 86, height: 86, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/view-ads.png" alt="" style={{ width: 62, height: 62, objectFit: 'contain' }} />}
           />
         </div>
 
