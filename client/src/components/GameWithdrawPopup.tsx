@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Download, Loader2 } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -16,55 +17,126 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const [tonConnectUI] = useTonConnectUI();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], enabled: open, retry: false });
   const { data: settings } = useQuery<any>({ queryKey: ['/api/app-settings'], enabled: open, retry: false, staleTime: 60000 });
-  useEffect(() => { if (!open) return; getTONPrice().then(setTonPrice).catch(() => {}); }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    getTONPrice().then(setTonPrice).catch(() => {});
+  }, [open]);
+
+  const savedAddress = user?.payoutWalletAddress || '';
+  const address = connectedAddress || savedAddress;
+  const saved = Boolean(savedAddress);
   const minimum = Math.max(1, Number(settings?.minimumCashoutGold || 1000));
-  const address = connectedAddress || user?.payoutWalletAddress || '';
+  const feePercent = 9;
+  const secondaryAccountBlocked = Boolean(user?.secondaryAccountBlocked);
+
   const saveWallet = useMutation({
     mutationFn: async () => (await apiRequest('PATCH', '/api/wallet/payout', { currency: 'TON', address: address.trim() })).json(),
-    onSuccess: (data) => { if (!data.success) throw new Error(data.message); queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); showNotification('TON address saved successfully', 'success'); },
-    onError: (e: any) => showNotification(e.message || 'Could not save TON address', 'error'),
+    onSuccess: (data) => {
+      if (!data.success) throw new Error(data.message);
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      showNotification('TON address saved successfully', 'success');
+    },
+    onError: (error: any) => showNotification(error.message || 'Could not save TON address', 'error'),
   });
+
   const withdrawal = useMutation({
     mutationFn: async () => {
-      // A connected TON wallet is usable for payout only after it is persisted
-      // on the user's account. Save it automatically instead of making the user
-      // press a second button and then receiving "Save your TON address first".
+      // Persist a newly connected wallet before submitting the Swag Bux Gold payout.
       if (connectedAddress && !saved) {
-        const walletResponse = await apiRequest('PATCH', '/api/wallet/payout', {
+        const response = await apiRequest('PATCH', '/api/wallet/payout', {
           currency: 'TON',
           address: connectedAddress.trim(),
         });
-        const walletData = await walletResponse.json();
-        if (!walletData.success) throw new Error(walletData.message || 'Could not save TON wallet');
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Could not save TON wallet');
       }
       return (await apiRequest('POST', '/api/payouts', { goldAmount: Number(amount) })).json();
     },
-    onSuccess: (data) => { if (!data.success) throw new Error(data.message); queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] }); showNotification('Gold withdrawal request sent to admin', 'success'); onClose(); },
-    onError: (e: any) => showNotification(e.message || 'Could not create withdrawal request', 'error'),
+    onSuccess: (data) => {
+      if (!data.success) throw new Error(data.message);
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+      showNotification('Gold withdrawal request sent to admin', 'success');
+      onClose();
+    },
+    onError: (error: any) => showNotification(error.message || 'Could not create withdrawal request', 'error'),
   });
-  if (!open) return null;
-  const saved = Boolean(user?.payoutWalletAddress);
+
   const value = Number(amount || 0);
-  const netUsd = (value * 0.91) / 100000;
-  const secondaryAccountBlocked = Boolean(user?.secondaryAccountBlocked);
+  const netUsd = (value / 100000) * (1 - feePercent / 100);
   const canSubmit = !secondaryAccountBlocked && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && tonPrice > 0 && !withdrawal.isPending;
-  return <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'flex-end' }}>
-    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)' }} />
-    <section onClick={e => e.stopPropagation()} style={{ position:'relative', width:'100%', maxHeight:'90vh', overflowY:'auto', background:'#0a0a0a', border:'1px solid rgba(255,255,255,0.06)', borderBottom:0, borderRadius:'20px 20px 0 0', padding:'0 16px max(32px, calc(env(safe-area-inset-bottom,0px) + 16px))' }}>
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
-      <div style={{ width:32, height:3, borderRadius:2, background:'rgba(255,255,255,0.1)', margin:'12px auto 20px' }} />
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, color:'#fff', fontSize:18, fontWeight:800 }}>Withdraw Gold</div>
-      {secondaryAccountBlocked && <div style={{ background:'rgba(248,113,113,.12)', border:'1px solid rgba(248,113,113,.3)', color:'#fecaca', borderRadius:12, padding:'12px 14px', marginBottom:14, fontSize:12, lineHeight:1.45 }}>This is not your active account. Your original account is <b>{user?.primaryAccountName || 'the first account created on this device'}</b>. Withdrawals are disabled here.</div>}
-      <div style={{ background:'rgba(255,255,255,0.07)', borderRadius:14, marginBottom:14, overflow:'hidden' }}><Row label="Your balance" value={`${Math.floor(userBalance).toLocaleString()} GOLD`} /><Divider /><Row label="Minimum" value={`${minimum.toLocaleString()} GOLD`} /><Divider /><Row label="Withdrawal fee" value="9%" /><Divider /><Row label="You will receive" value={tonPrice > 0 ? `$${netUsd.toFixed(3)} USD` : 'Loading live value…'} /></div>
-      <div style={{ marginBottom:14 }}><div style={labelStyle}>TON Wallet</div>{address ? <div style={{ ...inputStyle, display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:9 }}><span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#fff', fontSize:12 }}>{address}</span><button onClick={() => tonConnectUI.openModal()} style={{ background:'none', border:0, color:'#60a5fa', fontSize:11, fontWeight:800, flexShrink:0 }}>CHANGE</button></div> : <button onClick={() => tonConnectUI.openModal()} style={{ ...primaryButton, display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:9 }}>Connect TON Wallet</button>}{connectedAddress && !saved && <button onClick={()=>saveWallet.mutate()} disabled={saveWallet.isPending} style={{ ...primaryButton, opacity: saveWallet.isPending ? .45 : 1 }}>{saveWallet.isPending ? 'Saving…' : 'Use Connected Wallet'}</button>}</div>
-      <div style={{ marginBottom:16 }}><div style={labelStyle}>GOLD amount</div><div style={{ ...inputWrap }}><input inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9]/g,''))} placeholder={`Min ${minimum.toLocaleString()}`} style={{ ...inputStyle, margin:0, background:'transparent', padding:0, border:0 }} /><button onClick={()=>setAmount(String(Math.floor(userBalance)))} style={{ background:'none', border:0, color:'#60a5fa', fontSize:11, fontWeight:800 }}>MAX</button><span style={{ color:'rgba(255,255,255,.3)', fontSize:13, fontWeight:700 }}>GOLD</span></div>{value > 0 && value < minimum && <div style={{ color:'#f87171', fontSize:11, marginTop:6 }}>Minimum {minimum.toLocaleString()} GOLD required</div>}</div>
-      <button onClick={()=>withdrawal.mutate()} disabled={!canSubmit} style={{ ...primaryButton, height:48, opacity:canSubmit?1:.4, display:'flex', justifyContent:'center', alignItems:'center', gap:8 }}>{withdrawal.isPending && <Loader2 size={16} style={{ animation:'spin 1s linear infinite' }} />}{withdrawal.isPending ? 'Submitting…' : 'Submit Withdrawal Request'}</button>
-    </section>
-  </div>;
+  const handleMax = () => setAmount(String(Math.floor(userBalance)));
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="fixed inset-0 z-[1200] flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+          <motion.div
+            className="relative w-full max-w-md bg-[#0f0f0f] border border-white/10 rounded-t-2xl overflow-hidden"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            style={{ maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+              <Download className="w-5 h-5 text-[#0066D6]" />
+              <h2 className="text-white font-bold text-base">Gold Withdrawal</h2>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              {secondaryAccountBlocked && (
+                <div className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs leading-relaxed text-red-100">
+                  This is not your active account. Your original account is <b>{user?.primaryAccountName || 'the first account created on this device'}</b>. Withdrawals are disabled here.
+                </div>
+              )}
+              <div className="bg-white/5 rounded-xl px-4 py-3 flex justify-between items-center">
+                <span className="text-white/50 text-xs font-semibold">Available Balance</span>
+                <span className="text-[#0066D6] text-sm font-black tabular-nums">{Math.floor(userBalance).toLocaleString()} Gold</span>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">TON wallet address</label>
+                  <button onClick={() => tonConnectUI.openModal()} className="text-[#0066D6] text-[10px] font-semibold">{address ? 'CHANGE' : 'CONNECT'}</button>
+                </div>
+                {address ? (
+                  <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>
+                ) : (
+                  <button onClick={() => tonConnectUI.openModal()} className="w-full h-11 bg-white/5 border border-white/10 text-white/60 rounded-xl text-sm">Connect TON Wallet</button>
+                )}
+                {connectedAddress && !savedAddress && (
+                  <button onClick={() => saveWallet.mutate()} disabled={saveWallet.isPending} className="w-full h-10 bg-[#007AFF]/15 hover:bg-[#007AFF]/25 text-[#60a5fa] rounded-xl text-xs font-black uppercase tracking-wider">
+                    {saveWallet.isPending ? 'Saving…' : 'Use Connected Wallet'}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">Gold amount</label>
+                <div className="relative">
+                  <input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} placeholder={minimum.toLocaleString()} className="w-full bg-white/5 border border-white/10 text-white h-11 rounded-xl font-bold text-sm px-3.5 pr-16 placeholder:text-white/20 focus:outline-none focus:border-[#0066D6]/40" />
+                  <button onClick={handleMax} className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-[#007AFF]/20 hover:bg-[#007AFF]/30 text-[#0066D6] text-[10px] font-black rounded-lg uppercase">Max</button>
+                </div>
+                {value > 0 && value < minimum && <p className="text-red-400 text-[11px]">Minimum {minimum.toLocaleString()} Gold required</p>}
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 space-y-2.5">
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Withdraw Fee</span><span className="text-white text-xs font-bold">{feePercent}%</span></div>
+                <div className="h-px bg-white/5" />
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} Gold</span></div>
+                <div className="h-px bg-white/5" />
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{tonPrice > 0 && value > 0 ? `$${netUsd.toFixed(3)} USD` : '—'}</span></div>
+              </div>
+              <button onClick={() => withdrawal.mutate()} disabled={!canSubmit} className="w-full h-11 bg-[#007AFF] hover:bg-[#0066D6] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center justify-center gap-2">
+                {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw Gold'}
+              </button>
+              <button onClick={onClose} className="w-full text-white/40 text-xs font-bold uppercase tracking-wider py-2 hover:text-white/60 transition-colors">Close</button>
+            </div>
+            <div className="h-4" />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
-const labelStyle = { fontSize:11, fontWeight:700, color:'rgba(255,255,255,.28)', textTransform:'uppercase' as const, letterSpacing:'.07em', marginBottom:8 };
-const inputStyle = { width:'100%', height:44, boxSizing:'border-box' as const, border:0, borderRadius:12, padding:'0 14px', background:'rgba(255,255,255,.07)', color:'#fff', outline:'none', marginBottom:9 };
-const inputWrap = { display:'flex', alignItems:'center', gap:10, padding:'0 14px', height:48, borderRadius:14, background:'rgba(255,255,255,.07)' };
-const primaryButton = { width:'100%', padding:'14px 0', border:0, borderRadius:14, background:'linear-gradient(135deg,#2563eb,#3b82f6)', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer' };
-function Row({ label, value, sub }: { label:string; value:string; sub?:string }) { return <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px' }}><div><div style={{ color:'rgba(255,255,255,.5)', fontSize:14 }}>{label}</div>{sub && <div style={{ color:'rgba(255,255,255,.22)', fontSize:11, marginTop:2 }}>{sub}</div>}</div><span style={{ color:'#fff', fontSize:14, fontWeight:700 }}>{value}</span></div>; }
-function Divider() { return <div style={{ height:1, background:'rgba(255,255,255,.05)', margin:'0 16px' }} />; }

@@ -7,13 +7,8 @@ import Header from "@/components/GameHeader";
 import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
-import PromoCodeInput from "@/components/PromoCodeInput";
-import { useLocation } from "wouter";
 import { showAdgramAd } from "@/lib/showAd";
-import { useAdmin } from "@/hooks/useAdmin";
-import { Users, Activity, Coins, ArrowDownToLine, ClipboardList, CheckCircle2 } from "lucide-react";
 
-import { getTONPrice, formatTon, formatUsd } from "@/lib/tonPriceService";
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -21,54 +16,9 @@ function getTodayKey() {
 
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
-function formatHomeStat(value: unknown): string {
-  const numeric = Number(value ?? 0);
-  if (!Number.isFinite(numeric)) return '0';
-  return numeric.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function HomeStatistics() {
-  const { data, isLoading } = useQuery<any>({
-    queryKey: ['/api/public/statistics'],
-    staleTime: 20_000,
-    refetchInterval: 30_000,
-    retry: 1,
-  });
-  const statCards = [
-    { label: 'Total users', value: data ? formatHomeStat(data.totalUsers) : '—', icon: Users },
-    { label: 'Active today', value: data ? formatHomeStat(data.activeToday) : '—', icon: Activity },
-    { label: 'Gold earned', value: data ? formatHomeStat(data.goldEarned) : '—', icon: Coins },
-    { label: 'Total withdrawal', value: data ? `${formatHomeStat(data.totalWithdrawal)} TON` : '—', icon: ArrowDownToLine },
-    { label: 'Tasks created', value: data ? formatHomeStat(data.taskCreated) : '—', icon: ClipboardList },
-    { label: 'Tasks completed', value: data ? formatHomeStat(data.taskCompleted) : '—', icon: CheckCircle2 },
-  ];
-  return (
-    <>
-      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>App Statistics</span>
-        {isLoading && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Updating…</span>}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 7, marginBottom: 16 }}>
-        {statCards.map(card => (
-          <div key={card.label} style={{ background: '#252525', borderRadius: 12, padding: '10px 11px', minWidth: 0, border: '1px solid rgba(255,255,255,0.04)' }}>
-            <card.icon size={16} strokeWidth={2.1} color="rgba(255,255,255,0.58)" style={{ marginBottom: 6 }} />
-            <div style={{ color: '#fff', fontSize: 'clamp(16px, 4.5vw, 21px)', fontWeight: 900, lineHeight: 1.05, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
 export default function Games() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [balanceHidden, setBalanceHidden] = useState(false);
-  const [tonPrice, setTonPrice] = useState<number>(3.5);
-  const [showStakingPopup, setShowStakingPopup] = useState(false);
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
-  const [showPromoPopup, setShowPromoPopup] = useState(false);
-  const [showSwapPopup, setShowSwapPopup] = useState(false);
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [dailyChecked, setDailyChecked] = useState(() => localStorage.getItem('daily_check_date') === getTodayKey());
   const [dailyAdLoading, setDailyAdLoading] = useState(false);
@@ -78,9 +28,7 @@ export default function Games() {
   const mysteryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
 
-  const { isAdmin } = useAdmin();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], staleTime: 0 });
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
@@ -124,36 +72,6 @@ export default function Games() {
   };
 
   const axnRaw = parseFloat(user?.walletBalance ?? user?.balance ?? '0');
-  const axnBalance = Math.floor(axnRaw);
-
-  // 100,000 Gold = 1 USDT (Fixed)
-  const usdValue = axnRaw / 100_000;
-  // USDT to TON based on live market price
-  const tonValue = tonPrice > 0 ? usdValue / tonPrice : 0;
-
-  const tonDisplay = formatTon(tonValue);
-  const usdDisplay = formatUsd(usdValue);
-  const axnDisplay = axnRaw === 0 ? '0' : axnRaw % 1 === 0
-    ? axnRaw.toLocaleString()
-    : parseFloat(axnRaw.toFixed(6)).toLocaleString(undefined, { maximumFractionDigits: 6 });
-
-  const firstName: string = user?.firstName || user?.username || "User";
-  const profileImageUrl: string | null =
-    user?.profileImageUrl ||
-    (typeof window !== "undefined" && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) ||
-    null;
-  const initials = firstName.slice(0, 2).toUpperCase();
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetch = async () => {
-      const price = await getTONPrice();
-      if (!cancelled) setTonPrice(price);
-    };
-    fetch();
-    const interval = setInterval(fetch, 60000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -262,125 +180,11 @@ export default function Games() {
 
       <Header onMenuOpen={() => setMenuOpen(true)} />
 
-      {/* Balance Section */}
-      <div style={{
-        paddingTop: 'calc(var(--header-height, 62px) + 14px)',
-        paddingLeft: 'clamp(12px, 4vw, 24px)',
-        paddingRight: 'clamp(12px, 4vw, 24px)',
-        paddingBottom: 12,
-        textAlign: 'center',
-        overflow: 'hidden',
-      }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Wallet Balance
-          </div>
-
-          {/* Gold main balance */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 1, maxWidth: '100%', flexWrap: 'wrap' }}>
-            <span style={{
-              fontSize: axnDisplay.length > 16 ? 22 : axnDisplay.length > 14 ? 26 : axnDisplay.length > 10 ? 34 : 42,
-              fontWeight: 700, color: '#fff',
-              fontFamily: "Roboto Mono",
-              letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums', lineHeight: 1,
-              wordBreak: 'break-all', overflowWrap: 'break-word', minWidth: 0,
-              maxWidth: 'calc(100vw - 80px)',
-            }}>
-              {balanceHidden ? '••••' : axnDisplay}
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.45)', alignSelf: 'flex-end', paddingBottom: 4 }}><img src="/assets/gems-icon.svg" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
-            <button onClick={() => setBalanceHidden(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, alignSelf: 'center', flexShrink: 0 }}>
-              {balanceHidden ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              )}
-            </button>
-          </div>
-
-          {/* TON and USD sub-values */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 14 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>
-              {balanceHidden ? '≈ •••• TON' : `≈ ${tonDisplay} TON`}
-            </span>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', fontWeight: 500 }}>
-              {balanceHidden ? '≈ $••••' : `≈ $${usdDisplay}`}
-            </span>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(10px, 4vw, 22px)', flexWrap: 'wrap', maxWidth: '100%' }}>
-
-            {/* Withdraw */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <button
-                onClick={() => setShowWithdrawPopup(true)}
-                style={{
-                  width: 52, height: 52, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
-                  border: 'none',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
-                }}
-                className="active:scale-90 transition-transform"
-              >
-                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20V5"/><path d="m6 11 6-6 6 6"/><path d="M4 20h16"/>
-                </svg>
-              </button>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Withdraw</span>
-            </div>
-
-            {/* Code */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <button onClick={() => setShowPromoPopup(true)} style={{
-                width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
-                border: 'none',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
-              }} className="active:scale-90 transition-transform">
-                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 6h16v12H4z"/><path d="M4 10a2 2 0 0 0 0 4M20 10a2 2 0 0 1 0 4"/><path d="M12 6v12" strokeDasharray="1.5 2"/>
-                </svg>
-              </button>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Promo</span>
-            </div>
-
-            {/* Staking */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <button onClick={() => setShowStakingPopup(true)} style={{
-                width: 52, height: 52, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
-                border: 'none',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(61,21,128,0.4)',
-              }} className="active:scale-90 transition-transform">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                  <path d="M2 17l10 5 10-5"/>
-                  <path d="M2 12l10 5 10-5"/>
-                </svg>
-              </button>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.48)' }}>Staking</span>
-            </div>
-
-
-          </div>
-      </div>
-
       {/* Scrollable Content */}
-      <div style={{ padding: '8px clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
-
-        {/* DAILY REWARDS */}
-        <div style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
-            Daily Rewards
-          </span>
-        </div>
+      <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
 
         <div style={{
-          background: '#252525', borderRadius: 14,
+          background: '#1b1b1b', borderRadius: 14,
           marginBottom: 20, overflow: 'hidden',
         }}>
           {/* Daily Check-In */}
@@ -446,82 +250,8 @@ export default function Games() {
           </div>
         </div>
 
-        <HomeStatistics />
 
       </div>
-
-      {showPromoPopup && (
-        <div style={{ position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'flex-end' }}>
-          <div onClick={() => setShowPromoPopup(false)} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.75)', backdropFilter:'blur(8px)' }} />
-          <div onClick={e => e.stopPropagation()} style={{ position:'relative', width:'100%', background:'#0a0a0a', borderRadius:'28px 28px 0 0', padding:'24px 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))', boxSizing:'border-box', overflow:'hidden' }}>
-            <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
-            <div style={{ width:40, height:4, borderRadius:3, background:'rgba(255,255,255,.1)', margin:'0 auto 20px' }} />
-            <div style={{ display:'flex', justifyContent:'center', alignItems:'center', marginBottom:16, paddingTop:2 }}><span style={{ color:'#fff', fontSize:18, fontWeight:900 }}>Promo Code</span></div>
-            <PromoCodeInput />
-          </div>
-        </div>
-      )}
-
-      {false && showSwapPopup && (
-        <SwapPopup
-          onClose={() => setShowSwapPopup(false)}
-          cipherBalance={Math.floor(axnRaw)}
-          swapRate={100000}
-          swapMin={Math.max(1, Number((user as any)?.minimumCashoutGold || 100000))}
-          onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); }}
-        />
-      )}
-
-      {/* Staking Popup */}
-      {showStakingPopup && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 900, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={() => setShowStakingPopup(false)} />
-          <div style={{
-            position: 'relative', width: '100%',
-            background: 'linear-gradient(160deg, #0d0d0f 0%, #111118 100%)',
-            border: '1px solid rgba(61,21,128,0.3)',
-            borderRadius: '28px 28px 0 0', padding: '28px 20px', paddingBottom: 'max(52px, calc(env(safe-area-inset-bottom, 0px) + 28px))', zIndex: 901, textAlign: 'center',
-            boxShadow: '0 -8px 60px rgba(61,21,128,0.24), 0 0 0 1px rgba(255,255,255,0.03)',
-            overflow: 'hidden',
-          }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)', animation: 'popup-glow 2s ease-in-out infinite' }} />
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 24px' }} />
-            <div style={{
-              width: 64, height: 64, borderRadius: '50%', margin: '0 auto 18px',
-              background: 'linear-gradient(135deg, rgba(61,21,128,0.24), rgba(107,33,168,0.12))',
-              border: '1px solid rgba(61,21,128,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 28px rgba(61,21,128,0.3)',
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Gold Staking</div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.38)', marginBottom: 10, lineHeight: 1.55 }}>
-              Stake your Gold to earn passive rewards.
-            </div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 50, padding: '5px 14px', marginBottom: 28,
-            }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', animation: 'axn-pulse 1.5s ease-in-out infinite' }} />
-              <span style={{ color: '#fbbf24', fontSize: 12, fontWeight: 700 }}>Launching Soon</span>
-            </div>
-            <button onClick={() => setShowStakingPopup(false)} style={{
-              width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-              border: 'none', borderRadius: 50, color: '#fff',
-              fontSize: 15, fontWeight: 800, cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(61,21,128,0.4)',
-            }} className="active:scale-95 transition-transform">Got it</button>
-          </div>
-        </div>
-      )}
-
 
       {menuOpen && (
         <MenuPopup

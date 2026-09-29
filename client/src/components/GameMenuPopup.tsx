@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Receipt, ChevronRight, Shield, ShieldCheck, ScrollText, ArrowLeft, Clock, CheckCircle,
+  User, Users, Activity, Coins, ArrowDownToLine, ClipboardList, CheckCircle2,
+  Receipt, ChevronRight, Shield, ShieldCheck, ScrollText, ArrowLeft, Clock, CheckCircle,
   XCircle, Loader2, Trophy, Video, Link2, Eye, CheckSquare, Square,
   X, Plus, Youtube, Instagram, Download,
 } from "lucide-react";
@@ -62,8 +63,12 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
     enabled: view === "transactions",
     retry: false,
   });
-  const { data: projectStats } = useQuery<any>({
-    queryKey: ["/api/project/stats"], enabled: view === "stats", retry: false, staleTime: 30000,
+  const { data: appStatistics } = useQuery<any>({
+    queryKey: ["/api/public/statistics"],
+    enabled: view === "stats",
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    retry: 1,
   });
 
   const telegramUser =
@@ -328,14 +333,26 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
           )}
 
           {view === "stats" && (
-            <div className="px-5 py-4 space-y-3">
+            <div className="px-4 py-4">
               <div className="grid grid-cols-2 gap-2">
-                  {[
-                    ["Total Users", projectStats?.totalUsers ?? "—"], ["Online Now", projectStats?.onlineNow ?? "—"],
-                    ["Total Earned", `${projectStats?.totalEarnings ?? "—"} Gold`], ["Withdrawn", `${projectStats?.totalWithdrawalsAmount ?? "—"} Gold`],
-                    ["Daily Active", projectStats?.dau ?? "—"], ["Referrals", projectStats?.totalReferrals ?? "—"],
-                  ].map(([label, value]) => <div key={String(label)} className="rounded-2xl bg-white/5 p-4"><p className="text-white/35 text-[10px] uppercase tracking-widest font-black">{label}</p><p className="text-white text-lg font-black mt-2">{value ?? "—"}</p></div>)}
-                </div>
+                {[
+                  { label: "Total users", value: appStatistics ? Number(appStatistics.totalUsers ?? 0).toLocaleString() : "—", icon: Users },
+                  { label: "Active today", value: appStatistics ? Number(appStatistics.activeToday ?? 0).toLocaleString() : "—", icon: Activity },
+                  { label: "Gold earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
+                  { label: "Total withdrawal", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} TON` : "—", icon: ArrowDownToLine },
+                  { label: "Tasks created", value: appStatistics ? Number(appStatistics.taskCreated ?? 0).toLocaleString() : "—", icon: ClipboardList },
+                  { label: "Tasks completed", value: appStatistics ? Number(appStatistics.taskCompleted ?? 0).toLocaleString() : "—", icon: CheckCircle2 },
+                ].map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.label} className="rounded-xl bg-[#252525] border border-white/[0.04] p-3 min-w-0">
+                      <Icon className="w-4 h-4 text-white/60 mb-1.5" strokeWidth={2.1} />
+                      <div className="text-white text-base font-black leading-tight truncate">{card.value}</div>
+                      <div className="text-white/40 text-[10px] mt-1 truncate">{card.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
