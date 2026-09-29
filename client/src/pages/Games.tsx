@@ -8,6 +8,8 @@ import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
+import { useLocation } from "wouter";
+import { ChevronRight, Trophy, Users } from "lucide-react";
 
 
 function getTodayKey() {
@@ -17,6 +19,7 @@ function getTodayKey() {
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
 export default function Games() {
+  const [, navigate] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
@@ -182,6 +185,48 @@ export default function Games() {
 
       {/* Scrollable Content */}
       <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
+
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em' }}>Giveaways</h1>
+          <p style={{ margin: '5px 0 13px', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 500 }}>
+            Take part in giveaways and get rewards.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              type="button"
+              aria-label="Open weekly contest leaderboard"
+              onClick={() => navigate('/leaderboard?tab=monthly')}
+              className="active:scale-[0.99] transition-transform"
+              style={{ width: '100%', minHeight: 70, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'linear-gradient(110deg, rgba(79,70,229,0.24), rgba(59,130,246,0.10))', border: '1px solid rgba(99,102,241,0.28)', borderRadius: 16, cursor: 'pointer' }}
+            >
+              <span style={{ width: 42, height: 42, borderRadius: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#c4b5fd', background: 'rgba(139,92,246,0.18)' }}>
+                <Trophy size={20} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', color: '#fff', fontSize: 14, fontWeight: 900 }}>Weekly Contest</span>
+                <span style={{ display: 'block', marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500 }}>Compete on the weekly leaderboard</span>
+              </span>
+              <ChevronRight size={18} color="rgba(255,255,255,0.58)" />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Open referral contest leaderboard"
+              onClick={() => navigate('/leaderboard?tab=referral')}
+              className="active:scale-[0.99] transition-transform"
+              style={{ width: '100%', minHeight: 70, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'linear-gradient(110deg, rgba(8,145,178,0.20), rgba(16,185,129,0.09))', border: '1px solid rgba(45,212,191,0.24)', borderRadius: 16, cursor: 'pointer' }}
+            >
+              <span style={{ width: 42, height: 42, borderRadius: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#67e8f9', background: 'rgba(6,182,212,0.16)' }}>
+                <Users size={20} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', color: '#fff', fontSize: 14, fontWeight: 900 }}>Referral Contest</span>
+                <span style={{ display: 'block', marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500 }}>Invite friends and earn rewards</span>
+              </span>
+              <ChevronRight size={18} color="rgba(255,255,255,0.58)" />
+            </button>
+          </div>
+        </div>
 
         <div style={{
           background: '#1b1b1b', borderRadius: 14,

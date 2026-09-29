@@ -163,7 +163,9 @@ function ParticipantCard({
 
 export default function Leaderboard() {
   const { user } = useAuth() as any;
-  const [activeTab, setActiveTab] = useState<"monthly" | "referral">("monthly");
+  const [activeTab, setActiveTab] = useState<"monthly" | "referral">(() =>
+    new URLSearchParams(window.location.search).get("tab") === "referral" ? "referral" : "monthly"
+  );
 
   const { data: appSettings } = useQuery<any>({
     queryKey: ["/api/app-settings"],
@@ -347,7 +349,7 @@ export default function Leaderboard() {
                     transition: "background 0.2s ease, color 0.2s ease",
                   }}
                 >
-                  {tab === "monthly" ? "Monthly" : "Referral"}
+                  {tab === "monthly" ? "Weekly" : "Referral"}
                 </button>
               );
             })}
