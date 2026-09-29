@@ -523,7 +523,15 @@ export default function Games() {
       )}
 
 
-      {menuOpen && <MenuPopup onClose={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <MenuPopup
+          onClose={() => setMenuOpen(false)}
+          onWithdraw={() => {
+            setMenuOpen(false);
+            setShowWithdrawPopup(true);
+          }}
+        />
+      )}
       <DailyCheckinSheet
         open={checkinSheetOpen}
         onClose={() => setCheckinSheetOpen(false)}

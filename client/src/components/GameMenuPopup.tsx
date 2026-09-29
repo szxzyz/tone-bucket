@@ -1,80 +1,122 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Users, Wifi, CalendarDays, Receipt, Zap, ChevronRight, ArrowLeft,
-  TrendingUp, Activity, RefreshCw, Star, FileText, Lock, Info, Shield,
-  Loader2, Clock, CheckCircle, XCircle,
+  User, Receipt, ChevronRight, Shield, ShieldCheck, ScrollText, ArrowLeft, Clock, CheckCircle,
+  XCircle, Loader2, Trophy, Video, Link2, Eye, CheckSquare, Square,
+  X, Plus, Youtube, Instagram, Download,
 } from "lucide-react";
-import { RiBarChartFill } from "react-icons/ri";
-import { GoldIcon } from "@/components/GameGoldIcon";
-import { FaReceipt, FaBalanceScale, FaCrown } from "react-icons/fa";
-import { MdOutlineSupportAgent } from "react-icons/md";
-import { BsQuestionCircleFill } from "react-icons/bs";
 import { format } from "date-fns";
-import { useAdmin } from "@/hooks/useAdmin";
-import { useLocation } from "wouter";
-import { showNotification } from "@/components/AppNotification";
 
 interface MenuPopupProps {
   onClose: () => void;
-  onOpenInvite?: () => void;
+  onWithdraw?: () => void;
+  initialView?: View;
+  fullScreen?: boolean;
 }
 
-type Overlay = "transactions" | "stats" | "legal" | "terms" | "faq" | null;
+type View = "main" | "transactions" | "legal" | "contest";
+type LegalDocument = "terms" | "privacy" | "acceptable";
 
-const CUT_SM = 'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)';
-const CUT_LG = 'polygon(14px 0%,calc(100% - 14px) 0%,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0% calc(100% - 14px),0% 14px)';
+const VIEW_RANGES = [
+  { label: "100 – 999 Views", value: "100-999", reward: "100 GRM" },
+  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 GRM" },
+  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 GRM" },
+  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K GRM" },
+  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K GRM" },
+  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K GRM" },
+  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K GRM" },
+  { label: "1M+ Views", value: "1m+", reward: "100K GRM" },
+];
 
-const CORNER_ACCENTS = [
-  { top:'2px',    left:'14px',  width:'30px', height:'1.5px' },
-  { top:'14px',   left:'2px',   width:'1.5px',height:'30px'  },
-  { top:'2px',    right:'14px', width:'30px', height:'1.5px' },
-  { top:'14px',   right:'2px',  width:'1.5px',height:'30px'  },
-  { bottom:'2px', left:'14px',  width:'30px', height:'1.5px' },
-  { bottom:'14px',left:'2px',   width:'1.5px',height:'30px'  },
-  { bottom:'2px', right:'14px', width:'30px', height:'1.5px' },
-  { bottom:'14px',right:'2px',  width:'1.5px',height:'30px'  },
-] as React.CSSProperties[];
+export default function MenuPopup({ onClose, onWithdraw, initialView = "main", fullScreen = false }: MenuPopupProps) {
+  const [view, setView] = useState<View>(initialView);
+  const [contestFullScreen, setContestFullScreen] = useState(initialView === "contest");
+  const [selectedLegal, setSelectedLegal] = useState<LegalDocument | null>(null);
+  const documentScreen = fullScreen || selectedLegal !== null || (contestFullScreen && view === "contest");
 
-function fmtNum(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return n.toLocaleString();
-}
-function fmtAge(days: number): string {
-  if (days >= 30) return `${Math.floor(days / 30)}mo ${days % 30}d`;
-  return `${days}d`;
-}
+  // Contest form state
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [link, setLink] = useState("");
+  const [selectedRange, setSelectedRange] = useState<string | null>(null);
+  const [check1, setCheck1] = useState(false);
+  const [check2, setCheck2] = useState(false);
+  const [check3, setCheck3] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-export default function MenuPopup({ onClose, onOpenInvite }: MenuPopupProps) {
-  const { isAdmin } = useAdmin();
-  const [, setLocation] = useLocation();
-  const [overlay, setOverlay] = useState<Overlay>(null);
+  const { data: user } = useQuery<any>({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+    staleTime: 60000,
+  });
 
-  const { data: user } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false, staleTime: 60000 });
   const { data: txData, isLoading: txLoading } = useQuery<any>({
-    queryKey: ["/api/withdrawals"], enabled: overlay === "transactions", retry: false,
+    queryKey: ["/api/withdrawals"],
+    enabled: view === "transactions",
+    retry: false,
   });
-  const { data: projectStats } = useQuery<any>({
-    queryKey: ["/api/project/stats"], enabled: overlay === "stats", retry: false, staleTime: 30000,
-  });
+
+  const telegramUser =
+    typeof window !== "undefined"
+      ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user
+      : null;
+
+  const photoUrl = telegramUser?.photo_url || user?.profileImageUrl || null;
+  const displayName = user?.firstName || telegramUser?.first_name || "User";
+  const username = user?.telegramUsername || telegramUser?.username || null;
+  const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
 
   const withdrawals = txData?.withdrawals || [];
-  const firstName: string = user?.firstName || user?.username || "User";
-  const profileImageUrl: string | null =
-    user?.profileImageUrl ||
-    (typeof window !== "undefined" && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) ||
-    null;
-  const initials = firstName.slice(0, 2).toUpperCase();
-  const joinedAt = user?.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : null;
+
+  const contestMutation = useMutation({
+    mutationFn: async (data: { link: string; viewsRange: string }) => {
+      const res = await fetch("/api/contest/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Submission failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+    },
+  });
+
+  const canSubmit =
+    link.trim() !== "" &&
+    selectedRange !== null &&
+    check1 &&
+    check2 &&
+    check3;
+
+  const handleContestSubmit = () => {
+    if (!canSubmit) return;
+    contestMutation.mutate({ link: link.trim(), viewsRange: selectedRange! });
+  };
+
+  const resetContestForm = () => {
+    setLink("");
+    setSelectedRange(null);
+    setCheck1(false);
+    setCheck2(false);
+    setCheck3(false);
+    setSubmitted(false);
+    setShowSubmitForm(false);
+  };
 
   const getStatusIcon = (status: string) => {
     const s = status?.toLowerCase();
-    if (s?.includes("approved") || s?.includes("success") || s?.includes("paid")) return <CheckCircle className="w-4 h-4 text-green-400" />;
-    if (s?.includes("reject") || s?.includes("failed")) return <XCircle className="w-4 h-4 text-red-400" />;
+    if (s?.includes("approved") || s?.includes("success") || s?.includes("paid"))
+      return <CheckCircle className="w-4 h-4 text-green-400" />;
+    if (s?.includes("reject") || s?.includes("failed"))
+      return <XCircle className="w-4 h-4 text-red-400" />;
     return <Clock className="w-4 h-4 text-yellow-400" />;
   };
+
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase();
     if (s?.includes("approved") || s?.includes("success") || s?.includes("paid")) return "text-green-400";
@@ -82,289 +124,502 @@ export default function MenuPopup({ onClose, onOpenInvite }: MenuPopupProps) {
     return "text-yellow-400";
   };
 
+  const viewTitle: Record<View, string> = {
+    main: "Menu",
+    transactions: "Transactions",
+    legal: "Legal & Info",
+    contest: "Contest",
+  };
+
+  const legalTitles: Record<LegalDocument, string> = {
+    terms: "Terms & Conditions",
+    privacy: "Privacy Policy",
+    acceptable: "Acceptable Use",
+  };
+
+  const openLegalDocument = (document: LegalDocument) => {
+    setSelectedLegal(document);
+  };
+
+  const closeLegalDocument = () => {
+    setSelectedLegal(null);
+  };
+
   return (
-    <motion.div
-      className="fixed inset-0 z-[200] flex items-center justify-center px-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-    >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Outer border — blue glow + cut corners */}
-      <div style={{ clipPath: CUT_LG, padding: '1.5px', background: 'linear-gradient(135deg,rgba(0,160,255,0.75) 0%,rgba(0,80,200,0.45) 50%,rgba(0,160,255,0.75) 100%)', boxShadow: '0 0 32px rgba(0,120,255,0.45), 0 0 64px rgba(0,80,200,0.2)', width: '100%', maxWidth: 384 }}>
+    <AnimatePresence>
       <motion.div
-        className="relative w-full popup-glow-open"
-        style={{ clipPath: CUT_LG, background: 'linear-gradient(180deg,rgba(5,16,44,0.99) 0%,rgba(3,9,26,0.99) 100%)', position: 'relative', overflow: 'hidden' }}
-        initial={{ scale: 0.88, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.88, opacity: 0, y: 20 }}
-        transition={{ type: "spring", damping: 26, stiffness: 320 }}
+        className={`fixed inset-0 z-[1300] flex justify-center ${documentScreen ? "items-stretch" : "items-end"}`}
+        initial={documentScreen ? { opacity: 0, x: "100%" } : { opacity: 0 }}
+        animate={documentScreen ? { opacity: 1, x: 0 } : { opacity: 1 }}
+        exit={documentScreen ? { opacity: 0, x: "100%" } : { opacity: 0 }}
       >
-        {/* Corner accent lines */}
-        {CORNER_ACCENTS.map((s, i) => (
-          <div key={i} className="absolute pointer-events-none" style={{ ...s, background: 'rgba(0,200,255,0.75)', zIndex: 10 }} />
-        ))}
-        {/*
-          KEY TRICK:
-          - Main menu is rendered normally (relative) → it sets the card's natural height
-          - Sub-views are absolute inset-0 → they overlay in the exact same space
-          - Card never resizes, no scroll on main menu
-        */}
-        <div className="relative">
+        {!documentScreen && <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />}
 
-          {/* ── MAIN MENU (sets card height) ── */}
-          <div style={{ visibility: overlay ? "hidden" : "visible" }}>
-            {/* Profile */}
-            <div className="px-5 py-4 border-b border-white/[0.07]">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/[0.07]">
-                  {profileImageUrl
-                    ? <img src={profileImageUrl} alt={firstName} className="w-full h-full object-cover"
-                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                    : <span className="text-white font-black text-lg select-none">{initials}</span>
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-black text-sm truncate">{firstName}</p>
-                  {user?.username && <p className="text-white/40 text-xs mt-0.5">@{user.username}</p>}
-                  {joinedAt && <p className="text-white/25 text-[10px] mt-0.5">Joined {joinedAt}</p>}
+        <motion.div
+          className={`relative w-full ${documentScreen ? "max-w-none h-full max-h-none rounded-none flex flex-col" : "max-w-md rounded-t-2xl"} ${documentScreen ? "bg-[#0f0f0f]" : "bg-[#0f0f0f]"} border border-white/10 overflow-hidden`}
+          initial={documentScreen ? { x: "100%" } : { y: "100%" }}
+          animate={documentScreen ? { x: 0 } : { y: 0 }}
+          exit={documentScreen ? { x: "100%" } : { y: "100%" }}
+          transition={{ type: "spring", damping: 28, stiffness: 300 }}
+          style={{ maxHeight: documentScreen ? "none" : "90vh", overflowY: "auto" }}
+        >
+          {!documentScreen && <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>}
+
+          {/* Header */}
+          <div className={documentScreen ? "p-6 border-b border-white/5 flex items-center justify-between" : "flex items-center gap-3 px-5 py-3 border-b border-white/5"}>
+            {view !== "main" && !documentScreen && (
+              <button
+                onClick={() => {
+                  if (view === "legal" && selectedLegal) closeLegalDocument();
+                  else { setView("main"); resetContestForm(); }
+                }}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 text-white" />
+              </button>
+            )}
+            <h2 className={documentScreen ? "text-xl font-bold text-white uppercase tracking-tight italic" : "text-white font-bold text-base"}>{view === "legal" && selectedLegal ? legalTitles[selectedLegal] : viewTitle[view]}</h2>
+          </div>
+
+          {/* ─── Main View ─── */}
+          {view === "main" && (
+            <div className="px-5 py-4 space-y-3">
+              {/* Account Info */}
+              <div className="bg-white/5 rounded-2xl p-4">
+                <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-3">Account Info</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 bg-[#1b1b1b] flex items-center justify-center flex-shrink-0">
+                    {photoUrl ? (
+                      <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-white/40" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm truncate">{displayName}</p>
+                    {username && <p className="text-white/50 text-xs mt-0.5">@{username}</p>}
+                    {telegramId && <p className="text-white/30 text-[10px] mt-1 font-mono">ID: {telegramId}</p>}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="py-2">
-              <MenuItem icon={<RiBarChartFill className="w-5 h-5 text-blue-400" />} label="Project Statistics" onClick={() => setOverlay("stats")} />
-              <MenuItem icon={<FaReceipt className="w-5 h-5 text-yellow-400" />} label="Transactions" onClick={() => setOverlay("transactions")} />
-              <MenuItem icon={<BsQuestionCircleFill className="w-5 h-5 text-sky-400" />} label="FAQs" onClick={() => setOverlay("faq")} />
-              <MenuItem icon={<MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />} label="Support" onClick={() => {
-                const tg = (window as any).Telegram?.WebApp;
-                const supportUrl = import.meta.env.VITE_SUPPORT_URL;
-                if (!supportUrl) return;
-                if (tg?.openTelegramLink) tg.openTelegramLink(supportUrl);
-                else window.open(supportUrl, "_blank");
-              }} />
-              <MenuItem icon={<FaBalanceScale className="w-5 h-5 text-indigo-400" />} label="Privacy Policy" onClick={() => setOverlay("legal")} />
-              <MenuItem icon={<FileText className="w-5 h-5 text-orange-400" />} label="Terms and Conditions" onClick={() => setOverlay("terms")} />
-              {isAdmin && (
-                <>
-                  <div className="mx-4 my-1 border-t border-white/5" />
-                  <div className="px-4 py-1">
-                    <p className="text-white/20 text-[9px] font-black uppercase tracking-widest">Admin</p>
+              {/* Contest */}
+              <button
+                onClick={() => { setContestFullScreen(true); setView("contest"); }}
+                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-5 h-5 text-[#F5C542]" />
+                  <span className="text-white font-bold text-sm">Contest</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+
+              {/* Withdraw */}
+              <button
+                onClick={() => onWithdraw?.()}
+                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3">
+                  <Download className="w-5 h-5 text-blue-400" />
+                  <span className="text-white font-bold text-sm">Withdraw</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+              {/* Transactions */}
+              <button
+                onClick={() => setView("transactions")}
+                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3">
+                  <Receipt className="w-5 h-5 text-green-400" />
+                  <span className="text-white font-bold text-sm">Transactions</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+
+              {/* Legal Info */}
+              <button
+                onClick={() => setView("legal")}
+                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-purple-400" />
+                  <span className="text-white font-bold text-sm">Legal & Info</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+            </div>
+          )}
+
+          {/* ─── Transactions View ─── */}
+          {view === "transactions" && (
+            <div className="px-5 py-4">
+              {txLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                </div>
+              ) : withdrawals.length === 0 ? (
+                <div className="text-center py-10 text-white/30 text-sm">No transactions yet.</div>
+              ) : (
+                <div className="space-y-2">
+                  {withdrawals.map((w: any) => (
+                    <div key={w.id} className="bg-white/5 rounded-xl p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {getStatusIcon(w.status)}
+                        <div>
+                          <p className="text-white text-xs font-bold">{w.method || "Withdrawal"}</p>
+                          <p className="text-white/40 text-[10px] mt-0.5">
+                            {w.createdAt ? format(new Date(w.createdAt), "dd MMM yyyy") : "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white text-xs font-bold">{parseFloat(w.amount || "0").toLocaleString()} GRM</p>
+                        <p className={`text-[10px] font-semibold capitalize ${getStatusColor(w.status)}`}>{w.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── Legal View ─── */}
+          {view === "legal" && !selectedLegal && (
+            <div className="px-5 py-4 space-y-3">
+              {([
+                { id: "terms" as LegalDocument, label: "Terms & Conditions", icon: Shield, color: "text-emerald-400" },
+                { id: "privacy" as LegalDocument, label: "Privacy Policy", icon: ScrollText, color: "text-orange-400" },
+                { id: "acceptable" as LegalDocument, label: "Acceptable Use", icon: ShieldCheck, color: "text-rose-400" },
+              ]).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => openLegalDocument(item.id)}
+                    className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-5 h-5 ${item.color}`} />
+                      <span className="text-white font-bold text-sm">{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-white/30" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {view === "legal" && selectedLegal && (
+            <div className="flex-1 overflow-y-auto p-6 text-gray-400 text-sm leading-relaxed">
+              {selectedLegal === "terms" && (
+                <div className="space-y-4">
+                  <p className="text-[#B9FF66] font-bold">Last Updated: January 21, 2026</p>
+                  <p>Welcome to Money AXN. By accessing or using this app, you agree to comply with these Terms & Conditions. If you do not agree, please do not use the app.</p>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Eligibility</h4><p>Users must be at least 13 years old. You represent that you are of legal age to form a binding contract. You are responsible for maintaining the confidentiality of your account and all activities that occur under your account.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. AXN Mining & Rewards</h4><p>Money AXN is a free AXN mining application. Users can mine AXN tokens through free mining activities and boost their mining speed through optional investments. Mined AXN is credited to your virtual balance and can be converted to TON for withdrawal.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Mining Boost & Investment</h4><p>Users can optionally invest TON to boost their mining speed. Mining boosts are time-limited and increase the rate at which AXN is mined. Investment in mining boosts is voluntary and subject to the terms displayed at the time of purchase.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Withdrawals</h4><p>AXN tokens can be converted to TON and withdrawn to your personal wallet. Withdrawals are subject to system verification, minimum limits, and available liquidity. Users must provide valid wallet addresses. We reserve the right to delay or cancel withdrawals for security audits or suspected fraudulent activity.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">5. Account Suspension & Bans</h4><p>We reserve the right to suspend or permanently ban accounts without prior notice if we detect violations of our policies, including multiple accounts, bot usage, script automation, or exploitation of system bugs.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">6. Fraud & Abuse</h4><p>Any attempt to manipulate the mining system, exploit technical vulnerabilities, or provide false information during verification will result in immediate termination of the account and forfeiture of accumulated rewards.</p></div>
+                </div>
+              )}
+              {selectedLegal === "privacy" && (
+                <div className="space-y-4">
+                  <p>Money AXN respects your privacy and is committed to protecting your personal data.</p>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Data Collection</h4><p>We collect essential data to provide our AXN mining services, including your Telegram User ID (UID), device information, IP address, app usage statistics, and mining activity history.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. Data Storage & Security</h4><p>Your data is stored securely using industry-standard encryption. We retain your information for as long as your account is active or as needed to provide our services and comply with legal obligations.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Third-Party Services</h4><p>We integrate with third-party payment gateways for processing TON transactions. These services may collect non-personal data according to their own privacy policies for transaction processing.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Your Rights</h4><p>You have the right to access, correct, or request the deletion of your data. Contact our support team for privacy-related inquiries.</p></div>
+                </div>
+              )}
+              {selectedLegal === "acceptable" && (
+                <div className="space-y-4">
+                  <p>To maintain a fair AXN mining ecosystem for all users, you must adhere to the following rules:</p>
+                  <div><h4 className="text-rose-400 font-bold mb-1 italic uppercase tracking-tighter">Prohibited Actions</h4><ul className="list-disc pl-5 space-y-1"><li>Creating or managing multiple accounts for a single user.</li><li>Using automated bots, scripts, or third-party software to simulate mining activity.</li><li>Exploiting technical vulnerabilities or bugs for unauthorized gain.</li><li>Attempting to manipulate AXN mining or conversion rates.</li><li>Reverse-engineering, decompiling, or attempting to extract source code.</li></ul></div>
+                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />Multi-Account Abuse</h4><p>Our system employs advanced detection for multi-account activity. Users found operating multiple profiles to inflate referral rewards or mining earnings will face permanent bans across all linked accounts.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><CheckCircle className="w-4 h-4 text-green-500" />Compliance</h4><p>All users must use the app in compliance with applicable local and international laws. We cooperate with law enforcement agencies in cases of suspected illegal activity.</p></div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {view === "legal" && selectedLegal && (
+            <div className="p-6 border-t border-white/5">
+              <button
+                className="w-full h-14 bg-[#1b1b1b] border border-white/5 rounded-2xl font-black uppercase italic tracking-wider text-white"
+                onClick={closeLegalDocument}
+              >
+                Back
+              </button>
+            </div>
+          )}
+
+          {/* ─── Contest View ─── */}
+          {view === "contest" && !showSubmitForm && (
+            <div className={(fullScreen || contestFullScreen) ? "flex-1 overflow-y-auto p-6 space-y-4" : "px-5 py-4 space-y-4"}>
+              {/* Hero */}
+              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#F5C542]/20 via-[#F5C542]/5 to-transparent border border-[#F5C542]/20 p-4">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[#F5C542]/10 rounded-full blur-2xl" />
+                <div className="relative z-10">
+                  <div className="w-10 h-10 rounded-xl bg-[#F5C542]/20 border border-[#F5C542]/30 flex items-center justify-center mb-3">
+                    <Trophy className="w-5 h-5 text-[#F5C542]" />
                   </div>
-                  <MenuItem icon={<FaCrown className="w-5 h-5 text-yellow-400" />} label="Admin Panel"
-                    onClick={() => { onClose(); setLocation("/admin"); }} />
+                  <p className="text-white font-black text-sm leading-snug">
+                    Tell others about Lightning GRM, and get up to{" "}
+                    <span className="text-[#F5C542]">10,000,000 GRM</span> for each video.
+                  </p>
+                </div>
+              </div>
+
+              {/* Rules */}
+              <div className="space-y-2">
+                <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Rules</p>
+
+                <div className="bg-white/5 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0">1</span>
+                    <p className="text-white font-bold text-xs">Create Content</p>
+                  </div>
+                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning GRM and post it on:</p>
+                  <div className="flex gap-1.5 flex-wrap pl-7">
+                    <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-1">
+                      <Youtube className="w-3 h-3 text-red-400" />
+                      <span className="text-red-400 text-[10px] font-bold">YouTube Shorts</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-pink-500/10 border border-pink-500/20 rounded-lg px-2 py-1">
+                      <Instagram className="w-3 h-3 text-pink-400" />
+                      <span className="text-pink-400 text-[10px] font-bold">Instagram Reels</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-2 py-1">
+                      <Video className="w-3 h-3 text-cyan-400" />
+                      <span className="text-cyan-400 text-[10px] font-bold">TikTok</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 rounded-2xl p-3.5">
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0 mt-0.5">2</span>
+                    <div>
+                      <p className="text-white font-bold text-xs">Include Your ID or Invite Link</p>
+                      <p className="text-white/50 text-[11px] leading-relaxed mt-1">Attach your ID or Invite Link in the video description.</p>
+                      <p className="text-[#F5C542]/70 text-[10px] mt-1 flex items-center gap-1">
+                        <Link2 className="w-2.5 h-2.5" />
+                        Get Your Invite Link in the Friends Section
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 rounded-2xl p-3.5">
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0 mt-0.5">3</span>
+                    <div>
+                      <p className="text-white font-bold text-xs">Send the Link</p>
+                      <p className="text-white/50 text-[11px] leading-relaxed mt-1">Once your video reaches 100+ views, send us the link.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 rounded-2xl p-3.5">
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0 mt-0.5">4</span>
+                    <div>
+                      <p className="text-white font-bold text-xs">Earn Rewards</p>
+                      <p className="text-white/50 text-[11px] leading-relaxed mt-1">
+                        The more views your video gets, the bigger the reward. Up to{" "}
+                        <span className="text-[#F5C542] font-bold">10,000,000 GRM</span> per video.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reward Table */}
+              <div className="bg-white/5 rounded-2xl overflow-hidden">
+                <div className="px-3.5 pt-3 pb-1">
+                  <p className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                    <Eye className="w-3 h-3" /> Reward Table
+                  </p>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {VIEW_RANGES.map((r) => (
+                    <div key={r.value} className="flex items-center justify-between px-3.5 py-2">
+                      <span className="text-white/60 text-[11px]">{r.label}</span>
+                      <span className="text-[#F5C542] font-bold text-[11px]">{r.reward}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={() => setShowSubmitForm(true)}
+                className="w-full flex items-center justify-center gap-2 bg-[#F5C542] hover:bg-[#F5C542]/90 text-black font-black text-sm rounded-2xl py-3.5 transition-all active:scale-[0.98]"
+              >
+                <Plus className="w-4 h-4" />
+                Add Content and Earn
+              </button>
+
+              <div className="h-2" />
+            </div>
+          )}
+
+          {/* ─── Contest Submission Form ─── */}
+          {view === "contest" && showSubmitForm && (
+            <div className={(fullScreen || contestFullScreen) ? "flex-1 overflow-y-auto p-6 space-y-4" : "px-5 py-4 space-y-4"}>
+              {/* Back to Contest Info is kept for the compact popup only. */}
+              {!(fullScreen || contestFullScreen) && (
+                <button
+                  onClick={() => { resetContestForm(); }}
+                  className="flex items-center gap-1.5 text-white/40 text-xs hover:text-white/60 transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back
+                </button>
+              )}
+
+              {submitted ? (
+                <div className="flex flex-col items-center gap-4 text-center py-8">
+                  <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                    <Trophy className="w-8 h-8 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-black text-base">Submitted!</p>
+                    <p className="text-white/50 text-xs mt-1 leading-relaxed">
+                      Your submission has been sent for review. You'll be notified once it's verified.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { resetContestForm(); setView("main"); }}
+                    className="bg-[#F5C542] text-black font-black text-sm rounded-2xl px-8 py-3"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-white/40 text-[10px] font-black uppercase tracking-widest block mb-2">
+                      Add a link to Verify
+                    </p>
+                  </div>
+
+                  {/* Link Input */}
+                  <div>
+                    <label className="text-white/40 text-[10px] font-semibold uppercase tracking-wide block mb-1.5">
+                      Link to your content
+                    </label>
+                    <input
+                      type="url"
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      placeholder="Paste your video link here"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#F5C542]/40 transition-colors"
+                    />
+                  </div>
+
+                  {/* Views Range */}
+                  <div>
+                    <label className="text-white/40 text-[10px] font-semibold uppercase tracking-wide block mb-1.5">
+                      Number of Views
+                    </label>
+                    <div className="space-y-1.5">
+                      {VIEW_RANGES.map((r) => (
+                        <button
+                          key={r.value}
+                          onClick={() => setSelectedRange(r.value)}
+                          className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 border transition-all ${
+                            selectedRange === r.value
+                              ? "bg-[#F5C542]/10 border-[#F5C542]/40"
+                              : "bg-white/5 border-white/5 hover:bg-white/8"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                selectedRange === r.value ? "border-[#F5C542] bg-[#F5C542]" : "border-white/30"
+                              }`}
+                            >
+                              {selectedRange === r.value && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                              )}
+                            </div>
+                            <span className="text-white/80 text-xs">{r.label}</span>
+                          </div>
+                          <span className="text-[#F5C542] font-bold text-xs">{r.reward}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Checkboxes */}
+                  <div className="space-y-2.5">
+                    <label className="text-white/40 text-[10px] font-semibold uppercase tracking-wide block">
+                      Confirmation
+                    </label>
+                    {[
+                      { state: check1, set: setCheck1, label: "I confirm that the number of views is correct" },
+                      { state: check2, set: setCheck2, label: "My invite link or my ID (Telegram ID) is indicated under the video" },
+                      { state: check3, set: setCheck3, label: "I understand that if I provide incorrect data, I will lose access to this functionality" },
+                    ].map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={() => item.set(!item.state)}
+                        className="w-full flex items-start gap-2.5 text-left"
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {item.state ? (
+                            <CheckSquare className="w-4.5 h-4.5 text-[#F5C542]" style={{ width: 18, height: 18 }} />
+                          ) : (
+                            <Square className="w-4.5 h-4.5 text-white/30" style={{ width: 18, height: 18 }} />
+                          )}
+                        </div>
+                        <span className="text-white/60 text-xs leading-relaxed">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {contestMutation.isError && (
+                    <p className="text-red-400 text-xs text-center">
+                      {(contestMutation.error as Error).message}
+                    </p>
+                  )}
+
+                  {/* Submit */}
+                  <button
+                    onClick={handleContestSubmit}
+                    disabled={!canSubmit || contestMutation.isPending}
+                    className={`w-full py-3.5 rounded-2xl font-black text-sm transition-all ${
+                      canSubmit && !contestMutation.isPending
+                        ? "bg-[#F5C542] text-black hover:bg-[#F5C542]/90 active:scale-[0.98]"
+                        : "bg-white/10 text-white/30 cursor-not-allowed"
+                    }`}
+                  >
+                    {contestMutation.isPending ? "Submitting..." : "Submit"}
+                  </button>
+
+                  <div className="h-2" />
                 </>
               )}
             </div>
-          </div>
+          )}
 
-          {/* ── SUB-VIEWS (absolute overlay, same height as card) ── */}
-          <AnimatePresence>
-            {overlay !== null && (
-              <motion.div
-                key={overlay}
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 24 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className="absolute inset-0 flex flex-col"
-                style={{ background: 'rgba(8,14,32,0.85)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+          {contestFullScreen && view === "contest" ? (
+            <div className="p-6 border-t border-white/5">
+              <button
+                className="w-full h-14 bg-[#1b1b1b] border border-white/5 rounded-2xl font-black uppercase italic tracking-wider text-white"
+                onClick={() => { setContestFullScreen(false); setView("main"); resetContestForm(); }}
               >
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto min-h-0">
-
-                  {overlay === "stats" && (
-                    <div className="px-4 py-4 space-y-4">
-                      {!projectStats ? (
-                        <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-white/30 animate-spin" /></div>
-                      ) : (
-                        <>
-                          <StatSection label="Core">
-                            <div className="grid grid-cols-2 gap-2">
-                              <StatCard icon={<Users className="w-3.5 h-3.5 text-blue-400" />} label="Total Users" value={fmtNum(projectStats.totalUsers)} />
-                              <StatCard icon={<Wifi className="w-3.5 h-3.5 text-green-400" />} label="Online Now" value={fmtNum(projectStats.onlineNow)} live />
-                              <StatCard icon={<CalendarDays className="w-3.5 h-3.5 text-purple-400" />} label="Project Age" value={fmtAge(projectStats.projectAgeDays)} />
-                              <StatCard icon={<TrendingUp className="w-3.5 h-3.5 text-yellow-400" />} label="Total Earned" value={`${fmtNum(projectStats.totalEarnings)} GOLD`} axnIcon />
-                              <StatCard icon={<Receipt className="w-3.5 h-3.5 text-cyan-400" />} label="Withdrawn" value={`${fmtNum(projectStats.totalWithdrawalsAmount)} GOLD`} wide axnIcon />
-                            </div>
-                          </StatSection>
-                          <StatSection label="Activity">
-                            <div className="grid grid-cols-2 gap-2">
-                              <StatCard icon={<Zap className="w-3.5 h-3.5 text-orange-400" />} label="Today Earned" value={`${fmtNum(projectStats.todayEarnings)} GOLD`} wide axnIcon />
-                              <StatCard icon={<Activity className="w-3.5 h-3.5 text-blue-300" />} label="Daily Active" value={fmtNum(projectStats.dau)} />
-                              <StatCard icon={<Activity className="w-3.5 h-3.5 text-indigo-400" />} label="Weekly Active" value={fmtNum(projectStats.wau)} />
-                              <StatCard icon={<Users className="w-3.5 h-3.5 text-teal-400" />} label="Referrals" value={fmtNum(projectStats.totalReferrals)} />
-                              <StatCard icon={<RefreshCw className="w-3.5 h-3.5 text-green-400" />} label="Uptime" value={`${projectStats.uptimePct}%`} />
-                              <StatCard icon={<Star className="w-3.5 h-3.5 text-yellow-400" />} label="Retention" value={`${projectStats.retentionRate}%`} />
-                            </div>
-                          </StatSection>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {overlay === "transactions" && (
-                    <div className="px-4 py-4 space-y-2">
-                      {txLoading ? (
-                        <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-white/30 animate-spin" /></div>
-                      ) : withdrawals.length === 0 ? (
-                        <div className="flex flex-col items-center py-10 gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center">
-                            <Receipt className="w-4 h-4 text-white/20" strokeWidth={1.5} />
-                          </div>
-                          <p className="text-white/25 text-xs font-bold uppercase tracking-widest">No transactions yet</p>
-                        </div>
-                      ) : withdrawals.map((w: any) => (
-                        <div key={w.id} className="bg-white/[0.06] border border-white/5 rounded-2xl p-3.5 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <GoldIcon size={16} />
-                            <p className="text-white text-sm font-black tabular-nums">{parseFloat(w.amount || "0").toLocaleString()}</p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className={`text-xs font-black capitalize ${getStatusColor(w.status)}`}>{w.status}</p>
-                            <p className="text-white/30 text-[10px] mt-0.5">{w.createdAt ? format(new Date(w.createdAt), "dd MMM · HH:mm") : "—"}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {overlay === "legal" && (
-                    <div className="px-4 py-4 space-y-2.5">
-                      <LegalBlock icon={<Lock className="w-3.5 h-3.5 text-purple-400" />} title="Information We Collect">
-                        <p>We collect only what is necessary to operate the platform: your Telegram user ID, display name, and username. No email addresses, phone numbers, or financial details are stored.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Shield className="w-3.5 h-3.5 text-blue-400" />} title="How Your Data Is Used">
-                        <p>Your data is used solely to manage your account, track GOLD balances and rewards, handle withdrawals, and deliver system notifications. We never sell or share your data with third parties.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Activity className="w-3.5 h-3.5 text-green-400" />} title="Activity Monitoring">
-                        <p>We monitor usage patterns to prevent fraud, detect multi-account abuse, and maintain platform integrity. This includes IP address, device identifiers, and session data used exclusively for security purposes.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Info className="w-3.5 h-3.5 text-sky-400" />} title="Data Retention">
-                        <p>Account data is retained while your account is active. Upon deletion request, all personal data is removed within 30 days. Transaction history may be retained for audit compliance.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Info className="w-3.5 h-3.5 text-orange-400" />} title="Your Rights">
-                        <p>You may request access to, correction of, or deletion of your data at any time through our support channel. We aim to respond within 7 business days.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Info className="w-3.5 h-3.5 text-red-400" />} title="Disclaimer">
-                        <p>Axionet is an independent platform and is not affiliated with, endorsed by, or connected to Telegram Messenger Inc. GOLD rewards are in-platform tokens and their value is not guaranteed.</p>
-                      </LegalBlock>
-                    </div>
-                  )}
-
-                  {overlay === "terms" && (
-                    <div className="px-4 py-4 space-y-2.5">
-                      <LegalBlock icon={<FileText className="w-3.5 h-3.5 text-orange-400" />} title="Acceptance of Terms">
-                        <p>By accessing or using Axionet, you confirm that you have read, understood, and agree to be bound by these Terms. If you do not agree, please discontinue use immediately. We reserve the right to update these Terms at any time.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Shield className="w-3.5 h-3.5 text-blue-400" />} title="Eligibility & Account Rules">
-                        <p>You must be at least 18 years of age to use this platform. Each user is permitted one account only. Operating multiple accounts, using bots or automation, or manipulating referral systems will result in a permanent ban without appeal.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Zap className="w-3.5 h-3.5 text-yellow-400" />} title="Gold & Rewards">
-                        <p>GOLD is earned through daily check-ins, task completion, ad interactions, and referrals. Reward rules may change. Earned GOLD has no guaranteed monetary value.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Lock className="w-3.5 h-3.5 text-green-400" />} title="Withdrawals">
-                        <p>Withdrawals require a minimum balance threshold and are subject to admin review. Suspicious activity, incomplete verification, or rule violations may result in withdrawal refusal and balance forfeiture.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Users className="w-3.5 h-3.5 text-indigo-400" />} title="Referral Program">
-                        <p>Referral rewards are earned when invited users actively participate on the platform. Self-referrals, fake accounts, or coordinated manipulation are strictly prohibited and will result in disqualification of all referral earnings.</p>
-                      </LegalBlock>
-                      <LegalBlock icon={<Info className="w-3.5 h-3.5 text-red-400" />} title="Limitation of Liability">
-                        <p>Axionet is not liable for lost GOLD due to technical outages, rate adjustments, account bans resulting from policy violations, or any indirect damages. Use of the platform is at your own risk.</p>
-                      </LegalBlock>
-                    </div>
-                  )}
-
-                  {overlay === "faq" && (
-                    <div className="px-4 py-4 space-y-2">
-                      {[
-                        { q: "How do I earn GOLD?", a: "Earn GOLD by watching ads, completing channel and partner tasks, checking in daily, and referring friends. Each eligible activity adds rewards to your balance." },
-                        { q: "How does the referral program work?", a: "Share your unique invite link from the Friends page. Track invited users, referral earnings, and available bonuses there." },
-                        { q: "Where can I collect referral bonuses?", a: "Open Friends to see your referral bonuses and collect any amount that is ready." },
-                        { q: "What happens to my earned GOLD?", a: "Your earned GOLD is shown in your balance. Open the wallet or withdrawal flow to review available options." },
-                        { q: "How do withdrawals work?", a: "Once you reach the minimum withdrawal threshold, submit a request with your Cwallet ID. Your request is reviewed and approved by the admin team. Approved withdrawals are processed in GOLD converted to TON." },
-                        { q: "Why is my account banned?", a: "Accounts are banned for violations including multiple account creation, self-referrals, using bots or automation, and exploiting platform bugs. Contact support if you believe your ban was issued in error." },
-                      ].map((faq, i) => (
-                        <div key={i} className="bg-white/[0.06] border border-white/5 rounded-2xl p-3.5">
-                          <p className="text-white font-bold text-xs mb-1.5">{faq.q}</p>
-                          <p className="text-white/45 text-xs leading-relaxed">{faq.a}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Back button — pinned at bottom */}
-                <div className="flex-shrink-0 px-4 py-3" style={{ borderTop: '1px solid rgba(0,120,255,0.18)' }}>
-                  <button
-                    onClick={() => setOverlay(null)}
-                    className="w-full flex items-center justify-center gap-2 text-white/50 text-sm font-black uppercase tracking-wider active:opacity-70 transition-opacity"
-                    style={{ clipPath: CUT_SM, height: 40, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                Back
+              </button>
+            </div>
+          ) : (
+            <div className="h-6" />
+          )}
+        </motion.div>
       </motion.div>
-      </div>
-    </motion.div>
-  );
-}
-
-function MenuItem({ icon, label, onClick, right }: { icon: React.ReactNode; label: string; onClick: () => void; right?: React.ReactNode }) {
-  return (
-    <div style={{ margin: '3px 10px' }}>
-      <button
-        onClick={onClick}
-        className="w-full flex items-center justify-between active:opacity-70 transition-opacity"
-        style={{ clipPath: CUT_SM, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,120,255,0.18)', padding: '10px 14px' }}
-      >
-        <div className="flex items-center gap-3">
-          {icon}
-          <span className="text-white text-sm font-semibold">{label}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {right}
-          <ChevronRight className="w-4 h-4 text-white/20" />
-        </div>
-      </button>
-    </div>
-  );
-}
-
-function StatSection({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-white/25 text-[10px] font-black uppercase tracking-widest mb-2">{label}</p>
-      {children}
-    </div>
-  );
-}
-
-function StatCard({ icon, label, value, live, wide, axnIcon }: { icon: React.ReactNode; label: string; value: string; live?: boolean; wide?: boolean; axnIcon?: boolean }) {
-  return (
-    <div className={`bg-white/[0.06] border border-white/5 rounded-2xl p-3 ${wide ? "col-span-2" : ""}`}>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        {icon}
-        {live && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
-      </div>
-      <div className="flex items-center gap-1">
-        {axnIcon && <GoldIcon size={12} />}
-        <p className="text-white font-black text-sm tabular-nums">{value}</p>
-      </div>
-      <p className="text-white/30 text-[9px] uppercase tracking-wide mt-1">{label}</p>
-    </div>
-  );
-}
-
-function LegalBlock({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white/[0.06] border border-white/5 rounded-2xl p-4">
-      <p className="text-white font-black text-xs mb-2 flex items-center gap-1.5">{icon}{title}</p>
-      <div className="text-white/45 text-xs leading-relaxed space-y-1">{children}</div>
-    </div>
+    </AnimatePresence>
   );
 }
