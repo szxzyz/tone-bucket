@@ -8,7 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
-import { Gift, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 
 function getTodayKey() {
@@ -214,9 +214,10 @@ export default function Games() {
           <GameActionCard
             title="Gift Code"
             illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
+            illustrationBare
             actionLabel="REDEEM"
             onClick={() => setShowGiftCodePopup(true)}
-            illustration={<Gift size={44} strokeWidth={1.7} color="#93c5fd" />}
+            illustration={<img src="/assets/gift-code-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Withdraw"
