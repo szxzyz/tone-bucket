@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,28 +8,24 @@ import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
-import { useLocation } from "wouter";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Gift, Wallet } from "lucide-react";
 
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
-
 type GameActionCardProps = {
   title: string;
   illustration: React.ReactNode;
   illustrationBackground: string;
   actionLabel: string;
-  actionBackground: string;
   disabled?: boolean;
   busy?: boolean;
   onClick: () => void;
 };
 
-function GameActionCard({ title, illustration, illustrationBackground, actionLabel, actionBackground, disabled = false, busy = false, onClick }: GameActionCardProps) {
+function GameActionCard({ title, illustration, illustrationBackground, actionLabel, disabled = false, busy = false, onClick }: GameActionCardProps) {
   const unavailable = disabled || busy;
   return (
     <button
@@ -60,10 +56,10 @@ function GameActionCard({ title, illustration, illustrationBackground, actionLab
       </span>
       <span style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-        width: '100%', height: 28, marginTop: 'auto', borderRadius: 9,
-        background: unavailable ? 'rgba(255,255,255,0.06)' : actionBackground,
+        width: '100%', height: 36, minHeight: 36, boxSizing: 'border-box', padding: '0 4px', marginTop: 'auto', borderRadius: 12,
+        background: unavailable ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
         color: unavailable ? 'rgba(255,255,255,0.45)' : '#fff',
-        fontSize: 9, lineHeight: 1, fontWeight: 900, letterSpacing: '0.04em',
+        fontSize: 11, lineHeight: 1, fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap',
       }}>
         {busy && <span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
         {busy ? 'PLEASE WAIT' : actionLabel}
@@ -73,16 +69,12 @@ function GameActionCard({ title, illustration, illustrationBackground, actionLab
 }
 
 export default function Games() {
-  const [, navigate] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
+  const [showGiftCodePopup, setShowGiftCodePopup] = useState(false);
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [dailyChecked, setDailyChecked] = useState(() => localStorage.getItem('daily_check_date') === getTodayKey());
   const [dailyAdLoading, setDailyAdLoading] = useState(false);
-  const [mysteryOpened, setMysteryOpened] = useState(() => localStorage.getItem('mystery_box_date') === getTodayKey());
-
-  const [mysteryPhase, setMysteryPhase] = useState<MysteryPhase>('idle');
-  const mysteryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -96,7 +88,7 @@ export default function Games() {
     refetchInterval: 60_000,
   });
 
-  const runVerifiedAdsgramReward = async (context: 'daily_checkin' | 'mystery_box') => {
+  const runVerifiedAdsgramReward = async (context: 'daily_checkin') => {
     const sessionId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     let backgroundEntered = false;
     let backgroundStartedAt = 0;
@@ -153,20 +145,6 @@ export default function Games() {
         localStorage.removeItem('daily_check_date');
       }
     }
-    const todayKey = getTodayKey();
-    if (user.mysteryBoxDate) {
-      const serverDate = new Date(user.mysteryBoxDate).toISOString().slice(0, 10);
-      if (serverDate === todayKey) {
-        setMysteryOpened(true);
-        localStorage.setItem('mystery_box_date', todayKey);
-      } else {
-        setMysteryOpened(false);
-        localStorage.removeItem('mystery_box_date');
-      }
-    } else {
-      setMysteryOpened(false);
-      localStorage.removeItem('mystery_box_date');
-    }
   }, [user, checkinStatus]);
 
   const dailyCheckMutation = useMutation({
@@ -196,27 +174,6 @@ export default function Games() {
     dailyCheckMutation.mutate(session);
   };
 
-  const handleMysteryOpen = async () => {
-    if (mysteryOpened || mysteryPhase !== 'idle') return;
-    setMysteryPhase('claiming');
-    try {
-      const session = await runVerifiedAdsgramReward('mystery_box');
-      const res = await apiRequest('POST', '/api/mystery-box', session);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Could not claim gift');
-      setMysteryOpened(true);
-      localStorage.setItem('mystery_box_date', getTodayKey());
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification(`${data.reward ?? 0} Gold earned`, 'success');
-      setMysteryPhase('done');
-      mysteryTimerRef.current = setTimeout(() => setMysteryPhase('idle'), 800);
-    } catch (err: any) {
-      setMysteryPhase('idle');
-      const message = String(err?.message || '');
-      showNotification(message.toLowerCase().includes('not configured') ? 'Ad unavailable' : (message || 'Ad unavailable'), 'error');
-    }
-  };
-
   return (
     <div style={{ height: '100dvh', background: '#090909', overflowY: 'auto', overflowX: 'hidden', width: '100%' }}>
       <style>{`
@@ -240,12 +197,12 @@ export default function Games() {
 
       {/* Scrollable Content */}
       <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
+        <h2 style={{ maxWidth: 680, margin: '0 auto 10px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>Fast Access</h2>
         <div className="game-action-card-grid">
           <GameActionCard
             title="Daily Rewards"
             illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
             actionLabel={dailyChecked ? 'CLAIMED' : 'CHECK IN'}
-            actionBackground="linear-gradient(135deg, #2563eb, #4f46e5)"
             disabled={dailyChecked}
             busy={dailyAdLoading || dailyCheckMutation.isPending}
             onClick={() => setCheckinSheetOpen(true)}
@@ -257,22 +214,18 @@ export default function Games() {
             )}
           />
           <GameActionCard
-            title="Mystery Box"
-            illustrationBackground="linear-gradient(135deg, rgba(249,115,22,0.19), rgba(239,68,68,0.10))"
-            actionLabel={mysteryOpened ? 'CLAIMED' : 'OPEN BOX'}
-            actionBackground="linear-gradient(135deg, #ea580c, #ef4444)"
-            disabled={mysteryOpened}
-            busy={mysteryPhase !== 'idle'}
-            onClick={handleMysteryOpen}
-            illustration={<img src="/assets/mystery-box.png" alt="" style={{ width: 62, height: 62, objectFit: 'contain' }} />}
+            title="Gift Code"
+            illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
+            actionLabel="REDEEM"
+            onClick={() => setShowGiftCodePopup(true)}
+            illustration={<Gift size={44} strokeWidth={1.7} color="#93c5fd" />}
           />
           <GameActionCard
-            title="Watch Ad"
-            illustrationBackground="linear-gradient(135deg, rgba(124,58,237,0.2), rgba(37,99,235,0.12))"
-            actionLabel="WATCH ADS"
-            actionBackground="linear-gradient(135deg, #7c3aed, #2563eb)"
-            onClick={() => navigate('/ads')}
-            illustration={<img src="/assets/view-ads.png" alt="" style={{ width: 62, height: 62, objectFit: 'contain' }} />}
+            title="Withdraw"
+            illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
+            actionLabel="WITHDRAW"
+            onClick={() => setShowWithdrawPopup(true)}
+            illustration={<Wallet size={44} strokeWidth={1.7} color="#93c5fd" />}
           />
         </div>
 
@@ -282,9 +235,14 @@ export default function Games() {
       {menuOpen && (
         <MenuPopup
           onClose={() => setMenuOpen(false)}
-          onWithdraw={() => {
-            setMenuOpen(false);
-            setShowWithdrawPopup(true);
+        />
+      )}
+      {showGiftCodePopup && (
+        <PromoPopup
+          onClose={() => setShowGiftCodePopup(false)}
+          onSuccess={() => {
+            setShowGiftCodePopup(false);
+            queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
           }}
         />
       )}
@@ -672,7 +630,7 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Promo Code</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Gift Code</span>
         </div>
 
         <div style={{ marginBottom: 8 }}>

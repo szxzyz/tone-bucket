@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import GameHeader from "@/components/GameHeader";
 import GameMenuPopup from "@/components/GameMenuPopup";
-import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import { useSeasonEnd } from "@/lib/SeasonEndContext";
 import BanScreen from "@/components/BanScreen";
 import BottomNav from "@/components/BottomNav";
@@ -17,7 +16,6 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { isConnected } = useWebSocket();
   const { showSeasonEnd } = useSeasonEnd();
 
@@ -29,11 +27,6 @@ export default function Layout({ children }: LayoutProps) {
   if (user?.banned) {
     return <BanScreen reason={user.bannedReason} />;
   }
-  const rawBalance = Number.parseFloat(String(user?.balance ?? user?.walletBalance ?? "0"));
-  const userBalance = Number.isFinite(rawBalance)
-    ? Math.floor(rawBalance < 1 ? rawBalance * 10_000_000 : rawBalance)
-    : 0;
-
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-[#0f0f0f] overflow-hidden">
       {/* Fixed header — always visible on all pages */}
@@ -66,19 +59,8 @@ export default function Layout({ children }: LayoutProps) {
 
       {!showSeasonEnd && <BottomNav />}
       {menuOpen && (
-        <GameMenuPopup
-          onClose={() => setMenuOpen(false)}
-          onWithdraw={() => {
-            setMenuOpen(false);
-            setWithdrawOpen(true);
-          }}
-        />
+        <GameMenuPopup onClose={() => setMenuOpen(false)} />
       )}
-      <GameWithdrawPopup
-        open={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        userBalance={userBalance}
-      />
     </div>
   );
 }

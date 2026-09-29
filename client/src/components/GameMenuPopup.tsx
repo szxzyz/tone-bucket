@@ -5,7 +5,7 @@ import {
   User, Users, Activity, Coins, ArrowDownToLine, ClipboardList, CheckCircle2,
   Receipt, ChevronRight, Shield, ShieldCheck, ScrollText, ArrowLeft, Clock, CheckCircle,
   XCircle, Loader2, Trophy, Video, Link2, Eye, CheckSquare, Square,
-  X, Plus, Youtube, Instagram, Download,
+  X, Plus, Youtube, Instagram,
 } from "lucide-react";
 import { RiBarChartFill } from "react-icons/ri";
 import { BsQuestionCircleFill } from "react-icons/bs";
@@ -16,7 +16,6 @@ import { TonIcon } from "@/components/TonIcon";
 
 interface MenuPopupProps {
   onClose: () => void;
-  onWithdraw?: () => void;
   initialView?: View;
   fullScreen?: boolean;
 }
@@ -35,7 +34,7 @@ const VIEW_RANGES = [
   { label: "1M+ Views", value: "1m+", reward: "100K Gold" },
 ];
 
-export default function MenuPopup({ onClose, onWithdraw, initialView = "main", fullScreen = false }: MenuPopupProps) {
+export default function MenuPopup({ onClose, initialView = "main", fullScreen = false }: MenuPopupProps) {
   const [view, setView] = useState<View>(initialView);
   const [contestFullScreen, setContestFullScreen] = useState(initialView === "contest");
   const [selectedLegal, setSelectedLegal] = useState<LegalDocument | null>(null);
@@ -230,29 +229,6 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
                 </div>
               </div>
 
-              {/* Contest */}
-              <button
-                onClick={() => { setContestFullScreen(true); setView("contest"); }}
-                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-3">
-                  <Trophy className="w-5 h-5 text-[#F5C542]" />
-                  <span className="text-white font-bold text-sm">Contest</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
-              </button>
-
-              {/* Withdraw */}
-              <button
-                onClick={() => onWithdraw?.()}
-                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-3">
-                  <Download className="w-5 h-5 text-blue-400" />
-                  <span className="text-white font-bold text-sm">Withdraw</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
-              </button>
               {/* Transactions */}
               <button
                 onClick={() => setView("transactions")}
