@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -6,7 +6,12 @@ import {
   XCircle, Loader2, Trophy, Video, Link2, Eye, CheckSquare, Square,
   X, Plus, Youtube, Instagram, Download,
 } from "lucide-react";
+import { RiBarChartFill } from "react-icons/ri";
+import { BsQuestionCircleFill } from "react-icons/bs";
+import { MdOutlineSupportAgent } from "react-icons/md";
 import { format } from "date-fns";
+import { getTONPrice } from "@/lib/tonPriceService";
+import { TonIcon } from "@/components/TonIcon";
 
 interface MenuPopupProps {
   onClose: () => void;
@@ -15,18 +20,18 @@ interface MenuPopupProps {
   fullScreen?: boolean;
 }
 
-type View = "main" | "transactions" | "legal" | "contest";
+type View = "main" | "transactions" | "stats" | "faq" | "legal" | "contest";
 type LegalDocument = "terms" | "privacy" | "acceptable";
 
 const VIEW_RANGES = [
-  { label: "100 – 999 Views", value: "100-999", reward: "100 GRM" },
-  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 GRM" },
-  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 GRM" },
-  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K GRM" },
-  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K GRM" },
-  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K GRM" },
-  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K GRM" },
-  { label: "1M+ Views", value: "1m+", reward: "100K GRM" },
+  { label: "100 – 999 Views", value: "100-999", reward: "100 Gold" },
+  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 Gold" },
+  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 Gold" },
+  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K Gold" },
+  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K Gold" },
+  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K Gold" },
+  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K Gold" },
+  { label: "1M+ Views", value: "1m+", reward: "100K Gold" },
 ];
 
 export default function MenuPopup({ onClose, onWithdraw, initialView = "main", fullScreen = false }: MenuPopupProps) {
@@ -43,6 +48,8 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
   const [check2, setCheck2] = useState(false);
   const [check3, setCheck3] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [transactionPage, setTransactionPage] = useState(0);
+  const [tonPrice, setTonPrice] = useState<number | null>(null);
 
   const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
@@ -54,6 +61,9 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
     queryKey: ["/api/withdrawals"],
     enabled: view === "transactions",
     retry: false,
+  });
+  const { data: projectStats } = useQuery<any>({
+    queryKey: ["/api/project/stats"], enabled: view === "stats", retry: false, staleTime: 30000,
   });
 
   const telegramUser =
@@ -67,6 +77,16 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
 
   const withdrawals = txData?.withdrawals || [];
+  const transactionsPerPage = 5;
+  const transactionPageCount = Math.max(1, Math.ceil(withdrawals.length / transactionsPerPage));
+  const visibleWithdrawals = withdrawals.slice(transactionPage * transactionsPerPage, (transactionPage + 1) * transactionsPerPage);
+  React.useEffect(() => {
+    setTransactionPage(page => Math.min(page, transactionPageCount - 1));
+  }, [transactionPageCount]);
+  React.useEffect(() => {
+    if (view !== "transactions") return;
+    getTONPrice().then(price => { if (Number.isFinite(price) && price > 0) setTonPrice(price); }).catch(() => {});
+  }, [view]);
 
   const contestMutation = useMutation({
     mutationFn: async (data: { link: string; viewsRange: string }) => {
@@ -127,6 +147,8 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
   const viewTitle: Record<View, string> = {
     main: "Menu",
     transactions: "Transactions",
+    stats: "Project Statistics",
+    faq: "FAQs",
     legal: "Legal & Info",
     contest: "Contest",
   };
@@ -232,9 +254,28 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
                 className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center gap-3">
-                  <Receipt className="w-5 h-5 text-green-400" />
+                  <Receipt className="w-5 h-5 text-yellow-400" />
                   <span className="text-white font-bold text-sm">Transactions</span>
                 </div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+
+              <button onClick={() => setView("stats")} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+                <div className="flex items-center gap-3"><RiBarChartFill className="w-5 h-5 text-blue-400" /><span className="text-white font-bold text-sm">Project Statistics</span></div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+
+              <button onClick={() => setView("faq")} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+                <div className="flex items-center gap-3"><BsQuestionCircleFill className="w-5 h-5 text-sky-400" /><span className="text-white font-bold text-sm">FAQs</span></div>
+                <ChevronRight className="w-4 h-4 text-white/30" />
+              </button>
+
+              <button onClick={() => {
+                const tg = (window as any).Telegram?.WebApp;
+                const supportUrl = import.meta.env.VITE_SUPPORT_URL || user?.supportBotLink || "https://t.me/GrabPennySupportBot";
+                if (tg?.openTelegramLink) tg.openTelegramLink(supportUrl); else window.open(supportUrl, "_blank");
+              }} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+                <div className="flex items-center gap-3"><MdOutlineSupportAgent className="w-5 h-5 text-pink-400" /><span className="text-white font-bold text-sm">Support</span></div>
                 <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
@@ -254,34 +295,58 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
 
           {/* ─── Transactions View ─── */}
           {view === "transactions" && (
-            <div className="px-5 py-4">
+            <div style={{ padding: 16, overflowY: "auto", height: "100%", boxSizing: "border-box" }}>
               {txLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-                </div>
-              ) : withdrawals.length === 0 ? (
-                <div className="text-center py-10 text-white/30 text-sm">No transactions yet.</div>
+                <div className="flex items-center justify-center py-10"><Loader2 className="w-5 h-5 text-blue-400 animate-spin" /></div>
               ) : (
-                <div className="space-y-2">
-                  {withdrawals.map((w: any) => (
-                    <div key={w.id} className="bg-white/5 rounded-xl p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(w.status)}
-                        <div>
-                          <p className="text-white text-xs font-bold">{w.method || "Withdrawal"}</p>
-                          <p className="text-white/40 text-[10px] mt-0.5">
-                            {w.createdAt ? format(new Date(w.createdAt), "dd MMM yyyy") : "—"}
-                          </p>
+                <>
+                  <div style={{ background: "rgba(255,255,255,.07)", borderRadius: 14, overflow: "hidden" }}>
+                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: "center", color: "rgba(255,255,255,.3)", fontSize: 12 }}>No transactions yet</div> : visibleWithdrawals.map((w: any) => {
+                      const status = String(w.status || "pending").toLowerCase();
+                      const color = status === "approved" || status === "completed" || status === "paid" ? "#4ade80" : status === "rejected" ? "#f87171" : "#fbbf24";
+                      const details = w.details || {};
+                      const grm = Number(w.grmAmount ?? w.goldAmount ?? details.grmAmount ?? details.goldAmount ?? w.amount ?? 0);
+                      const ton = Number(details.tonAmount ?? w.cryptoAmount ?? details.cryptoAmount ?? (tonPrice ? Number(w.usdValue ?? details.usdValue ?? 0) / tonPrice : NaN));
+                      const date = w.createdAt ? new Date(w.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+                      return <div key={w.id} style={{ padding: "13px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{grm.toLocaleString()} Gold</span></div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{Number.isFinite(ton) && ton > 0 ? ton.toFixed(6) : "—"} TON</span></div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white text-xs font-bold">{parseFloat(w.amount || "0").toLocaleString()} GRM</p>
-                        <p className={`text-[10px] font-semibold capitalize ${getStatusColor(w.status)}`}>{w.status}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7, color: "rgba(255,255,255,.35)", fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: "3px 9px", borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: "uppercase", letterSpacing: ".04em" }}>{w.status || "pending"}</span></div>
+                      </div>;
+                    })}
+                  </div>
+                  {transactionPageCount > 1 && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
+                    <button type="button" onClick={() => setTransactionPage(page => Math.max(0, page - 1))} disabled={transactionPage === 0} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: transactionPage === 0 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: transactionPage === 0 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>← Previous</button>
+                    <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{transactionPage + 1} / {transactionPageCount}</span>
+                    <button type="button" onClick={() => setTransactionPage(page => Math.min(transactionPageCount - 1, page + 1))} disabled={transactionPage >= transactionPageCount - 1} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: transactionPage >= transactionPageCount - 1 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: transactionPage >= transactionPageCount - 1 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>Next →</button>
+                  </div>}
+                </>
               )}
+            </div>
+          )}
+
+          {view === "stats" && (
+            <div className="px-5 py-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                  {[
+                    ["Total Users", projectStats?.totalUsers ?? "—"], ["Online Now", projectStats?.onlineNow ?? "—"],
+                    ["Total Earned", `${projectStats?.totalEarnings ?? "—"} Gold`], ["Withdrawn", `${projectStats?.totalWithdrawalsAmount ?? "—"} Gold`],
+                    ["Daily Active", projectStats?.dau ?? "—"], ["Referrals", projectStats?.totalReferrals ?? "—"],
+                  ].map(([label, value]) => <div key={String(label)} className="rounded-2xl bg-white/5 p-4"><p className="text-white/35 text-[10px] uppercase tracking-widest font-black">{label}</p><p className="text-white text-lg font-black mt-2">{value ?? "—"}</p></div>)}
+                </div>
+            </div>
+          )}
+
+          {view === "faq" && (
+            <div className="px-5 py-4 space-y-2">
+              {[
+                ["How do I earn Gold?", "Complete tasks, watch ads, check in daily, and invite friends to earn Gold."],
+                ["How do I withdraw?", "Open Withdraw from the hamburger menu, connect your TON wallet, enter an amount, and submit the request."],
+                ["How long do withdrawals take?", "Every withdrawal is reviewed by admin before the TON payment is sent."],
+                ["Can I use more than one account?", "Only one account per user is allowed. Multiple accounts may be blocked."],
+              ].map(([question, answer]) => <div key={question} className="rounded-2xl bg-white/5 p-4"><p className="text-white font-bold text-sm">{question}</p><p className="text-white/45 text-xs leading-relaxed mt-2">{answer}</p></div>)}
             </div>
           )}
 
@@ -318,17 +383,17 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
                   <p className="text-[#B9FF66] font-bold">Last Updated: January 21, 2026</p>
                   <p>Welcome to Money AXN. By accessing or using this app, you agree to comply with these Terms & Conditions. If you do not agree, please do not use the app.</p>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Eligibility</h4><p>Users must be at least 13 years old. You represent that you are of legal age to form a binding contract. You are responsible for maintaining the confidentiality of your account and all activities that occur under your account.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. AXN Mining & Rewards</h4><p>Money AXN is a free AXN mining application. Users can mine AXN tokens through free mining activities and boost their mining speed through optional investments. Mined AXN is credited to your virtual balance and can be converted to TON for withdrawal.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Mining Boost & Investment</h4><p>Users can optionally invest TON to boost their mining speed. Mining boosts are time-limited and increase the rate at which AXN is mined. Investment in mining boosts is voluntary and subject to the terms displayed at the time of purchase.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. Gold Rewards</h4><p>Users can earn Gold by completing available tasks, watching ads, checking in daily, and inviting friends. Gold rewards are credited to the in-app balance according to the reward rules shown in the app and may be eligible for withdrawal subject to verification and minimum limits.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Referral Rewards</h4><p>Referral bonuses become available after invited friends complete the required qualifying activity. Referral percentages, reward conditions, and claim availability are shown on the Friends page.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Withdrawals</h4><p>AXN tokens can be converted to TON and withdrawn to your personal wallet. Withdrawals are subject to system verification, minimum limits, and available liquidity. Users must provide valid wallet addresses. We reserve the right to delay or cancel withdrawals for security audits or suspected fraudulent activity.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">5. Account Suspension & Bans</h4><p>We reserve the right to suspend or permanently ban accounts without prior notice if we detect violations of our policies, including multiple accounts, bot usage, script automation, or exploitation of system bugs.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">6. Fraud & Abuse</h4><p>Any attempt to manipulate the mining system, exploit technical vulnerabilities, or provide false information during verification will result in immediate termination of the account and forfeiture of accumulated rewards.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">6. Fraud & Abuse</h4><p>Any attempt to manipulate rewards, exploit technical vulnerabilities, or provide false information during verification may result in account suspension and forfeiture of rewards.</p></div>
                 </div>
               )}
               {selectedLegal === "privacy" && (
                 <div className="space-y-4">
                   <p>Money AXN respects your privacy and is committed to protecting your personal data.</p>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Data Collection</h4><p>We collect essential data to provide our AXN mining services, including your Telegram User ID (UID), device information, IP address, app usage statistics, and mining activity history.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Data Collection</h4><p>We collect essential data to provide app services, including your Telegram User ID (UID), device information, IP address, app usage statistics, and task and reward activity history.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. Data Storage & Security</h4><p>Your data is stored securely using industry-standard encryption. We retain your information for as long as your account is active or as needed to provide our services and comply with legal obligations.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Third-Party Services</h4><p>We integrate with third-party payment gateways for processing TON transactions. These services may collect non-personal data according to their own privacy policies for transaction processing.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Your Rights</h4><p>You have the right to access, correct, or request the deletion of your data. Contact our support team for privacy-related inquiries.</p></div>
@@ -336,9 +401,9 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
               )}
               {selectedLegal === "acceptable" && (
                 <div className="space-y-4">
-                  <p>To maintain a fair AXN mining ecosystem for all users, you must adhere to the following rules:</p>
-                  <div><h4 className="text-rose-400 font-bold mb-1 italic uppercase tracking-tighter">Prohibited Actions</h4><ul className="list-disc pl-5 space-y-1"><li>Creating or managing multiple accounts for a single user.</li><li>Using automated bots, scripts, or third-party software to simulate mining activity.</li><li>Exploiting technical vulnerabilities or bugs for unauthorized gain.</li><li>Attempting to manipulate AXN mining or conversion rates.</li><li>Reverse-engineering, decompiling, or attempting to extract source code.</li></ul></div>
-                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />Multi-Account Abuse</h4><p>Our system employs advanced detection for multi-account activity. Users found operating multiple profiles to inflate referral rewards or mining earnings will face permanent bans across all linked accounts.</p></div>
+                  <p>To maintain a fair rewards system for all users, you must adhere to the following rules:</p>
+                  <div><h4 className="text-rose-400 font-bold mb-1 italic uppercase tracking-tighter">Prohibited Actions</h4><ul className="list-disc pl-5 space-y-1"><li>Creating or managing multiple accounts for a single user.</li><li>Using automated bots, scripts, or third-party software to simulate app activity.</li><li>Exploiting technical vulnerabilities or bugs for unauthorized gain.</li><li>Attempting to manipulate rewards or conversion rates.</li><li>Reverse-engineering, decompiling, or attempting to extract source code.</li></ul></div>
+                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />Multi-Account Abuse</h4><p>Our system employs advanced detection for multi-account activity. Users found operating multiple profiles to inflate referral or Gold earnings may face account restrictions across all linked accounts.</p></div>
                   <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><CheckCircle className="w-4 h-4 text-green-500" />Compliance</h4><p>All users must use the app in compliance with applicable local and international laws. We cooperate with law enforcement agencies in cases of suspected illegal activity.</p></div>
                 </div>
               )}
@@ -367,8 +432,8 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
                     <Trophy className="w-5 h-5 text-[#F5C542]" />
                   </div>
                   <p className="text-white font-black text-sm leading-snug">
-                    Tell others about Lightning GRM, and get up to{" "}
-                    <span className="text-[#F5C542]">10,000,000 GRM</span> for each video.
+                    Tell others about Lightning Gold, and get up to{" "}
+                    <span className="text-[#F5C542]">10,000,000 Gold</span> for each video.
                   </p>
                 </div>
               </div>
@@ -382,7 +447,7 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0">1</span>
                     <p className="text-white font-bold text-xs">Create Content</p>
                   </div>
-                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning GRM and post it on:</p>
+                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning Gold and post it on:</p>
                   <div className="flex gap-1.5 flex-wrap pl-7">
                     <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-1">
                       <Youtube className="w-3 h-3 text-red-400" />
@@ -430,7 +495,7 @@ export default function MenuPopup({ onClose, onWithdraw, initialView = "main", f
                       <p className="text-white font-bold text-xs">Earn Rewards</p>
                       <p className="text-white/50 text-[11px] leading-relaxed mt-1">
                         The more views your video gets, the bigger the reward. Up to{" "}
-                        <span className="text-[#F5C542] font-bold">10,000,000 GRM</span> per video.
+                        <span className="text-[#F5C542] font-bold">10,000,000 Gold</span> per video.
                       </p>
                     </div>
                   </div>
