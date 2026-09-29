@@ -8,8 +8,6 @@ import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
-import { Wallet } from "lucide-react";
-
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -222,9 +220,10 @@ export default function Games() {
           <GameActionCard
             title="Withdraw"
             illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
+            illustrationBare
             actionLabel="WITHDRAW"
             onClick={() => setShowWithdrawPopup(true)}
-            illustration={<Wallet size={44} strokeWidth={1.7} color="#93c5fd" />}
+            illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
         </div>
 
