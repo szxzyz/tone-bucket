@@ -9,7 +9,7 @@ import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
 import { useLocation } from "wouter";
-import { ChevronRight, Trophy, Users } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 
 
 function getTodayKey() {
@@ -18,8 +18,25 @@ function getTodayKey() {
 
 type MysteryPhase = 'idle' | 'opening' | 'revealed' | 'claiming' | 'done';
 
+const GIVEAWAY_SLIDES = [
+  {
+    title: 'Weekly Contest',
+    subtitle: 'Compete on the weekly leaderboard',
+    image: '/assets/weekly-contest-banner.webp',
+    tab: 'monthly',
+  },
+  {
+    title: 'Referral Contest',
+    subtitle: 'Invite friends and earn rewards',
+    image: '/assets/referral-contest-banner.webp',
+    tab: 'referral',
+  },
+] as const;
+
 export default function Games() {
   const [, navigate] = useLocation();
+  const [giveawayCarouselApi, setGiveawayCarouselApi] = useState<CarouselApi>();
+  const [activeGiveawaySlide, setActiveGiveawaySlide] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
@@ -41,6 +58,20 @@ export default function Games() {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+  useEffect(() => {
+    if (!giveawayCarouselApi) return;
+    const syncSelectedSlide = () => setActiveGiveawaySlide(giveawayCarouselApi.selectedScrollSnap());
+    syncSelectedSlide();
+    giveawayCarouselApi.on('select', syncSelectedSlide);
+    const autoAdvance = window.setInterval(() => {
+      if (document.visibilityState === 'visible') giveawayCarouselApi.scrollNext();
+    }, 5000);
+    return () => {
+      window.clearInterval(autoAdvance);
+      giveawayCarouselApi.off('select', syncSelectedSlide);
+    };
+  }, [giveawayCarouselApi]);
 
   const runVerifiedAdsgramReward = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -191,40 +222,48 @@ export default function Games() {
           <p style={{ margin: '5px 0 13px', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 500 }}>
             Take part in giveaways and get rewards.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button
-              type="button"
-              aria-label="Open weekly contest leaderboard"
-              onClick={() => navigate('/leaderboard?tab=monthly')}
-              className="active:scale-[0.99] transition-transform"
-              style={{ width: '100%', minHeight: 70, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'linear-gradient(110deg, rgba(79,70,229,0.24), rgba(59,130,246,0.10))', border: '1px solid rgba(99,102,241,0.28)', borderRadius: 16, cursor: 'pointer' }}
-            >
-              <span style={{ width: 42, height: 42, borderRadius: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#c4b5fd', background: 'rgba(139,92,246,0.18)' }}>
-                <Trophy size={20} />
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', color: '#fff', fontSize: 14, fontWeight: 900 }}>Weekly Contest</span>
-                <span style={{ display: 'block', marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500 }}>Compete on the weekly leaderboard</span>
-              </span>
-              <ChevronRight size={18} color="rgba(255,255,255,0.58)" />
-            </button>
-
-            <button
-              type="button"
-              aria-label="Open referral contest leaderboard"
-              onClick={() => navigate('/leaderboard?tab=referral')}
-              className="active:scale-[0.99] transition-transform"
-              style={{ width: '100%', minHeight: 70, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'linear-gradient(110deg, rgba(8,145,178,0.20), rgba(16,185,129,0.09))', border: '1px solid rgba(45,212,191,0.24)', borderRadius: 16, cursor: 'pointer' }}
-            >
-              <span style={{ width: 42, height: 42, borderRadius: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#67e8f9', background: 'rgba(6,182,212,0.16)' }}>
-                <Users size={20} />
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', color: '#fff', fontSize: 14, fontWeight: 900 }}>Referral Contest</span>
-                <span style={{ display: 'block', marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500 }}>Invite friends and earn rewards</span>
-              </span>
-              <ChevronRight size={18} color="rgba(255,255,255,0.58)" />
-            </button>
+          <div style={{ maxWidth: 520, margin: '0' }}>
+            <Carousel opts={{ align: 'start', loop: true }} setApi={setGiveawayCarouselApi}>
+              <CarouselContent className="ml-0">
+                {GIVEAWAY_SLIDES.map((slide, index) => (
+                  <CarouselItem key={slide.tab} className="pl-0">
+                    <button
+                      type="button"
+                      aria-label={`Open ${slide.title} leaderboard`}
+                      onClick={() => navigate(`/leaderboard?tab=${slide.tab}`)}
+                      className="active:scale-[0.99] transition-transform"
+                      style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '2.33 / 1', overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, background: '#10192a', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      <img
+                        src={slide.image}
+                        alt={slide.title}
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                      />
+                      <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,0,0,0.76) 0%, rgba(0,0,0,0.48) 42%, rgba(0,0,0,0.03) 100%)' }} />
+                      <span style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5, maxWidth: '68%' }}>
+                        <span style={{ color: '#facc15', fontSize: 9, lineHeight: 1.2, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Giveaway</span>
+                        <span style={{ color: '#fff', fontSize: 'clamp(16px, 4vw, 22px)', lineHeight: 1.1, fontWeight: 900, textShadow: '0 1px 8px rgba(0,0,0,0.55)' }}>{slide.title}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.82)', fontSize: 10, lineHeight: 1.25, fontWeight: 600 }}>{slide.subtitle}</span>
+                      </span>
+                    </button>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+            <div aria-label="Giveaway banner slides" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 9 }}>
+              {GIVEAWAY_SLIDES.map((slide, index) => (
+                <button
+                  key={slide.tab}
+                  type="button"
+                  aria-label={`Show ${slide.title} banner`}
+                  aria-current={activeGiveawaySlide === index ? 'true' : undefined}
+                  onClick={() => giveawayCarouselApi?.scrollTo(index)}
+                  style={{ width: activeGiveawaySlide === index ? 18 : 6, height: 6, padding: 0, border: 'none', borderRadius: 99, background: activeGiveawaySlide === index ? '#facc15' : 'rgba(255,255,255,0.24)', cursor: 'pointer', transition: 'all 180ms ease' }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
