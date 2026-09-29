@@ -8,7 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showAdgramAd } from "@/lib/showAd";
-import { CalendarDays, Gift, Wallet } from "lucide-react";
+import { Gift, Wallet } from "lucide-react";
 
 
 function getTodayKey() {
@@ -19,13 +19,14 @@ type GameActionCardProps = {
   title: string;
   illustration: React.ReactNode;
   illustrationBackground: string;
+  illustrationBare?: boolean;
   actionLabel: string;
   disabled?: boolean;
   busy?: boolean;
   onClick: () => void;
 };
 
-function GameActionCard({ title, illustration, illustrationBackground, actionLabel, disabled = false, busy = false, onClick }: GameActionCardProps) {
+function GameActionCard({ title, illustration, illustrationBackground, illustrationBare = false, actionLabel, disabled = false, busy = false, onClick }: GameActionCardProps) {
   const unavailable = disabled || busy;
   return (
     <button
@@ -46,8 +47,9 @@ function GameActionCard({ title, illustration, illustrationBackground, actionLab
       <span aria-hidden="true" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: '100%', height: 72, flexShrink: 0, overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12,
-        background: illustrationBackground,
+        border: illustrationBare ? 'none' : '1px solid rgba(255,255,255,0.06)',
+        borderRadius: illustrationBare ? 0 : 12,
+        background: illustrationBare ? 'transparent' : illustrationBackground,
       }}>
         {illustration}
       </span>
@@ -202,16 +204,12 @@ export default function Games() {
           <GameActionCard
             title="Daily Rewards"
             illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
+            illustrationBare
             actionLabel={dailyChecked ? 'CLAIMED' : 'CHECK IN'}
             disabled={dailyChecked}
             busy={dailyAdLoading || dailyCheckMutation.isPending}
             onClick={() => setCheckinSheetOpen(true)}
-            illustration={(
-              <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, color: '#93c5fd' }}>
-                <CalendarDays size={48} strokeWidth={1.65} />
-                <span style={{ position: 'absolute', bottom: 9, left: 0, right: 0, color: '#bfdbfe', fontSize: 7, fontWeight: 900, letterSpacing: '0.08em', textAlign: 'center' }}>TODAY</span>
-              </span>
-            )}
+            illustration={<img src="/assets/daily-checkin.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Gift Code"
