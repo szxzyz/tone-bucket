@@ -84,7 +84,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       showNotification(
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
-            <img src="/assets/gem-icon.png" alt="Gold" className="w-4 h-4 object-contain" />
+            <img src="/assets/gems-icon.svg" alt="Gold" className="w-4 h-4 object-contain" />
             <span className="font-bold text-yellow-500">{rewardGems}</span>
           </div>
         </div> as any,
@@ -348,7 +348,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
+                        <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
                         <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
                       </span>
                     </div>

@@ -234,7 +234,7 @@ export default function MenuPopup({ onClose, onOpenInvite }: MenuPopupProps) {
                         <p>We collect only what is necessary to operate the platform: your Telegram user ID, display name, and username. No email addresses, phone numbers, or financial details are stored.</p>
                       </LegalBlock>
                       <LegalBlock icon={<Shield className="w-3.5 h-3.5 text-blue-400" />} title="How Your Data Is Used">
-                        <p>Your data is used solely to manage your account, track GOLD balances, process mining rewards, handle withdrawals, and deliver system notifications. We never sell or share your data with third parties.</p>
+                        <p>Your data is used solely to manage your account, track GOLD balances and rewards, handle withdrawals, and deliver system notifications. We never sell or share your data with third parties.</p>
                       </LegalBlock>
                       <LegalBlock icon={<Activity className="w-3.5 h-3.5 text-green-400" />} title="Activity Monitoring">
                         <p>We monitor usage patterns to prevent fraud, detect multi-account abuse, and maintain platform integrity. This includes IP address, device identifiers, and session data used exclusively for security purposes.</p>
@@ -259,8 +259,8 @@ export default function MenuPopup({ onClose, onOpenInvite }: MenuPopupProps) {
                       <LegalBlock icon={<Shield className="w-3.5 h-3.5 text-blue-400" />} title="Eligibility & Account Rules">
                         <p>You must be at least 18 years of age to use this platform. Each user is permitted one account only. Operating multiple accounts, using bots or automation, or manipulating referral systems will result in a permanent ban without appeal.</p>
                       </LegalBlock>
-                      <LegalBlock icon={<Zap className="w-3.5 h-3.5 text-yellow-400" />} title="Mining & Rewards">
-                        <p>GOLD is earned through machine mining, daily check-ins, task completion, ad interactions, and referrals. Reward rates, mining speeds, and capacity limits are subject to change. Earned GOLD has no guaranteed monetary value.</p>
+                      <LegalBlock icon={<Zap className="w-3.5 h-3.5 text-yellow-400" />} title="Gold & Rewards">
+                        <p>GOLD is earned through daily check-ins, task completion, ad interactions, and referrals. Reward rules may change. Earned GOLD has no guaranteed monetary value.</p>
                       </LegalBlock>
                       <LegalBlock icon={<Lock className="w-3.5 h-3.5 text-green-400" />} title="Withdrawals">
                         <p>Withdrawals require a minimum balance threshold and are subject to admin review. Suspicious activity, incomplete verification, or rule violations may result in withdrawal refusal and balance forfeiture.</p>
@@ -277,14 +277,12 @@ export default function MenuPopup({ onClose, onOpenInvite }: MenuPopupProps) {
                   {overlay === "faq" && (
                     <div className="px-4 py-4 space-y-2">
                       {[
-                        { q: "How do I earn GOLD?", a: "GOLD is earned through machine mining, watching ads, completing channel and partner tasks, daily check-ins, and referring friends. Each activity contributes to your total balance." },
-                        { q: "How does the Mining Machine work?", a: "Your machine has three upgradeable components: Mining Level, Capacity Level, and CPU Level (each up to level 25). Start the CPU to begin mining GOLD into your capacity buffer, then claim when ready." },
-                        { q: "What does the antivirus do?", a: "Antivirus protects your CPU from virus attacks that drain your mining time. Once activated, it runs for its full duration regardless of your mining state. Higher antivirus levels provide longer protection." },
-                        { q: "How does the referral Well work?", a: "When a friend you invited withdraws GOLD, 10% of their withdrawal amount flows into your Well automatically. You also earn 50 GOLD each time a friend upgrades their mining machine. Claim your Well balance anytime." },
-                        { q: "What is the referral mining boost?", a: "Each active referral adds +0.1 GOLD/h to your base mining speed. Boosts are applied automatically when friends remain in the required channel and removed if they leave." },
+                        { q: "How do I earn GOLD?", a: "Earn GOLD by watching ads, completing channel and partner tasks, checking in daily, and referring friends. Each eligible activity adds rewards to your balance." },
+                        { q: "How does the referral program work?", a: "Share your unique invite link from the Friends page. Track invited users, referral earnings, and available bonuses there." },
+                        { q: "Where can I collect referral bonuses?", a: "Open Friends to see your referral bonuses and collect any amount that is ready." },
+                        { q: "What happens to my earned GOLD?", a: "Your earned GOLD is shown in your balance. Open the wallet or withdrawal flow to review available options." },
                         { q: "How do withdrawals work?", a: "Once you reach the minimum withdrawal threshold, submit a request with your Cwallet ID. Your request is reviewed and approved by the admin team. Approved withdrawals are processed in GOLD converted to TON." },
                         { q: "Why is my account banned?", a: "Accounts are banned for violations including multiple account creation, self-referrals, using bots or automation, and exploiting platform bugs. Contact support if you believe your ban was issued in error." },
-                        { q: "Can I lose my mined GOLD?", a: "Your claimed GOLD balance is safe. However, unmined amounts in the buffer can be lost to virus attacks if your antivirus is inactive. Keep antivirus active to protect your mining progress." },
                       ].map((faq, i) => (
                         <div key={i} className="bg-white/[0.06] border border-white/5 rounded-2xl p-3.5">
                           <p className="text-white font-bold text-xs mb-1.5">{faq.q}</p>

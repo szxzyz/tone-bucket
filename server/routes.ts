@@ -64,9 +64,6 @@ function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-const MINING_DURATION_SECONDS = 60 * 60;
-const MINING_BASE_RATE_PER_HOUR = 23.9574;
-const MINING_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25] as const;
 
 // Store WebSocket connections for real-time updates
 // Map: sessionId -> { socket: WebSocket, userId: string }
@@ -3939,7 +3936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
 
       // Caption for the share message
-      const caption = '💵 Join Axionet and earn TON just by Mining & completing tasks!';
+      const caption = 'Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!';
 
       // Send the photo message with inline button
       const result = await sendSharePhotoToChat(
@@ -9123,93 +9120,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // ── One-hour mining cycle ────────────────────────────────────────────────────
-  // Mining state is stored on users so it survives reloads and server restarts.
-  app.get('/api/farming/state', authenticateTelegram, async (req: any, res: any) => {
-    try {
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-      if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({ miningStartedAt: users.miningStartedAt, miningBoostMultiplier: users.miningBoostMultiplier, miningBoostStep: users.miningBoostStep, miningAccruedGold: users.miningAccruedGold, miningLastAccrualAt: users.miningLastAccrualAt })
-        .from(users).where(eq(users.id, userId)).limit(1);
-      const startedAt = user?.miningStartedAt ? new Date(user.miningStartedAt).getTime() : 0;
-      const elapsedSeconds = startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
-      const remainingSeconds = startedAt ? Math.max(0, MINING_DURATION_SECONDS - elapsedSeconds) : 0;
-      const multiplier = Math.max(1, Number(user?.miningBoostMultiplier || 1));
-      const lastAccrualAt = user?.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = startedAt ? Math.max(0, Math.min(Date.now(), startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000 : 0;
-      const minedGold = Math.min(MINING_BASE_RATE_PER_HOUR * multiplier, Number(user?.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * multiplier);
-      res.json({ isActive: Boolean(startedAt), isComplete: Boolean(startedAt && remainingSeconds === 0), startedAt: startedAt ? new Date(startedAt).toISOString() : null, remainingSeconds, minedAxn: Number(minedGold.toFixed(4)), minedGold: Number(minedGold.toFixed(4)), baseRatePerHour: MINING_BASE_RATE_PER_HOUR, effectiveRate: MINING_BASE_RATE_PER_HOUR * multiplier, multiplier, boostStep: Number(user?.miningBoostStep || 0), maxBoost: MINING_BOOSTS[MINING_BOOSTS.length - 1] });
-    } catch (error) {
-      console.error('❌ Mining state error:', error);
-      res.status(500).json({ message: 'Could not load mining state' });
-    }
-  });
-
-  app.post('/api/farming/start', authenticateTelegram, async (req: any, res: any) => {
-    try {
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-      if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({ miningStartedAt: users.miningStartedAt }).from(users).where(eq(users.id, userId)).limit(1);
-      if (user?.miningStartedAt) {
-        const elapsedSeconds = Math.floor((Date.now() - new Date(user.miningStartedAt).getTime()) / 1000);
-        return res.status(409).json({ message: elapsedSeconds < MINING_DURATION_SECONDS ? 'Mining is already active' : 'Claim the completed mining cycle before starting a new one' });
-      }
-      const startedAt = new Date();
-      await db.update(users).set({ miningStartedAt: startedAt, miningBoostMultiplier: '1', miningBoostStep: 0, miningAccruedGold: '0', miningLastAccrualAt: startedAt, updatedAt: startedAt }).where(eq(users.id, userId));
-      res.json({ success: true, startedAt: startedAt.toISOString(), durationSeconds: MINING_DURATION_SECONDS, multiplier: 1 });
-    } catch (error) {
-      console.error('❌ Mining start error:', error);
-      res.status(500).json({ message: 'Could not start mining' });
-    }
-  });
-
-  app.post('/api/farming/boost', authenticateTelegram, async (req: any, res: any) => {
-    try {
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-      if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({ miningStartedAt: users.miningStartedAt, miningBoostMultiplier: users.miningBoostMultiplier, miningBoostStep: users.miningBoostStep, miningAccruedGold: users.miningAccruedGold, miningLastAccrualAt: users.miningLastAccrualAt }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user?.miningStartedAt || Date.now() - new Date(user.miningStartedAt).getTime() >= MINING_DURATION_SECONDS * 1000) return res.status(400).json({ message: 'Start a new mining cycle before boosting it' });
-      const currentStep = Math.max(0, Number(user.miningBoostStep || 0));
-      if (currentStep >= MINING_BOOSTS.length - 1) return res.json({ success: true, multiplier: MINING_BOOSTS[MINING_BOOSTS.length - 1], boostStep: currentStep, maxed: true });
-      const nextStep = currentStep + 1;
-      const multiplier = MINING_BOOSTS[nextStep];
-      const now = new Date();
-      const startedAt = new Date(user.miningStartedAt).getTime();
-      const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = Math.max(0, Math.min(now.getTime(), startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000;
-      const accruedGold = Math.min(MINING_BASE_RATE_PER_HOUR * Number(user.miningBoostMultiplier || 1), Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * Number(user.miningBoostMultiplier || 1));
-      await db.update(users).set({ miningBoostStep: nextStep, miningBoostMultiplier: String(multiplier), miningAccruedGold: accruedGold.toFixed(10), miningLastAccrualAt: now, updatedAt: now }).where(eq(users.id, userId));
-      res.json({ success: true, multiplier, boostStep: nextStep, maxed: nextStep >= MINING_BOOSTS.length - 1 });
-    } catch (error) {
-      console.error('❌ Mining boost error:', error);
-      res.status(500).json({ message: 'Could not apply mining boost' });
-    }
-  });
-
-  app.post('/api/farming/claim', authenticateTelegram, async (req: any, res: any) => {
-    try {
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-      if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({ balance: users.balance, miningStartedAt: users.miningStartedAt, miningBoostMultiplier: users.miningBoostMultiplier, miningAccruedGold: users.miningAccruedGold, miningLastAccrualAt: users.miningLastAccrualAt }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user?.miningStartedAt) return res.status(400).json({ message: 'No completed mining cycle to claim' });
-      const elapsedSeconds = Math.floor((Date.now() - new Date(user.miningStartedAt).getTime()) / 1000);
-      if (elapsedSeconds < MINING_DURATION_SECONDS) return res.status(400).json({ message: `Mining is still running. Claim available in ${Math.ceil((MINING_DURATION_SECONDS - elapsedSeconds) / 60)} minutes.` });
-      const multiplier = Math.max(1, Number(user.miningBoostMultiplier || 1));
-      const startedAt = new Date(user.miningStartedAt).getTime();
-      const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = Math.max(0, Math.min(Date.now(), startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000;
-      const reward = Number((Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * multiplier).toFixed(4));
-      await db.transaction(async (tx) => {
-        await tx.update(users).set({ balance: sql`${users.balance} + ${reward}`, miningStartedAt: null, miningBoostMultiplier: '1', miningBoostStep: 0, miningAccruedGold: '0', miningLastAccrualAt: null, updatedAt: new Date() }).where(eq(users.id, userId));
-        await tx.insert(earnings).values({ userId, amount: String(reward), source: 'mining', description: `1-hour mining cycle at ${multiplier}x boost`, currency: 'GOLD' });
-      });
-      res.json({ success: true, amount: reward, multiplier });
-    } catch (error) {
-      console.error('❌ Mining claim error:', error);
-      res.status(500).json({ message: 'Could not claim mining reward' });
-    }
-  });
-
   // User withdrawal endpoints
 
   // Get user's withdrawal history - auth removed to prevent popup spam
@@ -12138,9 +12048,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: '💵 Join Axionet and earn TON!',
-        description: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
-        caption: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
+        title: 'Join Axionet and earn GOLD!',
+        description: 'Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!',
+        caption: 'Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -12189,7 +12099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: false,
             error: prepareResult.description || 'Failed to prepare message',
             referralLink,
-            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('💵 Join Axionet and earn TON just by Mining & completing tasks!')}`
+            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!')}`
           });
         }
       } catch (telegramError: any) {
@@ -12198,7 +12108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           error: telegramError.message || 'Telegram API error',
           referralLink,
-          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('💵 Join Axionet and earn TON just by Mining & completing tasks!')}`
+          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!')}`
         });
       }
 

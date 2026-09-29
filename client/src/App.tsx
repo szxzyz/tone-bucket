@@ -13,7 +13,6 @@ import SeasonEndOverlay from "@/components/SeasonEndOverlay";
 import { SeasonEndContext } from "@/lib/SeasonEndContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import BottomNav from "@/components/BottomNav";
-import { showNotification } from "@/components/AppNotification";
 
 import { LanguageProvider } from "@/hooks/useLanguage";
 
@@ -23,7 +22,6 @@ import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
 import Games from "@/pages/Games";
-import Mining from "@/pages/Mining";
 import Affiliates from "@/pages/Affiliates";
 
 // Lazy-load heavy/rare pages only
@@ -82,23 +80,11 @@ function LoadingFallback() {
   );
 }
 
-function AdminOnlyMining() {
-  const [, setLocation] = useLocation();
-  const { isAdmin, isLoading } = useAdmin();
-  useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      showNotification('Mining Under Update — page access is temporarily restricted.', 'error');
-      setLocation('/');
-    }
-  }, [isAdmin, isLoading, setLocation]);
-  return isAdmin ? <Mining /> : null;
-}
 function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Games} />
-        <Route path="/mine" component={AdminOnlyMining} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Games} />
         <Route path="/profile" component={Profile} />
@@ -126,7 +112,7 @@ function DeepLinkRedirector() {
       setLocation("/ads");
     } else if (param === "page_referral") {
       localStorage.removeItem("tg_start_param");
-      setLocation("/ads");
+      setLocation("/affiliates");
     }
   }, [setLocation]);
   return null;

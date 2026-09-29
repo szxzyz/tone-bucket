@@ -578,7 +578,7 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
                     {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
                   </span>
@@ -615,7 +615,7 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
                     1–500
                   </span>

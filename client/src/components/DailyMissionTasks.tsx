@@ -19,7 +19,7 @@ function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, isC
         {subtitle ? <div style={{ color: isCompleted ? '#22c55e' : 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 4, lineHeight: 1.25 }}>{subtitle}</div> : null}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff' }}>
-            <img src="/assets/gem-icon.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+            <img src="/assets/gems-icon.svg" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
             <span style={{ fontSize: 16, fontWeight: 900, color: '#ffffff' }}>{Number(goldReward).toLocaleString()}</span>
           </span>
         </div>

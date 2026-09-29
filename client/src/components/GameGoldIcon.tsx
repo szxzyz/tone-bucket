@@ -6,7 +6,7 @@ interface GoldIconProps {
 export function GoldIcon({ size = 20, className = "" }: GoldIconProps) {
   return (
     <img
-      src="/assets/gem-icon.png"
+      src="/assets/gems-icon.svg"
       alt="Gold"
       className={`flex-shrink-0 inline-block ${className}`}
       style={{

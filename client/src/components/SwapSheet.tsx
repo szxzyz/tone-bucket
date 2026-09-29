@@ -137,7 +137,7 @@ export default function SwapSheet({
 
             {/* FROM */}
             <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, letterSpacing: "0.1em", textTransform: "uppercase" }}>You Swap <img src="/assets/gem-icon.png" style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle' }} /></span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, letterSpacing: "0.1em", textTransform: "uppercase" }}>You Swap <img src="/assets/gems-icon.svg" style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle' }} /></span>
               <div style={{ marginTop: 6, background: cardBg, border: `1px solid ${border}`, borderRadius: 14, padding: "12px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   {/* Editable number input */}
@@ -169,13 +169,13 @@ export default function SwapSheet({
                   </button>
                   {/* Gold chip */}
                   <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.07)", borderRadius: 20, padding: "5px 10px 5px 8px" }}>
-                    <img src="/assets/gem-icon.png" style={{ width: 16, height: 16 }} />
+                    <img src="/assets/gems-icon.svg" style={{ width: 16, height: 16 }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>GOLD</span>
                   </div>
                 </div>
                 <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 11, color: textMuted }}>
-                    Balance: {balanceGold.toLocaleString()} <img src="/assets/gem-icon.png" style={{ width: 10, height: 10, display: 'inline-block' }} />
+                    Balance: {balanceGold.toLocaleString()} <img src="/assets/gems-icon.svg" style={{ width: 10, height: 10, display: 'inline-block' }} />
                   </span>
                   {parsedAmount > balanceGold && (
                     <span style={{ fontSize: 11, color: "#ff6b6b" }}>Exceeds balance</span>
@@ -226,7 +226,7 @@ export default function SwapSheet({
               <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 11, color: textMuted }}>1 TON = <span style={{ color: accent }}>${tonPrice.toFixed(2)}</span></span>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>·</span>
-                <span style={{ fontSize: 11, color: textMuted }}>100,000 <img src="/assets/gem-icon.png" style={{ width: 10, height: 10, display: 'inline-block' }} /> = $1.00</span>
+                <span style={{ fontSize: 11, color: textMuted }}>100,000 <img src="/assets/gems-icon.svg" style={{ width: 10, height: 10, display: 'inline-block' }} /> = $1.00</span>
               </div>
             )}
 
@@ -295,7 +295,7 @@ export default function SwapSheet({
                   <div style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                       <span style={{ fontSize: 12, color: textMuted }}>You swap</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>{clampedAmount.toLocaleString()} <img src="/assets/gem-icon.png" style={{ width: 12, height: 12, display: 'inline-block' }} /></span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>{clampedAmount.toLocaleString()} <img src="/assets/gems-icon.svg" style={{ width: 12, height: 12, display: 'inline-block' }} /></span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <span style={{ fontSize: 12, color: textMuted }}>You receive</span>

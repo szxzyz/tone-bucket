@@ -45,7 +45,7 @@ function GemCoin({ size = 20, circle = false }: { size?: number; circle?: boolea
   // Same circular style as the Gold balance icon in the app header
   return (
     <img
-      src="/assets/gem-icon.png"
+      src="/assets/gems-icon.svg"
       alt="Gold"
       draggable={false}
       style={{

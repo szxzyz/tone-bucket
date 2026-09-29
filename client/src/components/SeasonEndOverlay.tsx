@@ -59,7 +59,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
                 margin: '0 auto 20px',
                 animation: 'iconPulse 2.4s ease-in-out infinite',
               }}>
-                <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 48, height: 48, objectFit: 'contain' }} />
+                <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 48, height: 48, objectFit: 'contain' }} />
               </div>
 
               <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.3px' }}>

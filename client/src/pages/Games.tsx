@@ -13,8 +13,7 @@ import { showAdgramAd } from "@/lib/showAd";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Users, Activity, Coins, ArrowDownToLine, ClipboardList, CheckCircle2 } from "lucide-react";
 
-import { getTONPrice, gemsToTon as axnToTon, tonToUsd, formatTon, formatUsd } from "@/lib/tonPriceService";
-const GEMS_PER_TON = 1000000;
+import { getTONPrice, formatTon, formatUsd } from "@/lib/tonPriceService";
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -76,7 +75,6 @@ export default function Games() {
   const [mysteryOpened, setMysteryOpened] = useState(() => localStorage.getItem('mystery_box_date') === getTodayKey());
 
   const [mysteryPhase, setMysteryPhase] = useState<MysteryPhase>('idle');
-  const [isSharing, setIsSharing] = useState(false);
   const mysteryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const queryClient = useQueryClient();
@@ -84,7 +82,6 @@ export default function Games() {
 
   const { isAdmin } = useAdmin();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], staleTime: 0 });
-  const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], staleTime: 3600000 });
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   const { data: swapSettings } = useQuery<{ swapRate: number; swapMinCipher: number }>({ queryKey: ['/api/swap-config'], staleTime: 60000 });
   const { data: checkinStatus } = useQuery<any>({
@@ -146,9 +143,6 @@ export default function Games() {
     (typeof window !== "undefined" && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) ||
     null;
   const initials = firstName.slice(0, 2).toUpperCase();
-
-  const botUsername = botInfo?.username || 'bot';
-  const referralLink = user?.referralCode ? `https://t.me/${botUsername}?start=${user.referralCode}` : '';
 
   useEffect(() => {
     let cancelled = false;
@@ -248,26 +242,6 @@ export default function Games() {
     }
   };
 
-  const copyLink = () => {
-    if (!referralLink) return;
-    navigator.clipboard.writeText(referralLink)
-      .then(() => showNotification('Invite link copied!', 'success'))
-      .catch(() => showNotification('Invite link copied!', 'success'));
-  };
-
-  const shareLink = async () => {
-    if (!referralLink || isSharing) return;
-    setIsSharing(true);
-    try {
-      const tg = (window as any).Telegram?.WebApp;
-      const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Gold Bux! I earn 150 Gold for every friend who completes 10 tasks. Start earning now!')}`;
-      if (tg?.openTelegramLink) tg.openTelegramLink(url);
-      else window.open(url, '_blank');
-    } catch {}
-    setIsSharing(false);
-  };
-
-
   return (
     <div style={{ height: '100dvh', background: '#090909', overflowY: 'auto', overflowX: 'hidden', width: '100%' }}>
       <style>{`
@@ -313,7 +287,7 @@ export default function Games() {
             }}>
               {balanceHidden ? '••••' : axnDisplay}
             </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.45)', alignSelf: 'flex-end', paddingBottom: 4 }}><img src="/assets/gem-icon.png" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.45)', alignSelf: 'flex-end', paddingBottom: 4 }}><img src="/assets/gems-icon.svg" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
             <button onClick={() => setBalanceHidden(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, alignSelf: 'center', flexShrink: 0 }}>
               {balanceHidden ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -826,7 +800,7 @@ function SwapPopup({ onClose, cipherBalance, swapRate, swapMin, onSuccess }: { o
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-          <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 44, height: 44, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
+          <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 44, height: 44, flexShrink: 0, objectFit: 'contain', display: 'block' }} />
           <div>
             <div style={{ color: '#fff', fontSize: 17, fontWeight: 900 }}>Swap GOLD → USDT</div>
             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{RATE.toLocaleString()} GOLD = 1 USDT</div>

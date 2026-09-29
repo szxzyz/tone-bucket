@@ -219,7 +219,7 @@ export default function Affiliates() {
               <div className="text-white text-[15px] font-extrabold">Referral Bonuses</div>
               <div className="text-white/45 text-xs mt-1">2,500 Gold per friend after 5 Adsgram ads</div>
             </div>
-            <img src="/assets/gem-icon.png" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+            <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
           </div>
           <div className="grid grid-cols-2 gap-2 px-3 pt-3 pb-3">
             <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
