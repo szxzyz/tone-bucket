@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-type Props = { amount: number };
+type Props = { amount: number; decimals?: number };
 
-export default function FarmingMatrixCounter({ amount }: Props) {
+export default function FarmingMatrixCounter({ amount, decimals = 4 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function FarmingMatrixCounter({ amount }: Props) {
       <canvas ref={canvasRef} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.42)" }}>
         <span aria-live="off" className="font-black tabular-nums tracking-tight select-none" style={{ color: "#39ff14", fontSize: "clamp(22px, 7vw, 27px)", textShadow: "0 0 10px #39ff14cc, 0 0 24px #39ff1466, 0 0 40px #39ff1422", lineHeight: 1, letterSpacing: "-0.02em" }}>
-          {safeAmount.toFixed(4)}
+          {safeAmount.toFixed(Math.max(0, Math.min(8, decimals)))}
         </span>
       </div>
     </div>

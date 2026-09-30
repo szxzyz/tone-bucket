@@ -7,7 +7,7 @@ import MiningAXNGameHeader from "@/components/MiningAXNGameHeader";
 import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
-import GameFarmingSection from "@/components/GameFarmingSection";
+import GameBalanceCard from "@/components/GameBalanceCard";
 import { showAdgramAd } from "@/lib/showAd";
 
 function getTodayKey() {
@@ -17,23 +17,24 @@ function getTodayKey() {
 type GameActionCardProps = {
   title: string;
   illustration: React.ReactNode;
+  actionLabel: string;
   disabled?: boolean;
   busy?: boolean;
   onClick: () => void;
 };
 
-function GameActionCard({ title, illustration, disabled = false, busy = false, onClick }: GameActionCardProps) {
+function GameActionCard({ title, illustration, actionLabel, disabled = false, busy = false, onClick }: GameActionCardProps) {
   const unavailable = disabled || busy;
   return (
     <button
       type="button"
-      aria-label={`${title}${busy ? ': loading' : ''}${disabled ? ': unavailable' : ''}`}
+      aria-label={`${title}: ${busy ? 'Loading' : actionLabel}`}
       onClick={onClick}
       disabled={unavailable}
       className="group active:scale-[0.98] transition-transform"
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-        minWidth: 0, minHeight: 108, width: '100%', padding: 6, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 7, position: 'relative',
+        minWidth: 0, minHeight: 146, width: '100%', padding: 8, overflow: 'hidden',
         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
         background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)',
         color: '#fff', cursor: unavailable ? 'not-allowed' : 'pointer',
@@ -42,11 +43,21 @@ function GameActionCard({ title, illustration, disabled = false, busy = false, o
     >
       <span aria-hidden="true" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '100%', height: 92, flexShrink: 0, overflow: 'hidden',
+        width: '100%', height: 76, flexShrink: 0, overflow: 'hidden',
       }}>
         {illustration}
       </span>
-      {busy && <span aria-hidden="true" style={{ position: 'absolute', width: 18, height: 18, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
+      <span aria-hidden="true" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        width: '100%', height: 36, minHeight: 36, boxSizing: 'border-box', marginTop: 'auto',
+        borderRadius: 12,
+        background: unavailable ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+        color: unavailable ? 'rgba(255,255,255,0.45)' : '#fff',
+        fontSize: 10, lineHeight: 1, fontWeight: 900, letterSpacing: '0.03em', whiteSpace: 'nowrap',
+      }}>
+        {busy && <span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
+        {busy ? 'PLEASE WAIT' : actionLabel}
+      </span>
     </button>
   );
 }
@@ -104,6 +115,10 @@ export default function Games() {
   };
 
   const axnRaw = parseFloat(user?.walletBalance ?? user?.balance ?? '0');
+  const rawGoldBalance = Number.parseFloat(String(user?.balance ?? '0'));
+  const goldBalance = Number.isFinite(rawGoldBalance)
+    ? rawGoldBalance < 1 ? Math.round(rawGoldBalance * 10_000_000) : Math.round(rawGoldBalance)
+    : 0;
 
   useEffect(() => {
     if (!user) return;
@@ -180,27 +195,30 @@ export default function Games() {
 
       {/* Scrollable Content */}
       <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
+        <GameBalanceCard balance={goldBalance} onWithdraw={() => setShowWithdrawPopup(true)} />
         <h2 style={{ maxWidth: 680, margin: '0 auto 10px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>Fast Access</h2>
         <div className="game-action-card-grid">
           <GameActionCard
             title="Daily Rewards"
+            actionLabel={dailyChecked ? 'CLAIMED' : 'CHECK IN'}
             disabled={dailyChecked}
             busy={dailyAdLoading || dailyCheckMutation.isPending}
             onClick={() => setCheckinSheetOpen(true)}
-            illustration={<img src="/assets/daily-checkin.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/daily-checkin.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Gift Code"
+            actionLabel="REDEEM"
             onClick={() => setShowGiftCodePopup(true)}
-            illustration={<img src="/assets/gift-code-card.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/gift-code-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Withdraw"
+            actionLabel="WITHDRAW"
             onClick={() => setShowWithdrawPopup(true)}
-            illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
         </div>
-        <GameFarmingSection />
       </div>
 
       {menuOpen && (
