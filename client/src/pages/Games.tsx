@@ -11,6 +11,7 @@ import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import DailyContestBanner from "@/components/DailyContestBanner";
 import AdWatchingSection from "@/components/AdWatchingSection";
 import { showAdgramAd } from "@/lib/showAd";
+import { Ticket } from "lucide-react";
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -613,7 +614,8 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
     }
   };
 
-  const buttonLabel = adStep === 'redeeming' ? 'Redeeming...' : 'Redeem';
+  const buttonLabel = adStep === 'redeeming' ? 'APPLYING…' : 'APPLY';
+  const isDisabled = loading || !code.trim();
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 900, display: 'flex', alignItems: 'flex-end' }}>
@@ -630,40 +632,46 @@ function PromoPopup({ onClose, onSuccess }: { onClose: () => void; onSuccess: ()
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '0 auto 22px' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Gift Code</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Promo Code</span>
         </div>
 
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: 12, borderRadius: 14, background: '#171717', boxSizing: 'border-box' }}>
+          <Ticket size={26} color="rgba(255,255,255,0.7)" strokeWidth={2} style={{ flexShrink: 0 }} />
           <input
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase())}
+            onKeyDown={e => e.key === 'Enter' && !isDisabled && handleRedeem()}
             placeholder="Enter code"
             disabled={loading}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
             style={{
-              width: '100%', padding: '14px', borderRadius: 14,
-              border: '1.5px solid rgba(61,21,128,0.24)',
-              fontSize: 15, color: '#fff', letterSpacing: '0.08em', fontWeight: 700,
-              background: 'rgba(255,255,255,0.04)', outline: 'none',
-              boxSizing: 'border-box', textAlign: 'center',
+              flex: 1, minWidth: 0, height: 40, padding: '0 16px', borderRadius: 20,
+              border: 'none', fontSize: 14, color: '#fff', letterSpacing: '0.02em', fontWeight: 700,
+              background: '#2B2B2B', outline: 'none', boxSizing: 'border-box',
               opacity: loading ? 0.5 : 1,
             }}
           />
+          <button
+            onClick={handleRedeem}
+            disabled={isDisabled}
+            style={{
+              width: 76, height: 38, flexShrink: 0, borderRadius: 10,
+              background: isDisabled ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+              color: isDisabled ? 'rgba(255,255,255,0.3)' : '#fff',
+              border: 'none', fontSize: 12, fontWeight: 800, letterSpacing: '0.03em',
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              boxShadow: isDisabled ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            className={isDisabled ? '' : 'active:scale-95 transition-transform'}
+          >
+            {loading ? (
+              <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+            ) : buttonLabel}
+          </button>
         </div>
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>A short ad plays before your reward is unlocked</p>
-        <button
-          onClick={handleRedeem}
-          disabled={loading}
-          style={{
-            width: '100%', padding: '14px',
-            background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            border: 'none', borderRadius: 14, color: loading ? 'rgba(255,255,255,0.3)' : '#fff',
-            fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
-            boxShadow: loading ? 'none' : '0 4px 20px rgba(61,21,128,0.4)',
-          }}
-          className="active:scale-95 transition-transform"
-        >
-          {buttonLabel}
-        </button>
       </div>
     </div>
   );

@@ -298,7 +298,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
             return (
               <div key={card.id}
-                style={{ width: "100%", borderRadius: 18, overflow: "hidden", background: "#252525", cursor: "pointer", border: "none" }}
+                style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", cursor: "pointer", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}
                 onClick={() => {
                   if (!isProviderConfigured(card.adType)) return;
                   if (index !== activeIndex) { setActiveIndex(index); return; }
@@ -363,9 +363,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     }}
                     disabled={isShowingAds || watchAdMutation.isPending || limitReached || !isProviderConfigured(card.adType)}
                     style={{
-                      padding: "9px 16px", borderRadius: 12, minWidth: 92,
+                      height: 38, boxSizing: "border-box", padding: "0 16px", borderRadius: 12, minWidth: 92,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
-                      letterSpacing: "0.02em", whiteSpace: "nowrap",
+                      letterSpacing: "0.02em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center",
                       background: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #2563eb, #3b82f6)",
                       color:      limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.3)"  : "#fff",
                       opacity: isShowingAds && !isActive ? 0.5 : 1,
@@ -381,7 +381,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
             );
           })}
           {visibleCards.length === 0 && (
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-xs text-white/50">
+            <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>
               Ads are temporarily unavailable. Please try again shortly.
             </div>
           )}
