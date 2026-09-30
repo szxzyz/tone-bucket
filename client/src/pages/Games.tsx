@@ -4,12 +4,11 @@ import { useLocation } from "wouter";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import MenuPopup from "@/components/GameMenuPopup";
-import MiningAXNGameHeader from "@/components/MiningAXNGameHeader";
+import GameHeader from "@/components/GameHeader";
 import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
-import GameBalanceCard from "@/components/GameBalanceCard";
-import WeeklyContestBanner from "@/components/WeeklyContestBanner";
+import ContestBannerCarousel from "@/components/ContestBannerCarousel";
 import AdWatchingSection from "@/components/AdWatchingSection";
 import { showAdgramAd } from "@/lib/showAd";
 
@@ -119,10 +118,6 @@ export default function Games() {
   };
 
   const axnRaw = parseFloat(user?.walletBalance ?? user?.balance ?? '0');
-  const rawGoldBalance = Number.parseFloat(String(user?.balance ?? '0'));
-  const goldBalance = Number.isFinite(rawGoldBalance)
-    ? rawGoldBalance < 1 ? Math.round(rawGoldBalance * 10_000_000) : Math.round(rawGoldBalance)
-    : 0;
 
   useEffect(() => {
     if (!user) return;
@@ -195,11 +190,10 @@ export default function Games() {
         .game-action-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 680px; margin: 0 auto; }
       `}</style>
 
-      <MiningAXNGameHeader onMenuOpen={() => setMenuOpen(true)} />
+      <GameHeader onMenuOpen={() => setMenuOpen(true)} />
 
       {/* Scrollable Content */}
       <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
-        <GameBalanceCard balance={goldBalance} onWithdraw={() => setShowWithdrawPopup(true)} />
         <h2 style={{ maxWidth: 680, margin: '0 auto 10px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>Fast Access</h2>
         <div className="game-action-card-grid">
           <GameActionCard
@@ -223,9 +217,9 @@ export default function Games() {
             illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
         </div>
-        <WeeklyContestBanner
+        <ContestBannerCarousel
           prizePool={appConfig?.weeklyGiveawayAmount}
-          onClick={() => setLocation('/leaderboard')}
+          onSelect={(tab) => setLocation(`/leaderboard?tab=${tab}`)}
         />
         <section aria-labelledby="viewing-ads-title" style={{ maxWidth: 680, width: '100%', margin: '14px auto 0' }}>
           <h2 id="viewing-ads-title" style={{ margin: '0 0 3px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>
