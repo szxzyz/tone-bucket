@@ -1,7 +1,6 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import { useState } from 'react';
-import GigapubShortLinkTasks from '@/components/GigapubShortLinkTasks';
 import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
@@ -17,7 +16,9 @@ export default function Mission() {
         </div>
         {tab === 'daily' ? (
           <div className="space-y-4">
-            <GigapubShortLinkTasks />
+            <div role="status" style={{ padding: '22px 16px', borderRadius: 14, background: 'rgba(255,255,255,0.04)', textAlign: 'center', color: 'rgba(255,255,255,0.52)', fontSize: 13, fontWeight: 600 }}>
+              No daily tasks are available right now.
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
