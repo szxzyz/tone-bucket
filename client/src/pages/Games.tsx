@@ -217,7 +217,10 @@ export default function Games() {
             illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
         </div>
-        <DailyContestBanner onClick={() => setLocation('/leaderboard?tab=referral')} />
+        <DailyContestBanner
+          prizePool={appConfig?.weeklyGiveawayAmount}
+          onClick={() => setLocation('/leaderboard')}
+        />
         <section aria-labelledby="viewing-ads-title" style={{ maxWidth: 680, width: '100%', margin: '14px auto 0' }}>
           <h2 id="viewing-ads-title" style={{ margin: '0 0 3px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>
             Viewing Ads

@@ -1,18 +1,25 @@
-import { ArrowRight } from "lucide-react";
-import { FaMedal } from "react-icons/fa";
+import { FaMedal, FaTrophy } from "react-icons/fa";
 
-type Props = { onClick: () => void };
+type Props = {
+  prizePool?: number | string | null;
+  onClick: () => void;
+};
 
-export default function DailyContestBanner({ onClick }: Props) {
+export default function DailyContestBanner({ prizePool, onClick }: Props) {
+  const parsedPrize = Number(prizePool ?? 10);
+  const prizeLabel = Number.isFinite(parsedPrize) ? parsedPrize.toLocaleString() : "10";
+
   return (
     <button
       type="button"
+      aria-label={`Weekly Contest — Top Earners — Take the prize — $${prizeLabel} prize pool`}
       onClick={onClick}
-      aria-label="Top Inviter: Invite friends and climb the referral leaderboard"
-      className="mt-[18px] block w-full overflow-hidden relative rounded-2xl active:scale-[0.99] transition-transform"
+      className="mt-3 mb-2 rounded-2xl overflow-hidden relative cursor-pointer active:scale-[0.99] transition-transform"
       style={{
+        display: "block",
+        width: "100%",
         maxWidth: 680,
-        height: 106,
+        height: 96,
         marginLeft: "auto",
         marginRight: "auto",
         padding: 0,
@@ -27,27 +34,37 @@ export default function DailyContestBanner({ onClick }: Props) {
         aria-hidden="true"
         loading="lazy"
         decoding="async"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 55%" }}
+        className="w-full h-full object-cover"
+        style={{ objectPosition: "center 85%" }}
       />
       <span
         aria-hidden="true"
-        style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.62) 48%, rgba(0,0,0,0.12) 100%)" }}
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.15) 100%)" }}
       />
-      <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px" }}>
-        <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#FFD700", fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
-            <FaMedal aria-hidden="true" />
-            Top Inviter
+      <span className="absolute inset-0 flex items-center justify-between" style={{ padding: "0 14px" }}>
+        <span className="flex flex-col gap-1">
+          <span className="flex items-center gap-1.5">
+            <FaMedal style={{ color: "#FFD700", fontSize: 13 }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#FFD700", letterSpacing: "0.18em", textTransform: "uppercase", textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
+              Weekly Contest
+            </span>
           </span>
-          <span style={{ color: "#fff", fontSize: 17, lineHeight: 1.1, fontWeight: 900, textShadow: "0 2px 8px rgba(0,0,0,0.95)" }}>
-            Invite friends
+          <span style={{ fontSize: 17, fontWeight: 900, color: "#fff", letterSpacing: "-0.3px", textShadow: "0 2px 8px rgba(0,0,0,0.95)", lineHeight: 1.15 }}>
+            Top Earners
           </span>
-          <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 11, lineHeight: 1.2, fontWeight: 700, textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
-            Climb the referral leaderboard
+          <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.75)", textShadow: "0 1px 4px rgba(0,0,0,0.9)", lineHeight: 1.2 }}>
+            Take the prize
           </span>
         </span>
-        <span aria-hidden="true" style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: 8 }}>
-          <ArrowRight size={22} color="#fff" strokeWidth={2.5} />
+        <span className="flex flex-col items-center gap-0.5">
+          <FaTrophy style={{ color: "#FFD700", fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.8))" }} />
+          <span style={{ fontSize: 20, fontWeight: 900, color: "rgba(180,180,180,0.9)", textShadow: "0 2px 6px rgba(0,0,0,0.9)", lineHeight: 1 }}>
+            ${prizeLabel}
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em" }}>
+            Prize Pool
+          </span>
         </span>
       </span>
     </button>
