@@ -35,7 +35,7 @@ export default function DailyContestBanner({ prizePool, onClick }: Props) {
         loading="lazy"
         decoding="async"
         className="w-full h-full object-cover"
-        style={{ objectPosition: "center 30%" }}
+        style={{ objectPosition: "center 35%" }}
       />
       <span
         aria-hidden="true"
