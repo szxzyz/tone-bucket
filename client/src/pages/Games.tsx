@@ -3,10 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import MenuPopup from "@/components/GameMenuPopup";
-import Header from "@/components/GameHeader";
+import MiningAXNGameHeader from "@/components/MiningAXNGameHeader";
 import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
+import GameFarmingSection from "@/components/GameFarmingSection";
 import { showAdgramAd } from "@/lib/showAd";
 
 function getTodayKey() {
@@ -16,54 +17,36 @@ function getTodayKey() {
 type GameActionCardProps = {
   title: string;
   illustration: React.ReactNode;
-  illustrationBackground: string;
-  illustrationBare?: boolean;
-  actionLabel: string;
   disabled?: boolean;
   busy?: boolean;
   onClick: () => void;
 };
 
-function GameActionCard({ title, illustration, illustrationBackground, illustrationBare = false, actionLabel, disabled = false, busy = false, onClick }: GameActionCardProps) {
+function GameActionCard({ title, illustration, disabled = false, busy = false, onClick }: GameActionCardProps) {
   const unavailable = disabled || busy;
   return (
     <button
       type="button"
-      aria-label={`${title}: ${busy ? 'Loading' : actionLabel}`}
+      aria-label={`${title}${busy ? ': loading' : ''}${disabled ? ': unavailable' : ''}`}
       onClick={onClick}
       disabled={unavailable}
       className="group active:scale-[0.98] transition-transform"
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 7,
-        minWidth: 0, minHeight: 156, width: '100%', padding: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+        minWidth: 0, minHeight: 108, width: '100%', padding: 6, overflow: 'hidden',
         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
         background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)',
-        color: '#fff', textAlign: 'left', cursor: unavailable ? 'not-allowed' : 'pointer',
+        color: '#fff', cursor: unavailable ? 'not-allowed' : 'pointer',
         boxShadow: '0 8px 22px rgba(0,0,0,0.25)', opacity: unavailable ? 0.68 : 1,
       }}
     >
       <span aria-hidden="true" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '100%', height: 72, flexShrink: 0, overflow: 'hidden',
-        border: illustrationBare ? 'none' : '1px solid rgba(255,255,255,0.06)',
-        borderRadius: illustrationBare ? 0 : 12,
-        background: illustrationBare ? 'transparent' : illustrationBackground,
+        width: '100%', height: 92, flexShrink: 0, overflow: 'hidden',
       }}>
         {illustration}
       </span>
-      <span style={{ display: 'flex', alignItems: 'center', minWidth: 0, minHeight: 17 }}>
-        <span style={{ width: '100%', color: '#fff', fontSize: 11, lineHeight: 1.2, fontWeight: 900, textAlign: 'center', whiteSpace: 'nowrap' }}>{title}</span>
-      </span>
-      <span style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-        width: '100%', height: 36, minHeight: 36, boxSizing: 'border-box', padding: '0 4px', marginTop: 'auto', borderRadius: 12,
-        background: unavailable ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-        color: unavailable ? 'rgba(255,255,255,0.45)' : '#fff',
-        fontSize: 11, lineHeight: 1, fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap',
-      }}>
-        {busy && <span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
-        {busy ? 'PLEASE WAIT' : actionLabel}
-      </span>
+      {busy && <span aria-hidden="true" style={{ position: 'absolute', width: 18, height: 18, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />}
     </button>
   );
 }
@@ -193,7 +176,7 @@ export default function Games() {
         .game-action-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 680px; margin: 0 auto; }
       `}</style>
 
-      <Header onMenuOpen={() => setMenuOpen(true)} />
+      <MiningAXNGameHeader onMenuOpen={() => setMenuOpen(true)} />
 
       {/* Scrollable Content */}
       <div style={{ padding: 'calc(var(--header-height, 62px) + 14px) clamp(12px, 4vw, 20px)', paddingBottom: 'max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px))', width: '100%', boxSizing: 'border-box' }}>
@@ -201,33 +184,23 @@ export default function Games() {
         <div className="game-action-card-grid">
           <GameActionCard
             title="Daily Rewards"
-            illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
-            illustrationBare
-            actionLabel={dailyChecked ? 'CLAIMED' : 'CHECK IN'}
             disabled={dailyChecked}
             busy={dailyAdLoading || dailyCheckMutation.isPending}
             onClick={() => setCheckinSheetOpen(true)}
-            illustration={<img src="/assets/daily-checkin.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/daily-checkin.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Gift Code"
-            illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
-            illustrationBare
-            actionLabel="REDEEM"
             onClick={() => setShowGiftCodePopup(true)}
-            illustration={<img src="/assets/gift-code-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/gift-code-card.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain' }} />}
           />
           <GameActionCard
             title="Withdraw"
-            illustrationBackground="linear-gradient(135deg, rgba(37,99,235,0.24), rgba(79,70,229,0.12))"
-            illustrationBare
-            actionLabel="WITHDRAW"
             onClick={() => setShowWithdrawPopup(true)}
-            illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
+            illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain' }} />}
           />
         </div>
-
-
+        <GameFarmingSection />
       </div>
 
       {menuOpen && (
