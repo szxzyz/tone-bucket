@@ -29,13 +29,13 @@ export default function DailyContestBanner({ prizePool, onClick }: Props) {
       }}
     >
       <img
-        src="/daily-contest-banner.jpg"
+        src="/daily-contest-banner.webp"
         alt=""
         aria-hidden="true"
         loading="lazy"
         decoding="async"
         className="w-full h-full object-cover"
-        style={{ objectPosition: "center 85%" }}
+        style={{ objectPosition: "center 30%" }}
       />
       <span
         aria-hidden="true"
