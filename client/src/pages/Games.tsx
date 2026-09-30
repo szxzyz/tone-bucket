@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import MenuPopup from "@/components/GameMenuPopup";
@@ -8,6 +9,8 @@ import BottomNav from "@/components/BottomNav";
 import GameWithdrawPopup from "@/components/GameWithdrawPopup";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import GameBalanceCard from "@/components/GameBalanceCard";
+import WeeklyContestBanner from "@/components/WeeklyContestBanner";
+import AdWatchingSection from "@/components/AdWatchingSection";
 import { showAdgramAd } from "@/lib/showAd";
 
 function getTodayKey() {
@@ -63,6 +66,7 @@ function GameActionCard({ title, illustration, actionLabel, disabled = false, bu
 }
 
 export default function Games() {
+  const [, setLocation] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showWithdrawPopup, setShowWithdrawPopup] = useState(false);
   const [showGiftCodePopup, setShowGiftCodePopup] = useState(false);
@@ -219,6 +223,19 @@ export default function Games() {
             illustration={<img src="/assets/withdraw-card.png" alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} />}
           />
         </div>
+        <WeeklyContestBanner
+          prizePool={appConfig?.weeklyGiveawayAmount}
+          onClick={() => setLocation('/leaderboard')}
+        />
+        <section aria-labelledby="viewing-ads-title" style={{ maxWidth: 680, width: '100%', margin: '14px auto 0' }}>
+          <h2 id="viewing-ads-title" style={{ margin: '0 0 3px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>
+            Viewing Ads
+          </h2>
+          <p style={{ margin: '0 0 12px', color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.4 }}>
+            Get paid for watching short ads on Telegram.
+          </p>
+          <AdWatchingSection user={user} hideTitle />
+        </section>
       </div>
 
       {menuOpen && (

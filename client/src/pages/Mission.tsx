@@ -1,15 +1,12 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import AdWatchingSection from '@/components/AdWatchingSection';
 import GigapubShortLinkTasks from '@/components/GigapubShortLinkTasks';
 import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
   const [tab, setTab] = useState<'daily' | 'community'>('daily');
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
-  const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white space-y-4">
@@ -20,7 +17,6 @@ export default function Mission() {
         </div>
         {tab === 'daily' ? (
           <div className="space-y-4">
-            <AdWatchingSection user={user} hideTitle={false} />
             <GigapubShortLinkTasks />
           </div>
         ) : (
