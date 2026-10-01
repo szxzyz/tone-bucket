@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Crown, BarChart2, ClipboardList, Users, Tag, Wallet, ShieldOff, Settings, Shield, Star, CheckCircle2, XCircle, Plus, Minus, Wrench, Target, ShieldAlert, Eye, Trash2, Award, Handshake, Database, Download, RotateCcw, AlertTriangle, RefreshCw } from "lucide-react";
 import { showNotification } from "@/components/AppNotification";
 import CreatePanel from "@/components/CreatePanel";
+import AdminUserEarnings from "@/components/AdminUserEarnings";
 
 function formatLargeNumber(num: number): string {
   if (isNaN(num) || !isFinite(num)) {
@@ -671,7 +672,7 @@ function BanUserButton({ user, onSuccess }: { user: any; onSuccess: () => void }
   );
 }
 
-type UserProfileTab = 'overview' | 'tasks' | 'ads' | 'referrals' | 'withdrawals' | 'bans' | 'balance' | 'deposits' | 'createdTasks' | 'swaps';
+type UserProfileTab = 'overview' | 'earnings' | 'tasks' | 'ads' | 'referrals' | 'withdrawals' | 'bans' | 'balance' | 'deposits' | 'createdTasks' | 'swaps';
 
 function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: () => void; onSelectUser?: (user: any) => void }) {
   const queryClient = useQueryClient();
@@ -773,6 +774,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
+    { id: 'earnings' as const, label: 'Earnings' },
     { id: 'balance' as const, label: 'Balance' },
     { id: 'tasks' as const, label: 'Tasks' },
     { id: 'ads' as const, label: 'Ads' },
@@ -943,6 +945,8 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           </div>
         </div>
       )}
+
+      {activeTab === 'earnings' && <AdminUserEarnings userId={String(user.id)} />}
 
       {activeTab === 'tasks' && (
         <div className="space-y-2">

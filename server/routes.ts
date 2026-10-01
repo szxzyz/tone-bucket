@@ -3240,9 +3240,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/earnings', authenticateTelegram, async (req: any, res) => {
     try {
       const userId = req.user.user.id;
+      if (req.query.category !== undefined) {
+        const category = String(req.query.category || 'all').toLowerCase();
+        const sourceGroups: Record<string, string[]> = {
+          ads: ['ad_watch'],
+          missions: [
+            'mission_ad', 'task_completion', 'daily_task_completion', 'task_share', 'task_channel',
+            'task_community', 'task_claim', 'gigapub_short_link', 'mission_daily_checkin',
+            'mission_share_story', 'mission_share_referral', 'mission_check_for_updates',
+          ],
+          friends: ['referral', 'referral_commission'],
+        };
+        if (category !== 'all' && !sourceGroups[category]) {
+          return res.status(400).json({ message: 'Invalid earning category' });
+        }
+
+        const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '20'), 10) || 20));
+        const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
+        const conditions = [eq(earnings.userId, userId)];
+        if (category !== 'all') conditions.push(inArray(earnings.source, sourceGroups[category]));
+        const where = and(...conditions);
+        const [rows, countRows] = await Promise.all([
+          db.select().from(earnings).where(where).orderBy(desc(earnings.createdAt)).limit(pageSize).offset((page - 1) * pageSize),
+          db.select({ total: sql<number>`COUNT(*)` }).from(earnings).where(where),
+        ]);
+
+        let historyRows: any[] = rows;
+        if (category === 'friends' && rows.some((row) => row.source === 'referral_commission')) {
+          const commissionRows = await db.select({
+            id: referralCommissions.id,
+            commissionAmount: referralCommissions.commissionAmount,
+            createdAt: referralCommissions.createdAt,
+            friendName: users.firstName,
+            friendUsername: users.telegramUsername,
+          }).from(referralCommissions)
+            .innerJoin(users, eq(users.id, referralCommissions.referredUserId))
+            .where(eq(referralCommissions.referrerId, userId))
+            .orderBy(desc(referralCommissions.createdAt))
+            .limit(1000);
+
+          const matchedCommissionIds = new Set<string>();
+          historyRows = rows.map((row) => {
+            if (row.source !== 'referral_commission') return row;
+            const rowTime = row.createdAt ? new Date(row.createdAt).getTime() : 0;
+            const match = commissionRows
+              .filter((candidate) => !matchedCommissionIds.has(candidate.id)
+                && Boolean(candidate.createdAt)
+                && Math.abs(Number(candidate.commissionAmount) - Number(row.amount)) < 0.0000001
+                && Math.abs(new Date(candidate.createdAt || 0).getTime() - rowTime) <= 120000)
+              .sort((a, b) => Math.abs(new Date(a.createdAt || 0).getTime() - rowTime) - Math.abs(new Date(b.createdAt || 0).getTime() - rowTime))[0];
+            if (!match) return row;
+            matchedCommissionIds.add(match.id);
+            return { ...row, friendName: match.friendName || match.friendUsername || 'Friend', friendUsername: match.friendUsername || null };
+          });
+        }
+
+        const total = Number(countRows[0]?.total || 0);
+        return res.json({ earnings: historyRows, page, limit: pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) });
+      }
       const limit = parseInt(req.query.limit as string) || 20;
-      const earnings = await storage.getUserEarnings(userId, limit);
-      res.json(earnings);
+      const userEarnings = await storage.getUserEarnings(userId, limit);
+      res.json(userEarnings);
     } catch (error) {
       console.error("Error fetching earnings:", error);
       res.status(500).json({ message: "Failed to fetch earnings" });
@@ -12889,6 +12947,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ Error fetching user referrals:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch referrals' });
+    }
+  });
+
+  // Complete GEM earning ledger for the selected user (admin-only).
+  app.get('/api/admin/user-earnings/:id', authenticateAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) return res.status(404).json({ success: false, message: 'User not found' });
+      const limit = Math.min(1000, Math.max(1, parseInt(String(req.query.limit || '1000'), 10) || 1000));
+      const userEarnings = await storage.getUserEarnings(id, limit);
+      res.json({ success: true, earnings: userEarnings, total: userEarnings.length });
+    } catch (error) {
+      console.error('❌ Error fetching admin user earning history:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch user earning history' });
     }
   });
 

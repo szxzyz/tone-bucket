@@ -3,15 +3,18 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
+import { Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield, Wallet, Globe, History, FileCheck2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
+import { useLanguage, type Language } from '@/hooks/useLanguage';
 import { useLocation } from 'wouter';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
+import PayoutHistoryPopup from '@/components/PayoutHistoryPopup';
+import EarningHistoryPopup from '@/components/EarningHistoryPopup';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
@@ -19,12 +22,17 @@ const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100
 export default function Account() {
   const { isAdmin } = useAdmin();
   const supportLink = useSupportLink();
+  const { language, setLanguage } = useLanguage();
   const [, setLocation] = useLocation();
   const [referralsOpen, setReferralsOpen] = useState(false);
   const [referralsPage, setReferralsPage] = useState(1);
   const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [earningHistoryOpen, setEarningHistoryOpen] = useState(false);
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
+  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], retry: false, staleTime: 300000 });
   const { data: myReferralsData, isLoading: isLoadingReferrals } = useQuery<any>({
     queryKey: ['/api/referrals/my-referrals', referralsPage],
     queryFn: async () => {
@@ -45,6 +53,28 @@ export default function Account() {
   const myReferrals: any[] = myReferralsData?.referrals || [];
   const referralsTotal = Number(myReferralsData?.total ?? myReferrals.length);
   const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
+  const proofOfPaymentLink = String(appConfig?.proofOfPaymentLink || '').trim();
+
+  const languages: Array<{ code: Language; label: string }> = [
+    { code: 'en', label: 'English' }, { code: 'ru', label: 'Русский' }, { code: 'ar', label: 'العربية' },
+    { code: 'uk', label: 'Українська' }, { code: 'de', label: 'Deutsch' }, { code: 'zh', label: '中文' },
+    { code: 'pt', label: 'Português' }, { code: 'es', label: 'Español' }, { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'bn', label: 'বাংলা' },
+  ];
+
+  const chooseLanguage = async (nextLanguage: Language) => {
+    setLanguage(nextLanguage);
+    setLanguageOpen(false);
+    try {
+      const response = await fetch('/api/user/language', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: nextLanguage }), credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Language preference was not saved to the server');
+    } catch {
+      showNotification('Language changed on this device, but could not be saved to your account.', 'error');
+    }
+  };
 
   const openSupport = () => {
     if (!supportLink) {
@@ -56,7 +86,21 @@ export default function Account() {
     else window.open(supportLink, '_blank', 'noopener,noreferrer');
   };
 
+  const openPaymentProof = () => {
+    if (!proofOfPaymentLink) {
+      showNotification('Payment proof link is not configured', 'error');
+      return;
+    }
+    const tgWebApp = (window as any).Telegram?.WebApp;
+    if (tgWebApp?.openLink) tgWebApp.openLink(proofOfPaymentLink);
+    else window.open(proofOfPaymentLink, '_blank', 'noopener,noreferrer');
+  };
+
   const menuActions = [
+    { label: 'Withdraw your GEM', icon: <Wallet className="w-5 h-5 text-emerald-400" />, action: () => setWithdrawOpen(true) },
+    { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setLanguageOpen(true) },
+    { label: 'Earning History', icon: <History className="w-5 h-5 text-amber-400" />, action: () => setEarningHistoryOpen(true) },
+    { label: 'Proof of Payment', icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
     { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
     { label: 'My invites', icon: <UserPlus className="w-5 h-5 text-emerald-400" />, action: () => setReferralsOpen(true) },
     { label: 'Project Statistics', icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
@@ -116,6 +160,18 @@ export default function Account() {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <Drawer open={languageOpen} onOpenChange={setLanguageOpen}>
+        <DrawerContent className="max-h-[80vh] border-white/10 bg-[#111] text-white">
+          <DrawerHeader className="flex items-center justify-between pb-2"><DrawerTitle className="text-white font-bold text-lg">Change language</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
+          <div className="px-4 pb-6 overflow-y-auto space-y-2">
+            {languages.map((item) => <button key={item.code} type="button" onClick={() => void chooseLanguage(item.code)} aria-pressed={language === item.code} className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold ${language === item.code ? 'bg-blue-600 text-white' : 'bg-white/[0.05] text-white/75'}`}><span>{item.label}</span>{language === item.code && <span className="text-xs">Selected</span>}</button>)}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      <PayoutHistoryPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+      <EarningHistoryPopup open={earningHistoryOpen} onClose={() => setEarningHistoryOpen(false)} />
 
       {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} returnToPageOnBack />}
     </Layout>

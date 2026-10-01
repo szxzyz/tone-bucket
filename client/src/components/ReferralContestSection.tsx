@@ -119,7 +119,7 @@ export default function ReferralContestSection({ highlighted = false }: { highli
   const showPlayerList = !isLoading && !isError && !!data?.contestActive;
 
   return (
-    <div id="referral-contest" style={{ marginTop: 12, borderRadius: 20, scrollMarginTop: 16, transition: 'box-shadow 250ms ease', boxShadow: highlighted ? '0 0 0 3px rgba(59,130,246,0.95), 0 0 26px rgba(37,99,235,0.55)' : 'none' }}>
+    <div id="referral-contest" style={{ marginTop: 12, borderRadius: 20, scrollMarginTop: 'calc(var(--header-height, 56px) + 16px)', transition: 'box-shadow 250ms ease', boxShadow: highlighted ? '0 0 0 3px rgba(59,130,246,0.95), 0 0 26px rgba(37,99,235,0.55)' : 'none' }}>
       <section aria-label="Referral Contest overview" style={{ padding: 12, borderRadius: 18, background: SURFACE, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div>

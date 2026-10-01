@@ -46,6 +46,11 @@ export const config = {
     link: process.env.SUPPORT_BOT_LINK || '',
   },
 
+  // Public receipt/proof destination (env: PROOF_OF_PAYMENT_URL)
+  paymentProof: {
+    link: process.env.PROOF_OF_PAYMENT_URL || '',
+  },
+
   // ─── WITHDRAWALS ──────────────────────────────────────────────────────
   // Withdrawal notification group chat (env: WITHDRAWAL_GROUP_CHAT_ID)
   // Must be the numeric supergroup/chat id, e.g. -1001234567890 (starts with -)
@@ -117,6 +122,7 @@ export function getAppConfig() {
   return {
     ...getChannelConfig(),
     supportLink: config.support.link,
+    proofOfPaymentLink: config.paymentProof.link,
     withdrawalGroupChatId: config.withdrawals.groupChatId,
     withdrawalGroupLink: config.withdrawals.groupLink,
     adsgramPopupBlockId: config.ads.popupBlockId,

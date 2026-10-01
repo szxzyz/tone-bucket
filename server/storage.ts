@@ -1544,6 +1544,13 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
+      const [referredUser] = await db
+        .select({ firstName: users.firstName, telegramUsername: users.telegramUsername })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      const friendLabel = referredUser?.firstName || (referredUser?.telegramUsername ? `@${referredUser.telegramUsername.replace(/^@/, '')}` : 'your friend');
+
       // Calculate the admin-configured direct commission on eligible earnings.
       const commissionRate = Math.min(100, Math.max(0, parseFloat(await this.getAppSetting('l1_commission_percent', '5')) || 0)) / 100;
       if (commissionRate <= 0) return;
@@ -1562,7 +1569,7 @@ export class DatabaseStorage implements IStorage {
         userId: referralInfo.referrerId,
         amount: commissionAmount,
         source: 'referral_commission',
-        description: `${commissionRate * 100}% commission from referred user's earnings`,
+        description: `${commissionRate * 100}% commission from ${friendLabel}'s earnings`,
       });
 
       // Log commission transaction
@@ -1571,7 +1578,7 @@ export class DatabaseStorage implements IStorage {
         amount: commissionAmount,
         type: 'addition',
         source: 'referral_commission',
-        description: `${commissionRate * 100}% commission from referred user's earnings`,
+        description: `${commissionRate * 100}% commission from ${friendLabel}'s earnings`,
         metadata: { 
           originalEarningId, 
           referredUserId: userId,
