@@ -31,7 +31,7 @@ const AdsIcon = ({ active, c }: { active: boolean; c: string }) => (
 const TABS = [
   { id: "mission", label: "Mission", path: "/mission" },
   { id: "ads", label: "Ads", path: "/ads" },
-  { id: "friends", label: "Friends", path: "/affiliates" },
+  { id: "friends", label: "Account", path: "/affiliates" },
 ] as const;
 
 export default function BottomNav() {

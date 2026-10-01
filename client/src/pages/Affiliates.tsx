@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { Copy, Users, Send, CheckCircle2, Clock3, User, Receipt, ChevronRight, Shield } from 'lucide-react';
+import { Copy, Users, Send, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -120,6 +120,7 @@ export default function Affiliates() {
 
   const menuActions = [
     { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
+    { label: 'My invites', icon: <UserPlus className="w-5 h-5 text-emerald-400" />, action: () => setReferralsOpen(true) },
     { label: 'Project Statistics', icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
     { label: 'FAQs', icon: <BsQuestionCircleFill className="w-5 h-5 text-sky-400" />, action: () => setMenuView('faq') },
     { label: 'Support', icon: <MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />, action: openSupport },
@@ -129,7 +130,7 @@ export default function Affiliates() {
   return (
     <Layout>
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-0">
-        <section className="bg-white/5 rounded-2xl p-4 mb-3">
+        <section className="rounded-2xl p-4 mb-3" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-3">Account Info</p>
           <div className="flex items-center gap-3">
             <button
@@ -196,22 +197,18 @@ export default function Affiliates() {
         </section>
 
         <div className="flex items-center gap-2 mb-3">
-          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: '#252525' }}>
+          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
             <Send className="w-4 h-4 text-white" />
             <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
           </button>
-          <button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: '#252525' }} title="Copy referral link">
+          <button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }} title="Copy referral link">
             <Copy className="w-4 h-4 text-white" />
           </button>
         </div>
 
-        <button onClick={() => setReferralsOpen(true)} className="w-full h-11 rounded-xl mb-3 flex items-center justify-center gap-2 text-white text-xs font-extrabold" style={{ background: '#202020', border: 'none' }}>
-          <Users className="w-4 h-4" /> My invites
-        </button>
-
         <section className="space-y-2 mb-3" aria-label="More">
           {menuActions.map(({ label, icon, action }) => (
-            <button key={label} onClick={action} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+            <button key={label} onClick={action} className="w-full flex items-center justify-between rounded-2xl p-4 hover:brightness-110 transition-all active:scale-[0.99]" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
               <div className="flex items-center gap-3">{icon}<span className="text-white font-bold text-sm">{label}</span></div>
               <ChevronRight className="w-4 h-4 text-white/30" />
             </button>
