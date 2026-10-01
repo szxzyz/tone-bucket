@@ -100,97 +100,97 @@ export default function Affiliates() {
 
   return (
     <Layout>
-      <main className="max-w-md mx-auto px-4 pt-4 bg-black pb-0">
-        <section className="rounded-[22px] p-4 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #202020 0%, #101010 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,190,54,0.14)' }}>
-              <Gift className="w-5 h-5 text-amber-300" />
+      <main className="max-w-md mx-auto px-3 pt-2 bg-black pb-0">
+        <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: 'linear-gradient(145deg, #202020 0%, #101010 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,190,54,0.14)' }}>
+              <Gift className="w-4 h-4 text-amber-300" />
             </div>
             <div>
-              <div className="text-white text-lg font-black">Per friend you invite</div>
-              <div className="text-white/40 text-xs mt-0.5">Rewards are controlled by admin settings</div>
+              <div className="text-white text-[15px] font-black">Per friend you invite</div>
+              <div className="text-white/40 text-[10px] mt-0.5">Rewards are controlled by admin settings</div>
             </div>
           </div>
-          <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.055)' }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img src="/assets/gems-icon.svg" alt="Gold" className="w-12 h-12 object-contain" />
+          <div className="rounded-xl p-3 overflow-hidden" style={{ background: 'rgba(255,255,255,0.055)' }}>
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src="/assets/gems-icon.svg" alt="Gold" className="w-8 h-8 object-contain" />
                 <div>
-                  <div className="text-white text-2xl font-black tabular-nums">{settingsLoaded ? formatLargeSWAG(goldReward, false) : '…'}</div>
-                  <div className="text-amber-200/70 text-[11px] font-bold uppercase tracking-wider">Gold</div>
+                  <div className="text-white text-base font-black tabular-nums truncate">{settingsLoaded ? formatLargeSWAG(goldReward, false) : '…'}</div>
+                  <div className="text-amber-200/70 text-[9px] font-bold uppercase tracking-wider">Gold</div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Worth</div>
-                <div className="text-white text-base font-black">{settingsLoaded && padPerUsd > 0 ? formatUsd(goldWorthUsd) : '—'}</div>
+                <div className="text-white text-sm font-black whitespace-nowrap">{settingsLoaded && padPerUsd > 0 ? formatUsd(goldWorthUsd) : '—'}</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.24)' }}>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(0,0,0,0.24)' }}>
                 <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">On join</div>
-                <div className="text-white text-sm font-black mt-1">{settingsLoaded ? `+${formatUsd(joinRewardUsd)}` : '…'}</div>
+                <div className="text-white text-xs font-black mt-1 truncate">{settingsLoaded ? `+${formatUsd(joinRewardUsd)}` : '…'}</div>
               </div>
-              <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.24)' }}>
+              <div className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(0,0,0,0.24)' }}>
                 <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">When active</div>
-                <div className="text-white text-sm font-black mt-1">{settingsLoaded ? `+${formatLargeSWAG(goldReward, false)} Gold` : '…'}</div>
+                <div className="text-white text-xs font-black mt-1 truncate">{settingsLoaded ? `+${formatLargeSWAG(goldReward, false)} Gold` : '…'}</div>
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-2 mt-4 text-white/70 text-xs font-bold">
+          <div className="flex items-center justify-center gap-2 mt-3 text-white/70 text-[10px] font-bold">
             <span className="text-[#39ff14]">{settingsLoaded ? `${commissionPercent}% forever` : '…'}</span>
             <span className="text-white/25">•</span>
             <span>{settingsLoaded && adsRequired > 0 ? `${adsRequired} ads to activate` : 'Activation requirement'}</span>
           </div>
         </section>
 
-        <section className="rounded-[18px] p-3 mb-4" style={{ background: '#171717', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <section className="rounded-[14px] p-2 mb-3" style={{ background: '#171717', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="grid grid-cols-3 gap-2">
             {[
               ['Friends', totalFriends],
               ['Active', activeFriends],
               ['Earned', formatLargeSWAG(totalEarned, false)],
             ].map(([label, value]) => (
-              <div key={String(label)} className="text-center rounded-xl py-3" style={{ background: 'rgba(255,255,255,0.045)' }}>
-                <div className="text-white text-lg font-black tabular-nums">{value}</div>
+              <div key={String(label)} className="text-center rounded-lg py-2" style={{ background: 'rgba(255,255,255,0.045)' }}>
+                <div className="text-white text-sm font-black tabular-nums truncate">{value}</div>
                 <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider mt-1">{label}</div>
               </div>
             ))}
           </div>
         </section>
 
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-14 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: '#252525' }}>
-            <Send className="w-5 h-5 text-white" />
-            <span className="text-white font-bold tracking-widest text-sm">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: '#252525' }}>
+            <Send className="w-4 h-4 text-white" />
+            <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
           </button>
-          <button onClick={copyLink} disabled={!referralLink} className="w-14 h-14 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: '#252525' }} title="Copy referral link">
-            <Copy className="w-5 h-5 text-white" />
+          <button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: '#252525' }} title="Copy referral link">
+            <Copy className="w-4 h-4 text-white" />
           </button>
         </div>
 
-        <button onClick={() => setReferralsOpen(true)} className="w-full h-12 rounded-xl mb-4 flex items-center justify-center gap-2 text-white text-sm font-extrabold" style={{ background: '#202020', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <button onClick={() => setReferralsOpen(true)} className="w-full h-10 rounded-xl mb-3 flex items-center justify-center gap-2 text-white text-xs font-extrabold" style={{ background: '#202020', border: '1px solid rgba(255,255,255,0.08)' }}>
           <Users className="w-4 h-4" /> My invites
         </button>
 
         {pendingBonus > 0 && (
-          <section className="rounded-2xl p-4 mb-4" style={{ background: '#151515', border: '1px solid rgba(57,255,20,0.14)' }}>
+          <section className="rounded-xl p-3 mb-4" style={{ background: '#151515', border: '1px solid rgba(57,255,20,0.14)' }}>
             <div className="flex items-center justify-between mb-3">
-              <div><div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Ready to collect</div><div className="text-white text-xl font-black mt-1">{formatLargeSWAG(pendingBonus, false)} Gold</div></div>
-              <button onClick={() => claimReferralMutation.mutate()} disabled={claimReferralMutation.isPending} className="h-10 px-4 rounded-xl text-xs font-black text-black disabled:opacity-50" style={{ background: '#39ff14' }}>{claimReferralMutation.isPending ? 'Collecting…' : 'Collect'}</button>
+              <div><div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Ready to collect</div><div className="text-white text-lg font-black mt-1">{formatLargeSWAG(pendingBonus, false)} Gold</div></div>
+              <button onClick={() => claimReferralMutation.mutate()} disabled={claimReferralMutation.isPending} className="h-9 px-3 rounded-lg text-[10px] font-black text-black disabled:opacity-50" style={{ background: '#39ff14' }}>{claimReferralMutation.isPending ? 'Collecting…' : 'Collect'}</button>
             </div>
           </section>
         )}
 
-        <section className="rounded-[20px] p-4 mb-4" style={{ background: '#151515', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="text-white text-base font-black mb-4">How it works</div>
+        <section className="rounded-[16px] p-3 mb-3" style={{ background: '#151515', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="text-white text-sm font-black mb-3">How it works</div>
           {[
             ['They join', `Friend opens the app from your link${joinRewardUsd > 0 ? ` · +${formatUsd(joinRewardUsd)}` : ''}`],
             ['They watch', `${adsRequired > 0 ? adsRequired : 'the required number of'} ads to become active${goldReward > 0 ? ` · +${formatLargeSWAG(goldReward, false)} Gold` : ''}`],
             ['Forever after', `${commissionPercent}% of everything they earn, for life`],
           ].map(([title, text], index) => (
-            <div key={title} className="flex gap-3 items-start py-3 border-b border-white/[0.06] last:border-0 last:pb-0">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-black" style={{ background: index === 2 ? 'rgba(57,255,20,0.14)' : 'rgba(255,255,255,0.08)', color: index === 2 ? '#39ff14' : '#fff' }}>{index + 1}</div>
-              <div><div className="text-white text-sm font-extrabold">{title}</div><div className="text-white/45 text-xs leading-relaxed mt-1">{text}</div></div>
+            <div key={title} className="flex gap-2 items-start py-2 border-b border-white/[0.06] last:border-0 last:pb-0">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black" style={{ background: index === 2 ? 'rgba(57,255,20,0.14)' : 'rgba(255,255,255,0.08)', color: index === 2 ? '#39ff14' : '#fff' }}>{index + 1}</div>
+              <div><div className="text-white text-xs font-extrabold">{title}</div><div className="text-white/45 text-[10px] leading-relaxed mt-1">{text}</div></div>
             </div>
           ))}
         </section>
