@@ -3,11 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { Copy, Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
+import { Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
-import { useLanguage } from '@/hooks/useLanguage';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
 import { useLocation } from 'wouter';
@@ -16,10 +15,8 @@ import { Badge } from '@/components/ui/badge';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
-const INVITE_BUTTON_BACKGROUND = 'linear-gradient(135deg, #2563eb, #3b82f6)';
 
 export default function Account() {
-  const { t } = useLanguage();
   const { isAdmin } = useAdmin();
   const supportLink = useSupportLink();
   const [, setLocation] = useLocation();
@@ -28,9 +25,6 @@ export default function Account() {
   const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
-  const { data: botInfo } = useQuery<{ username: string }>({
-    queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000,
-  });
   const { data: myReferralsData, isLoading: isLoadingReferrals } = useQuery<any>({
     queryKey: ['/api/referrals/my-referrals', referralsPage],
     queryFn: async () => {
@@ -48,19 +42,9 @@ export default function Account() {
   const displayName = user?.firstName || telegramUser?.first_name || 'User';
   const username = user?.telegramUsername || telegramUser?.username || null;
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
-  const botUsername = botInfo?.username || '';
-  const referralLink = user?.referralCode
-    ? `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`
-    : '';
   const myReferrals: any[] = myReferralsData?.referrals || [];
   const referralsTotal = Number(myReferralsData?.total ?? myReferrals.length);
   const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
-
-  const copyLink = async () => {
-    if (!referralLink) return;
-    await navigator.clipboard.writeText(referralLink);
-    showNotification(t('link_copied'), 'success');
-  };
 
   const openSupport = () => {
     if (!supportLink) {
@@ -103,11 +87,6 @@ export default function Account() {
             </div>
           </div>
         </section>
-
-        <button onClick={copyLink} disabled={!referralLink} className="w-full h-11 rounded-xl mb-3 flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }} title="Copy referral link">
-          <Copy className="w-4 h-4 text-white" />
-          <span className="text-white font-bold text-xs">Copy referral link</span>
-        </button>
 
         <section className="space-y-2 mb-3" aria-label="Account actions">
           {menuActions.map(({ label, icon, action }) => (

@@ -91,7 +91,7 @@ function ReferralParticipant({ rank, entry, prize, currentUserId }: {
   );
 }
 
-export default function ReferralContestSection() {
+export default function ReferralContestSection({ highlighted = false }: { highlighted?: boolean }) {
   const { user } = useAuth() as any;
   const { data, isLoading, isError, refetch, isFetching } = useQuery<ReferralContestData>({
     queryKey: ['/api/leaderboard/referral'],
@@ -119,12 +119,11 @@ export default function ReferralContestSection() {
   const showPlayerList = !isLoading && !isError && !!data?.contestActive;
 
   return (
-    <div style={{ marginTop: 12 }}>
+    <div id="referral-contest" style={{ marginTop: 12, borderRadius: 20, scrollMarginTop: 16, transition: 'box-shadow 250ms ease', boxShadow: highlighted ? '0 0 0 3px rgba(59,130,246,0.95), 0 0 26px rgba(37,99,235,0.55)' : 'none' }}>
       <section aria-label="Referral Contest overview" style={{ padding: 12, borderRadius: 18, background: SURFACE, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Referral Contest</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Weekly verified referrals · resets every Sunday</p>
           </div>
           <button type="button" onClick={() => void refetch()} disabled={isFetching} aria-label="Refresh referral contest" style={{ width: 34, height: 34, flexShrink: 0, border: 0, borderRadius: 10, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)', display: 'grid', placeItems: 'center' }}>
             <FaSync style={{ fontSize: 12, animation: isFetching ? 'spin 1s linear infinite' : undefined }} />

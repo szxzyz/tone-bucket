@@ -15,7 +15,7 @@ export default function Mission() {
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
-        <DailyContestBanner prizePool={appConfig?.weeklyGiveawayAmount} onClick={() => setLocation('/leaderboard')} />
+        <DailyContestBanner prizePool={appConfig?.weeklyGiveawayAmount} onClick={() => setLocation('/affiliates?section=referral-contest')} />
         <section style={{ marginBottom: 14 }} aria-label="Promo code">
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', paddingLeft: 4 }}>
             Promo Code

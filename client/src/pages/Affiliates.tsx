@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Send } from 'lucide-react';
+import { Copy, Send } from 'lucide-react';
 import Layout from '@/components/Layout';
 import ReferralContestSection from '@/components/ReferralContestSection';
 import { formatLargeSWAG } from '@/lib/utils';
+import { showNotification } from '@/components/AppNotification';
+import { useLanguage } from '@/hooks/useLanguage';
 
 const FRIENDS_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 const INVITE_BUTTON_BACKGROUND = 'linear-gradient(135deg, #2563eb, #3b82f6)';
@@ -11,7 +13,9 @@ const formatReward = (value: number) => Math.trunc(value).toLocaleString();
 const formatWorthUsd = (value: number) => `$${value.toFixed(value > 0 && value < 1 ? 4 : 2)}`;
 
 export default function Affiliates() {
+  const { t } = useLanguage();
   const [isSharing, setIsSharing] = useState(false);
+  const [contestHighlighted, setContestHighlighted] = useState(false);
   const preparedShareRef = useRef<Promise<any> | null>(null);
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000 });
@@ -45,6 +49,18 @@ export default function Affiliates() {
     if (referralLink) void prepareShareMessage();
   }, [referralLink]);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('section') !== 'referral-contest') return;
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById('referral-contest');
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setContestHighlighted(true);
+      window.setTimeout(() => setContestHighlighted(false), 2200);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const inviteFriends = async () => {
     if (isSharing || !referralLink) return;
     setIsSharing(true);
@@ -60,14 +76,19 @@ export default function Affiliates() {
     } finally { setIsSharing(false); }
   };
 
+  const copyLink = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      showNotification(t('link_copied'), 'success');
+    } catch {
+      showNotification('Could not copy referral link', 'error');
+    }
+  };
+
   return (
     <Layout>
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-0 text-white">
-        <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="w-full h-11 rounded-xl mb-3 flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }}>
-          <Send className="w-4 h-4 text-white" />
-          <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
-        </button>
-
         <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <div className="text-white text-[15px] font-black mb-3">Per friend you invite</div>
           <div className="rounded-xl p-3 overflow-hidden" style={{ background: 'rgba(255,255,255,0.045)' }}>
@@ -113,7 +134,18 @@ export default function Affiliates() {
             ))}
           </div>
         </section>
-        <ReferralContestSection />
+
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }}>
+            <Send className="w-4 h-4 text-white" />
+            <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
+          </button>
+          <button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }} title="Copy referral link" aria-label="Copy referral link">
+            <Copy className="w-4 h-4 text-white" />
+          </button>
+        </div>
+
+        <ReferralContestSection highlighted={contestHighlighted} />
         <div style={{ height: 104, flexShrink: 0 }} />
       </main>
     </Layout>
