@@ -1,13 +1,20 @@
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Send } from 'lucide-react';
 import Layout from '@/components/Layout';
 import ReferralContestSection from '@/components/ReferralContestSection';
 import { formatLargeSWAG } from '@/lib/utils';
 
 const FRIENDS_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
+const INVITE_BUTTON_BACKGROUND = 'linear-gradient(135deg, #2563eb, #3b82f6)';
 const formatReward = (value: number) => Math.trunc(value).toLocaleString();
 const formatWorthUsd = (value: number) => `$${value.toFixed(value > 0 && value < 1 ? 4 : 2)}`;
 
 export default function Affiliates() {
+  const [isSharing, setIsSharing] = useState(false);
+  const preparedShareRef = useRef<Promise<any> | null>(null);
+  const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
+  const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000 });
   const { data: stats } = useQuery<any>({ queryKey: ['/api/referrals/stats'], retry: false });
   const { data: appSettings } = useQuery<any>({ queryKey: ['/api/app-settings'], retry: false });
   const settingsLoaded = appSettings !== undefined;
@@ -20,11 +27,46 @@ export default function Affiliates() {
   const totalFriends = Number(stats?.totalInvites ?? 0);
   const activeFriends = Number(stats?.successfulInvites ?? 0);
   const totalEarned = Number(stats?.totalReferralBonusEarned || stats?.totalL1Earned || 0);
+  const referralLink = user?.referralCode
+    ? `https://t.me/${botInfo?.username || ''}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`
+    : '';
+
+  const prepareShareMessage = () => {
+    if (!referralLink) return Promise.resolve(null);
+    if (!preparedShareRef.current) {
+      preparedShareRef.current = fetch('/api/share/prepare-message', { method: 'POST', credentials: 'include' })
+        .then((response) => response.json()).catch(() => null);
+    }
+    return preparedShareRef.current;
+  };
+
+  useEffect(() => {
+    preparedShareRef.current = null;
+    if (referralLink) void prepareShareMessage();
+  }, [referralLink]);
+
+  const inviteFriends = async () => {
+    if (isSharing || !referralLink) return;
+    setIsSharing(true);
+    try {
+      const data = await prepareShareMessage();
+      const tgWebApp = (window as any).Telegram?.WebApp;
+      if (data?.success && tgWebApp?.shareMessage) tgWebApp.shareMessage(data.messageId, () => undefined);
+      else {
+        const fallbackUrl = data?.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(referralLink)}`;
+        if (tgWebApp?.openTelegramLink) tgWebApp.openTelegramLink(fallbackUrl);
+        else window.open(fallbackUrl, '_blank');
+      }
+    } finally { setIsSharing(false); }
+  };
 
   return (
     <Layout>
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-0 text-white">
-        <h1 className="text-white text-lg font-black mb-3 px-1">Friends</h1>
+        <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="w-full h-11 rounded-xl mb-3 flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }}>
+          <Send className="w-4 h-4 text-white" />
+          <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
+        </button>
 
         <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <div className="text-white text-[15px] font-black mb-3">Per friend you invite</div>

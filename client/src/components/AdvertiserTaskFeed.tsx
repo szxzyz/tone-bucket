@@ -137,7 +137,7 @@ function TaskCard({
             height: 38, boxSizing: "border-box", padding: "0 16px", borderRadius: 12, minWidth: 92,
             fontSize: 12, fontWeight: 700, border: "none", cursor: limitReached || directPending ? "default" : "pointer",
             letterSpacing: "0.02em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center",
-            background: limitReached || directPending ? "rgba(255,255,255,0.06)" : directReady ? "#22c55e" : "#2563eb",
+            background: limitReached || directPending ? "rgba(255,255,255,0.06)" : directReady ? "#22c55e" : "linear-gradient(135deg, #2563eb, #3b82f6)",
             color: limitReached || directPending ? "rgba(255,255,255,0.3)" : "#fff",
           }}
         >

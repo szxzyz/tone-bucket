@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { Copy, Users, Send, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
+import { Copy, Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -25,9 +25,7 @@ export default function Account() {
   const [, setLocation] = useLocation();
   const [referralsOpen, setReferralsOpen] = useState(false);
   const [referralsPage, setReferralsPage] = useState(1);
-  const [isSharing, setIsSharing] = useState(false);
   const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
-  const preparedShareRef = useRef<Promise<any> | null>(null);
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: botInfo } = useQuery<{ username: string }>({
@@ -62,35 +60,6 @@ export default function Account() {
     if (!referralLink) return;
     await navigator.clipboard.writeText(referralLink);
     showNotification(t('link_copied'), 'success');
-  };
-
-  const prepareShareMessage = () => {
-    if (!referralLink) return Promise.resolve(null);
-    if (!preparedShareRef.current) {
-      preparedShareRef.current = fetch('/api/share/prepare-message', { method: 'POST', credentials: 'include' })
-        .then((response) => response.json()).catch(() => null);
-    }
-    return preparedShareRef.current;
-  };
-
-  useEffect(() => {
-    preparedShareRef.current = null;
-    if (referralLink) void prepareShareMessage();
-  }, [referralLink]);
-
-  const inviteFriends = async () => {
-    if (isSharing || !referralLink) return;
-    setIsSharing(true);
-    try {
-      const data = await prepareShareMessage();
-      const tgWebApp = (window as any).Telegram?.WebApp;
-      if (data?.success && tgWebApp?.shareMessage) tgWebApp.shareMessage(data.messageId, () => undefined);
-      else {
-        const fallbackUrl = data?.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(referralLink)}`;
-        if (tgWebApp?.openTelegramLink) tgWebApp.openTelegramLink(fallbackUrl);
-        else window.open(fallbackUrl, '_blank');
-      }
-    } finally { setIsSharing(false); }
   };
 
   const openSupport = () => {
@@ -135,15 +104,10 @@ export default function Account() {
           </div>
         </section>
 
-        <div className="flex items-center gap-2 mb-3">
-          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }}>
-            <Send className="w-4 h-4 text-white" />
-            <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
-          </button>
-          <button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }} title="Copy referral link" aria-label="Copy referral link">
-            <Copy className="w-4 h-4 text-white" />
-          </button>
-        </div>
+        <button onClick={copyLink} disabled={!referralLink} className="w-full h-11 rounded-xl mb-3 flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }} title="Copy referral link">
+          <Copy className="w-4 h-4 text-white" />
+          <span className="text-white font-bold text-xs">Copy referral link</span>
+        </button>
 
         <section className="space-y-2 mb-3" aria-label="Account actions">
           {menuActions.map(({ label, icon, action }) => (
