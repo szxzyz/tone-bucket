@@ -1,0 +1,197 @@
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import DailyCheckinSheet, { CHECKIN_REWARDS } from "@/components/DailyCheckinSheet";
+import { showNotification } from "@/components/AppNotification";
+import { useAdSession } from "@/hooks/useAdSession";
+import { apiRequest } from "@/lib/queryClient";
+import { showAdgramAd } from "@/lib/showAd";
+
+const MYSTERY_DAILY_LIMIT = 5;
+
+type AdContext = "daily_checkin" | "mystery_box";
+type AdProof = { sessionId: string; backgroundEntered: boolean; backgroundDuration: number };
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function MissionDailyRewards() {
+  const queryClient = useQueryClient();
+  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
+  const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
+  const [mysteryClaimsToday, setMysteryClaimsToday] = useState(0);
+  const [mysteryAdLoading, setMysteryAdLoading] = useState(false);
+
+  const { data: user } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false });
+  const { data: appConfig } = useQuery<any>({
+    queryKey: ["/api/config/app"],
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const { data: checkinStatus } = useQuery<any>({
+    queryKey: ["/api/daily-checkin/status"],
+    queryFn: async () => {
+      const response = await fetch("/api/daily-checkin/status", { credentials: "include" });
+      if (!response.ok) return null;
+      return response.json();
+    },
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.mysteryBoxDate) {
+      const serverDate = new Date(user.mysteryBoxDate).toISOString().slice(0, 10);
+      setMysteryClaimsToday(serverDate === getTodayKey() ? (user.mysteryBoxCount ?? 0) : 0);
+    } else {
+      setMysteryClaimsToday(0);
+    }
+  }, [user]);
+
+  const runVerifiedAdsgramAd = async (context: AdContext): Promise<AdProof> => {
+    const sessionId = startSession();
+    try {
+      const response = await apiRequest("POST", "/api/ads/register-session", {
+        sessionId,
+        adType: "adsgram",
+        context,
+      });
+      if (!response.ok) throw new Error("Could not start ad session");
+
+      const blockId = context === "mystery_box"
+        ? (appConfig?.adsgramMysteryBoxBlockId || "")
+        : (appConfig?.adsgramCheckinBlockId || "");
+      await showAdgramAd(blockId);
+      await waitForForeground();
+      const session = endSession();
+      return {
+        sessionId: session.sessionId,
+        backgroundEntered: session.backgroundEntered,
+        backgroundDuration: session.backgroundDuration,
+      };
+    } catch (error) {
+      cancelSession();
+      throw error;
+    }
+  };
+
+  const handleMysteryOpen = async () => {
+    if (mysteryClaimsToday >= MYSTERY_DAILY_LIMIT || mysteryAdLoading) return;
+    setMysteryAdLoading(true);
+    let proof: AdProof;
+    try {
+      proof = await runVerifiedAdsgramAd("mystery_box");
+    } catch {
+      setMysteryAdLoading(false);
+      showNotification("Ad was not completed. No Mystery Gift reward was granted.", "error");
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/mystery-box", proof);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed");
+      if (typeof data.claimsToday === "number") setMysteryClaimsToday(data.claimsToday);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      showNotification("Mystery Gift reward added to your Gold balance.", "success");
+    } catch (error: any) {
+      showNotification(error?.message || "Failed to open Mystery Gift. Try again.", "error");
+    } finally {
+      setMysteryAdLoading(false);
+    }
+  };
+
+  const checkinClaimed = Boolean(checkinStatus?.alreadyClaimedToday);
+  const mysteryOpened = mysteryClaimsToday >= MYSTERY_DAILY_LIMIT;
+  const checkinReward = Number(
+    checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0],
+  );
+
+  return (
+    <>
+      <style>{`@keyframes spin-mission-rewards { to { transform: rotate(360deg); } }`}</style>
+      <div aria-label="Daily rewards" style={{ background: "#252525", borderRadius: 14, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
+          <img
+            src="/assets/check-in.png"
+            alt="Daily Check-In"
+            style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 7 }}>
+              <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
+              <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>{checkinReward.toLocaleString()}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCheckinSheetOpen(true)}
+            disabled={checkinClaimed}
+            style={{
+              background: checkinClaimed ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #3d1580, #6b21a8)",
+              color: checkinClaimed ? "rgba(255,255,255,0.3)" : "#fff",
+              border: "none", width: 92, height: 38, boxSizing: "border-box", borderRadius: 12, padding: 0,
+              fontSize: 12, fontWeight: 800, cursor: checkinClaimed ? "not-allowed" : "pointer", flexShrink: 0,
+              letterSpacing: "0.03em", whiteSpace: "nowrap", boxShadow: checkinClaimed ? "none" : "0 2px 12px rgba(61,21,128,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            }}
+            className="active:scale-95 transition-transform"
+          >
+            {checkinClaimed ? "DONE" : "CLAIM"}
+          </button>
+        </div>
+
+        <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
+          <img
+            src="/assets/mystery-box.png"
+            alt="Mystery Gift"
+            style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 7 }}>
+              <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
+              <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>1–500</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleMysteryOpen}
+            disabled={mysteryOpened || mysteryAdLoading}
+            style={{
+              background: mysteryOpened ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #3d1580, #6b21a8)",
+              color: mysteryOpened ? "rgba(255,255,255,0.3)" : "#fff",
+              border: "none", width: 92, height: 38, boxSizing: "border-box", borderRadius: 12, padding: 0,
+              fontSize: 12, fontWeight: 800, cursor: mysteryOpened || mysteryAdLoading ? "not-allowed" : "pointer",
+              flexShrink: 0, boxShadow: mysteryOpened ? "none" : "0 2px 12px rgba(61,21,128,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 5, letterSpacing: "0.03em",
+            }}
+            className="active:scale-95 transition-transform"
+          >
+            {mysteryAdLoading ? (
+              <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin-mission-rewards 0.7s linear infinite" }} />
+            ) : mysteryOpened ? "DONE" : "OPEN"}
+          </button>
+        </div>
+      </div>
+
+      <DailyCheckinSheet
+        open={checkinSheetOpen}
+        onClose={() => setCheckinSheetOpen(false)}
+        streak={checkinStatus?.streak ?? 0}
+        dayIndex={checkinStatus?.dayIndex ?? 0}
+        alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? false}
+        adsgramBlockId={appConfig?.adsgramCheckinBlockId || ""}
+        onClaimed={() => {
+          setCheckinSheetOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["/api/daily-checkin/status"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/missions/status"] });
+        }}
+      />
+    </>
+  );
+}

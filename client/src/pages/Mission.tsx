@@ -1,17 +1,36 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
-import MissionFastAccess from '@/components/MissionFastAccess';
+import DailyContestBanner from '@/components/DailyContestBanner';
+import MissionDailyRewards from '@/components/MissionDailyRewards';
+import PromoCodeInput from '@/components/PromoCodeInput';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
+  const [, setLocation] = useLocation();
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white space-y-4">
-        <MissionFastAccess />
+        <DailyContestBanner prizePool={appConfig?.weeklyGiveawayAmount} onClick={() => setLocation('/leaderboard')} />
+        <section style={{ marginBottom: 14 }} aria-label="Promo code">
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', paddingLeft: 4 }}>
+            Promo Code
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2, marginBottom: 8, paddingLeft: 4 }}>
+            Enter promo code and get rewards.
+          </div>
+          <PromoCodeInput />
+        </section>
         <section>
-          <h2 style={{ margin: '0 0 8px 4px', color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Tasks</h2>
+          <h2 style={{ margin: '0 0 3px 4px', color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Task</h2>
+          <p style={{ margin: '0 0 8px 4px', color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>
+            Complete daily task and get rewards
+          </p>
+          <MissionDailyRewards />
           <div role="status" style={{ padding: '22px 16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)', textAlign: 'center', color: 'rgba(255,255,255,0.52)', fontSize: 13, fontWeight: 600 }}>
             No daily tasks are available right now.
           </div>

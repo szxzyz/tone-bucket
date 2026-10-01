@@ -165,11 +165,11 @@ export default function PromoCodeInput() {
       {/* Single Line Input Row - Refined Sizes */}
       <div style={{
         display: "flex",
-        gap: 14, // Match Daily Rewards gap
+        gap: 8,
         alignItems: "center",
         background: "#171717", // Match other sections
         borderRadius: 14,
-        padding: "16px 16px", // Match Daily Rewards padding
+        padding: "12px",
       }}>
         <Ticket size={26} color="rgba(255,255,255,0.7)" strokeWidth={2} style={{ flexShrink: 0 }} />
 
@@ -199,11 +199,9 @@ export default function PromoCodeInput() {
             outline: "none",
             letterSpacing: "0.02em",
             padding: "0 16px", // Proper horizontal padding
-            minWidth: 160, // Increased width to prevent text cut
+            minWidth: 0,
           }}
         />
-
-        <div style={{ flex: 1 }} /> {/* Spacer to push button to the right */}
 
         <button
           onClick={handleSubmit}
