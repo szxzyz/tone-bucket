@@ -7,7 +7,15 @@ export default function Ads() {
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white">
-        <AdWatchingSection user={user} hideTitle={false} />
+        <section aria-labelledby="viewing-ads-title" style={{ marginBottom: 12 }}>
+          <h1 id="viewing-ads-title" style={{ margin: '0 0 3px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>
+            Viewing Ads
+          </h1>
+          <p style={{ margin: 0, color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.4 }}>
+            Get paid for watching short ads on Telegram.
+          </p>
+        </section>
+        <AdWatchingSection user={user} hideTitle />
       </main>
     </Layout>
   );
