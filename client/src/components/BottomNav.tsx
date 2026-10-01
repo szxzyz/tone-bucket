@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { Award, Trophy, UserRound, Video } from "lucide-react";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
@@ -40,7 +41,11 @@ const FriendsIcon = ({ active, c }: { active: boolean; c: string }) => (
 const TABS = [
   { id: "home", label: "Home", path: "/" },
   { id: "tasks", label: "Mission", path: "/mission" },
+  { id: "ads", label: "Ads", path: "/ads" },
+  { id: "leaderboard", label: "Leaderboard", path: "/leaderboard" },
   { id: "friends", label: "Friends", path: "/affiliates" },
+  { id: "ambassador", label: "Ambassador", path: "/ambassador" },
+  { id: "profile", label: "Profile", path: "/profile" },
 ] as const;
 
 export default function BottomNav() {
@@ -60,18 +65,23 @@ export default function BottomNav() {
         paddingBottom: "max(var(--tg-content-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 6px)",
         background: "#0a0a0a",
       }}
+      aria-label="Main navigation"
     >
       {TABS.map((tab) => {
-        const active = location === tab.path || (tab.id === "home" && location === "/game");
+        const active = location === tab.path
+          || (tab.id === "home" && location === "/game")
+          || (tab.id === "tasks" && location === "/machine");
         const color = active ? ACTIVE : DIM;
-        const Icon = tab.id === "home" ? HomeIcon : tab.id === "tasks" ? TasksIcon : FriendsIcon;
 
         return (
           <button
             key={tab.id}
             onClick={() => setLocation(tab.path)}
+            aria-label={tab.label}
+            aria-current={active ? "page" : undefined}
             style={{
-              flex: 1,
+              flex: "1 1 0",
+              minWidth: 0,
               height: "100%",
               border: "none",
               background: "transparent",
@@ -98,10 +108,16 @@ export default function BottomNav() {
                 }}
               />
             )}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 30 }}>
-              <Icon active={active} c={color} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 28 }}>
+              {tab.id === "home" ? <HomeIcon active={active} c={color} />
+                : tab.id === "tasks" ? <TasksIcon active={active} c={color} />
+                : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
+                : tab.id === "ads" ? <Video size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
+                : tab.id === "leaderboard" ? <Trophy size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
+                : tab.id === "ambassador" ? <Award size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
+                : <UserRound size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />}
             </div>
-            <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: ".03em", color, lineHeight: 1 }}>
+            <span style={{ fontSize: "clamp(7px, 2.2vw, 9px)", fontWeight: active ? 700 : 500, letterSpacing: 0, color, lineHeight: 1, whiteSpace: "nowrap" }}>
               {tab.label}
             </span>
           </button>
