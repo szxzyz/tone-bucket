@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import { Copy, Users, Send, CheckCircle2, Clock3 } from 'lucide-react';
 import { formatLargeSWAG } from '@/lib/utils';
-import { apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 
 const FRIENDS_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 const formatRewardGold = (value: number) => Math.trunc(value).toLocaleString();
+const formatWorthUsd = (value: number) => `$${value.toFixed(value > 0 && value < 1 ? 4 : 2)}`;
 
 export default function Affiliates() {
   const { t } = useLanguage();
   const [referralsOpen, setReferralsOpen] = useState(false);
   const [referralsPage, setReferralsPage] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
-  const queryClient = useQueryClient();
   const preparedShareRef = useRef<Promise<any> | null>(null);
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
@@ -46,31 +45,17 @@ export default function Affiliates() {
   const joinRewardGold = Math.max(0, Number(appSettings?.referralJoinRewardGold ?? 0) || 0);
   const activeRewardGold = Math.max(0, Number(appSettings?.referralActiveRewardGold ?? 2500) || 0);
   const totalRewardGold = joinRewardGold + activeRewardGold;
+  const padPerUsd = Math.max(1, Number(appSettings?.padPerUsd ?? 100000) || 100000);
+  const goldWorthUsd = totalRewardGold / padPerUsd;
   const adsRequired = Math.max(0, Number(appSettings?.referralAdsRequired ?? 5) || 0);
   const commissionPercent = Math.max(0, Number(appSettings?.l1CommissionPercent ?? 5) || 0);
 
   const totalFriends = Number(stats?.totalInvites ?? 0);
   const activeFriends = Number(stats?.successfulInvites ?? 0);
   const totalEarned = Number(stats?.totalReferralBonusEarned || stats?.totalL1Earned || 0);
-  const pendingBonus = Number(stats?.availableBonus || 0);
   const myReferrals: any[] = myReferralsData?.referrals || [];
   const referralsTotal = Number(myReferralsData?.total ?? myReferrals.length);
   const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
-
-  const claimReferralMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/referrals/claim');
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || data.message || 'Claim failed');
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/referrals/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification('Reward claimed successfully', 'success');
-    },
-    onError: (error: Error) => showNotification(error.message || 'Unable to claim reward', 'error'),
-  });
 
   const copyLink = async () => {
     if (!referralLink) return;
@@ -113,11 +98,17 @@ export default function Affiliates() {
         <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: FRIENDS_CARD_BACKGROUND }}>
           <div className="text-white text-[15px] font-black mb-3">Per friend you invite</div>
           <div className="rounded-xl p-3 overflow-hidden" style={{ background: 'rgba(255,255,255,0.045)' }}>
-            <div className="flex items-center gap-2 min-w-0">
-              <img src="/assets/gems-icon.svg" alt="" aria-hidden="true" className="w-7 h-7 object-contain shrink-0" />
-              <div className="flex items-baseline gap-2 min-w-0">
-                <span className="text-white text-xl font-black tabular-nums truncate">{settingsLoaded ? formatRewardGold(totalRewardGold) : '…'}</span>
-                <span className="text-amber-200/80 text-xs font-extrabold uppercase tracking-wider shrink-0">GOLD total</span>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src="/assets/gems-icon.svg" alt="Gold" className="w-7 h-7 object-contain shrink-0" />
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="text-white text-xl font-black tabular-nums truncate">{settingsLoaded ? formatRewardGold(totalRewardGold) : '…'}</span>
+                  <span className="text-white text-xs font-extrabold uppercase tracking-wider shrink-0">GOLD</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-white/45 text-[10px] font-bold uppercase tracking-wider">Worth</div>
+                <div className="text-white text-sm font-black whitespace-nowrap">{settingsLoaded ? formatWorthUsd(goldWorthUsd) : '…'}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3">
@@ -158,18 +149,9 @@ export default function Affiliates() {
           </button>
         </div>
 
-        <button onClick={() => setReferralsOpen(true)} className="w-full h-10 rounded-xl mb-3 flex items-center justify-center gap-2 text-white text-xs font-extrabold" style={{ background: '#202020', border: 'none' }}>
+        <button onClick={() => setReferralsOpen(true)} className="w-full h-11 rounded-xl mb-3 flex items-center justify-center gap-2 text-white text-xs font-extrabold" style={{ background: '#202020', border: 'none' }}>
           <Users className="w-4 h-4" /> My invites
         </button>
-
-        {pendingBonus > 0 && (
-          <section className="rounded-xl p-3 mb-4" style={{ background: FRIENDS_CARD_BACKGROUND, border: '1px solid rgba(57,255,20,0.14)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div><div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Ready to collect</div><div className="text-white text-lg font-black mt-1">{formatLargeSWAG(pendingBonus, false)} Gold</div></div>
-              <button onClick={() => claimReferralMutation.mutate()} disabled={claimReferralMutation.isPending} className="h-9 px-3 rounded-lg text-[10px] font-black text-black disabled:opacity-50" style={{ background: '#39ff14' }}>{claimReferralMutation.isPending ? 'Collecting…' : 'Collect'}</button>
-            </div>
-          </section>
-        )}
 
         <section className="rounded-[16px] p-3 mb-3" style={{ background: FRIENDS_CARD_BACKGROUND }}>
           <div className="text-white text-sm font-black mb-3">How it works</div>

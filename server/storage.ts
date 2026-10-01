@@ -926,6 +926,7 @@ export class DatabaseStorage implements IStorage {
       console.warn('⚠️ Immediate referral activation check failed (non-critical):', e);
     }
 
+    await this.creditPendingReferralBonus(referrerId);
     return referral;
   }
 
@@ -1007,14 +1008,14 @@ export class DatabaseStorage implements IStorage {
 
       if (adsWatched < referralAdsRequired) return activatedReferrerIds;
 
-      // Read the admin-configured Gold reward. It is accumulated as pending
-      // income and is credited only when the referrer presses Collect.
+      // Read the admin-configured Gold reward. The amount is queued atomically
+      // with activation and swept into the referrer's balance immediately after.
       const canonicalReward = await this.getAppSetting('referral_reward_pad', '');
       const legacyReward = canonicalReward ? '' : await this.getAppSetting('referral_reward_swag', '');
       const referralRewardGold = Math.max(0, parseInt(canonicalReward || legacyReward || '2500') || 0);
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition
-      // double-payments. The pending-Gold credit is in the same transaction as the status change.
+      // double-payments. Its temporary Gold queue is written with the status change.
       for (const referral of pendingReferrals) {
         const activated = await db.transaction(async (tx) => {
           const atomicUpdate = await tx
@@ -1045,6 +1046,7 @@ export class DatabaseStorage implements IStorage {
 
         // Track this referrer so caller can push WebSocket update
         activatedReferrerIds.push(referral.referrerId);
+        await this.creditPendingReferralBonus(referral.referrerId);
 
         // Notify the referrer via Telegram
         const referrer = await this.getUser(referral.referrerId);
@@ -1072,65 +1074,76 @@ export class DatabaseStorage implements IStorage {
     return activatedReferrerIds;
   }
 
-  // Claim any accumulated pending referral bonus for a user.
-  // Move accumulated referral income into the user's Gold balance only on claim.
-  async claimReferralBonus(userId: string): Promise<{ success: boolean; message: string; amount?: string }> {
+  // Immediately move accumulated referral rewards into the user's Gold balance.
+  // The row lock makes this safe when join, activation, commission, and refresh
+  // requests happen concurrently.
+  async creditPendingReferralBonus(userId: string): Promise<string> {
     try {
-      // FIX: entire check-clear-credit sequence now runs inside a single
-      // transaction with a row lock (FOR UPDATE), so concurrent/duplicate
-      // requests can no longer both read pendingReferralBonus > 0 before
-      // either one clears it (previous version allowed double/triple-claim
-      // via simultaneous requests).
-      const pendingAmount = await db.transaction(async (tx) => {
+      const creditedAmount = await db.transaction(async (tx) => {
         const [user] = await tx
           .select({ pendingReferralBonus: users.pendingReferralBonus })
           .from(users)
           .where(eq(users.id, userId))
           .for('update');
 
-        if (!user) {
-          throw new Error('USER_NOT_FOUND');
-        }
+        if (!user) return '0';
 
-        const amount = parseFloat(user.pendingReferralBonus || '0');
-        if (amount <= 0) {
-          return 0;
-        }
+        const amount = String(user.pendingReferralBonus || '0');
+        const numericAmount = Number(amount);
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) return '0';
 
-        // Atomically clear the pending amount FIRST, while still holding the lock,
-        // so a concurrent request can never see a stale positive value.
+        const [earning] = await tx.insert(earnings).values({
+          userId,
+          amount,
+          source: 'referral',
+          description: 'Referral reward credited automatically',
+        }).returning({ id: earnings.id });
+
+        await tx.insert(transactions).values({
+          userId,
+          amount,
+          type: 'addition',
+          source: 'referral',
+          description: 'Referral reward credited automatically',
+          metadata: { earningId: earning.id, autoCredited: true },
+        });
+
+        const now = new Date();
+        await tx.insert(userBalances).values({
+          userId,
+          balance: amount,
+          updatedAt: now,
+        }).onConflictDoUpdate({
+          target: userBalances.userId,
+          set: {
+            balance: sql`COALESCE(${userBalances.balance}, 0) + ${amount}`,
+            updatedAt: now,
+          },
+        });
+
         await tx
           .update(users)
           .set({
             pendingReferralBonus: '0',
             totalClaimedReferralBonus: sql`COALESCE(${users.totalClaimedReferralBonus}, 0) + ${amount}`,
-            updatedAt: new Date(),
+            balance: sql`COALESCE(${users.balance}, 0) + ${amount}`,
+            withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${amount}`,
+            totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${amount}`,
+            totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${amount}`,
+            updatedAt: now,
           })
           .where(eq(users.id, userId));
 
         return amount;
       });
 
-      if (pendingAmount <= 0) {
-        return { success: true, message: 'No referral bonus is ready to collect yet.', amount: '0' };
+      if (Number(creditedAmount) > 0) {
+        console.log(`✅ Referral rewards automatically credited: ${creditedAmount} Gold for user ${userId}`);
       }
-
-      // Credit the pending bonus to the user's balance (slot is already locked/cleared above)
-      await this.addEarning({
-        userId,
-        amount: String(pendingAmount),
-        source: 'referral',
-        description: 'Referral bonus claimed',
-      });
-
-      console.log(`✅ Referral bonus claimed: ${pendingAmount} Gems for user ${userId}`);
-      return { success: true, message: `Successfully claimed ${pendingAmount} Gems referral bonus`, amount: String(pendingAmount) };
+      return creditedAmount;
     } catch (error) {
-      if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-        return { success: false, message: 'User not found' };
-      }
-      console.error('Error claiming referral bonus:', error);
-      return { success: false, message: 'Failed to claim referral bonus' };
+      console.error('Error automatically crediting referral rewards:', error);
+      return '0';
     }
   }
 

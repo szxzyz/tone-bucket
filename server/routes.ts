@@ -1281,10 +1281,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', authenticateTelegram, async (req: any, res) => {
     try {
       const userId = req.user.user.id; // Use the database UUID, not Telegram ID
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
+      }
+
+      if (Number(user.pendingReferralBonus || 0) > 0) {
+        await storage.creditPendingReferralBonus(userId);
+        user = await storage.getUser(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
       }
 
       // Ensure referralCode exists
@@ -2147,6 +2153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
 
               if (credited) {
+                await storage.creditPendingReferralBonus(l1Referrer.id);
                 console.log(`💰 Direct referral commission: ${l1CommissionGems} Gold (${commissionPercent}%) → ${l1Referrer.id}`);
                 try {
                   const l1Updated = await storage.getUser(l1Referrer.id);
@@ -2967,13 +2974,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           skipAuth: true,
           totalInvites: 0,
           successfulInvites: 0,
-          totalClaimed: '0',
-          availableBonus: '0',
-          readyToClaim: '0',
           totalStarEarned: 0
         });
       }
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      if (Number(user?.pendingReferralBonus || 0) > 0) {
+        await storage.creditPendingReferralBonus(userId);
+        user = await storage.getUser(userId);
+      }
 
       // ── Friend count: use users.referred_by as primary source of truth ──
       // Some users may be missing referrals-table rows, so count directly from users table
@@ -3019,8 +3027,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalInvites: totalInvitesCount,
         successfulInvites: successfulInvitesCount,
         totalClaimed: user?.totalClaimedReferralBonus || '0',
-        availableBonus: user?.pendingReferralBonus || '0',
-        readyToClaim: user?.pendingReferralBonus || '0',
         totalReferralBonusEarned: (totalPowEarned + Number(user?.pendingReferralBonus || 0)).toString(),
         totalPowEarned,
         totalL1Earned: totalPowEarned,
@@ -3031,29 +3037,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching referral stats:", error);
       res.status(500).json({ message: "Failed to fetch referral stats" });
-    }
-  });
-
-  // Claim referral bonus endpoint
-  app.post('/api/referrals/claim', authenticateTelegram, async (req: any, res) => {
-    try {
-      // Get userId from session or req.user (lenient check)
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-
-      if (!userId) {
-        console.log('⚠️ Referral claim requested without session - skipping');
-        return res.json({ success: true, skipAuth: true });
-      }
-      const result = await storage.claimReferralBonus(userId);
-
-      if (result.success) {
-        res.json(result);
-      } else {
-        res.status(400).json(result);
-      }
-    } catch (error) {
-      console.error("Error claiming referral bonus:", error);
-      res.status(500).json({ message: "Failed to claim referral bonus" });
     }
   });
 

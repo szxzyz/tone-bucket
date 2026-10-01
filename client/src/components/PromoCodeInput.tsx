@@ -167,9 +167,9 @@ export default function PromoCodeInput() {
         display: "flex",
         gap: 8,
         alignItems: "center",
-        background: "#171717", // Match other sections
-        borderRadius: 14,
-        padding: "12px",
+        background: "transparent",
+        borderRadius: 0,
+        padding: 0,
       }}>
         <Ticket size={26} color="rgba(255,255,255,0.7)" strokeWidth={2} style={{ flexShrink: 0 }} />
 
