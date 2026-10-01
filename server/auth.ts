@@ -312,7 +312,7 @@ export const authenticateTelegram: RequestHandler = async (req: any, res, next) 
           console.log(`🚫 Manually-banned account attempted login: ${existingUser.id}`);
           return res.status(403).json({
             banned: true,
-            message: `Your account has been banned. Contact support: ${process.env.SUPPORT_BOT_LINK || 'https://t.me/PaidAdsSupportbot'}`,
+            message: `Your account has been banned.${process.env.SUPPORT_BOT_LINK ? ` Contact support: ${process.env.SUPPORT_BOT_LINK}` : ''}`,
             reason: existingUser.bannedReason || "Account banned"
           });
         }
@@ -348,7 +348,7 @@ export const authenticateTelegram: RequestHandler = async (req: any, res, next) 
       console.log(`🚫 Banned user attempted login: ${upsertedUser.id} (Telegram: ${telegramUser.id})`);
       return res.status(403).json({ 
         banned: true,
-        message: `Your account has been banned due to suspicious multi-account activity. Contact support: ${process.env.SUPPORT_BOT_LINK || 'https://t.me/PaidAdsSupportbot'}`,
+        message: `Your account has been banned due to suspicious multi-account activity.${process.env.SUPPORT_BOT_LINK ? ` Contact support: ${process.env.SUPPORT_BOT_LINK}` : ''}`,
         reason: upsertedUser.bannedReason || "Account banned"
       });
     }

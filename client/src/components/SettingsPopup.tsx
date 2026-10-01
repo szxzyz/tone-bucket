@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
 import { showNotification } from '@/components/AppNotification';
+import { useSupportLink } from '@/hooks/useSupportLink';
 
 interface SettingsPopupProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface SettingsPopupProps {
 
 export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
   const { user } = useAuth();
+  const supportLink = useSupportLink();
   const { language, setLanguage, t } = useLanguage();
   const [copied, setCopied] = React.useState(false);
 
@@ -168,7 +170,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] px-4 animate-in fade-in duration-200 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[#0d0d0d] rounded-2xl w-full max-w-sm max-h-[90vh] border border-[#1a1a1a] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="rounded-2xl w-full max-w-sm max-h-[90vh] border border-white/5 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)' }} onClick={(e) => e.stopPropagation()}>
         <div className="p-6 overflow-y-auto custom-scrollbar">
           <div className="space-y-2">
             {/* My UID */}
@@ -203,7 +205,10 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
             <LegalItem
               icon={<MessageSquare className="w-4 h-4 text-blue-400" />}
               label={t('contact_support')}
-              onClick={() => openLink('http://t.me/szxzyz')}
+              onClick={() => {
+                if (!supportLink) { showNotification('Support link is not configured', 'error'); return; }
+                openLink(supportLink);
+              }}
               rightIcon={<ExternalLink className="w-3 h-3 text-gray-600" />}
             />
 
@@ -241,7 +246,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
 
       {/* Legal Detail Overlay */}
       {selectedLegal && (
-        <div className="absolute inset-0 bg-[#0d0d0d] z-[110] animate-in slide-in-from-right duration-300">
+        <div className="absolute inset-0 z-[110] animate-in slide-in-from-right duration-300" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)' }}>
           <div className="h-full flex flex-col">
             <div className="p-6 border-b border-[#1a1a1a] flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">

@@ -38,7 +38,7 @@ export default function BanScreen({ reason }: BanScreenProps) {
 
   const handleContactSupport = () => {
     if (supportLink) window.open(supportLink, '_blank');
-    else window.open('https://t.me/', '_blank');
+    else setUnbanError('Support link is not configured. Please try again later.');
   };
 
   const handleSelfUnban = async () => {

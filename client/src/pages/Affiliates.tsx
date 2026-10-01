@@ -111,15 +111,17 @@ export default function Affiliates() {
                 <div className="text-white text-sm font-black whitespace-nowrap">{settingsLoaded ? formatWorthUsd(goldWorthUsd) : '…'}</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <div className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(0,0,0,0.28)' }}>
-                <div className="text-white/45 text-[10px] font-bold uppercase tracking-wider">On join</div>
-                <div className="text-white text-xs font-black mt-1 truncate">{settingsLoaded ? `+${formatRewardGold(joinRewardGold)} GOLD` : '…'}</div>
-              </div>
-              <div className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(0,0,0,0.28)' }}>
-                <div className="text-white/45 text-[10px] font-bold uppercase tracking-wider">When active</div>
-                <div className="text-white text-xs font-black mt-1 truncate">{settingsLoaded ? `+${formatRewardGold(activeRewardGold)} GOLD` : '…'}</div>
-              </div>
+            <div className="grid grid-cols-3 gap-1.5 mt-3">
+              {[
+                ['On join', settingsLoaded ? `+${formatRewardGold(joinRewardGold)} GOLD` : '…'],
+                ['When active', settingsLoaded ? `+${formatRewardGold(activeRewardGold)} GOLD` : '…'],
+                ['Forever', settingsLoaded ? `${commissionPercent}%` : '…'],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl px-2 py-2 min-w-0" style={{ background: 'rgba(0,0,0,0.28)' }}>
+                  <div className="text-white/45 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">{label}</div>
+                  <div className="text-white text-xs font-black mt-1 whitespace-nowrap tabular-nums">{value}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -153,17 +155,16 @@ export default function Affiliates() {
           <Users className="w-4 h-4" /> My invites
         </button>
 
-        <section className="rounded-[16px] p-3 mb-3" style={{ background: FRIENDS_CARD_BACKGROUND }}>
-          <div className="text-white text-sm font-black mb-3">How it works</div>
+        <section className="rounded-[14px] px-3 py-2.5 mb-3" style={{ background: FRIENDS_CARD_BACKGROUND }}>
+          <div className="text-white text-sm font-black mb-1">How it works</div>
           {[
             { title: 'They join', description: 'Friend opens the app from your link', reward: `+${formatRewardGold(joinRewardGold)} GOLD` },
             { title: 'They watch', description: `Watch ${adsRequired} Adsgram ad${adsRequired === 1 ? '' : 's'} to become active`, reward: `+${formatRewardGold(activeRewardGold)} GOLD` },
             { title: 'Forever after', description: 'From your friend’s eligible earnings', reward: `${commissionPercent}%` },
           ].map(({ title, description, reward }, index) => (
-            <div key={title} className="flex items-center gap-3 py-3 border-b border-white/[0.06] last:border-0 last:pb-0">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black" style={{ background: index === 2 ? 'rgba(57,255,20,0.14)' : 'rgba(255,255,255,0.08)', color: index === 2 ? '#39ff14' : '#fff' }}>{index + 1}</div>
-              <div className="min-w-0 flex-1"><div className="text-white text-xs font-extrabold">{title}</div><div className="text-white/45 text-[10px] leading-relaxed mt-1">{description}</div></div>
-              <div className="text-white text-[11px] font-black text-right whitespace-nowrap">{reward}</div>
+            <div key={title} className={`flex items-center justify-between gap-3 py-2 ${index < 2 ? 'border-b border-white/[0.06]' : ''}`}>
+              <div className="min-w-0 flex-1"><div className="text-white text-xs font-extrabold">{title}</div><div className="text-white/45 text-[10px] leading-relaxed mt-0.5">{description}</div></div>
+              <div className="text-white text-[11px] font-black text-right whitespace-nowrap rounded-lg px-2 py-1" style={{ background: 'rgba(255,255,255,0.055)' }}>{reward}</div>
             </div>
           ))}
         </section>

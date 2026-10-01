@@ -40,7 +40,7 @@ export const config = {
 
 
   // ─── SUPPORT ──────────────────────────────────────────────────────────
-  // Support bot link shown to banned/rejected users (env: SUPPORT_BOT_LINK)
+  // Support bot link used by app buttons and banned/rejected users (env: SUPPORT_BOT_LINK)
   // e.g. https://t.me/YourSupportBot
   support: {
     link: process.env.SUPPORT_BOT_LINK || '',

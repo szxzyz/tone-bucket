@@ -103,12 +103,31 @@ export default function TelegramJoinGate() {
 
   if (!user) return null;
 
-  // Cached React Query data must never grant access while the current launch or
-  // a Telegram resume is being checked. Keep the app covered until the server
-  // returns a fresh result; this removes the 1–3 second access window for users
-  // who are not members without flashing the join sheet for verified users.
-  if (!isFetchedAfterMount || isLoading || isFetching || isError || !data) {
-    return <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(10,10,10,0.12)', backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', pointerEvents: 'auto' }} />;
+  // Only gate before the first membership result. Background polling and resume
+  // rechecks retain the last known state so they never leave an invisible,
+  // full-screen blur layer intercepting taps while the request is in flight.
+  if ((!isFetchedAfterMount && !isError) || (!data && (isLoading || isFetching))) {
+    return (
+      <div role="status" aria-live="polite" style={{ position: 'fixed', inset: 0, zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,10,0.92)', color: '#fff', pointerEvents: 'auto' }}>
+        <div style={{ padding: '12px 18px', borderRadius: 14, background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', fontSize: 13, fontWeight: 700 }}>Checking access…</div>
+      </div>
+    );
+  }
+
+  if (!data && isError) {
+    return (
+      <div role="alertdialog" aria-modal="true" aria-labelledby="join-check-error" style={{ position: 'fixed', inset: 0, zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(10,10,10,0.94)', color: '#fff' }}>
+        <div style={{ width: '100%', maxWidth: 360, padding: 22, borderRadius: 18, background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', textAlign: 'center' }}>
+          <div id="join-check-error" style={{ fontSize: 16, fontWeight: 800 }}>Could not check Telegram membership</div>
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.62)', fontSize: 12, lineHeight: 1.5 }}>Check your connection and retry. The app will become available once access can be verified.</div>
+          <button type="button" onClick={() => void refetch()} disabled={isFetching} style={{ width: '100%', marginTop: 16, padding: '12px 16px', border: 0, borderRadius: 12, background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: '#fff', fontSize: 14, fontWeight: 800, opacity: isFetching ? 0.65 : 1 }}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return <div role="status" aria-live="polite" style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(10,10,10,0.92)', pointerEvents: 'auto' }}>Checking access…</div>;
   }
 
   if (data.required === false || data.verified) return null;

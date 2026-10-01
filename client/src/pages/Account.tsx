@@ -5,12 +5,14 @@ import { ChevronRight, CircleHelp, Languages, Settings, Wallet, CreditCard, List
 import Layout from '@/components/Layout';
 import PayoutHistoryPopup from '@/components/PayoutHistoryPopup';
 import { showNotification } from '@/components/AppNotification';
+import { useSupportLink } from '@/hooks/useSupportLink';
 
 const cardStyle: CSSProperties = { background: '#171717', borderRadius: 16, padding: 16 };
 
 export default function Account() {
   const [cashOutOpen, setCashOutOpen] = useState(false);
   const [tab, setTab] = useState<'all' | 'earnings' | 'withdraw'>('all');
+  const supportLink = useSupportLink();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: earnings = [], isLoading: earningsLoading } = useQuery<any[]>({ queryKey: ['/api/earnings', 50], queryFn: async () => { const res = await fetch('/api/earnings?limit=50', { credentials: 'include' }); return res.ok ? res.json() : []; }, retry: false });
   const { data: withdrawalData } = useQuery<any>({ queryKey: ['/api/withdrawals'], retry: false });
@@ -26,9 +28,9 @@ export default function Account() {
   const more = (name: string) => {
     if (name === 'Track payment') { setTab('withdraw'); document.getElementById('transaction-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (name === 'Support') {
-      const link = user?.supportBotLink || 'https://t.me/GrabPennySupportBot';
+      if (!supportLink) { showNotification('Support link is not configured', 'error'); return; }
       const tg = (window as any).Telegram?.WebApp;
-      if (tg?.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
+      if (tg?.openTelegramLink) tg.openTelegramLink(supportLink); else window.open(supportLink, '_blank', 'noopener,noreferrer');
       return;
     }
     showNotification(`${name} will be available soon`, 'info');

@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { getTONPrice } from "@/lib/tonPriceService";
 import { TonIcon } from "@/components/TonIcon";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useSupportLink } from "@/hooks/useSupportLink";
+import { showNotification } from "@/components/AppNotification";
 import { useLocation } from "wouter";
 
 interface MenuPopupProps {
@@ -53,6 +55,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const [transactionPage, setTransactionPage] = useState(0);
   const [tonPrice, setTonPrice] = useState<number | null>(null);
   const { isAdmin } = useAdmin();
+  const supportLink = useSupportLink();
   const [, setLocation] = useLocation();
 
   const { data: user } = useQuery<any>({
@@ -191,7 +194,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
           animate={documentScreen ? { x: 0 } : { y: 0 }}
           exit={documentScreen ? { x: "100%" } : { y: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          style={{ maxHeight: documentScreen ? "none" : "90vh", overflowY: "auto" }}
+          style={{ maxHeight: documentScreen ? "none" : "90vh", overflowY: "auto", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)" }}
         >
           {!documentScreen && <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>}
 
@@ -265,9 +268,12 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               </button>
 
               <button onClick={() => {
+                if (!supportLink) {
+                  showNotification("Support link is not configured", "error");
+                  return;
+                }
                 const tg = (window as any).Telegram?.WebApp;
-                const supportUrl = import.meta.env.VITE_SUPPORT_URL || user?.supportBotLink || "https://t.me/GrabPennySupportBot";
-                if (tg?.openTelegramLink) tg.openTelegramLink(supportUrl); else window.open(supportUrl, "_blank");
+                if (tg?.openTelegramLink) tg.openTelegramLink(supportLink); else window.open(supportLink, "_blank", "noopener,noreferrer");
               }} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><MdOutlineSupportAgent className="w-5 h-5 text-pink-400" /><span className="text-white font-bold text-sm">Support</span></div>
                 <ChevronRight className="w-4 h-4 text-white/30" />
@@ -334,7 +340,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 ].map((card) => {
                   const Icon = card.icon;
                   return (
-                    <div key={card.label} className="rounded-xl bg-[#252525] border border-white/[0.04] p-3 min-w-0">
+                    <div key={card.label} className="rounded-xl bg-white/[0.045] p-3 min-w-0">
                       <Icon className="w-4 h-4 text-white/60 mb-1.5" strokeWidth={2.1} />
                       <div className="text-white text-base font-black leading-tight truncate">{card.value}</div>
                       <div className="text-white/40 text-[10px] mt-1 truncate">{card.label}</div>
