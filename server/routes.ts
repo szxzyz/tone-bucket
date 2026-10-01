@@ -1434,13 +1434,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Referral reward settings
       const referralRewardEnabled = getSetting('referral_reward_enabled', 'false') === 'true';
-      const referralRewardUSD = parseFloat(getSetting('referral_reward_usd', '0.0005'));
-      const referralRewardGems = parseInt(getSetting('referral_reward_pad', '2500'));
-      const referralRewardGemsEnabled = getSetting('referral_reward_pad_enabled', 'true') === 'true';
+      const referralRewardUSD = Math.max(0, parseFloat(getSetting('referral_reward_usd', '0')) || 0);
+      const referralRewardGems = Math.max(0, parseInt(getSetting('referral_reward_pad', '0')) || 0);
+      const referralRewardGemsEnabled = getSetting('referral_reward_pad_enabled', 'false') === 'true';
       const referralRewardUSDEnabled = getSetting('referral_reward_usd_enabled', 'false') === 'true';
-      const referralAdsRequired = 5; // Five Adsgram ads are required for affiliate bonus
-      const l1CommissionPercent = parseFloat(getSetting('l1_commission_percent', '20')); // Level 1: 20%
-      const l2CommissionPercent = parseFloat(getSetting('l2_commission_percent', '4')); // Level 2: 4%
+      const referralAdsRequired = Math.max(0, parseInt(getSetting('referral_ads_required', '0')) || 0);
+      const l1CommissionPercent = Math.max(0, parseFloat(getSetting('l1_commission_percent', '0')) || 0);
 
       // Daily task rewards (for TaskSection.tsx)
       const streakReward = parseInt(getSetting('streak_reward', '100')); // Daily streak claim reward in Gems
@@ -1513,6 +1512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minimumConvert: minimumConvertUSD,
         minimumConvertGems,
         minimumConvertUSD,
+        padPerUsd,
         minimumClicks,
         withdrawalCurrency,
         referralRewardEnabled,
@@ -1522,7 +1522,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referralRewardUSDEnabled,
         referralAdsRequired,
         l1CommissionPercent,
-        l2CommissionPercent,
         // Daily task rewards
         streakReward,
         shareTaskReward,
@@ -2105,25 +2104,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("⚠️ Referral bonus processing failed (non-critical):", bonusError);
         }
 
-        // Process 2-level referral commission (configurable from admin settings)
+        // Process the direct referral commission only. Level 2 is intentionally disabled.
         if (user.referredBy) {
           try {
             const l1Setting = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, 'l1_commission_percent')).limit(1);
-            const l2Setting = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, 'l2_commission_percent')).limit(1);
-            const l1Rate = l1Setting[0]?.settingValue ? parseFloat(l1Setting[0].settingValue) / 100 : 0.20;
-            const l2Rate = l2Setting[0]?.settingValue ? parseFloat(l2Setting[0].settingValue) / 100 : 0.04;
-
-            // L1 referrer — the person who directly invited this user (stored as referral code)
+            const l1Rate = l1Setting[0]?.settingValue ? Math.max(0, parseFloat(l1Setting[0].settingValue) / 100) : 0;
             const l1Referrer = await storage.getUserByReferralCode(user.referredBy);
-            if (l1Referrer) {
-              // Use Math.ceil and ensure minimum 1 Gems commission so small rewards never round to 0
-              const l1CommissionGems = Math.max(1, Math.ceil(adRewardGems * l1Rate));
-              const l1RateDisplay = Math.round(l1Rate * 100);
+            if (l1Referrer && l1Rate > 0) {
+              const l1CommissionGems = Math.ceil(adRewardGems * l1Rate);
               await db.update(users).set({
                 pendingReferralBonus: sql`COALESCE(${users.pendingReferralBonus}, 0) + ${l1CommissionGems}`,
                 updatedAt: new Date(),
               }).where(eq(users.id, l1Referrer.id));
-              // Store in referralCommissions table for audit trail and affiliate statistics
               try {
                 await db.insert(referralCommissions).values({
                   referrerId: l1Referrer.id,
@@ -2134,8 +2126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } catch (rcErr) {
                 console.warn('⚠️ referralCommissions insert failed (non-critical):', rcErr);
               }
-              console.log(`💰 L1 commission: ${l1CommissionGems} Gems (${l1RateDisplay}%) → ${l1Referrer.id}`);
-              // Push live balance update to L1 referrer's open session
+              console.log(`💰 Direct referral commission: ${l1CommissionGems} Gold (${l1Rate * 100}%) → ${l1Referrer.id}`);
               try {
                 const l1Updated = await storage.getUser(l1Referrer.id);
                 sendRealtimeUpdate(l1Referrer.id, {
@@ -2146,53 +2137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   totalEarnings: l1Updated?.totalEarnings,
                 });
               } catch (_) {}
-
-              // L2 referrer — the person who invited the L1 referrer
-              if (l1Referrer.referredBy) {
-                try {
-                  const l2Referrer = await storage.getUserByReferralCode(l1Referrer.referredBy);
-                  if (l2Referrer) {
-                    const l2CommissionGems = Math.max(1, Math.ceil(adRewardGems * l2Rate));
-                    const l2RateDisplay = Math.round(l2Rate * 100);
-                    await db.update(users).set({
-                      pendingReferralBonus: sql`COALESCE(${users.pendingReferralBonus}, 0) + ${l2CommissionGems}`,
-                      updatedAt: new Date(),
-                    }).where(eq(users.id, l2Referrer.id));
-                    // Store L2 in referralCommissions table
-                    try {
-                      await db.insert(referralCommissions).values({
-                        referrerId: l2Referrer.id,
-                        referredUserId: userId,
-                        originalEarningId: adWatchEarning.id,
-                        commissionAmount: String(l2CommissionGems),
-                      });
-                    } catch (rc2Err) {
-                      console.warn('⚠️ L2 referralCommissions insert failed (non-critical):', rc2Err);
-                    }
-                    console.log(`💰 L2 commission: ${l2CommissionGems} Gems → ${l2Referrer.id}`);
-                    // Push live balance update to L2 referrer
-                    try {
-                      const l2Updated = await storage.getUser(l2Referrer.id);
-                      sendRealtimeUpdate(l2Referrer.id, {
-                        type: 'balance_update',
-                        balance: l2Updated?.balance,
-                        withdrawBalance: l2Updated?.withdrawBalance,
-                        usdBalance: l2Updated?.usdBalance,
-                        totalEarnings: l2Updated?.totalEarnings,
-                      });
-                    } catch (_) {}
-                  }
-                } catch (l2Error) {
-                  console.error("⚠️ L2 commission failed (non-critical):", l2Error);
-                }
-              }
-            } else {
-              // L1 referrer not found — log warning but do NOT clear the referral link
-              // (referrer may be temporarily unavailable; clearing is irreversible)
-              console.warn(`⚠️ L1 referrer with code ${user.referredBy} not found for user ${userId} — skipping commission this ad`);
             }
           } catch (commissionError) {
-            console.error("⚠️ Referral commission processing failed (non-critical):", commissionError);
+            console.error('⚠️ Direct referral commission failed (non-critical):', commissionError);
           }
         }
       } catch (earningError) {
@@ -3071,50 +3018,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           AND source IN ('referral_commission', 'referral')
       `);
       const totalPowEarned = Number((powCommissionsResult.rows[0] as any)?.total || 0);
-      const l2CommissionsResult = await db.execute(sql`
-        SELECT COALESCE(SUM(CAST(amount AS DECIMAL)), 0) AS total
-        FROM earnings
-        WHERE user_id = ${userId} AND source = 'referral_commission_l2'
-      `);
-      const totalL2Earned = Number((l2CommissionsResult.rows[0] as any)?.total || 0);
       const claimedMilestoneRows = await db.select({ source: transactions.source }).from(transactions).where(and(eq(transactions.userId, userId), sql`${transactions.source} LIKE 'referral_milestone_%'`));
       const claimedMilestones = Object.fromEntries(claimedMilestoneRows.map(row => [String(row.source).replace('referral_milestone_', ''), true]));
-
-      // L2 count: users referred by my direct referrals
-      let l2Count = 0;
-      try {
-        if (user?.referralCode) {
-          const l1Users = await db
-            .select({ referralCode: users.referralCode })
-            .from(users)
-            .where(eq(users.referredBy, user.referralCode));
-          if (l1Users.length > 0) {
-            const l1Codes = l1Users.map(u => u.referralCode).filter(Boolean) as string[];
-            if (l1Codes.length > 0) {
-              // Use raw SQL to avoid Drizzle IN-clause limitations with large arrays
-              const l2Result = await db.execute(sql`
-                SELECT COUNT(*) as count FROM users
-                WHERE referred_by IN (${sql.join(l1Codes.map(c => sql`${c}`), sql`, `)})
-              `);
-              l2Count = Number((l2Result.rows[0] as any)?.count || 0);
-            }
-          }
-        }
-      } catch (l2Error) {
-        console.error("Error computing L2 count:", l2Error);
-      }
 
       res.json({
         totalInvites: totalInvitesCount,
         successfulInvites: successfulInvitesCount,
-        l2Count,
         totalClaimed: user?.totalClaimedReferralBonus || '0',
         availableBonus: user?.pendingReferralBonus || '0',
         readyToClaim: user?.pendingReferralBonus || '0',
-        totalReferralBonusEarned: (totalPowEarned + totalL2Earned + Number(user?.pendingReferralBonus || 0)).toString(),
+        totalReferralBonusEarned: (totalPowEarned + Number(user?.pendingReferralBonus || 0)).toString(),
         totalPowEarned,
         totalL1Earned: totalPowEarned,
-        totalL2Earned,
         claimedMilestones,
         totalUsdEarned,
         // legacy field kept for compatibility
@@ -3402,7 +3317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (COALESCE(SUM(amount), 0) / 100000.0)::float as amount
         FROM earnings
         WHERE user_id = ${userId}
-          AND source IN ('referral', 'referral_commission', 'referral_commission_l2', 'referral_bonus')
+          AND source IN ('referral', 'referral_commission', 'referral_bonus')
           AND created_at >= NOW() - INTERVAL '1 day' * ${days}
         GROUP BY DATE(created_at AT TIME ZONE 'UTC')
         ORDER BY DATE(created_at AT TIME ZONE 'UTC') ASC
@@ -4993,8 +4908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dailyAdLimit: parseInt(getSetting('daily_ad_limit', '50')),
         rewardPerAd: parseInt(getSetting('reward_per_ad', '2')), // Default 2 Gems
         affiliateCommission: parseFloat(getSetting('affiliate_commission', '10')),
-        l1CommissionPercent: parseFloat(getSetting('l1_commission_percent', '20')),
-        l2CommissionPercent: parseFloat(getSetting('l2_commission_percent', '4')),
+        l1CommissionPercent: Math.max(0, parseFloat(getSetting('l1_commission_percent', '0')) || 0),
         walletChangeFee: parseInt(getSetting('wallet_change_fee', '100')), // Return as Gems, default 100
         minimumWithdrawalUSD: parseFloat(getSetting('minimum_withdrawal_usd', '1.00')), // NEW: Min USD withdrawal
         minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
@@ -5016,11 +4930,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         seasonBroadcastActive: getSetting('season_broadcast_active', 'false') === 'true',
         hourlyAdLimit: parseInt(getSetting('hourly_ad_limit', '63')),
         referralRewardEnabled: getSetting('referral_reward_enabled', 'false') === 'true',
-        referralRewardUSD: parseFloat(getSetting('referral_reward_usd', '0.0005')),
-        referralRewardGems: parseInt(getSetting('referral_reward_pad', '2500')),
-        referralRewardGemsEnabled: getSetting('referral_reward_pad_enabled', 'true') === 'true',
+        referralRewardUSD: Math.max(0, parseFloat(getSetting('referral_reward_usd', '0')) || 0),
+        referralRewardGems: Math.max(0, parseInt(getSetting('referral_reward_pad', '0')) || 0),
+        referralRewardGemsEnabled: getSetting('referral_reward_pad_enabled', 'false') === 'true',
         referralRewardUSDEnabled: getSetting('referral_reward_usd_enabled', 'false') === 'true',
-        referralAdsRequired: 5,
+        referralAdsRequired: Math.max(0, parseInt(getSetting('referral_ads_required', '0')) || 0),
         // Daily task rewards
         streakReward: parseInt(getSetting('streak_reward', '100')),
         shareTaskReward: parseInt(getSetting('share_task_reward', '1000')),

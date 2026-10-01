@@ -2508,7 +2508,6 @@ function SettingsSection() {
     hourlyAdLimit: '63',
     rewardPerAd: '2',
     l1CommissionPercent: '20',
-    l2CommissionPercent: '4',
     minimumWithdrawAmount: '0.20',
     minimumCashoutGold: '1000',
     maximumWithdrawAmount: '0.50',
@@ -2576,7 +2575,6 @@ function SettingsSection() {
         hourlyAdLimit: settingsData.hourlyAdLimit?.toString() || '63',
         rewardPerAd: settingsData.rewardPerAd?.toString() || '2',
         l1CommissionPercent: settingsData.l1CommissionPercent?.toString() || '20',
-        l2CommissionPercent: settingsData.l2CommissionPercent?.toString() || '4',
         minimumWithdrawAmount: settingsData.minimumWithdrawAmount?.toString() || '0.20',
         minimumCashoutGold: settingsData.minimumCashoutGold?.toString() || '1000',
         maximumWithdrawAmount: settingsData.maximumWithdrawAmount?.toString() || '0.50',
@@ -2726,7 +2724,6 @@ function SettingsSection() {
         hourlyAdLimit: parseInt(settings.hourlyAdLimit) || 63,
         rewardPerAd: reward,
         l1CommissionPercent: parseFloat(settings.l1CommissionPercent) || 20,
-        l2CommissionPercent: parseFloat(settings.l2CommissionPercent) || 4,
         minimumWithdrawAmount: minWithdrawAmount,
         minimumCashoutGold: Math.max(1, parseInt((settings as any).minimumCashoutGold) || 1000),
         maximumWithdrawAmount: maxWithdrawAmount,
@@ -2750,7 +2747,7 @@ function SettingsSection() {
         referralRewardUSDEnabled: settings.referralRewardUSDEnabled,
         referralRewardUSD: refRewardUSD,
         referralRewardSWAG: refRewardSWAG,
-        referralAdsRequired: parseInt(settings.referralAdsRequired) || 1,
+        referralAdsRequired: Math.max(0, parseInt(settings.referralAdsRequired) || 0),
         withdrawalAdRequirementEnabled: settings.withdrawalAdRequirementEnabled,
         minimumAdsForWithdrawal: parseInt(settings.minimumAdsForWithdrawal) || 100,
         withdrawalInviteRequirementEnabled: settings.withdrawalInviteRequirementEnabled,
@@ -3035,25 +3032,6 @@ function SettingsSection() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="l2-commission" className="text-sm font-semibold">
-                <i className="fas fa-percent mr-2 text-blue-500"></i>
-                Level 2 Commission (%)
-              </Label>
-              <Input
-                id="l2-commission"
-                type="number"
-                value={settings.l2CommissionPercent}
-                onChange={(e) => setSettings({ ...settings, l2CommissionPercent: e.target.value })}
-                placeholder="4"
-                min="0"
-                max="100"
-                step="0.1"
-              />
-              <p className="text-xs text-muted-foreground">
-                Referrals of referrals. Current: {settingsData?.l2CommissionPercent || 4}%
-              </p>
-            </div>
 
             <div className="space-y-2 p-3 border rounded-lg bg-green-50/5 border-green-500/20 md:col-span-2">
               <Label className="text-sm font-semibold block mb-2">

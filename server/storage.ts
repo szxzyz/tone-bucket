@@ -875,8 +875,11 @@ export class DatabaseStorage implements IStorage {
       .values({
         referrerId,
         refereeId: referredId,
-        rewardAmount: "0.01",
-        status: 'pending', // Pending until friend watches 10 ads
+        rewardAmount: '0',
+        usdRewardAmount: (await this.getAppSetting('referral_reward_usd_enabled', 'false')) === 'true'
+          ? String(Math.max(0, parseFloat(await this.getAppSetting('referral_reward_usd', '0')) || 0))
+          : '0',
+        status: 'pending',
       })
       .returning();
     
@@ -891,6 +894,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, referredId));
     
     console.log(`✅ Referral relationship created (pending): ${referrerId} referred ${referredId}, referred_by updated to: ${referrer.referralCode}`);
+
+    const joinRewardEnabled = (await this.getAppSetting('referral_reward_usd_enabled', 'false')) === 'true';
+    const joinRewardUsd = joinRewardEnabled ? Math.max(0, parseFloat(await this.getAppSetting('referral_reward_usd', '0')) || 0) : 0;
+    if (joinRewardUsd > 0) {
+      await db.update(users).set({
+        usdBalance: sql`COALESCE(${users.usdBalance}, 0) + ${joinRewardUsd}`,
+        updatedAt: new Date(),
+      }).where(eq(users.id, referrerId));
+      try {
+        await this.logTransaction({
+          userId: referrerId,
+          amount: String(joinRewardUsd),
+          type: 'addition',
+          source: 'referral_join',
+          description: 'Referral reward for friend joining',
+          metadata: { referredUserId: referredId },
+        });
+      } catch (joinLogError) {
+        console.warn('⚠️ Referral join reward log failed (non-critical):', joinLogError);
+      }
+    }
 
     // Immediate activation: if the referee has already watched enough ads, activate right now.
     // This handles the race condition where a referral is created after the friend's first ad.
@@ -953,9 +977,9 @@ export class DatabaseStorage implements IStorage {
             ))
         : [];
 
-      // A referral qualifies only after five Adsgram ads (not ads from another
-      // provider). This is intentionally independent of the general ad count.
-      const referralAdsRequired = 5;
+      // A referral qualifies after the admin-configured number of Adsgram ads.
+      // This is intentionally independent of the general ad count.
+      const referralAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '0')) || 0);
 
       // Count ads watched by this user (from earnings table so timing is always accurate)
       const [adCount] = await db
@@ -985,11 +1009,8 @@ export class DatabaseStorage implements IStorage {
 
       // Read the admin-configured Gold reward. It is accumulated as pending
       // income and is credited only when the referrer presses Collect.
-      const configuredReward = parseInt(await this.getAppSetting('referral_reward_pad', '2500')) || 0;
-      // 50 was the old legacy default; migrate that implicit default to the
-      // requested 2500 Gold without overriding a deliberate admin value.
-      const referralRewardSWAG = configuredReward === 50 ? 2500 : configuredReward;
-      const giveSWAG = (await this.getAppSetting('referral_reward_pad_enabled', 'true')) === 'true';
+      const referralRewardSWAG = Math.max(0, parseInt(await this.getAppSetting('referral_reward_pad', '0')) || 0);
+      const giveSWAG = (await this.getAppSetting('referral_reward_pad_enabled', 'false')) === 'true';
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition
       // double-payments. Only credit reward if this process was the one that flipped the status.
@@ -999,7 +1020,6 @@ export class DatabaseStorage implements IStorage {
           .set({
             status: 'completed',
             rewardAmount: giveSWAG ? String(referralRewardSWAG) : '0',
-            usdRewardAmount: '0', // USD bonus removed as per user request
             bugRewardAmount: '0'
           })
           .where(and(eq(referrals.id, referral.id), eq(referrals.status, 'pending')))
@@ -1227,7 +1247,7 @@ export class DatabaseStorage implements IStorage {
                 .values({
                   referrerId: referrer.id,
                   refereeId: user.userId,
-                  rewardAmount: "0.01",
+                  rewardAmount: '0',
                   status: 'pending', // Will be updated by checkAndActivateReferralBonus if user has 10+ ads
                 });
               
@@ -1506,8 +1526,10 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
-      // Calculate 10% commission on ad earnings only
-      const commissionAmount = (parseFloat(earningAmount) * 0.10).toFixed(8);
+      // Calculate the admin-configured direct commission on eligible earnings.
+      const commissionRate = Math.max(0, parseFloat(await this.getAppSetting('l1_commission_percent', '0')) || 0) / 100;
+      if (commissionRate <= 0) return;
+      const commissionAmount = (parseFloat(earningAmount) * commissionRate).toFixed(8);
       
       // Record the referral commission
       await db.insert(referralCommissions).values({
@@ -1522,7 +1544,7 @@ export class DatabaseStorage implements IStorage {
         userId: referralInfo.referrerId,
         amount: commissionAmount,
         source: 'referral_commission',
-        description: `10% commission from referred user's ad earnings`,
+        description: `${commissionRate * 100}% commission from referred user's earnings`,
       });
 
       // Log commission transaction
@@ -1531,11 +1553,11 @@ export class DatabaseStorage implements IStorage {
         amount: commissionAmount,
         type: 'addition',
         source: 'referral_commission',
-        description: `10% commission from referred user's ad earnings`,
+        description: `${commissionRate * 100}% commission from referred user's earnings`,
         metadata: { 
           originalEarningId, 
           referredUserId: userId,
-          commissionRate: '10%'
+          commissionRate: `${commissionRate * 100}%`
         }
       });
 
@@ -3773,7 +3795,7 @@ export class DatabaseStorage implements IStorage {
               eq(earnings.source, 'ad_watch'),
             ));
           const adsAlreadyWatched = Number(adCountRow?.count || 0);
-          const repairAdsRequired = parseInt(await this.getAppSetting('referral_ads_required', '1'));
+          const repairAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '0')) || 0);
 
           const insertStatus = adsAlreadyWatched >= repairAdsRequired ? 'completed' : 'pending';
           await db.insert(referrals).values({
@@ -3795,7 +3817,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // ── PASS 2: Activate pending referrals whose referee watched enough ads ─
-      const referralAdsRequired = parseInt(await this.getAppSetting('referral_ads_required', '1'));
+      const referralAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '0')) || 0);
 
       const pendingRows = await db
         .select({

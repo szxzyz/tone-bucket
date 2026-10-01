@@ -1,46 +1,56 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
-import { Copy, Users, Send, Megaphone, ChevronRight } from 'lucide-react';
+import { Copy, Users, Send, Gift, CheckCircle2, Clock3 } from 'lucide-react';
 import { formatLargeSWAG } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/hooks/useLanguage';
-import { useAdmin } from '@/hooks/useAdmin';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerClose,
-} from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 
-function StatSkeleton() {
-  return (
-    <div
-      style={{
-        height: 24,
-        width: 56,
-        background: 'rgba(255,255,255,0.08)',
-        borderRadius: 6,
-        display: 'inline-block',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}
-    />
-  );
-}
+const formatUsd = (value: number) => `$${value.toFixed(value > 0 && value < 0.01 ? 4 : 2)}`;
 
 export default function Affiliates() {
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
-  const { isAdmin } = useAdmin();
   const [referralsOpen, setReferralsOpen] = useState(false);
+  const [visibleReferralsCount, setVisibleReferralsCount] = useState(40);
+  const [isSharing, setIsSharing] = useState(false);
   const queryClient = useQueryClient();
-  const claimReferralMutation = useMutation<any, Error, number | undefined>({
-    mutationFn: async (milestone?: number) => {
-      const response = await apiRequest('POST', milestone ? '/api/referrals/milestones/claim' : '/api/referrals/claim', milestone ? { inviteTarget: milestone } : undefined);
+  const preparedShareRef = useRef<Promise<any> | null>(null);
+
+  const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
+  const { data: stats } = useQuery<any>({ queryKey: ['/api/referrals/stats'], retry: false });
+  const { data: appSettings } = useQuery<any>({ queryKey: ['/api/app-settings'], retry: false });
+  const { data: myReferralsData, isLoading: isLoadingReferrals } = useQuery<any>({
+    queryKey: ['/api/referrals/my-referrals'], retry: false, enabled: referralsOpen,
+  });
+  const { data: botInfo } = useQuery<{ username: string }>({
+    queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000,
+  });
+
+  const botUsername = botInfo?.username || '';
+  const referralLink = user?.referralCode
+    ? `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`
+    : '';
+  const settingsLoaded = appSettings !== undefined;
+  const goldReward = appSettings?.referralRewardGemsEnabled ? Number(appSettings.referralRewardGems || 0) : 0;
+  const joinRewardUsd = appSettings?.referralRewardUSDEnabled ? Number(appSettings.referralRewardUSD || 0) : 0;
+  const padPerUsd = Number(appSettings?.padPerUsd || 0);
+  const goldWorthUsd = padPerUsd > 0 ? goldReward / padPerUsd : 0;
+  const adsRequired = Number(appSettings?.referralAdsRequired || 0);
+  const commissionPercent = Number(appSettings?.l1CommissionPercent || 0);
+
+  const totalFriends = Number(stats?.totalInvites || 0);
+  const activeFriends = Number(stats?.successfulInvites || 0);
+  const totalEarned = Number(stats?.totalReferralBonusEarned || stats?.totalL1Earned || 0);
+  const pendingBonus = Number(stats?.availableBonus || 0);
+  const myReferrals: any[] = myReferralsData?.referrals || [];
+  const visibleReferrals = myReferrals.slice(0, visibleReferralsCount);
+
+  const claimReferralMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/referrals/claim');
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || data.message || 'Claim failed');
       return data;
@@ -50,74 +60,24 @@ export default function Affiliates() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       showNotification('Reward claimed successfully', 'success');
     },
-    onError: (error: any) => showNotification(error.message || 'Unable to claim reward', 'error'),
+    onError: (error: Error) => showNotification(error.message || 'Unable to claim reward', 'error'),
   });
 
-  const { data: user } = useQuery<any>({
-    queryKey: ['/api/auth/user'],
-    retry: false,
-  });
-
-  const { data: stats, isLoading: isLoadingStats } = useQuery<any>({
-    queryKey: ['/api/referrals/stats'],
-    retry: false,
-  });
-
-  const { data: appSettings } = useQuery<any>({
-    queryKey: ['/api/app-settings'],
-    retry: false,
-  });
-
-  const { data: myReferralsData, isLoading: isLoadingReferrals } = useQuery<any>({
-    queryKey: ['/api/referrals/my-referrals'],
-    retry: false,
-    enabled: referralsOpen,
-  });
-
-  const [isSharing, setIsSharing] = useState(false);
-  const preparedShareRef = useRef<Promise<any> | null>(null);
-
-  const { data: botInfo } = useQuery<{ username: string }>({
-    queryKey: ['/api/bot-info'],
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
-  // Env-based config — bot username never hardcoded
-  const { data: appConfig } = useQuery<any>({
-    queryKey: ['/api/config/app'],
-    staleTime: 5 * 60_000,
-    retry: false,
-  });
-  const botUsername = botInfo?.username || import.meta.env.VITE_BOT_USERNAME || appConfig?.botUsername || '';
-  const referralLink = user?.referralCode
-    ? `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`
-    : '';
-
-  const l1Percent = appSettings?.l1CommissionPercent ?? 20;
-  const l2Percent = appSettings?.l2CommissionPercent ?? 4;
-
-  // Copy referral link (was the main button, now the small circular button)
-  const copyLink = () => {
+  const copyLink = async () => {
     if (!referralLink) return;
-    navigator.clipboard.writeText(referralLink);
+    await navigator.clipboard.writeText(referralLink);
     showNotification(t('link_copied'), 'success');
   };
 
   const prepareShareMessage = () => {
     if (!referralLink) return Promise.resolve(null);
     if (!preparedShareRef.current) {
-      preparedShareRef.current = fetch('/api/share/prepare-message', {
-        method: 'POST',
-        credentials: 'include',
-      }).then((res) => res.json()).catch((error) => {
-        console.error(error);
-        return null;
-      });
+      preparedShareRef.current = fetch('/api/share/prepare-message', { method: 'POST', credentials: 'include' })
+        .then((res) => res.json()).catch(() => null);
     }
     return preparedShareRef.current;
   };
 
-  // Prepare the image message while the Affiliates page is open, so Invite Friends is immediate.
   useEffect(() => {
     preparedShareRef.current = null;
     if (referralLink) void prepareShareMessage();
@@ -127,224 +87,127 @@ export default function Affiliates() {
     if (isSharing || !referralLink) return;
     setIsSharing(true);
     try {
-      const tgWebApp = (window as any).Telegram?.WebApp;
       const data = await prepareShareMessage();
-      if (data?.success && tgWebApp?.shareMessage) {
-        tgWebApp.shareMessage(data.messageId, () => undefined);
-      } else {
+      const tgWebApp = (window as any).Telegram?.WebApp;
+      if (data?.success && tgWebApp?.shareMessage) tgWebApp.shareMessage(data.messageId, () => undefined);
+      else {
         const fallbackUrl = data?.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(referralLink)}`;
         if (tgWebApp?.openTelegramLink) tgWebApp.openTelegramLink(fallbackUrl);
         else window.open(fallbackUrl, '_blank');
       }
-    } finally {
-      setIsSharing(false);
-    }
+    } finally { setIsSharing(false); }
   };
-
-  const l1Count = stats?.totalInvites ?? 0;
-  const l2Count = stats?.l2Count ?? 0;
-  const pendingReferralBonus = Number(stats?.availableBonus ?? 0);
-  const totalReferralBonusEarned = Number(stats?.totalReferralBonusEarned ?? (Number(stats?.totalClaimed ?? 0) + pendingReferralBonus));
-  const myReferrals: any[] = myReferralsData?.referrals ?? [];
-
-  // Render referrals in pages of 40 instead of dumping the whole list into
-  // the DOM at once — power users can accumulate hundreds/thousands of
-  // referrals, and unbounded rows there was a real scroll-jank risk.
-  const REFERRALS_PAGE_SIZE = 40;
-  const [visibleReferralsCount, setVisibleReferralsCount] = useState(REFERRALS_PAGE_SIZE);
-  const visibleReferrals = myReferrals.slice(0, visibleReferralsCount);
-  const hasMoreReferrals = visibleReferralsCount < myReferrals.length;
 
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 bg-black pb-0">
+        <section className="rounded-[22px] p-4 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #202020 0%, #101010 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,190,54,0.14)' }}>
+              <Gift className="w-5 h-5 text-amber-300" />
+            </div>
+            <div>
+              <div className="text-white text-lg font-black">Per friend you invite</div>
+              <div className="text-white/40 text-xs mt-0.5">Rewards are controlled by admin settings</div>
+            </div>
+          </div>
+          <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.055)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/assets/gems-icon.svg" alt="Gold" className="w-12 h-12 object-contain" />
+                <div>
+                  <div className="text-white text-2xl font-black tabular-nums">{settingsLoaded ? formatLargeSWAG(goldReward, false) : '…'}</div>
+                  <div className="text-amber-200/70 text-[11px] font-bold uppercase tracking-wider">Gold</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Worth</div>
+                <div className="text-white text-base font-black">{settingsLoaded && padPerUsd > 0 ? formatUsd(goldWorthUsd) : '—'}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.24)' }}>
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">On join</div>
+                <div className="text-white text-sm font-black mt-1">{settingsLoaded ? `+${formatUsd(joinRewardUsd)}` : '…'}</div>
+              </div>
+              <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.24)' }}>
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">When active</div>
+                <div className="text-white text-sm font-black mt-1">{settingsLoaded ? `+${formatLargeSWAG(goldReward, false)} Gold` : '…'}</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-4 text-white/70 text-xs font-bold">
+            <span className="text-[#39ff14]">{settingsLoaded ? `${commissionPercent}% forever` : '…'}</span>
+            <span className="text-white/25">•</span>
+            <span>{settingsLoaded && adsRequired > 0 ? `${adsRequired} ads to activate` : 'Activation requirement'}</span>
+          </div>
+        </section>
 
-        {/* Main: Invite Friends button + Copy circular button */}
-        <div className="mb-4 flex items-center gap-3">
-          {/* PRIMARY: Invite Friends — opens Telegram share sheet */}
-          <button
-            onClick={inviteFriends}
-            disabled={isSharing || !user?.referralCode}
-            className="flex-1 h-14 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
-            style={{ background: '#252525' }}
-          >
+        <section className="rounded-[18px] p-3 mb-4" style={{ background: '#171717', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              ['Friends', totalFriends],
+              ['Active', activeFriends],
+              ['Earned', formatLargeSWAG(totalEarned, false)],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="text-center rounded-xl py-3" style={{ background: 'rgba(255,255,255,0.045)' }}>
+                <div className="text-white text-lg font-black tabular-nums">{value}</div>
+                <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider mt-1">{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-14 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: '#252525' }}>
             <Send className="w-5 h-5 text-white" />
-            <span className="text-white font-bold tracking-widest text-sm">Invite Friends</span>
+            <span className="text-white font-bold tracking-widest text-sm">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
           </button>
-
-          {/* SECONDARY: Copy referral link — circular icon */}
-          <button
-            onClick={copyLink}
-            disabled={!user?.referralCode}
-            className="w-14 h-14 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0"
-            style={{ background: '#252525' }}
-            title="Copy referral link"
-          >
+          <button onClick={copyLink} disabled={!referralLink} className="w-14 h-14 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: '#252525' }} title="Copy referral link">
             <Copy className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        {/* Income from friends — informational only; claims live in Bonuses. */}
-        <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-1">Income from friends</div>
-        <div className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: '#252525' }}>
-          <div className="flex items-center justify-between px-3 pt-3 pb-2">
-            <div>
-              <div className="text-white text-[15px] font-extrabold">Referral income</div>
-              <div className="text-white/40 text-xs mt-1">L1 {l1Percent}% · L2 {l2Percent}% from friends</div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-white/30 text-[9px] font-bold uppercase tracking-[0.1em] mb-0.5">Total friends</div>
-              <div className="text-white text-[13px] font-extrabold">{l1Count + l2Count}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 px-3 pb-3">
-            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Level 1</div>
-              <div className="text-white text-sm font-black mt-1">{l1Count} friends</div>
-              <div className="text-white/65 text-xs mt-1">{formatLargeSWAG(Number(stats?.totalL1Earned ?? 0), false)} Gold earned</div>
-            </div>
-            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Level 2</div>
-              <div className="text-white text-sm font-black mt-1">{l2Count} friends</div>
-              <div className="text-white/65 text-xs mt-1">{formatLargeSWAG(Number(stats?.totalL2Earned ?? 0), false)} Gold earned</div>
-            </div>
-          </div>
-        </div>
+        <button onClick={() => setReferralsOpen(true)} className="w-full h-12 rounded-xl mb-4 flex items-center justify-center gap-2 text-white text-sm font-extrabold" style={{ background: '#202020', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <Users className="w-4 h-4" /> My invites
+        </button>
 
-        {/* Referral bonuses are accumulated here and never auto-added to balance. */}
-        <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mt-5 mb-2 px-1">Bonuses</div>
-        <div className="w-full rounded-2xl mb-2 overflow-hidden" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 8px 24px rgba(0,0,0,0.24)' }}>
-          <div className="flex items-center justify-between px-4 pt-4 pb-3">
-            <div>
-              <div className="text-white/45 text-[10px] font-black uppercase tracking-[0.14em]">Referral bonuses</div>
-              <div className="text-white text-xl font-black mt-1 tabular-nums">{formatLargeSWAG(totalReferralBonusEarned, false)} <span className="text-xs text-white/50">Gold</span></div>
+        {pendingBonus > 0 && (
+          <section className="rounded-2xl p-4 mb-4" style={{ background: '#151515', border: '1px solid rgba(57,255,20,0.14)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <div><div className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Ready to collect</div><div className="text-white text-xl font-black mt-1">{formatLargeSWAG(pendingBonus, false)} Gold</div></div>
+              <button onClick={() => claimReferralMutation.mutate()} disabled={claimReferralMutation.isPending} className="h-10 px-4 rounded-xl text-xs font-black text-black disabled:opacity-50" style={{ background: '#39ff14' }}>{claimReferralMutation.isPending ? 'Collecting…' : 'Collect'}</button>
             </div>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)' }}>
-              <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
-            </div>
-          </div>
-          <div className="px-4 pb-3">
-            <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-[0.08em]">
-              <span className="text-white/40">Total earned</span>
-              <span className="text-[#39ff14]">{pendingReferralBonus > 0 ? 'READY TO COLLECT' : 'UP TO DATE'}</span>
-            </div>
-            <div className="h-[3px] w-full rounded-full overflow-hidden mt-2" style={{ background: 'rgba(255,255,255,0.07)' }}>
-              <div className="h-full rounded-full" style={{ width: pendingReferralBonus > 0 ? '100%' : '0%', background: 'linear-gradient(90deg, #00b309, #39ff14)' }} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 px-4 pb-4 pt-1 border-t border-white/[0.06]">
-            <div className="rounded-xl px-3 py-2 mt-3" style={{ background: 'rgba(255,255,255,0.045)' }}>
-              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Ready to collect</div>
-              <div className="text-white text-sm font-black mt-1 tabular-nums">{formatLargeSWAG(pendingReferralBonus, false)} Gold</div>
-            </div>
-            <div className="rounded-xl px-3 py-2 mt-3" style={{ background: 'rgba(255,255,255,0.045)' }}>
-              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Per friend</div>
-              <div className="text-white text-sm font-black mt-1">2,500 Gold</div>
-            </div>
-          </div>
-          <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || pendingReferralBonus <= 0} className="mx-4 mb-4 w-[calc(100%-32px)] h-11 rounded-xl text-white text-xs font-black uppercase tracking-[0.1em] border-none disabled:opacity-40" style={{ background: pendingReferralBonus > 0 ? '#007aff' : 'rgba(0,122,255,0.25)' }}>
-            {claimReferralMutation.isPending ? 'Collecting…' : pendingReferralBonus > 0 ? 'Collect Gold Bonus' : 'No bonus ready'}
-          </button>
-        </div>
-
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setLocation('/ambassador')}
-            className="w-full mb-2 rounded-[14px] px-3 py-3 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
-            style={{ background: '#252525', border: '1px solid rgba(236,72,153,0.25)' }}
-            aria-label="Open Ambassador page"
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(236,72,153,0.14)' }}>
-              <Megaphone className="w-5 h-5" style={{ color: '#ec4899' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-white text-sm font-extrabold">Ambassador</div>
-              <div className="text-white/40 text-xs mt-1">Open ambassador campaigns</div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-white/40 shrink-0" />
-          </button>
+          </section>
         )}
 
-        {/* Bottom clearance for the 88px floating nav so the last card is never covered */}
+        <section className="rounded-[20px] p-4 mb-4" style={{ background: '#151515', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="text-white text-base font-black mb-4">How it works</div>
+          {[
+            ['They join', `Friend opens the app from your link${joinRewardUsd > 0 ? ` · +${formatUsd(joinRewardUsd)}` : ''}`],
+            ['They watch', `${adsRequired > 0 ? adsRequired : 'the required number of'} ads to become active${goldReward > 0 ? ` · +${formatLargeSWAG(goldReward, false)} Gold` : ''}`],
+            ['Forever after', `${commissionPercent}% of everything they earn, for life`],
+          ].map(([title, text], index) => (
+            <div key={title} className="flex gap-3 items-start py-3 border-b border-white/[0.06] last:border-0 last:pb-0">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-black" style={{ background: index === 2 ? 'rgba(57,255,20,0.14)' : 'rgba(255,255,255,0.08)', color: index === 2 ? '#39ff14' : '#fff' }}>{index + 1}</div>
+              <div><div className="text-white text-sm font-extrabold">{title}</div><div className="text-white/45 text-xs leading-relaxed mt-1">{text}</div></div>
+            </div>
+          ))}
+        </section>
+
         <div style={{ height: 104, flexShrink: 0 }} />
       </main>
 
-      {/* My Referrals Bottom Drawer */}
-      <Drawer
-        open={referralsOpen}
-        onOpenChange={(open) => {
-          setReferralsOpen(open);
-          if (!open) setVisibleReferralsCount(REFERRALS_PAGE_SIZE);
-        }}
-      >
+      <Drawer open={referralsOpen} onOpenChange={(open) => { setReferralsOpen(open); if (!open) setVisibleReferralsCount(40); }}>
         <DrawerContent className="bg-[#111] border-none max-h-[80vh]">
-          <DrawerHeader className="flex items-center justify-between pb-2">
-            <DrawerTitle className="text-white font-bold text-lg">My Referrals</DrawerTitle>
-            <DrawerClose asChild>
-              <button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10 transition-colors">
-                Close
-              </button>
-            </DrawerClose>
-          </DrawerHeader>
-
+          <DrawerHeader className="flex items-center justify-between pb-2"><DrawerTitle className="text-white font-bold text-lg">My invites</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
           <div className="px-4 pb-6 overflow-y-auto">
-            {isLoadingReferrals ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="text-white/40 text-sm">Loading…</div>
-              </div>
-            ) : myReferrals.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <Users className="w-10 h-10 text-white/20" />
-                <p className="text-white/40 text-sm">No referrals yet</p>
-                <p className="text-white/25 text-xs">Invite friends to get started</p>
-              </div>
-            ) : (
-              <>
-                {/* Header row */}
-                <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10 mb-2">
-                  <span className="text-[#888] text-xs font-semibold uppercase tracking-wider">Friend</span>
-                  <span className="text-[#888] text-xs font-semibold uppercase tracking-wider text-right">Status</span>
-                </div>
-                {/* Referral rows */}
-                <div className="space-y-2">
-                  {visibleReferrals.map((ref: any) => (
-                    <div key={ref.id} className="grid grid-cols-2 gap-2 items-center py-2 border-b border-white/5">
-                      <div className="min-w-0">
-                        <p className="text-white text-sm font-medium truncate">
-                          {ref.username ? `@${ref.username}` : ref.displayName}
-                        </p>
-                        {ref.username && ref.displayName && ref.displayName !== ref.username && (
-                          <p className="text-[#888] text-xs truncate">{ref.displayName}</p>
-                        )}
-                      </div>
-                      <div className="flex justify-end">
-                        {ref.status === 'success' ? (
-                          <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[11px] px-2">
-                            Success
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[11px] px-2">
-                            Pending
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {hasMoreReferrals && (
-                  <button
-                    onClick={() => setVisibleReferralsCount(c => c + REFERRALS_PAGE_SIZE)}
-                    className="w-full mt-3 py-2 rounded-lg text-xs font-medium text-white/70 bg-white/5 hover:bg-white/10 transition-colors"
-                  >
-                    Load more
-                  </button>
-                )}
-                <p className="text-[#666] text-xs mt-4 text-center">
-                  {myReferrals.length} referral{myReferrals.length !== 1 ? 's' : ''}
-                </p>
-              </>
-            )}
+            {isLoadingReferrals ? <div className="text-white/40 text-sm text-center py-10">Loading…</div> : myReferrals.length === 0 ? <div className="flex flex-col items-center py-10 gap-2"><Users className="w-10 h-10 text-white/20" /><p className="text-white/40 text-sm">No invites yet</p></div> : <>
+              <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10 mb-2"><span className="text-[#888] text-xs font-semibold uppercase tracking-wider">Friend</span><span className="text-[#888] text-xs font-semibold uppercase tracking-wider text-right">Status</span></div>
+              <div className="space-y-2">{visibleReferrals.map((ref: any) => <div key={ref.id} className="grid grid-cols-2 gap-2 items-center py-2 border-b border-white/5"><div className="min-w-0"><p className="text-white text-sm font-medium truncate">{ref.username ? `@${ref.username}` : ref.displayName}</p>{ref.username && ref.displayName && ref.displayName !== ref.username && <p className="text-[#888] text-xs truncate">{ref.displayName}</p>}</div><div className="flex justify-end">{ref.status === 'success' ? <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[11px] px-2"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge> : <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[11px] px-2"><Clock3 className="w-3 h-3 mr-1" />Pending</Badge>}</div></div>)}</div>
+              {visibleReferrals.length < myReferrals.length && <button onClick={() => setVisibleReferralsCount((count) => count + 40)} className="w-full mt-3 py-2 rounded-lg text-xs font-medium text-white/70 bg-white/5">Load more</button>}
+              <p className="text-[#666] text-xs mt-4 text-center">{myReferrals.length} invite{myReferrals.length !== 1 ? 's' : ''}</p>
+            </>}
           </div>
         </DrawerContent>
       </Drawer>
