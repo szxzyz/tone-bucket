@@ -56,7 +56,7 @@ export default function PopupShell({
           overflowY: "auto",
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch",
-          background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)",
+          background: "#0a0a0a",
           boxShadow: "0 20px 70px rgba(0,0,0,0.55)",
           borderRadius: 20,
           padding: "22px 18px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))",

@@ -155,7 +155,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             {notificationOpen && (
               <div onClick={() => setNotificationOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'flex-end' }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
-                <section onClick={event => event.stopPropagation()} style={{ position: 'relative', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
+                <section onClick={event => event.stopPropagation()} style={{ position: 'relative', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#0a0a0a', borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
                   <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.1)', margin: '12px auto 20px' }} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>Transactions</div>
