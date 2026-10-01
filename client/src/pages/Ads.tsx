@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import { Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import AdWatchingSection from '@/components/AdWatchingSection';
@@ -22,75 +20,6 @@ function numberOr(value: unknown, fallback: number) {
 
 function formatGold(value: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function useAdResetCountdown() {
-  const [countdown, setCountdown] = useState('––h ––m ––s');
-  const [nextResetLabel, setNextResetLabel] = useState('––:–– UTC');
-
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      const year = now.getUTCFullYear();
-      const month = now.getUTCMonth();
-      const day = now.getUTCDate();
-      const resetMorning = new Date(Date.UTC(year, month, day, 6, 30, 0, 0));
-      const resetEvening = new Date(Date.UTC(year, month, day, 18, 30, 0, 0));
-
-      let nextReset: Date;
-      let label: string;
-      if (now < resetMorning) {
-        nextReset = resetMorning;
-        label = '6:30 AM UTC';
-      } else if (now < resetEvening) {
-        nextReset = resetEvening;
-        label = '6:30 PM UTC';
-      } else {
-        nextReset = new Date(Date.UTC(year, month, day + 1, 6, 30, 0, 0));
-        label = '6:30 AM UTC';
-      }
-
-      const totalSeconds = Math.max(0, Math.floor((nextReset.getTime() - now.getTime()) / 1000));
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      setNextResetLabel(label);
-      setCountdown(`${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`);
-    };
-
-    tick();
-    const interval = window.setInterval(tick, 1000);
-    return () => window.clearInterval(interval);
-  }, []);
-
-  return { countdown, nextResetLabel };
-}
-
-function AdResetTimer() {
-  const { countdown, nextResetLabel } = useAdResetCountdown();
-
-  return (
-    <div
-      aria-label={`Ad limit resets at ${nextResetLabel}, in ${countdown}`}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-        padding: '4px 6px', flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 999,
-        background: 'linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)',
-        border: '1px solid rgba(216,180,254,0.16)',
-      }}
-    >
-      <Clock size={11} color="rgba(216,180,254,0.85)" strokeWidth={2.5} aria-hidden="true" />
-      <span style={{ fontSize: 7, fontWeight: 800, color: 'rgba(216,180,254,0.8)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        Reset
-      </span>
-      <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(216,180,254,0.9)', fontFamily: 'Roboto Mono, monospace' }}>
-        {nextResetLabel.replace(' ', '\u00a0')}
-      </span>
-      <span style={{ fontSize: 8, fontWeight: 800, color: '#e9d5ff', fontVariantNumeric: 'tabular-nums', fontFamily: 'Roboto Mono, monospace' }}>
-        {countdown}
-      </span>
-    </div>
-  );
 }
 
 function AdsRewardSummary() {
@@ -226,12 +155,9 @@ export default function Ads() {
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white">
         <section aria-labelledby="viewing-ads-title" style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <h1 id="viewing-ads-title" style={{ margin: 0, color: '#fff', fontSize: 15, lineHeight: 1.2, fontWeight: 900, flexShrink: 1, whiteSpace: 'nowrap' }}>
-              Viewing Ads
-            </h1>
-            <AdResetTimer />
-          </div>
+          <h1 id="viewing-ads-title" style={{ margin: 0, color: '#fff', fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>
+            Viewing Ads
+          </h1>
           <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.4 }}>
             Get paid for watching short ads on Telegram.
           </p>
