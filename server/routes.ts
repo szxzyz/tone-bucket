@@ -1425,11 +1425,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Separate channel and bot task rewards (in Gems) — tiered by verification
       const channelTaskRewardGems = parseInt(getSetting('task_reward_no_verify', '100')); // Default 2000 Gems (no verify)
       const botTaskRewardGems = parseInt(getSetting('task_reward_no_verify', '100')); // Default 2000 Gems (no verify)
-      const taskRewardWithVerify = parseInt(getSetting('task_reward_with_verify', '500')); // Default 500 Gold (with verify)
+      const taskRewardWithVerify = parseInt(getSetting('task_reward_with_verify', '500')); // Default 500 GEM (with verify)
 
-      // Currency conversion: 100,000 Gold = 1 USDT
+      // Currency conversion: 100,000 GEM = 1 USDT
       const configuredPadPerUsd = parseInt(getSetting('pad_per_usd', '100000'));
-      const padPerUsd = [1000000, 10000000].includes(configuredPadPerUsd) ? 100000 : configuredPadPerUsd; // 100K Gold = 1 USDT; normalize legacy rates
+      const padPerUsd = [1000000, 10000000].includes(configuredPadPerUsd) ? 100000 : configuredPadPerUsd; // 100K GEM = 1 USDT; normalize legacy rates
       const minimumConvertGems = parseInt(getSetting('minimum_convert_pad', '100')); // Default 100 Gems
       const minimumConvertUSD = minimumConvertGems / padPerUsd; // Convert to USD
 
@@ -2087,7 +2087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check and activate referral bonuses
         try {
           const activatedReferrerIds = await storage.checkAndActivateReferralBonus(userId);
-          // Push the updated Gold/pending-bonus balance to a referrer whose friend just activated.
+          // Push the updated GEM/pending-bonus balance to a referrer whose friend just activated.
           for (const referrerId of activatedReferrerIds) {
             try {
               const referrerData = await storage.getUser(referrerId);
@@ -2154,7 +2154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               if (credited) {
                 await storage.creditPendingReferralBonus(l1Referrer.id);
-                console.log(`💰 Direct referral commission: ${l1CommissionGems} Gold (${commissionPercent}%) → ${l1Referrer.id}`);
+                console.log(`💰 Direct referral commission: ${l1CommissionGems} GEM (${commissionPercent}%) → ${l1Referrer.id}`);
                 try {
                   const l1Updated = await storage.getUser(l1Referrer.id);
                   sendRealtimeUpdate(l1Referrer.id, {
@@ -3698,7 +3698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rewardGold: rewardGems,
           rewardGems,
           rewardSTAR: 0,
-          rewardType: 'Gold',
+          rewardType: 'GEM',
           currentClicks: task.currentClicks ?? 0,
           totalClicksRequired: task.totalClicksRequired ?? 0,
           isAdminTask: false,
@@ -3830,7 +3830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
 
       // Caption for the share message
-      const caption = 'Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!';
+      const caption = 'Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!';
 
       // Send the photo message with inline button
       const result = await sendSharePhotoToChat(
@@ -6729,8 +6729,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const gold = Math.trunc(requestedGold);
       const [minimumCashoutSetting] = await db.select({ settingValue: adminSettings.settingValue }).from(adminSettings).where(eq(adminSettings.settingKey, 'minimum_cashout_gold')).limit(1);
       const minimumCashoutGold = Math.max(1, parseInt(minimumCashoutSetting?.settingValue || '1000', 10) || 1000);
-      if (!Number.isFinite(gold) || gold < minimumCashoutGold) return res.status(400).json({ success: false, message: `Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GOLD` });
-      if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GOLD balance' });
+      if (!Number.isFinite(gold) || gold < minimumCashoutGold) return res.status(400).json({ success: false, message: `Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GEM` });
+      if (gold > Number(user.balance || 0)) return res.status(400).json({ success: false, message: 'Insufficient GEM balance' });
       // Admin flows have historically stored status values with mixed casing.
       // Normalize them here so only genuinely active payouts block a new request.
       const [existing] = await db.select({ id: withdrawals.id }).from(withdrawals).where(and(
@@ -9563,21 +9563,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`Maximum withdrawal is ${maxAmtGems.toLocaleString()} Gems ($${maxAmtUSD.toFixed(2)})`);
           }
 
-          // Validate against the user's Gold balance (user.balance)
+          // Validate against the user's GEM balance (user.balance)
           const rawAxnBalance = parseFloat(user.balance || '0');
           const currentAxnBalance = rawAxnBalance < 1 ? Math.round(rawAxnBalance * 10_000_000) : Math.round(rawAxnBalance);
           if (currentAxnBalance < axnAmountInput) {
-            throw new Error(`Insufficient Gold balance. You have ${currentAxnBalance.toLocaleString()} Gold.`);
+            throw new Error(`Insufficient GEM balance. You have ${currentAxnBalance.toLocaleString()} GEM.`);
           }
 
-          // Convert to USD for the withdrawal record (100,000 Gold = $1)
+          // Convert to USD for the withdrawal record (100,000 GEM = $1)
           const usdEquivalent = axnAmountInput / Gems_PER_USD;
           packageUsdAmount = usdEquivalent;
 
-          // Store Gold withdrawal metadata for history display and approval deduction.
+          // Store GEM withdrawal metadata for history display and approval deduction.
           withdrawalDetails.axnAmount = axnAmountInput;
           withdrawalDetails.axnPerUsd = Gems_PER_USD;
-          console.log(`Gold withdrawal: ${axnAmountInput.toLocaleString()} Gold → $${usdEquivalent.toFixed(4)} USD`);
+          console.log(`GEM withdrawal: ${axnAmountInput.toLocaleString()} GEM → $${usdEquivalent.toFixed(4)} USD`);
         } else if (customAmount !== null && !isNaN(customAmount) && customAmount > 0) {
           // Legacy USD custom amount — validate against admin min/max settings
           const [minAmtSetting] = await tx
@@ -10096,7 +10096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'withdrawal_approved',
             amount: result.withdrawal.amount,
             method: result.withdrawal.method,
-            message: `Your ${result.withdrawal.goldAmount || result.withdrawal.amount} GOLD TON withdrawal was approved; admin will pay manually`
+            message: `Your ${result.withdrawal.goldAmount || result.withdrawal.amount} GEM TON withdrawal was approved; admin will pay manually`
           });
 
           // Also send a balance_update so the frontend refreshes balance AND stars correctly
@@ -10558,7 +10558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             eq(dailyTasks.resetDate, currentDate)
           ));
 
-        // Add earning record through the canonical pipeline. It updates Gold
+        // Add earning record through the canonical pipeline. It updates GEM
 
         await storage.addEarning({
           userId,
@@ -11579,7 +11579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const today = getResetPeriodKey();
-      const reward = 100; // 100 Gold
+      const reward = 100; // 100 GEM
 
       // Check if already claimed
       const existingMission = await db.query.dailyMissions.findFirst({
@@ -11811,7 +11811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const today = getResetPeriodKey();
-      const reward = 100; // 100 Gold
+      const reward = 100; // 100 GEM
 
       // Check if already claimed
       const existingMission = await db.query.dailyMissions.findFirst({
@@ -11879,7 +11879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
       const today = getResetPeriodKey();
-      const reward = 100; // 100 Gold for sharing
+      const reward = 100; // 100 GEM for sharing
 
       // Check if already claimed
       const existingMission = await db.query.dailyMissions.findFirst({
@@ -11953,7 +11953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = getResetPeriodKey();
       const adsWatched = user.adsWatchedToday || 0;
       const requiredAds = goalType === 'ads_10' ? 10 : goalType === 'ads_30' ? 30 : 50;
-      const reward = 100; // 100 Gold for every Daily Milestone
+      const reward = 100; // 100 GEM for every Daily Milestone
 
       if (adsWatched < requiredAds) {
         return res.status(400).json({ error: `You need to watch ${requiredAds} ads first. Currently: ${adsWatched}` });
@@ -12066,9 +12066,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: 'Join Axionet and earn GOLD!',
-        description: 'Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!',
-        caption: 'Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!',
+        title: 'Join Axionet and earn GEM!',
+        description: 'Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!',
+        caption: 'Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -12117,7 +12117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: false,
             error: prepareResult.description || 'Failed to prepare message',
             referralLink,
-            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!')}`
+            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!')}`
           });
         }
       } catch (telegramError: any) {
@@ -12126,7 +12126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           error: telegramError.message || 'Telegram API error',
           referralLink,
-          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GOLD by watching ads, completing tasks, and inviting friends!')}`
+          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!')}`
         });
       }
 
@@ -13048,16 +13048,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startDate = getSetting('monthly_contest_start_date', '');
       // Weekly Ad Leaderboard prizes are fixed by rank; admins only control the contest lifecycle.
       const prizes = [
-        '500,000 Gold',
-        '250,000 Gold',
-        '100,000 Gold',
-        '50,000 Gold',
-        '50,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
+        '500,000 GEM',
+        '250,000 GEM',
+        '100,000 GEM',
+        '50,000 GEM',
+        '50,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
       ];
 
       if (!contestEnabled) {
@@ -13122,16 +13122,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startDate = getSetting('weekly_referral_start_date', '');
       // Referral Contest prizes are fixed by rank; admins only control lifecycle settings.
       const prizes = [
-        '500,000 Gold',
-        '250,000 Gold',
-        '100,000 Gold',
-        '50,000 Gold',
-        '50,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
-        '1,000 Gold',
+        '500,000 GEM',
+        '250,000 GEM',
+        '100,000 GEM',
+        '50,000 GEM',
+        '50,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
+        '1,000 GEM',
       ];
 
       if (!contestEnabled) {

@@ -1,10 +1,8 @@
 import { useLocation } from "wouter";
-import { useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import GameHeader from "@/components/GameHeader";
-import GameMenuPopup from "@/components/GameMenuPopup";
 import { useSeasonEnd } from "@/lib/SeasonEndContext";
 import BanScreen from "@/components/BanScreen";
 import BottomNav from "@/components/BottomNav";
@@ -15,7 +13,6 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
   const { isConnected } = useWebSocket();
   const { showSeasonEnd } = useSeasonEnd();
 
@@ -30,7 +27,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-[#0f0f0f] overflow-hidden">
       {/* Fixed header — always visible on all pages */}
-      <GameHeader onMenuOpen={() => setMenuOpen(true)} />
+      <GameHeader />
 
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
@@ -58,9 +55,6 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {!showSeasonEnd && <BottomNav />}
-      {menuOpen && (
-        <GameMenuPopup onClose={() => setMenuOpen(false)} />
-      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 export const APP_VERSION = "1.0.0";
-export const SWAG_TO_USD = 100_000; // 100,000 Gold = 1 USDT
+export const SWAG_TO_USD = 100_000; // 100,000 GEM = 1 USDT
 export const APP_COLORS = {
   primary: "#4aa8ff", // light blue
   background: "#000000", // pure black
@@ -9,7 +9,7 @@ export const APP_COLORS = {
 /**
  * Convert SWAG to USD
  * @param powAmount - Amount in SWAG
- * @returns Amount in USDT (Gold / 100,000)
+ * @returns Amount in USDT (GEM / 100,000)
  */
 export function powToUSD(powAmount: number | string): number {
   const numValue = typeof powAmount === 'string' ? parseFloat(powAmount) : powAmount;
@@ -19,7 +19,7 @@ export function powToUSD(powAmount: number | string): number {
 /**
  * Convert USD to SWAG
  * @param usdAmount - Amount in USD
- * @returns Amount in Gold (USDT * 100,000)
+ * @returns Amount in GEM (USDT * 100,000)
  */
 export function usdToSWAG(usdAmount: number | string): number {
   const numValue = typeof usdAmount === 'string' ? parseFloat(usdAmount) : usdAmount;

@@ -873,7 +873,7 @@ export class DatabaseStorage implements IStorage {
     const joinRewardGold = Math.max(0, parseInt(await this.getAppSetting('referral_reward_join_gold', '0')) || 0);
 
     // Serialize referral creation per referee so simultaneous requests cannot
-    // create duplicate relationships or award the on-join Gold more than once.
+    // create duplicate relationships or award the on-join GEM more than once.
     const referral = await db.transaction(async (tx) => {
       const [lockedReferee] = await tx
         .select({ referredBy: users.referredBy })
@@ -916,7 +916,7 @@ export class DatabaseStorage implements IStorage {
       return createdReferral;
     });
 
-    console.log(`✅ Referral relationship created (pending): ${referrerId} referred ${referredId}; join reward=${joinRewardGold} GOLD`);
+    console.log(`✅ Referral relationship created (pending): ${referrerId} referred ${referredId}; join reward=${joinRewardGold} GEM`);
 
     // Immediate activation: if the referee has already watched enough ads, activate right now.
     // This handles the race condition where a referral is created after the friend's first ad.
@@ -949,7 +949,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Check and activate the Gold referral bonus after the configured Adsgram view threshold.
+  // Check and activate the GEM referral bonus after the configured Adsgram view threshold.
   // Uses admin-configured 'referral_ads_required' setting instead of hardcoded value
   // Returns list of referrer IDs that received rewards (so caller can push WebSocket updates)
   async checkAndActivateReferralBonus(userId: string): Promise<string[]> {
@@ -1008,14 +1008,14 @@ export class DatabaseStorage implements IStorage {
 
       if (adsWatched < referralAdsRequired) return activatedReferrerIds;
 
-      // Read the admin-configured Gold reward. The amount is queued atomically
+      // Read the admin-configured GEM reward. The amount is queued atomically
       // with activation and swept into the referrer's balance immediately after.
       const canonicalReward = await this.getAppSetting('referral_reward_pad', '');
       const legacyReward = canonicalReward ? '' : await this.getAppSetting('referral_reward_swag', '');
       const referralRewardGold = Math.max(0, parseInt(canonicalReward || legacyReward || '2500') || 0);
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition
-      // double-payments. Its temporary Gold queue is written with the status change.
+      // double-payments. Its temporary GEM queue is written with the status change.
       for (const referral of pendingReferrals) {
         const activated = await db.transaction(async (tx) => {
           const atomicUpdate = await tx
@@ -1066,7 +1066,7 @@ export class DatabaseStorage implements IStorage {
           }
         }
 
-        console.log(`✅ Referral bonus activated: GOLD=${referralRewardGold} → referrer ${referral.referrerId}`);
+        console.log(`✅ Referral bonus activated: GEM=${referralRewardGold} → referrer ${referral.referrerId}`);
       }
     } catch (error) {
       console.error('❌ Error activating referral bonus:', error);
@@ -1074,7 +1074,7 @@ export class DatabaseStorage implements IStorage {
     return activatedReferrerIds;
   }
 
-  // Immediately move accumulated referral rewards into the user's Gold balance.
+  // Immediately move accumulated referral rewards into the user's GEM balance.
   // The row lock makes this safe when join, activation, commission, and refresh
   // requests happen concurrently.
   async creditPendingReferralBonus(userId: string): Promise<string> {
@@ -1138,7 +1138,7 @@ export class DatabaseStorage implements IStorage {
       });
 
       if (Number(creditedAmount) > 0) {
-        console.log(`✅ Referral rewards automatically credited: ${creditedAmount} Gold for user ${userId}`);
+        console.log(`✅ Referral rewards automatically credited: ${creditedAmount} GEM for user ${userId}`);
       }
       return creditedAmount;
     } catch (error) {
@@ -1824,7 +1824,7 @@ export class DatabaseStorage implements IStorage {
 
             if (currentGemsBalance < axnAmountRaw!) {
               throw new Error(
-                `Cannot approve: user's Gold balance (${currentGemsBalance.toLocaleString()} Gold) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} Gold) and it isn't flagged as already-deducted.`
+                `Cannot approve: user's GEM balance (${currentGemsBalance.toLocaleString()} GEM) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} GEM) and it isn't flagged as already-deducted.`
               );
             }
           }
@@ -1939,8 +1939,8 @@ export class DatabaseStorage implements IStorage {
         return { success: false, message: 'User not found' };
       }
 
-      // New manual TON withdrawals deduct GOLD at request time.
-      // Rejection must atomically restore that exact GOLD amount and transition
+      // New manual TON withdrawals deduct GEM at request time.
+      // Rejection must atomically restore that exact GEM amount and transition
       // the request, so repeated admin actions cannot refund twice.
       if (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal)) {
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
@@ -1959,8 +1959,8 @@ export class DatabaseStorage implements IStorage {
           return [claimed];
         });
         if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
-        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GOLD`);
-        return { success: true, message: 'Withdrawal rejected and GOLD refunded', withdrawal: updatedWithdrawal };
+        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GEM`);
+        return { success: true, message: 'Withdrawal rejected and GEM refunded', withdrawal: updatedWithdrawal };
       }
       
       const withdrawalAmount = parseFloat(withdrawal.amount);
@@ -2750,7 +2750,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Add the reward through the canonical earning pipeline. This writes the
-      // earning ledger and atomically increments the user's Gold balance once;
+      // earning ledger and atomically increments the user's GEM balance once;
       // calling addBalance here as well would credit the same task twice.
       // Add earning record
       await this.addEarning({

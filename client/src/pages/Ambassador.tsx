@@ -712,7 +712,7 @@ export default function Ambassador() {
                         <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2.5">
                           <div>
                             <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Reward / Claim</p>
-                            <p className="text-white text-sm font-bold mt-0.5">{rewardPow.toLocaleString()} Gold</p>
+                            <p className="text-white text-sm font-bold mt-0.5">{rewardPow.toLocaleString()} GEM</p>
                           </div>
                           <div>
                             <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Claim Limit</p>
@@ -730,7 +730,7 @@ export default function Ambassador() {
                           </div>
                           <div className="col-span-2">
                             <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Total Distributed</p>
-                            <p className="text-[#6b21a8] text-sm font-bold mt-0.5">{totalRewarded.toLocaleString()} Gold</p>
+                            <p className="text-[#6b21a8] text-sm font-bold mt-0.5">{totalRewarded.toLocaleString()} GEM</p>
                           </div>
                           {pc.expiresAt && (
                             <div className="col-span-2">
@@ -825,7 +825,7 @@ export default function Ambassador() {
                             <div className="py-2 border-b border-white/5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px]">
                               <div className="flex items-center justify-between">
                                 <span className="text-[#888]">{t("reward_per_claim")}</span>
-                                <span className="text-white font-semibold">{parseInt(item.rewardAmount || "0").toLocaleString()} Gold</span>
+                                <span className="text-white font-semibold">{parseInt(item.rewardAmount || "0").toLocaleString()} GEM</span>
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-[#888]">Max Claims</span>
@@ -843,7 +843,7 @@ export default function Ambassador() {
                               </div>
                               <div className="flex items-center justify-between col-span-2">
                                 <span className="text-[#888]">Total Distributed</span>
-                                <span className="text-purple-400 font-semibold">{Math.round(parseFloat(item.totalRewardsDistributed || "0")).toLocaleString()} Gold</span>
+                                <span className="text-purple-400 font-semibold">{Math.round(parseFloat(item.totalRewardsDistributed || "0")).toLocaleString()} GEM</span>
                               </div>
                             </div>
                             {item.claims.length === 0 ? (
@@ -866,7 +866,7 @@ export default function Ambassador() {
                                         {new Date(claim.claimedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                                       </p>
                                       <p className="text-green-400 text-[10px] font-bold text-right">
-                                        {parseInt(claim.rewardGranted || "10000").toLocaleString()} Gold
+                                        {parseInt(claim.rewardGranted || "10000").toLocaleString()} GEM
                                       </p>
                                     </div>
                                   ))}

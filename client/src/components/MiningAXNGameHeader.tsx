@@ -4,16 +4,16 @@ import { Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import DepositPopup from "@/components/DepositPopup";
 import { TonIcon } from "@/components/TonIcon";
-
-type Props = { onMenuOpen?: () => void };
+import { useAdmin } from "@/hooks/useAdmin";
 
 /** Mining AXN-style header used only on the Games route. */
-export default function MiningAXNGameHeader({ onMenuOpen }: Props) {
+export default function MiningAXNGameHeader() {
   const [overlayTop, setOverlayTop] = useState(0);
   const [depositOpen, setDepositOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const innerRef = useRef<HTMLDivElement>(null);
   const [, setLocation] = useLocation();
+  const { isAdmin } = useAdmin();
   const { data: user, isLoading, isFetching } = useQuery<any>({
     queryKey: ["/api/auth/user"],
     retry: false,
@@ -91,9 +91,9 @@ export default function MiningAXNGameHeader({ onMenuOpen }: Props) {
         >
           <button
             type="button"
-            onClick={onMenuOpen}
-            onDoubleClick={() => setLocation("/admin")}
-            aria-label="Open menu"
+            onClick={() => { if (isAdmin) setLocation("/admin"); }}
+            disabled={!isAdmin}
+            aria-label={isAdmin ? "Open admin panel" : "Profile"}
             style={{
               width: 40, height: 40, borderRadius: "50%", overflow: "hidden", display: "flex", alignItems: "center",
               justifyContent: "center", flexShrink: 0, background: "rgba(255,255,255,0.04)", border: "none", padding: 0,
@@ -101,7 +101,7 @@ export default function MiningAXNGameHeader({ onMenuOpen }: Props) {
             className="active:scale-90 transition-transform"
           >
             {profileImageUrl && !avatarFailed ? (
-              <img src={profileImageUrl} alt="Open menu" onError={() => setAvatarFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={profileImageUrl} alt="Profile" onError={() => setAvatarFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>{initials}</span>
             )}

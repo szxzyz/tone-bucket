@@ -102,7 +102,7 @@ export default function WalletSection({ padBalance, usdBalance, uid, isAdmin, on
     const minimumConvertGold = appSettings?.minimumConvertGold || 10000;
     
     if (padBalance < minimumConvertGold) {
-      showNotification(`Minimum ${minimumConvertGold.toLocaleString()} Gold required.`, "error");
+      showNotification(`Minimum ${minimumConvertGold.toLocaleString()} GEM required.`, "error");
       return;
     }
 
@@ -158,10 +158,10 @@ export default function WalletSection({ padBalance, usdBalance, uid, isAdmin, on
     <Card className="minimal-card mb-3">
       <CardContent className="pt-3 pb-3">
         <div className="flex items-center justify-between gap-3">
-          {/* Gold Balance */}
+          {/* GEM Balance */}
           <div className="flex items-center gap-2">
-            <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 18, height: 18, objectFit: "contain" }} />
-            <div className="text-white font-bold text-xl">{Math.floor(padBalance).toLocaleString()} Gold</div>
+            <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 18, height: 18, objectFit: "contain" }} />
+            <div className="text-white font-bold text-xl">{Math.floor(padBalance).toLocaleString()} GEM</div>
           </div>
 
           {/* Convert Button - Same size as Streak Claim button */}

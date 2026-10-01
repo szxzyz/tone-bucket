@@ -770,7 +770,7 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
     const currentDate = new Date().toUTCString();
 
     const axnLine = withdrawalData.axnAmount
-      ? `💎 Gold: <b>${Math.round(withdrawalData.axnAmount).toLocaleString()} Gold</b>\n`
+      ? `💎 GEM: <b>${Math.round(withdrawalData.axnAmount).toLocaleString()} GEM</b>\n`
       : '';
 
     const text = `💰 <b>Withdrawal Request</b>
@@ -835,7 +835,7 @@ export async function sendWithdrawalRequestToAdmins(withdrawalData: Parameters<t
     `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>\n` +
     `💳 Username: ${escapeHtml(withdrawalData.userTelegramUsername)}\n` +
     `🌐 Wallet: <code>${escapeHtml(withdrawalData.walletAddress)}</code>\n` +
-    `💎 Gold: <b>${Math.round(withdrawalData.axnAmount || 0).toLocaleString()} GOLD</b>\n` +
+    `💎 GEM: <b>${Math.round(withdrawalData.axnAmount || 0).toLocaleString()} GEM</b>\n` +
     `💵 User value (after fee): <b>$${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} USD</b>\n` +
     `💸 TON to send: <b>${Number(withdrawalData.tonAmount || 0).toFixed(6)} TON</b>\n` +
     `📈 Live TON price at request: <b>$${Number(withdrawalData.tonPrice || 0).toFixed(4)}</b>\n` +
@@ -892,7 +892,7 @@ export async function sendWithdrawalSubmittedNotification(
     const tonVal = axnAmtDm !== null ? (axnAmtDm / 100_000) / price : usdtVal / price;
     
     const amountDisplay = axnAmtDm !== null && Number.isFinite(axnAmtDm)
-      ? `${Math.round(axnAmtDm).toLocaleString()} Gold (${usdtVal.toFixed(2)} USDT / ${tonVal.toFixed(4)} TON)`
+      ? `${Math.round(axnAmtDm).toLocaleString()} GEM (${usdtVal.toFixed(2)} USDT / ${tonVal.toFixed(4)} TON)`
       : `${usdtVal.toFixed(2)} USDT (~${tonVal.toFixed(4)} TON)`;
 
     const message = `<tg-emoji emoji-id="5445355530111437729">📤</tg-emoji> <b>Withdrawal Request Submitted</b>
@@ -957,7 +957,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 🆔 <b>User ID:</b> <code>${userTelegramId}</code>
 💳 <b>Username:</b> ${userTelegramUsername}
 💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON
-💰 <b>Gold:</b> ${goldAmount.toLocaleString()}
+💰 <b>GEM:</b> ${goldAmount.toLocaleString()}
 👛 <b>TON wallet:</b> <code>${escapeHtml(walletAddress)}</code>
 📅 <b>Date:</b> ${currentDate}
 
@@ -1010,7 +1010,7 @@ export async function sendReferralRewardNotification(
 
   try {
     const safeName = escapeHtml(referredUserName);
-    const formattedReward = `${Number(rewardAmount).toLocaleString()} GOLD`;
+    const formattedReward = `${Number(rewardAmount).toLocaleString()} GEM`;
     const emoji = '💰';
     
     const message = `🎉 <b>Referral Friend Active!</b>
@@ -1326,11 +1326,11 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('.\n\n');
   addSegment('💰 Earn by', { bold: true });
   addSegment(':\n\n');
-  addSegment('- ⛏️ Mining Gold daily\n');
+  addSegment('- ⛏️ Mining GEM daily\n');
   addSegment('- 🎯 Completing tasks\n');
   addSegment('- 📺 Watching ads\n');
   addSegment('- 👥 Inviting friends\n');
-  addSegment('- 💸 Withdrawing your Gold\n\n');
+  addSegment('- 💸 Withdrawing your GEM\n\n');
   addSegment('🎁 Early Access Advantage', { bold: true });
   addSegment('\n\nYou’re joining early! More features, rewards, and exciting updates are coming soon.\n\n');
   addSegment('Be part of the ');
@@ -1737,16 +1737,16 @@ export async function sendWeeklyReferralContest(chatId: string, messageId?: numb
     lines.push(`<code>Position │ Friends │ Prize</code>\n`);
 
     const prizes = [
-      '500,000 Gold',
-      '250,000 Gold',
-      '100,000 Gold',
-      '50,000 Gold',
-      '50,000 Gold',
-      '1,000 Gold',
-      '1,000 Gold',
-      '1,000 Gold',
-      '1,000 Gold',
-      '1,000 Gold',
+      '500,000 GEM',
+      '250,000 GEM',
+      '100,000 GEM',
+      '50,000 GEM',
+      '50,000 GEM',
+      '1,000 GEM',
+      '1,000 GEM',
+      '1,000 GEM',
+      '1,000 GEM',
+      '1,000 GEM',
     ];
 
     for (let i = 0; i < topN; i++) {
@@ -1927,16 +1927,16 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
         const topN = 10;
         const startDate = getSetting('weekly_referral_start_date', '');
         const prizes = [
-          '500,000 Gold',
-          '250,000 Gold',
-          '100,000 Gold',
-          '50,000 Gold',
-          '50,000 Gold',
-          '1,000 Gold',
-          '1,000 Gold',
-          '1,000 Gold',
-          '1,000 Gold',
-          '1,000 Gold',
+          '500,000 GEM',
+          '250,000 GEM',
+          '100,000 GEM',
+          '50,000 GEM',
+          '50,000 GEM',
+          '1,000 GEM',
+          '1,000 GEM',
+          '1,000 GEM',
+          '1,000 GEM',
+          '1,000 GEM',
         ];
 
         const topQuery = await dbConn.execute(sqlFn`
@@ -2156,7 +2156,7 @@ export async function handleTelegramMessage(update: any): Promise<boolean> {
             
             const inviteMessage = `👫🏼 <b>Invite Your Friends!</b>
 
-Share your unique referral link and earn Gold when your friends join:
+Share your unique referral link and earn GEM when your friends join:
 
 🔗 <code>${referralLink}</code>
 
@@ -2438,7 +2438,7 @@ Share your unique referral link and earn Gold when your friends join:
 💳 Username: ${userTelegramUsername}
 🌐 Address:
 <code>${escapeHtml(walletAddress)}</code>
-💎 Gold: ${Math.round(goldAmount).toLocaleString()} GOLD
+💎 GEM: ${Math.round(goldAmount).toLocaleString()} GEM
 💵 User value (after fee): <code>$${netAmount.toFixed(6)} USD</code>
 💸 TON to send: <code>${tonAmount.toFixed(6)} TON</code>
 📈 Live TON price at request: $${pendingTonPrice.toFixed(4)}
@@ -3044,7 +3044,7 @@ Share your unique referral link and earn Gold when your friends join:
           if (userTelegramId) {
             await sendUserTelegramNotification(
               userTelegramId,
-              `🎉 <b>Withdrawal successful!</b>\n\n💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON\n💰 <b>Gold:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GOLD\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n\n📅 <b>Date:</b> ${currentDate}`,
+              `🎉 <b>Withdrawal successful!</b>\n\n💎 <b>Amount:</b> ${tonAmount.toFixed(6)} TON\n💰 <b>GEM:</b> ${Number(withdrawal.goldAmount || details?.axnAmount || 0).toLocaleString()} GEM\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n\n📅 <b>Date:</b> ${currentDate}`,
               successKeyboard,
               'HTML',
             );

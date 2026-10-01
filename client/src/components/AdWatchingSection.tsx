@@ -84,7 +84,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       showNotification(
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
-            <img src="/assets/gems-icon.svg" alt="Gold" className="w-4 h-4 object-contain" />
+            <img src="/assets/gems-icon.svg" alt="GEM" className="w-4 h-4 object-contain" />
             <span className="font-bold text-yellow-500">{rewardGems}</span>
           </div>
         </div> as any,
@@ -348,7 +348,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 20, height: 20, objectFit: "contain" }} />
+                        <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: "contain" }} />
                         <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
                       </span>
                     </div>
@@ -374,7 +374,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                   >
                     {isLoading ? (
                       <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "spin 0.8s linear infinite" }} aria-label="Loading" />
-                    ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET GOLD"}
+                    ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET GEM"}
                   </button>
                 </div>
               </div>

@@ -66,7 +66,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       >
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginBottom: 2 }}>{label}</p>
         <p style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>
-          {formatGold(powVal)} Gold
+          {formatGold(powVal)} GEM
         </p>
         <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>
           ≈ ${usdVal.toFixed(5)}

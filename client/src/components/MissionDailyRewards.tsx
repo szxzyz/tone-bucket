@@ -93,7 +93,7 @@ export default function MissionDailyRewards() {
       if (!response.ok) throw new Error(data.message || "Failed");
       if (typeof data.claimsToday === "number") setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      showNotification("Mystery Box reward added to your Gold balance.", "success");
+      showNotification("Mystery Box reward added to your GEM balance.", "success");
     } catch (error: any) {
       showNotification(error?.message || "Failed to open Mystery Box. Try again.", "error");
     } finally {

@@ -6,10 +6,10 @@
  * The client also keeps a 30-second local cache to avoid redundant requests.
  *
  * Fixed constants (must match server/tonPriceService.ts):
- *   10,000,000 Gold = 1 TON (fixed ratio)
+ *   10,000,000 GEM = 1 TON (fixed ratio)
  */
 
-export const GEMS_PER_TON = 10_000_000; // 10M Gold = 1 TON — fixed ratio
+export const GEMS_PER_TON = 10_000_000; // 10M GEM = 1 TON — fixed ratio
 
 interface CachedPrice {
   price: number;

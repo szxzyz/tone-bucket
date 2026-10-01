@@ -21,26 +21,26 @@ export function roundBalanceForDisplay(n: number): number {
 }
 
 /**
- * Format currency values - displays Gold amount in pure numeric format
- * No TON-style formatting - Gold is always an integer value
+ * Format currency values - displays GEM amount in pure numeric format
+ * No TON-style formatting - GEM is always an integer value
  * Values are rounded to clean display numbers (e.g. 19371 → 19,000)
- * Examples: 1000 → "1,000 Gold", 500000 → "500,000 Gold"
+ * Examples: 1000 → "1,000 GEM", 500000 → "500,000 GEM"
  */
 export function formatCurrency(value: string | number, includeSymbol: boolean = true): string {
   const numValue = parseFloat(typeof value === 'string' ? value : value.toString());
   
   if (isNaN(numValue) || !isFinite(numValue)) {
-    return includeSymbol ? '0 Gold' : '0';
+    return includeSymbol ? '0 GEM' : '0';
   }
   
   const powValue = roundBalanceForDisplay(Math.round(numValue));
   
-  const symbol = includeSymbol ? ' Gold' : '';
+  const symbol = includeSymbol ? ' GEM' : '';
   return `${powValue.toLocaleString()}${symbol}`;
 }
 
 /**
- * Format large Gold numbers with compact notation (K, M, B, T)
+ * Format large GEM numbers with compact notation (K, M, B, T)
  * Handles overflow and prevents NaN/Infinity display
  * Examples: 1000 → "1K", 1000000 → "1M", 1000000000 → "1B"
  */
@@ -48,11 +48,11 @@ export function formatLargeSWAG(value: string | number, includeSymbol: boolean =
   const numValue = parseFloat(typeof value === 'string' ? value : value.toString());
   
   if (isNaN(numValue) || !isFinite(numValue)) {
-    return includeSymbol ? '0 Gold' : '0';
+    return includeSymbol ? '0 GEM' : '0';
   }
   
   const absValue = Math.abs(numValue);
-  const symbol = includeSymbol ? ' Gold' : '';
+  const symbol = includeSymbol ? ' GEM' : '';
   const sign = numValue < 0 ? '-' : '';
   
   if (absValue >= 1000000000000) {
@@ -72,26 +72,26 @@ export function formatLargeSWAG(value: string | number, includeSymbol: boolean =
 }
 
 /**
- * Format task rewards - displays Gold amount in pure numeric format
- * No TON-style formatting - Gold is always an integer value
- * Examples: 1000 → "1,000 Gold", 500 → "500 Gold"
+ * Format task rewards - displays GEM amount in pure numeric format
+ * No TON-style formatting - GEM is always an integer value
+ * Examples: 1000 → "1,000 GEM", 500 → "500 GEM"
  */
 export function formatTaskReward(value: string | number, includeSymbol: boolean = true): string {
   const numValue = parseFloat(typeof value === 'string' ? value : value.toString());
   
   if (isNaN(numValue) || !isFinite(numValue)) {
-    return includeSymbol ? '0 Gold' : '0';
+    return includeSymbol ? '0 GEM' : '0';
   }
   
   const powValue = Math.round(numValue);
   
-  const symbol = includeSymbol ? ' Gold' : '';
+  const symbol = includeSymbol ? ' GEM' : '';
   return `${powValue.toLocaleString()}${symbol}`;
 }
 
 /**
- * Convert Gold to USD
- * 10,000,000 Gold = 1 TON (approx based on live price)
+ * Convert GEM to USD
+ * 10,000,000 GEM = 1 TON (approx based on live price)
  */
 export function formatSWAGtoUSD(powAmount: number | string): string {
   const usd = powToUSD(powAmount);

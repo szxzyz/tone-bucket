@@ -22,23 +22,24 @@ interface MenuPopupProps {
   onClose: () => void;
   initialView?: View;
   fullScreen?: boolean;
+  returnToPageOnBack?: boolean;
 }
 
 type View = "main" | "transactions" | "stats" | "faq" | "legal" | "contest";
 type LegalDocument = "terms" | "privacy" | "acceptable";
 
 const VIEW_RANGES = [
-  { label: "100 – 999 Views", value: "100-999", reward: "100 Gold" },
-  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 Gold" },
-  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 Gold" },
-  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K Gold" },
-  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K Gold" },
-  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K Gold" },
-  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K Gold" },
-  { label: "1M+ Views", value: "1m+", reward: "100K Gold" },
+  { label: "100 – 999 Views", value: "100-999", reward: "100 GEM" },
+  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 GEM" },
+  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 GEM" },
+  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K GEM" },
+  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K GEM" },
+  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K GEM" },
+  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K GEM" },
+  { label: "1M+ Views", value: "1m+", reward: "100K GEM" },
 ];
 
-export default function MenuPopup({ onClose, initialView = "main", fullScreen = false }: MenuPopupProps) {
+export default function MenuPopup({ onClose, initialView = "main", fullScreen = false, returnToPageOnBack = false }: MenuPopupProps) {
   const [view, setView] = useState<View>(initialView);
   const [contestFullScreen, setContestFullScreen] = useState(initialView === "contest");
   const [selectedLegal, setSelectedLegal] = useState<LegalDocument | null>(null);
@@ -204,6 +205,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               <button
                 onClick={() => {
                   if (view === "legal" && selectedLegal) closeLegalDocument();
+                  else if (returnToPageOnBack) onClose();
                   else { setView("main"); resetContestForm(); }
                 }}
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -310,7 +312,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                       const date = w.createdAt ? new Date(w.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
                       return <div key={w.id} style={{ padding: "13px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{grm.toLocaleString()} Gold</span></div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{grm.toLocaleString()} GEM</span></div>
                           <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{Number.isFinite(ton) && ton > 0 ? ton.toFixed(6) : "—"} TON</span></div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7, color: "rgba(255,255,255,.35)", fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: "3px 9px", borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: "uppercase", letterSpacing: ".04em" }}>{w.status || "pending"}</span></div>
@@ -333,7 +335,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 {[
                   { label: "Total users", value: appStatistics ? Number(appStatistics.totalUsers ?? 0).toLocaleString() : "—", icon: Users },
                   { label: "Active today", value: appStatistics ? Number(appStatistics.activeToday ?? 0).toLocaleString() : "—", icon: Activity },
-                  { label: "Gold earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
+                  { label: "GEM earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
                   { label: "Total withdrawal", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} TON` : "—", icon: ArrowDownToLine },
                   { label: "Tasks created", value: appStatistics ? Number(appStatistics.taskCreated ?? 0).toLocaleString() : "—", icon: ClipboardList },
                   { label: "Tasks completed", value: appStatistics ? Number(appStatistics.taskCompleted ?? 0).toLocaleString() : "—", icon: CheckCircle2 },
@@ -354,8 +356,8 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
           {view === "faq" && (
             <div className="px-5 py-4 space-y-2">
               {[
-                ["How do I earn Gold?", "Complete tasks, watch ads, check in daily, and invite friends to earn Gold."],
-                ["How do I withdraw?", "Open Withdraw from the hamburger menu, connect your TON wallet, enter an amount, and submit the request."],
+                ["How do I earn GEM?", "Complete tasks, watch ads, check in daily, and invite friends to earn GEM."],
+                ["How do I withdraw?", "Open Withdraw from your wallet or balance page, connect your TON wallet, enter an amount, and submit the request."],
                 ["How long do withdrawals take?", "Every withdrawal is reviewed by admin before the TON payment is sent."],
                 ["Can I use more than one account?", "Only one account per user is allowed. Multiple accounts may be blocked."],
               ].map(([question, answer]) => <div key={question} className="rounded-2xl bg-white/5 p-4"><p className="text-white font-bold text-sm">{question}</p><p className="text-white/45 text-xs leading-relaxed mt-2">{answer}</p></div>)}
@@ -395,8 +397,8 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   <p className="text-[#B9FF66] font-bold">Last Updated: January 21, 2026</p>
                   <p>Welcome to Money AXN. By accessing or using this app, you agree to comply with these Terms & Conditions. If you do not agree, please do not use the app.</p>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Eligibility</h4><p>Users must be at least 13 years old. You represent that you are of legal age to form a binding contract. You are responsible for maintaining the confidentiality of your account and all activities that occur under your account.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. Gold Rewards</h4><p>Users can earn Gold by completing available tasks, watching ads, checking in daily, and inviting friends. Gold rewards are credited to the in-app balance according to the reward rules shown in the app and may be eligible for withdrawal subject to verification and minimum limits.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Referral Rewards</h4><p>Referral bonuses become available after invited friends complete the required qualifying activity. Referral percentages, reward conditions, and claim availability are shown on the Friends page.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. GEM Rewards</h4><p>Users can earn GEM by completing available tasks, watching ads, checking in daily, and inviting friends. GEM rewards are credited to the in-app balance according to the reward rules shown in the app and may be eligible for withdrawal subject to verification and minimum limits.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Referral Rewards</h4><p>Referral rewards are credited automatically after the invited friend completes the required qualifying activity. Reward amounts and commission terms are shown on the Friends page.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Withdrawals</h4><p>AXN tokens can be converted to TON and withdrawn to your personal wallet. Withdrawals are subject to system verification, minimum limits, and available liquidity. Users must provide valid wallet addresses. We reserve the right to delay or cancel withdrawals for security audits or suspected fraudulent activity.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">5. Account Suspension & Bans</h4><p>We reserve the right to suspend or permanently ban accounts without prior notice if we detect violations of our policies, including multiple accounts, bot usage, script automation, or exploitation of system bugs.</p></div>
                   <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">6. Fraud & Abuse</h4><p>Any attempt to manipulate rewards, exploit technical vulnerabilities, or provide false information during verification may result in account suspension and forfeiture of rewards.</p></div>
@@ -415,7 +417,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 <div className="space-y-4">
                   <p>To maintain a fair rewards system for all users, you must adhere to the following rules:</p>
                   <div><h4 className="text-rose-400 font-bold mb-1 italic uppercase tracking-tighter">Prohibited Actions</h4><ul className="list-disc pl-5 space-y-1"><li>Creating or managing multiple accounts for a single user.</li><li>Using automated bots, scripts, or third-party software to simulate app activity.</li><li>Exploiting technical vulnerabilities or bugs for unauthorized gain.</li><li>Attempting to manipulate rewards or conversion rates.</li><li>Reverse-engineering, decompiling, or attempting to extract source code.</li></ul></div>
-                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />Multi-Account Abuse</h4><p>Our system employs advanced detection for multi-account activity. Users found operating multiple profiles to inflate referral or Gold earnings may face account restrictions across all linked accounts.</p></div>
+                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />Multi-Account Abuse</h4><p>Our system employs advanced detection for multi-account activity. Users found operating multiple profiles to inflate referral or GEM earnings may face account restrictions across all linked accounts.</p></div>
                   <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><CheckCircle className="w-4 h-4 text-green-500" />Compliance</h4><p>All users must use the app in compliance with applicable local and international laws. We cooperate with law enforcement agencies in cases of suspected illegal activity.</p></div>
                 </div>
               )}
@@ -444,8 +446,8 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                     <Trophy className="w-5 h-5 text-[#F5C542]" />
                   </div>
                   <p className="text-white font-black text-sm leading-snug">
-                    Tell others about Lightning Gold, and get up to{" "}
-                    <span className="text-[#F5C542]">10,000,000 Gold</span> for each video.
+                    Tell others about Lightning GEM, and get up to{" "}
+                    <span className="text-[#F5C542]">10,000,000 GEM</span> for each video.
                   </p>
                 </div>
               </div>
@@ -459,7 +461,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0">1</span>
                     <p className="text-white font-bold text-xs">Create Content</p>
                   </div>
-                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning Gold and post it on:</p>
+                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning GEM and post it on:</p>
                   <div className="flex gap-1.5 flex-wrap pl-7">
                     <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-1">
                       <Youtube className="w-3 h-3 text-red-400" />
@@ -507,7 +509,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                       <p className="text-white font-bold text-xs">Earn Rewards</p>
                       <p className="text-white/50 text-[11px] leading-relaxed mt-1">
                         The more views your video gets, the bigger the reward. Up to{" "}
-                        <span className="text-[#F5C542] font-bold">10,000,000 Gold</span> per video.
+                        <span className="text-[#F5C542] font-bold">10,000,000 GEM</span> per video.
                       </p>
                     </div>
                   </div>

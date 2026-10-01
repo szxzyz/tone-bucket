@@ -4,7 +4,7 @@ import { showNotification } from "@/components/AppNotification";
 import PopupShell from "@/components/PopupShell";
 import { useAdFlow } from "@/hooks/useAdFlow";
 
-// 7-day streak rewards (Gold) — mirrors server CHECKIN_REWARDS
+// 7-day streak rewards (GEM) — mirrors server CHECKIN_REWARDS
 export const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
 
 interface DailyCheckinSheetProps {
@@ -42,11 +42,11 @@ function CalendarIcon({ color = "#6b21a8", size = 22 }: { color?: string; size?:
 }
 
 function GemCoin({ size = 20, circle = false }: { size?: number; circle?: boolean }) {
-  // Same circular style as the Gold balance icon in the app header
+  // Same circular style as the GEM balance icon in the app header
   return (
     <img
       src="/assets/gems-icon.svg"
-      alt="Gold"
+      alt="GEM"
       draggable={false}
       style={{
         width: size,
@@ -89,7 +89,7 @@ export default function DailyCheckinSheet({
       return data as { success: boolean; reward: number; newStreak: number; isDouble?: boolean };
     },
     onSuccess: (data) => {
-      showNotification(`${data.reward} Gold claimed`, "success");
+      showNotification(`${data.reward} GEM claimed`, "success");
       playClaimSuccessEffects();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/daily-checkin/status"] });
@@ -302,7 +302,7 @@ export default function DailyCheckinSheet({
                     marginTop: 1,
                   }}
                 >
-                  Gold
+                  GEM
                 </div>
               </div>
             );

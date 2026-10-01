@@ -121,7 +121,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
   const typedUser = user as User;
   const rawBalance = parseFloat(typedUser?.balance || "0");
   const balanceGold = Math.floor(rawBalance);
-  // Gold to USDT is fixed: 100,000 Gold = 1 USD
+  // GEM to USDT is fixed: 100,000 GEM = 1 USD
   const balanceUSD = balanceGold / 100_000;
   // USDT to TON depends on market price
   const balanceTON = balanceUSD / tonPrice;
@@ -246,7 +246,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
                   {t('balance')}
                 </p>
 
-                {/* Main Gold balance */}
+                {/* Main GEM balance */}
                 <div style={{ marginBottom: 6, minHeight: 52 }}>
                   {isFirstLoad ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 52 }}>

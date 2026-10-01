@@ -99,7 +99,7 @@ export default function GigapubShortLinkTasks() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/daily/status'] });
-      showNotification(`+${REWARD} Gold earned!`, 'success');
+      showNotification(`+${REWARD} GEM earned!`, 'success');
     } catch (error: any) {
       updateTask(index, { step: 'ready' });
       showNotification(error.message || 'Unable to claim reward', 'error');
@@ -123,7 +123,7 @@ export default function GigapubShortLinkTasks() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-white text-sm font-semibold">Gigapub Short Link {index + 1}</div>
-              <div className="text-white/45 text-xs mt-1">Visit for 3 seconds · +{REWARD} Gold</div>
+              <div className="text-white/45 text-xs mt-1">Visit for 3 seconds · +{REWARD} GEM</div>
             </div>
             <button
               type="button"

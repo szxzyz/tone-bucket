@@ -70,7 +70,7 @@ function AmbassadorCard({ amb }: { amb: AmbassadorEntry }) {
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
             <span style={{ color: PINK, fontSize: 12, fontWeight: 800 }}>+{REWARD.toLocaleString()}</span>
-            <span style={{ color: TEXT_DIM, fontSize: 11, fontWeight: 600 }}>Gold</span>
+            <span style={{ color: TEXT_DIM, fontSize: 11, fontWeight: 600 }}>GEM</span>
           </div>
         </div>
 
@@ -131,7 +131,7 @@ export default function AmbassadorDirectory() {
             </div>
             <div>
               <div style={{ color: TEXT, fontSize: 17, fontWeight: 800 }}>Ambassador Directory</div>
-              <div style={{ color: TEXT_DIM, fontSize: 11, fontWeight: 500 }}>Join channels · Earn 2,000 Gold each</div>
+              <div style={{ color: TEXT_DIM, fontSize: 11, fontWeight: 500 }}>Join channels · Earn 2,000 GEM each</div>
             </div>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function AmbassadorDirectory() {
           marginBottom: 18,
         }}>
           <p style={{ color: "#f9a8d4", fontSize: 12, fontWeight: 600, margin: 0 }}>
-            💌 Join ambassador channels and use their promo codes to earn <strong>2,000 Gold</strong> per channel!
+            💌 Join ambassador channels and use their promo codes to earn <strong>2,000 GEM</strong> per channel!
           </p>
         </div>
 

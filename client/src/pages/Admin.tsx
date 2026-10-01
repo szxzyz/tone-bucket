@@ -363,7 +363,7 @@ export default function AdminPage() {
                   />
                   <StatCard
                     icon="gem"
-                    label="Gold Earned"
+                    label="GEM Earned"
                     value={formatLargeNumber(parseFloat(stats?.totalEarnings || '0'))}
                     iconColor="text-[#6b21a8]"
                   />
@@ -1817,7 +1817,7 @@ function PromoCreatorSection() {
           ) : (
             promoCodes.map((promo: any) => {
               const status = getPromoStatus(promo);
-              const rewardDisplay = `${Math.round(parseFloat(promo.rewardAmount)).toLocaleString()} ${promo.rewardType === 'GEMS' ? 'Gold' : promo.rewardType}`;
+              const rewardDisplay = `${Math.round(parseFloat(promo.rewardAmount)).toLocaleString()} ${promo.rewardType === 'GEMS' ? 'GEM' : promo.rewardType}`;
               const totalDistributed = parseFloat(promo.rewardAmount || '0') * (promo.usageCount || 0);
               return (
                 <div key={promo.id} className="border border-white/10 rounded p-2 hover:bg-white/5">
@@ -2718,7 +2718,7 @@ function SettingsSection() {
       return;
     }
     if (!Number.isInteger(referralJoinRewardGold) || referralJoinRewardGold < 0 || !Number.isInteger(referralActiveRewardGold) || referralActiveRewardGold < 0) {
-      showNotification("Referral Gold rewards must be whole numbers of 0 or more", "error");
+      showNotification("Referral GEM rewards must be whole numbers of 0 or more", "error");
       return;
     }
     if (!Number.isInteger(referralAdsRequired) || referralAdsRequired < 0) {
@@ -2852,12 +2852,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (Gold)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).adsgramRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, adsgramRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramRewardPerAd ?? 50} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramRewardPerAd ?? 50} GEM</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2893,12 +2893,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (Gold)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).monetagRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, monetagRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 30} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 30} GEM</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2934,12 +2934,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (Gold)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).gigapubRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, gigapubRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubRewardPerAd ?? 30} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubRewardPerAd ?? 30} GEM</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2975,12 +2975,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (Gold)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).usladsRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, usladsRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 20} Gold</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 20} GEM</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -3039,7 +3039,7 @@ function SettingsSection() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="referral-join-gold" className="text-sm font-semibold">Gold reward when a friend joins</Label>
+              <Label htmlFor="referral-join-gold" className="text-sm font-semibold">GEM reward when a friend joins</Label>
               <Input
                 id="referral-join-gold"
                 type="number"
@@ -3048,11 +3048,11 @@ function SettingsSection() {
                 min="0"
                 step="1"
               />
-              <p className="text-xs text-muted-foreground">Added to the referrer’s pending Gold balance once the referral is linked. Set to 0 to disable.</p>
+              <p className="text-xs text-muted-foreground">Added to the referrer’s pending GEM balance once the referral is linked. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="referral-active-gold" className="text-sm font-semibold">Gold reward when a friend becomes active</Label>
+              <Label htmlFor="referral-active-gold" className="text-sm font-semibold">GEM reward when a friend becomes active</Label>
               <Input
                 id="referral-active-gold"
                 type="number"
@@ -3061,7 +3061,7 @@ function SettingsSection() {
                 min="0"
                 step="1"
               />
-              <p className="text-xs text-muted-foreground">Added to pending Gold after the friend completes the required Adsgram views. Set to 0 to disable.</p>
+              <p className="text-xs text-muted-foreground">Added to pending GEM after the friend completes the required Adsgram views. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
@@ -3162,7 +3162,7 @@ function SettingsSection() {
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="minimum-cashout-gold" className="text-sm font-semibold">
                 <i className="fas fa-coins mr-2 text-yellow-400"></i>
-                Minimum Cash Out (GOLD)
+                Minimum Cash Out (GEM)
               </Label>
               <Input
                 id="minimum-cashout-gold"
@@ -3174,7 +3174,7 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Users must have at least this many GOLD. 1,000 GOLD = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} GOLD
+                Users must have at least this many GEM. 1,000 GEM = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} GEM
               </p>
             </div>
 
@@ -3375,7 +3375,7 @@ function SettingsSection() {
             {/* Reward tiers info */}
             <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <p className="text-xs text-blue-400 font-semibold mb-1">🎯 Task Reward Tiers</p>
-              <p className="text-xs text-muted-foreground">Configure independent Gold rewards for each task type. Partner tasks always pay more than user tasks.</p>
+              <p className="text-xs text-muted-foreground">Configure independent GEM rewards for each task type. Partner tasks always pay more than user tasks.</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-gray-500/20">
@@ -3391,7 +3391,7 @@ function SettingsSection() {
                 min="1"
                 className="h-8"
               />
-              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardNoVerify || settingsData?.channelTaskReward || 100} Gold</p>
+              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardNoVerify || settingsData?.channelTaskReward || 100} GEM</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-yellow-500/20 bg-yellow-500/5">
@@ -3407,7 +3407,7 @@ function SettingsSection() {
                 min="1"
                 className="h-8"
               />
-              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 500} Gold · Requires channel join verification</p>
+              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 500} GEM · Requires channel join verification</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-[#6b21a8]/20 bg-[#6b21a8]/5">
@@ -3416,7 +3416,7 @@ function SettingsSection() {
                 <Input type="number" min="1" max="500" value={(settings as any).mysteryBoxMinReward ?? '1'} onChange={(e) => setSettings({ ...settings, mysteryBoxMinReward: e.target.value } as any)} placeholder="1" className="h-8" />
                 <Input type="number" min="1" max="500" value={(settings as any).mysteryBoxMaxReward ?? '500'} onChange={(e) => setSettings({ ...settings, mysteryBoxMaxReward: e.target.value } as any)} placeholder="500" className="h-8" />
               </div>
-              <p className="text-xs text-muted-foreground">Gold range: 1–500. Lower rewards are common; high rewards are rare.</p>
+              <p className="text-xs text-muted-foreground">GEM range: 1–500. Lower rewards are common; high rewards are rare.</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-pink-500/20 bg-pink-500/5">
@@ -3434,7 +3434,7 @@ function SettingsSection() {
                 className="h-8"
               />
               <p className="text-xs text-muted-foreground">
-                Current: {settingsData?.partnerTaskReward || 5000} Gold · Admin-created verified tasks
+                Current: {settingsData?.partnerTaskReward || 5000} GEM · Admin-created verified tasks
               </p>
             </div>
 
@@ -3501,7 +3501,7 @@ function SettingsSection() {
             <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-[#6b21a8] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
-                <p className="text-xs text-muted-foreground">Set reward (Gold per ad) and daily ad limit for each platform shown on the Missions page.</p>
+                <p className="text-xs text-muted-foreground">Set reward (GEM per ad) and daily ad limit for each platform shown on the Missions page.</p>
               </div>
               <Button
                 type="button"
@@ -3520,7 +3520,7 @@ function SettingsSection() {
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs">Reward (Gold/ad)</Label>
+                  <Label className="text-xs">Reward (GEM/ad)</Label>
                   <Input
                     type="number"
                     value={settings.monetagMissionReward}
@@ -3542,7 +3542,7 @@ function SettingsSection() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagMissionReward || 50} Gold · {settingsData?.monetagMissionLimit || 10} ads/day</p>
+              <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagMissionReward || 50} GEM · {settingsData?.monetagMissionLimit || 10} ads/day</p>
             </div>
 
             {/* GiGaPub */}
@@ -3552,7 +3552,7 @@ function SettingsSection() {
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs">Reward (Gold/ad)</Label>
+                  <Label className="text-xs">Reward (GEM/ad)</Label>
                   <Input
                     type="number"
                     value={settings.gigaPubMissionReward}
@@ -3574,7 +3574,7 @@ function SettingsSection() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Current: {settingsData?.gigaPubMissionReward || 50} Gold · {settingsData?.gigaPubMissionLimit || 10} ads/day</p>
+              <p className="text-xs text-muted-foreground">Current: {settingsData?.gigaPubMissionReward || 50} GEM · {settingsData?.gigaPubMissionLimit || 10} ads/day</p>
             </div>
 
             {/* Daily Missions Divider */}
@@ -4693,7 +4693,7 @@ function SecuritySection() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                     <div><span className="text-muted-foreground">Telegram ID: </span><span className="text-gray-300">{user.telegramId || '—'}</span></div>
                     <div><span className="text-muted-foreground">Referral: </span><span className="text-gray-300">{user.referralCode || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Balance: </span><span className="text-gray-300">{user.balance ?? 0} Gold</span></div>
+                    <div><span className="text-muted-foreground">Balance: </span><span className="text-gray-300">{user.balance ?? 0} GEM</span></div>
                     <div><span className="text-muted-foreground">Joined: </span><span className="text-gray-300">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</span></div>
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -4983,7 +4983,7 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
               </div>
               <div className="bg-white/5 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Rewarded</p>
-                <p className="text-sm font-bold text-[#6b21a8] mt-0.5">{Math.round(parseFloat(totals.totalRewardGiven || '0')).toLocaleString()} <span className="text-[9px] text-gray-500">Gold</span></p>
+                <p className="text-sm font-bold text-[#6b21a8] mt-0.5">{Math.round(parseFloat(totals.totalRewardGiven || '0')).toLocaleString()} <span className="text-[9px] text-gray-500">GEM</span></p>
               </div>
             </div>
           )}
@@ -5007,7 +5007,7 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
                   ? `${entry.claimUserName}${entry.claimUserUsername ? ` @${entry.claimUserUsername}` : ''}`
                   : entry.claimUserCode || entry.claimUserId?.slice(0, 8) || 'Unknown';
                 const reward = entry.userRewardAmount != null
-                  ? `${Math.round(parseFloat(entry.userRewardAmount)).toLocaleString()} Gold`
+                  ? `${Math.round(parseFloat(entry.userRewardAmount)).toLocaleString()} GEM`
                   : '—';
                 return (
                   <div key={entry.id} className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 px-2 py-1.5 rounded-lg bg-white/3 hover:bg-white/5 transition-colors items-center">
@@ -5449,7 +5449,7 @@ function AmbassadorAdminSection() {
             <div className="px-4 py-3 space-y-4">
 
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-400 font-medium">Default Gold Reward</label>
+                <label className="text-xs text-gray-400 font-medium">Default GEM Reward</label>
                 <Input
                   type="number"
                   min="1"
@@ -5458,7 +5458,7 @@ function AmbassadorAdminSection() {
                   placeholder="10000"
                   className="bg-[#1a1a1a] border-white/10 text-white h-9 text-sm focus:border-white/25"
                 />
-                <p className="text-[10px] text-gray-600">Gold given to each user who claims a promo code</p>
+                <p className="text-[10px] text-gray-600">GEM given to each user who claims a promo code</p>
               </div>
 
               <div className="space-y-1.5">
