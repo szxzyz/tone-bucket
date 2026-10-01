@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
+import ReferralContestSection from '@/components/ReferralContestSection';
 import { formatLargeSWAG } from '@/lib/utils';
 
 const FRIENDS_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
@@ -70,6 +71,7 @@ export default function Affiliates() {
             ))}
           </div>
         </section>
+        <ReferralContestSection />
         <div style={{ height: 104, flexShrink: 0 }} />
       </main>
     </Layout>
