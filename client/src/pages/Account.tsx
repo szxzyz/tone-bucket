@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield, Wallet, Globe, History, FileCheck2 } from 'lucide-react';
+import { Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield, Globe, History, FileCheck2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -13,7 +13,7 @@ import { useLanguage, type Language } from '@/hooks/useLanguage';
 import { useLocation } from 'wouter';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
-import PayoutHistoryPopup from '@/components/PayoutHistoryPopup';
+import GameWithdrawPopup from '@/components/GameWithdrawPopup';
 import EarningHistoryPopup from '@/components/EarningHistoryPopup';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
@@ -50,6 +50,10 @@ export default function Account() {
   const displayName = user?.firstName || telegramUser?.first_name || 'User';
   const username = user?.telegramUsername || telegramUser?.username || null;
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
+  const balanceLoaded = user?.balance !== undefined && user?.balance !== null;
+  const rawBalance = balanceLoaded ? Number(user.balance) : 0;
+  const gemBalance = rawBalance < 1 ? Math.round(rawBalance * 10_000_000) : Math.floor(rawBalance);
+  const usdBalance = gemBalance / 100_000;
   const myReferrals: any[] = myReferralsData?.referrals || [];
   const referralsTotal = Number(myReferralsData?.total ?? myReferrals.length);
   const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
@@ -97,7 +101,6 @@ export default function Account() {
   };
 
   const menuActions = [
-    { label: 'Withdraw your GEM', icon: <Wallet className="w-5 h-5 text-emerald-400" />, action: () => setWithdrawOpen(true) },
     { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setLanguageOpen(true) },
     { label: 'Earning History', icon: <History className="w-5 h-5 text-amber-400" />, action: () => setEarningHistoryOpen(true) },
     { label: 'Proof of Payment', icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
@@ -130,6 +133,19 @@ export default function Account() {
               {telegramId && <p className="text-white/30 text-[10px] mt-1 font-mono">ID: {telegramId}</p>}
             </div>
           </div>
+        </section>
+
+        <section className="rounded-2xl px-3 py-3 mb-3 flex items-center gap-3" aria-label="GEM balance" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
+          <img src="/assets/gems-icon.svg" alt="GEM" className="w-9 h-9 object-contain shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">Balance</p>
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? gemBalance.toLocaleString() : '—'}</span>
+              <span className="text-white/55 text-[11px] font-extrabold">GEM</span>
+            </div>
+            <p className="text-white/40 text-[10px] font-semibold tabular-nums">~${balanceLoaded ? usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—'} USD</p>
+          </div>
+          <button type="button" onClick={() => setWithdrawOpen(true)} disabled={!balanceLoaded} className="h-9 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>Withdraw</button>
         </section>
 
         <section className="space-y-2 mb-3" aria-label="Account actions">
@@ -170,7 +186,7 @@ export default function Account() {
         </DrawerContent>
       </Drawer>
 
-      <PayoutHistoryPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+      <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={gemBalance} />
       <EarningHistoryPopup open={earningHistoryOpen} onClose={() => setEarningHistoryOpen(false)} />
 
       {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} returnToPageOnBack />}
