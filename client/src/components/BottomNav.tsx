@@ -1,26 +1,8 @@
 import { useLocation } from "wouter";
-import { Award, Trophy, UserRound, Video } from "lucide-react";
+import { Award, Trophy, Video } from "lucide-react";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
-
-const HomeIcon = ({ active, c }: { active: boolean; c: string }) => (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-    {active ? (
-      <>
-        <path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5Z" fill={c} opacity="0.15" />
-        <path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5Z" stroke={c} strokeWidth="1.8" strokeLinejoin="round" />
-        <circle cx="12" cy="12" r="2.5" fill={c} />
-        <circle cx="12" cy="12" r="4.5" stroke={c} strokeWidth="1.2" opacity="0.4" />
-      </>
-    ) : (
-      <>
-        <path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5Z" stroke={c} strokeWidth="1.8" strokeLinejoin="round" />
-        <circle cx="12" cy="12" r="2" fill={c} opacity="0.6" />
-      </>
-    )}
-  </svg>
-);
 
 const TasksIcon = ({ active, c }: { active: boolean; c: string }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -39,13 +21,11 @@ const FriendsIcon = ({ active, c }: { active: boolean; c: string }) => (
 );
 
 const TABS = [
-  { id: "home", label: "Home", path: "/" },
-  { id: "tasks", label: "Mission", path: "/mission" },
+  { id: "mission", label: "Mission", path: "/mission" },
   { id: "ads", label: "Ads", path: "/ads" },
   { id: "leaderboard", label: "Leaderboard", path: "/leaderboard" },
   { id: "friends", label: "Friends", path: "/affiliates" },
   { id: "ambassador", label: "Ambassador", path: "/ambassador" },
-  { id: "profile", label: "Profile", path: "/profile" },
 ] as const;
 
 export default function BottomNav() {
@@ -69,8 +49,7 @@ export default function BottomNav() {
     >
       {TABS.map((tab) => {
         const active = location === tab.path
-          || (tab.id === "home" && location === "/game")
-          || (tab.id === "tasks" && location === "/machine");
+          || (tab.id === "mission" && ["/", "/game", "/machine"].includes(location));
         const color = active ? ACTIVE : DIM;
 
         return (
@@ -109,13 +88,11 @@ export default function BottomNav() {
               />
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 28 }}>
-              {tab.id === "home" ? <HomeIcon active={active} c={color} />
-                : tab.id === "tasks" ? <TasksIcon active={active} c={color} />
+              {tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : tab.id === "ads" ? <Video size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
                 : tab.id === "leaderboard" ? <Trophy size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
-                : tab.id === "ambassador" ? <Award size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
-                : <UserRound size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />}
+                : <Award size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />}
             </div>
             <span style={{ fontSize: "clamp(7px, 2.2vw, 9px)", fontWeight: active ? 700 : 500, letterSpacing: 0, color, lineHeight: 1, whiteSpace: "nowrap" }}>
               {tab.label}

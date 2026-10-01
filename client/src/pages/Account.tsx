@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
 import { ChevronRight, CircleHelp, Languages, Settings, Wallet, CreditCard, List, ArrowDownToLine, Coins } from 'lucide-react';
 import Layout from '@/components/Layout';
 import PayoutHistoryPopup from '@/components/PayoutHistoryPopup';
@@ -10,7 +9,6 @@ import { showNotification } from '@/components/AppNotification';
 const cardStyle: CSSProperties = { background: '#171717', borderRadius: 16, padding: 16 };
 
 export default function Account() {
-  const [, setLocation] = useLocation();
   const [cashOutOpen, setCashOutOpen] = useState(false);
   const [tab, setTab] = useState<'all' | 'earnings' | 'withdraw'>('all');
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
@@ -33,7 +31,6 @@ export default function Account() {
       if (tg?.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
       return;
     }
-    if (name === 'Settings') { setLocation('/profile'); return; }
     showNotification(`${name} will be available soon`, 'info');
   };
 

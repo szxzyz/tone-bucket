@@ -1,13 +1,28 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
+import MissionFastAccess from '@/components/MissionFastAccess';
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
+  const [, setLocation] = useLocation();
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white space-y-4">
+        <MissionFastAccess />
+        <button
+          type="button"
+          onClick={() => setLocation('/ads')}
+          aria-label="Open Ads: Viewing Ads"
+          style={{ display: 'block', width: '100%', padding: '0 4px', border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}
+        >
+          <h2 style={{ margin: '0 0 3px', color: '#fff', fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>Viewing Ads</h2>
+          <p style={{ margin: 0, color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.4 }}>
+            Get paid for watching short ads on Telegram.
+          </p>
+        </button>
         <section>
           <h2 style={{ margin: '0 0 8px 4px', color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Tasks</h2>
           <div role="status" style={{ padding: '22px 16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)', textAlign: 'center', color: 'rgba(255,255,255,0.52)', fontSize: 13, fontWeight: 600 }}>

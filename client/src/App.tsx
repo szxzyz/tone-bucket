@@ -19,9 +19,7 @@ import { LanguageProvider } from "@/hooks/useLanguage";
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Mission from "@/pages/Mission";
 import Leaderboard from "@/pages/Leaderboard";
-import Profile from "@/pages/Profile";
 import CreateTask from "@/pages/CreateTask";
-import Games from "@/pages/Games";
 import Affiliates from "@/pages/Affiliates";
 import Ads from "@/pages/Ads";
 
@@ -85,11 +83,10 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Games} />
+        <Route path="/" component={Mission} />
         <Route path="/mission" component={Mission} />
         <Route path="/ads" component={Ads} />
-        <Route path="/game" component={Games} />
-        <Route path="/profile" component={Profile} />
+        <Route path="/game" component={Mission} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
         <Route path="/leaderboard" component={Leaderboard} />
