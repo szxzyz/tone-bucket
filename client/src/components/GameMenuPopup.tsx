@@ -12,6 +12,7 @@ import { BsQuestionCircleFill } from "react-icons/bs";
 import { MdOutlineSupportAgent } from "react-icons/md";
 import { format } from "date-fns";
 import { getTONPrice } from "@/lib/tonPriceService";
+import { AD_WATCH_SURFACE_BACKGROUND, AD_WATCH_SURFACE_SHADOW } from "@/lib/uiTheme";
 import { TonIcon } from "@/components/TonIcon";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useSupportLink } from "@/hooks/useSupportLink";
@@ -189,12 +190,12 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
         {!documentScreen && <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />}
 
         <motion.div
-          className={`relative w-full ${documentScreen ? "max-w-none h-full max-h-none rounded-none flex flex-col" : "max-w-md rounded-t-2xl"} ${documentScreen ? "bg-[#0f0f0f]" : "bg-[#0f0f0f]"} border border-white/10 overflow-hidden`}
+          className={`relative w-full ${documentScreen ? "max-w-none h-full max-h-none rounded-none flex flex-col" : "max-w-md rounded-t-2xl"} overflow-hidden`}
           initial={documentScreen ? { x: "100%" } : { y: "100%" }}
           animate={documentScreen ? { x: 0 } : { y: 0 }}
           exit={documentScreen ? { x: "100%" } : { y: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          style={{ maxHeight: documentScreen ? "none" : "90vh", overflowY: "auto", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)" }}
+          style={{ maxHeight: documentScreen ? "none" : "90vh", overflowY: "auto", background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}
         >
           {!documentScreen && <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>}
 
@@ -218,7 +219,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
           {view === "main" && (
             <div className="px-5 py-4 space-y-3">
               {/* Account Info */}
-              <div className="bg-white/5 rounded-2xl p-4">
+              <div className="rounded-2xl p-4">
                 <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-3">Account Info</p>
                 <div className="flex items-center gap-3">
                   <button
@@ -248,7 +249,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               {/* Transactions */}
               <button
                 onClick={() => setView("transactions")}
-                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                className="w-full flex items-center justify-between bg-transparent rounded-2xl p-4 hover:bg-white/5 transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center gap-3">
                   <Receipt className="w-5 h-5 text-yellow-400" />
@@ -257,12 +258,12 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
-              <button onClick={() => setView("stats")} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+              <button onClick={() => setView("stats")} className="w-full flex items-center justify-between bg-transparent rounded-2xl p-4 hover:bg-white/5 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><RiBarChartFill className="w-5 h-5 text-blue-400" /><span className="text-white font-bold text-sm">Project Statistics</span></div>
                 <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
-              <button onClick={() => setView("faq")} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+              <button onClick={() => setView("faq")} className="w-full flex items-center justify-between bg-transparent rounded-2xl p-4 hover:bg-white/5 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><BsQuestionCircleFill className="w-5 h-5 text-sky-400" /><span className="text-white font-bold text-sm">FAQs</span></div>
                 <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
@@ -274,7 +275,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 }
                 const tg = (window as any).Telegram?.WebApp;
                 if (tg?.openTelegramLink) tg.openTelegramLink(supportLink); else window.open(supportLink, "_blank", "noopener,noreferrer");
-              }} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+              }} className="w-full flex items-center justify-between bg-transparent rounded-2xl p-4 hover:bg-white/5 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><MdOutlineSupportAgent className="w-5 h-5 text-pink-400" /><span className="text-white font-bold text-sm">Support</span></div>
                 <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
@@ -282,7 +283,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               {/* Legal Info */}
               <button
                 onClick={() => setView("legal")}
-                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                className="w-full flex items-center justify-between rounded-2xl p-4 hover:bg-white/5 transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-purple-400" />
@@ -300,7 +301,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 <div className="flex items-center justify-center py-10"><Loader2 className="w-5 h-5 text-blue-400 animate-spin" /></div>
               ) : (
                 <>
-                  <div style={{ background: "rgba(255,255,255,.07)", borderRadius: 14, overflow: "hidden" }}>
+                  <div style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW, borderRadius: 14, overflow: "hidden" }}>
                     {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: "center", color: "rgba(255,255,255,.3)", fontSize: 12 }}>No transactions yet</div> : visibleWithdrawals.map((w: any) => {
                       const status = String(w.status || "pending").toLowerCase();
                       const color = status === "approved" || status === "completed" || status === "paid" ? "#4ade80" : status === "rejected" ? "#f87171" : "#fbbf24";
@@ -340,7 +341,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 ].map((card) => {
                   const Icon = card.icon;
                   return (
-                    <div key={card.label} className="rounded-xl bg-white/[0.045] p-3 min-w-0">
+                    <div key={card.label} className="rounded-xl p-3 min-w-0" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}>
                       <Icon className="w-4 h-4 text-white/60 mb-1.5" strokeWidth={2.1} />
                       <div className="text-white text-base font-black leading-tight truncate">{card.value}</div>
                       <div className="text-white/40 text-[10px] mt-1 truncate">{card.label}</div>
@@ -358,7 +359,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 ["How do I withdraw?", "Open Withdraw from the hamburger menu, connect your TON wallet, enter an amount, and submit the request."],
                 ["How long do withdrawals take?", "Every withdrawal is reviewed by admin before the TON payment is sent."],
                 ["Can I use more than one account?", "Only one account per user is allowed. Multiple accounts may be blocked."],
-              ].map(([question, answer]) => <div key={question} className="rounded-2xl bg-white/5 p-4"><p className="text-white font-bold text-sm">{question}</p><p className="text-white/45 text-xs leading-relaxed mt-2">{answer}</p></div>)}
+              ].map(([question, answer]) => <div key={question} className="rounded-2xl p-4" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}><p className="text-white font-bold text-sm">{question}</p><p className="text-white/45 text-xs leading-relaxed mt-2">{answer}</p></div>)}
             </div>
           )}
 
@@ -375,7 +376,8 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   <button
                     key={item.id}
                     onClick={() => openLegalDocument(item.id)}
-                    className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                    className="w-full flex items-center justify-between rounded-2xl p-4 hover:bg-white/5 transition-all active:scale-[0.99]"
+                    style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={`w-5 h-5 ${item.color}`} />
@@ -454,7 +456,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               <div className="space-y-2">
                 <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Rules</p>
 
-                <div className="bg-white/5 rounded-2xl p-3.5 space-y-2">
+                <div className="rounded-2xl p-3.5 space-y-2" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}>
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0">1</span>
                     <p className="text-white font-bold text-xs">Create Content</p>
@@ -476,7 +478,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-2xl p-3.5">
+                <div className="rounded-2xl p-3.5" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}>
                   <div className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0 mt-0.5">2</span>
                     <div>
@@ -490,7 +492,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-2xl p-3.5">
+                <div className="rounded-2xl p-3.5" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}>
                   <div className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0 mt-0.5">3</span>
                     <div>
@@ -500,7 +502,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-2xl p-3.5">
+                <div className="rounded-2xl p-3.5" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}>
                   <div className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0 mt-0.5">4</span>
                     <div>
@@ -515,7 +517,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               </div>
 
               {/* Reward Table */}
-              <div className="bg-white/5 rounded-2xl overflow-hidden">
+              <div className="rounded-2xl overflow-hidden" style={{ background: AD_WATCH_SURFACE_BACKGROUND, boxShadow: AD_WATCH_SURFACE_SHADOW }}>
                 <div className="px-3.5 pt-3 pb-1">
                   <p className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
                     <Eye className="w-3 h-3" /> Reward Table

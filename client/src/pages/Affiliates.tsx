@@ -111,13 +111,13 @@ export default function Affiliates() {
                 <div className="text-white text-sm font-black whitespace-nowrap">{settingsLoaded ? formatWorthUsd(goldWorthUsd) : '…'}</div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 mt-3">
+            <div className="grid grid-cols-3 gap-1 mt-3">
               {[
                 ['On join', settingsLoaded ? `+${formatRewardGold(joinRewardGold)} GOLD` : '…'],
                 ['When active', settingsLoaded ? `+${formatRewardGold(activeRewardGold)} GOLD` : '…'],
-                ['Forever', settingsLoaded ? `${commissionPercent}%` : '…'],
+                ['Forever', settingsLoaded ? `${commissionPercent}% Commission` : '…'],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-xl px-2 py-2 min-w-0" style={{ background: 'rgba(0,0,0,0.28)' }}>
+                <div key={label} className="rounded-xl px-1.5 py-2 min-w-0" style={{ background: 'rgba(0,0,0,0.28)' }}>
                   <div className="text-white/45 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">{label}</div>
                   <div className="text-white text-xs font-black mt-1 whitespace-nowrap tabular-nums">{value}</div>
                 </div>
@@ -160,7 +160,7 @@ export default function Affiliates() {
           {[
             { title: 'They join', description: 'Friend opens the app from your link', reward: `+${formatRewardGold(joinRewardGold)} GOLD` },
             { title: 'They watch', description: `Watch ${adsRequired} Adsgram ad${adsRequired === 1 ? '' : 's'} to become active`, reward: `+${formatRewardGold(activeRewardGold)} GOLD` },
-            { title: 'Forever after', description: 'From your friend’s eligible earnings', reward: `${commissionPercent}%` },
+            { title: 'Forever after', description: 'From your friend’s eligible earnings', reward: `${commissionPercent}% Commission` },
           ].map(({ title, description, reward }, index) => (
             <div key={title} className={`flex items-center justify-between gap-3 py-2 ${index < 2 ? 'border-b border-white/[0.06]' : ''}`}>
               <div className="min-w-0 flex-1"><div className="text-white text-xs font-extrabold">{title}</div><div className="text-white/45 text-[10px] leading-relaxed mt-0.5">{description}</div></div>
