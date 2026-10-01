@@ -1,54 +1,180 @@
-import { useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, CircleHelp, Languages, Settings, Wallet, CreditCard, List, ArrowDownToLine, Coins } from 'lucide-react';
-import Layout from '@/components/Layout';
-import PayoutHistoryPopup from '@/components/PayoutHistoryPopup';
 import { showNotification } from '@/components/AppNotification';
+import Layout from '@/components/Layout';
+import MenuPopup from '@/components/GameMenuPopup';
+import { Copy, Users, Send, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield } from 'lucide-react';
+import { RiBarChartFill } from 'react-icons/ri';
+import { BsQuestionCircleFill } from 'react-icons/bs';
+import { MdOutlineSupportAgent } from 'react-icons/md';
+import { useLanguage } from '@/hooks/useLanguage';
+import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
+import { useLocation } from 'wouter';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
+import { Badge } from '@/components/ui/badge';
 
-const cardStyle: CSSProperties = { background: '#171717', borderRadius: 16, padding: 16 };
+type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
+const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
+const INVITE_BUTTON_BACKGROUND = 'linear-gradient(135deg, #2563eb, #3b82f6)';
 
 export default function Account() {
-  const [cashOutOpen, setCashOutOpen] = useState(false);
-  const [tab, setTab] = useState<'all' | 'earnings' | 'withdraw'>('all');
+  const { t } = useLanguage();
+  const { isAdmin } = useAdmin();
   const supportLink = useSupportLink();
-  const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
-  const { data: earnings = [], isLoading: earningsLoading } = useQuery<any[]>({ queryKey: ['/api/earnings', 50], queryFn: async () => { const res = await fetch('/api/earnings?limit=50', { credentials: 'include' }); return res.ok ? res.json() : []; }, retry: false });
-  const { data: withdrawalData } = useQuery<any>({ queryKey: ['/api/withdrawals'], retry: false });
-  const withdrawals = withdrawalData?.withdrawals || [];
-  const rawGold = Number(user?.balance || 0);
-  const gold = rawGold < 1 ? Math.round(rawGold * 10000000) : Math.round(rawGold);
-  const allItems = [
-    ...earnings.map((item: any) => ({ ...item, kind: 'earning', label: item.description || item.source || 'Earning', value: Number(item.amount || 0), date: item.createdAt })),
-    ...withdrawals.map((item: any) => ({ ...item, kind: 'withdraw', label: 'TON withdrawal', value: -Number(item.goldAmount || item.details?.goldAmount || item.amount || 0), date: item.createdAt })),
-  ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-  const items = tab === 'all' ? allItems : allItems.filter((item) => item.kind === (tab === 'earnings' ? 'earning' : 'withdraw'));
+  const [, setLocation] = useLocation();
+  const [referralsOpen, setReferralsOpen] = useState(false);
+  const [referralsPage, setReferralsPage] = useState(1);
+  const [isSharing, setIsSharing] = useState(false);
+  const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
+  const preparedShareRef = useRef<Promise<any> | null>(null);
 
-  const more = (name: string) => {
-    if (name === 'Track payment') { setTab('withdraw'); document.getElementById('transaction-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-    if (name === 'Support') {
-      if (!supportLink) { showNotification('Support link is not configured', 'error'); return; }
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg?.openTelegramLink) tg.openTelegramLink(supportLink); else window.open(supportLink, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    showNotification(`${name} will be available soon`, 'info');
+  const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
+  const { data: botInfo } = useQuery<{ username: string }>({
+    queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000,
+  });
+  const { data: myReferralsData, isLoading: isLoadingReferrals } = useQuery<any>({
+    queryKey: ['/api/referrals/my-referrals', referralsPage],
+    queryFn: async () => {
+      const response = await fetch(`/api/referrals/my-referrals?page=${referralsPage}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Unable to load friends');
+      return response.json();
+    },
+    retry: false,
+    enabled: referralsOpen,
+    placeholderData: (previousData: any) => previousData,
+  });
+
+  const telegramUser = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user : null;
+  const profilePhoto = telegramUser?.photo_url || user?.profileImageUrl || null;
+  const displayName = user?.firstName || telegramUser?.first_name || 'User';
+  const username = user?.telegramUsername || telegramUser?.username || null;
+  const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
+  const botUsername = botInfo?.username || '';
+  const referralLink = user?.referralCode
+    ? `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`
+    : '';
+  const myReferrals: any[] = myReferralsData?.referrals || [];
+  const referralsTotal = Number(myReferralsData?.total ?? myReferrals.length);
+  const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
+
+  const copyLink = async () => {
+    if (!referralLink) return;
+    await navigator.clipboard.writeText(referralLink);
+    showNotification(t('link_copied'), 'success');
   };
 
-  return <Layout>
-    <main className="max-w-md mx-auto px-4 text-white" style={{ paddingTop: 18, paddingBottom: 110 }}>
-      <section style={{ ...cardStyle, background: 'linear-gradient(145deg, #2b1352, #171717)', marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div><div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700 }}>GEM BALANCE</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 5 }}>{gold.toLocaleString()}</div></div><div style={{ width: 46, height: 46, borderRadius: 15, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Coins size={25} color="#facc15" /></div></div>
-        <button onClick={() => setCashOutOpen(true)} style={{ width: '100%', height: 46, marginTop: 16, border: 0, borderRadius: 12, background: '#6b21a8', color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><ArrowDownToLine size={18} /> Withdraw your gold</button>
-      </section>
-      <section id="transaction-history" style={{ ...cardStyle, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 900, marginBottom: 12 }}><CreditCard size={19} color="#c084fc" /> Transactions history</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, background: '#0d0d0d', padding: 4, borderRadius: 10, marginBottom: 12 }}>{(['all', 'earnings', 'withdraw'] as const).map((item) => <button key={item} onClick={() => setTab(item)} style={{ height: 34, border: 0, borderRadius: 8, background: tab === item ? '#6b21a8' : 'transparent', color: tab === item ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 800, textTransform: 'capitalize' }}>{item}</button>)}</div>
-        {earningsLoading ? <div style={{ color: 'rgba(255,255,255,0.45)', padding: 15, textAlign: 'center' }}>Loading history...</div> : items.length === 0 ? <div style={{ color: 'rgba(255,255,255,0.45)', padding: 15, textAlign: 'center' }}>No transactions yet</div> : items.slice(0, 30).map((item: any) => <div key={`${item.kind}-${item.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</div><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 3 }}>{item.date ? new Date(item.date).toLocaleDateString() : ''} {item.kind === 'withdraw' ? `· ${item.status}` : ''}</div></div><div style={{ color: item.kind === 'withdraw' ? '#fb7185' : '#86efac', fontSize: 12, fontWeight: 900, whiteSpace: 'nowrap' }}>{item.kind === 'withdraw' ? '-' : '+'}{Math.abs(item.value).toLocaleString()} GEM</div></div>)}
-      </section>
-      <section style={cardStyle}><div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 900, marginBottom: 10 }}><List size={19} color="#c084fc" /> More</div>{[['Settings', Settings], ['Track payment', Wallet], ['Support', CircleHelp], ['Languages', Languages]].map(([name, Icon]: any) => <button key={name} onClick={() => more(name)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, height: 48, border: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: '#fff', textAlign: 'left' }}><Icon size={18} color="rgba(255,255,255,0.65)" /><span style={{ flex: 1, fontSize: 13, fontWeight: 700 }}>{name}</span><ChevronRight size={17} color="rgba(255,255,255,0.35)" /></button>)}</section>
-      <PayoutHistoryPopup open={cashOutOpen} onClose={() => setCashOutOpen(false)} />
-    </main>
-  </Layout>;
+  const prepareShareMessage = () => {
+    if (!referralLink) return Promise.resolve(null);
+    if (!preparedShareRef.current) {
+      preparedShareRef.current = fetch('/api/share/prepare-message', { method: 'POST', credentials: 'include' })
+        .then((response) => response.json()).catch(() => null);
+    }
+    return preparedShareRef.current;
+  };
+
+  useEffect(() => {
+    preparedShareRef.current = null;
+    if (referralLink) void prepareShareMessage();
+  }, [referralLink]);
+
+  const inviteFriends = async () => {
+    if (isSharing || !referralLink) return;
+    setIsSharing(true);
+    try {
+      const data = await prepareShareMessage();
+      const tgWebApp = (window as any).Telegram?.WebApp;
+      if (data?.success && tgWebApp?.shareMessage) tgWebApp.shareMessage(data.messageId, () => undefined);
+      else {
+        const fallbackUrl = data?.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(referralLink)}`;
+        if (tgWebApp?.openTelegramLink) tgWebApp.openTelegramLink(fallbackUrl);
+        else window.open(fallbackUrl, '_blank');
+      }
+    } finally { setIsSharing(false); }
+  };
+
+  const openSupport = () => {
+    if (!supportLink) {
+      showNotification('Support link is not configured', 'error');
+      return;
+    }
+    const tgWebApp = (window as any).Telegram?.WebApp;
+    if (tgWebApp?.openTelegramLink) tgWebApp.openTelegramLink(supportLink);
+    else window.open(supportLink, '_blank', 'noopener,noreferrer');
+  };
+
+  const menuActions = [
+    { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
+    { label: 'My invites', icon: <UserPlus className="w-5 h-5 text-emerald-400" />, action: () => setReferralsOpen(true) },
+    { label: 'Project Statistics', icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
+    { label: 'FAQs', icon: <BsQuestionCircleFill className="w-5 h-5 text-sky-400" />, action: () => setMenuView('faq') },
+    { label: 'Support', icon: <MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />, action: openSupport },
+    { label: 'Legal & Info', icon: <Shield className="w-5 h-5 text-purple-400" />, action: () => setMenuView('legal') },
+  ];
+
+  return (
+    <Layout>
+      <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-0">
+        <section className="rounded-2xl p-4 mb-3" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
+          <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">Account Info</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { if (isAdmin) setLocation('/admin'); }}
+              disabled={!isAdmin}
+              aria-label={isAdmin ? 'Open admin panel' : 'Profile'}
+              className={`w-14 h-14 rounded-full overflow-hidden border border-white/10 bg-[#1b1b1b] flex items-center justify-center flex-shrink-0 ${isAdmin ? 'cursor-pointer active:scale-95 transition-transform' : 'cursor-default'}`}
+            >
+              {profilePhoto ? <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-white/40" />}
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm truncate">{displayName}</p>
+              {username && <p className="text-white/50 text-xs mt-0.5">@{username}</p>}
+              {telegramId && <p className="text-white/30 text-[10px] mt-1 font-mono">ID: {telegramId}</p>}
+            </div>
+          </div>
+        </section>
+
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }}>
+            <Send className="w-4 h-4 text-white" />
+            <span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span>
+          </button>
+          <button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }} title="Copy referral link" aria-label="Copy referral link">
+            <Copy className="w-4 h-4 text-white" />
+          </button>
+        </div>
+
+        <section className="space-y-2 mb-3" aria-label="Account actions">
+          {menuActions.map(({ label, icon, action }) => (
+            <button key={label} onClick={action} className="w-full flex items-center justify-between rounded-2xl p-4 hover:brightness-110 transition-all active:scale-[0.99]" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
+              <div className="flex items-center gap-3">{icon}<span className="text-white font-bold text-sm">{label}</span></div>
+              <ChevronRight className="w-4 h-4 text-white/30" />
+            </button>
+          ))}
+        </section>
+        <div style={{ height: 104, flexShrink: 0 }} />
+      </main>
+
+      <Drawer open={referralsOpen} onOpenChange={(open) => { setReferralsOpen(open); if (open) setReferralsPage(1); }}>
+        <DrawerContent className="bg-[#111] border-none max-h-[80vh]">
+          <DrawerHeader className="flex items-center justify-between pb-2"><DrawerTitle className="text-white font-bold text-lg">My invites</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
+          <div className="px-4 pb-6 overflow-y-auto">
+            {isLoadingReferrals ? <div className="text-white/40 text-sm text-center py-10">Loading…</div> : myReferrals.length === 0 ? <div className="flex flex-col items-center py-10 gap-2"><Users className="w-10 h-10 text-white/20" /><p className="text-white/40 text-sm">No invites yet</p></div> : <>
+              <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10 mb-2"><span className="text-[#888] text-xs font-semibold uppercase tracking-wider">Friend</span><span className="text-[#888] text-xs font-semibold uppercase tracking-wider text-right">Status</span></div>
+              <div className="space-y-2">{myReferrals.map((ref: any) => <div key={ref.id} className="grid grid-cols-2 gap-2 items-center py-2 border-b border-white/5"><div className="min-w-0"><p className="text-white text-sm font-medium truncate">{ref.username ? `@${ref.username}` : ref.displayName}</p>{ref.username && ref.displayName && ref.displayName !== ref.username && <p className="text-[#888] text-xs truncate">{ref.displayName}</p>}</div><div className="flex justify-end">{ref.status === 'success' ? <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[11px] px-2"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge> : <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[11px] px-2"><Clock3 className="w-3 h-3 mr-1" />Pending</Badge>}</div></div>)}</div>
+              <div className="flex items-center justify-between gap-3 mt-4">
+                <button onClick={() => setReferralsPage((page) => Math.max(1, page - 1))} disabled={referralsPage <= 1} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-white/10 disabled:opacity-30">Previous</button>
+                <span className="text-white/50 text-xs tabular-nums">{referralsPage} / {referralsTotalPages}</span>
+                <button onClick={() => setReferralsPage((page) => Math.min(referralsTotalPages, page + 1))} disabled={referralsPage >= referralsTotalPages} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-white/10 disabled:opacity-30">Next</button>
+              </div>
+              <p className="text-[#666] text-xs mt-3 text-center">{referralsTotal} friend{referralsTotal !== 1 ? 's' : ''}</p>
+            </>}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} returnToPageOnBack />}
+    </Layout>
+  );
 }
