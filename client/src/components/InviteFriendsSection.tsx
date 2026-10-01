@@ -13,7 +13,7 @@ export default function InviteFriendsSection() {
   const { data: stats } = useQuery<any>({ queryKey: ['/api/referrals/stats'], retry: false });
   const { data: appSettings } = useQuery<any>({ queryKey: ['/api/app-settings'], retry: false });
   const referralLink = user?.referralCode ? `https://t.me/${botInfo?.username || ''}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}` : '';
-  const commissionPercent = Number(appSettings?.l1CommissionPercent || 0);
+  const commissionPercent = Number(appSettings?.l1CommissionPercent ?? 5);
   const income = Number(stats?.totalL1Earned || 0);
   const availableBonus = Number(stats?.availableBonus || 0);
 

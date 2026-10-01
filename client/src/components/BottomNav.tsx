@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Trophy, Video } from "lucide-react";
+import { Video } from "lucide-react";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
@@ -23,7 +23,6 @@ const FriendsIcon = ({ active, c }: { active: boolean; c: string }) => (
 const TABS = [
   { id: "mission", label: "Mission", path: "/mission" },
   { id: "ads", label: "Ads", path: "/ads" },
-  { id: "leaderboard", label: "Leaderboard", path: "/leaderboard" },
   { id: "friends", label: "Friends", path: "/affiliates" },
 ] as const;
 
@@ -89,8 +88,7 @@ export default function BottomNav() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 28 }}>
               {tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
-                : tab.id === "ads" ? <Video size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />
-                : <Trophy size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />}
+                : <Video size={21} color={color} strokeWidth={active ? 2.2 : 1.8} />}
             </div>
             <span style={{ fontSize: "clamp(7px, 2.2vw, 9px)", fontWeight: active ? 700 : 500, letterSpacing: 0, color, lineHeight: 1, whiteSpace: "nowrap" }}>
               {tab.label}

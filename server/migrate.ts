@@ -568,10 +568,25 @@ export async function ensureDatabaseSchema(): Promise<void> {
       // Already exists
     }
 
+    // Older Admin UI saved the activation reward as referral_reward_swag,
+    // while the referral engine reads referral_reward_pad. Copy that value
+    // before inserting defaults so an existing admin amount is preserved.
+    await db.execute(sql`
+      INSERT INTO admin_settings (setting_key, setting_value, description)
+      SELECT 'referral_reward_pad', setting_value, 'Migrated Gold reward after referral activation'
+      FROM admin_settings
+      WHERE setting_key = 'referral_reward_swag'
+      ON CONFLICT (setting_key) DO NOTHING
+    `);
+
     // Default admin settings
     await db.execute(sql`
       INSERT INTO admin_settings (setting_key, setting_value, description)
       VALUES
+        ('l1_commission_percent', '5', 'Direct referral commission percentage'),
+        ('referral_reward_join_gold', '0', 'Gold reward when a referred friend joins'),
+        ('referral_reward_pad', '2500', 'Gold reward when a referred friend becomes active'),
+        ('referral_ads_required', '5', 'Adsgram ads required to activate a referral'),
         ('daily_ad_limit', '510', 'Maximum number of ads a user can watch per day'),
         ('hourly_ad_limit', '63', 'Maximum number of ads a user can watch per hour'),
         ('ad_reward_pad', '1000', 'SWAG reward amount per ad watched'),
@@ -590,6 +605,27 @@ export async function ensureDatabaseSchema(): Promise<void> {
       ON CONFLICT (setting_key) DO NOTHING
     `);
     console.log('✅ [MIGRATION] Admin settings defaults ensured');
+
+    // 20% was the old UI's hard-coded default and could have been persisted
+    // when an admin saved unrelated settings. Change that legacy default once;
+    // later intentional admin values are left untouched across restarts.
+    await db.execute(sql`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM admin_settings WHERE setting_key = 'l1_commission_default_5_migrated'
+        ) THEN
+          UPDATE admin_settings
+          SET setting_value = '5', updated_at = NOW()
+          WHERE setting_key IN ('l1_commission_percent', 'l1CommissionPercent')
+            AND setting_value = '20';
+
+          INSERT INTO admin_settings (setting_key, setting_value, description, updated_at)
+          VALUES ('l1_commission_default_5_migrated', 'true', 'One-time migration of the legacy 20% commission default', NOW())
+          ON CONFLICT (setting_key) DO NOTHING;
+        END IF;
+      END $$
+    `);
 
     // ─── BATCH 4: ALTER TABLE for existing production DBs ─────────────────────
     // These are all idempotent (ADD COLUMN IF NOT EXISTS). Batched into a few

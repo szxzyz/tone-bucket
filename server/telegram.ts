@@ -997,8 +997,7 @@ export async function sendWithdrawalRejectedNotification(withdrawal: any, reason
   return true;
 }
 
-// Send notification to referrer when referred user watches their first ad
-// Uses USD reward from Admin Settings (referral_reward_usd)
+// Send notification to the referrer when their invited friend becomes active.
 export async function sendReferralRewardNotification(
   referrerTelegramId: string,
   referredUserName: string,
@@ -1011,14 +1010,11 @@ export async function sendReferralRewardNotification(
 
   try {
     const safeName = escapeHtml(referredUserName);
-    // User wants SWAG rewards only. If rewardAmount has a dot, treat as USD for legacy support,
-    // otherwise it's SWAG.
-    const isUSD = rewardAmount.includes('.');
-    const formattedReward = isUSD ? `$ ${parseFloat(rewardAmount).toFixed(2)} USD` : `${rewardAmount} Gems`;
-    const emoji = isUSD ? '💰' : '🤘';
+    const formattedReward = `${Number(rewardAmount).toLocaleString()} GOLD`;
+    const emoji = '💰';
     
-    const message = `🎉 <b>New Referral Activity!</b>
-Your friend <b>${safeName}</b> watched their first ad.
+    const message = `🎉 <b>Referral Friend Active!</b>
+Your friend <b>${safeName}</b> completed the activity requirement.
 ${emoji} You earned <b>${formattedReward}</b>
 Keep inviting more friends to earn more!`;
 
@@ -1034,7 +1030,7 @@ Keep inviting more friends to earn more!`;
 }
 
 // DEPRECATED: Referral commission notification removed to prevent spam
-// Only the first-ad referral notification is sent (sendReferralRewardNotification)
+// Only the activation reward notification is sent (sendReferralRewardNotification).
 // This function is kept for backwards compatibility but does nothing
 export async function sendReferralCommissionNotification(
   referrerTelegramId: string,
@@ -1042,7 +1038,7 @@ export async function sendReferralCommissionNotification(
   commissionAmount: string
 ): Promise<boolean> {
   // Commission notifications disabled to prevent spam on every ad watch
-  // Only first-ad referral notifications are sent via sendReferralRewardNotification
+  // Only referral activation notifications are sent via sendReferralRewardNotification.
   console.log(`📭 Commission notification skipped (disabled) for ${referrerTelegramId}`);
   return true;
 }

@@ -2507,7 +2507,7 @@ function SettingsSection() {
     dailyAdLimit: '50',
     hourlyAdLimit: '63',
     rewardPerAd: '2',
-    l1CommissionPercent: '20',
+    l1CommissionPercent: '5',
     minimumWithdrawAmount: '0.20',
     minimumCashoutGold: '1000',
     maximumWithdrawAmount: '0.50',
@@ -2526,11 +2526,8 @@ function SettingsSection() {
     mysteryBoxMaxReward: '500',
     minimumClicks: '500',
     seasonBroadcastActive: false,
-    referralRewardEnabled: false,
-    referralRewardSWAGEnabled: false,
-    referralRewardUSDEnabled: false,
-    referralRewardUSD: '0.0005',
-    referralRewardSWAG: '2500',
+    referralJoinRewardGold: '0',
+    referralActiveRewardGold: '2500',
     referralAdsRequired: '5',
     // Withdrawal requirements
     withdrawalAdRequirementEnabled: true,
@@ -2574,7 +2571,7 @@ function SettingsSection() {
         dailyAdLimit: settingsData.dailyAdLimit?.toString() || '50',
         hourlyAdLimit: settingsData.hourlyAdLimit?.toString() || '63',
         rewardPerAd: settingsData.rewardPerAd?.toString() || '2',
-        l1CommissionPercent: settingsData.l1CommissionPercent?.toString() || '20',
+        l1CommissionPercent: settingsData.l1CommissionPercent?.toString() ?? '5',
         minimumWithdrawAmount: settingsData.minimumWithdrawAmount?.toString() || '0.20',
         minimumCashoutGold: settingsData.minimumCashoutGold?.toString() || '1000',
         maximumWithdrawAmount: settingsData.maximumWithdrawAmount?.toString() || '0.50',
@@ -2593,12 +2590,9 @@ function SettingsSection() {
         mysteryBoxMaxReward: (settingsData as any).mysteryBoxMaxReward?.toString() || '500',
         minimumClicks: settingsData.minimumClicks?.toString() || '500',
         seasonBroadcastActive: settingsData.seasonBroadcastActive || false,
-        referralRewardEnabled: settingsData.referralRewardEnabled || false,
-        referralRewardSWAGEnabled: settingsData.referralRewardSWAGEnabled || false,
-        referralRewardUSDEnabled: settingsData.referralRewardUSDEnabled || false,
-        referralRewardUSD: settingsData.referralRewardUSD?.toString() || '0.0005',
-        referralRewardSWAG: settingsData.referralRewardSWAG?.toString() || '2500',
-        referralAdsRequired: settingsData.referralAdsRequired?.toString() || '5',
+        referralJoinRewardGold: settingsData.referralJoinRewardGold?.toString() ?? '0',
+        referralActiveRewardGold: settingsData.referralActiveRewardGold?.toString() ?? '2500',
+        referralAdsRequired: settingsData.referralAdsRequired?.toString() ?? '5',
         // Withdrawal requirements
         withdrawalAdRequirementEnabled: settingsData.withdrawalAdRequirementEnabled !== false,
         minimumAdsForWithdrawal: settingsData.minimumAdsForWithdrawal?.toString() || '100',
@@ -2702,8 +2696,10 @@ function SettingsSection() {
     const botReward = parseInt(settings.botTaskReward);
     const partnerReward = parseInt(settings.partnerTaskReward);
     const minClicks = parseInt(settings.minimumClicks);
-    const refRewardUSD = parseFloat(settings.referralRewardUSD);
-    const refRewardSWAG = parseInt(settings.referralRewardSWAG);
+    const l1CommissionPercent = Number(settings.l1CommissionPercent);
+    const referralJoinRewardGold = Number.parseInt(settings.referralJoinRewardGold, 10);
+    const referralActiveRewardGold = Number.parseInt(settings.referralActiveRewardGold, 10);
+    const referralAdsRequired = Number.parseInt(settings.referralAdsRequired, 10);
     const mysteryBoxMinReward = Math.max(1, parseInt((settings as any).mysteryBoxMinReward) || 1);
     const mysteryBoxMaxReward = Math.min(500, Math.max(mysteryBoxMinReward, parseInt((settings as any).mysteryBoxMaxReward) || 500));
 
@@ -2717,13 +2713,26 @@ function SettingsSection() {
       return;
     }
 
+    if (!Number.isFinite(l1CommissionPercent) || l1CommissionPercent < 0 || l1CommissionPercent > 100) {
+      showNotification("Referral commission must be between 0 and 100%", "error");
+      return;
+    }
+    if (!Number.isInteger(referralJoinRewardGold) || referralJoinRewardGold < 0 || !Number.isInteger(referralActiveRewardGold) || referralActiveRewardGold < 0) {
+      showNotification("Referral Gold rewards must be whole numbers of 0 or more", "error");
+      return;
+    }
+    if (!Number.isInteger(referralAdsRequired) || referralAdsRequired < 0) {
+      showNotification("Ads required must be a whole number of 0 or more", "error");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const response = await apiRequest('PUT', '/api/admin/settings', {
         dailyAdLimit: adLimit,
         hourlyAdLimit: parseInt(settings.hourlyAdLimit) || 63,
         rewardPerAd: reward,
-        l1CommissionPercent: parseFloat(settings.l1CommissionPercent) || 20,
+        l1CommissionPercent,
         minimumWithdrawAmount: minWithdrawAmount,
         minimumCashoutGold: Math.max(1, parseInt((settings as any).minimumCashoutGold) || 1000),
         maximumWithdrawAmount: maxWithdrawAmount,
@@ -2742,12 +2751,9 @@ function SettingsSection() {
         mysteryBoxMaxReward,
         minimumClicks: minClicks,
         seasonBroadcastActive: settings.seasonBroadcastActive,
-        referralRewardEnabled: settings.referralRewardSWAGEnabled || settings.referralRewardUSDEnabled,
-        referralRewardSWAGEnabled: settings.referralRewardSWAGEnabled,
-        referralRewardUSDEnabled: settings.referralRewardUSDEnabled,
-        referralRewardUSD: refRewardUSD,
-        referralRewardSWAG: refRewardSWAG,
-        referralAdsRequired: Math.max(0, parseInt(settings.referralAdsRequired) || 0),
+        referral_reward_join_gold: referralJoinRewardGold,
+        referral_reward_pad: referralActiveRewardGold,
+        referralAdsRequired,
         withdrawalAdRequirementEnabled: settings.withdrawalAdRequirementEnabled,
         minimumAdsForWithdrawal: parseInt(settings.minimumAdsForWithdrawal) || 100,
         withdrawalInviteRequirementEnabled: settings.withdrawalInviteRequirementEnabled,
@@ -3022,93 +3028,57 @@ function SettingsSection() {
                 type="number"
                 value={settings.l1CommissionPercent}
                 onChange={(e) => setSettings({ ...settings, l1CommissionPercent: e.target.value })}
-                placeholder="20"
+                placeholder="5"
                 min="0"
                 max="100"
                 step="0.1"
               />
               <p className="text-xs text-muted-foreground">
-                Direct referrals. Current: {settingsData?.l1CommissionPercent || 20}%
+                Commission on eligible earnings from direct active friends. Current: {settingsData?.l1CommissionPercent ?? 5}%
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="referral-join-gold" className="text-sm font-semibold">Gold reward when a friend joins</Label>
+              <Input
+                id="referral-join-gold"
+                type="number"
+                value={settings.referralJoinRewardGold}
+                onChange={(e) => setSettings({ ...settings, referralJoinRewardGold: e.target.value })}
+                min="0"
+                step="1"
+              />
+              <p className="text-xs text-muted-foreground">Added to the referrer’s pending Gold balance once the referral is linked. Set to 0 to disable.</p>
+            </div>
 
-            <div className="space-y-2 p-3 border rounded-lg bg-green-50/5 border-green-500/20 md:col-span-2">
-              <Label className="text-sm font-semibold block mb-2">
-                <i className="fas fa-gift mr-2 text-green-500"></i>
-                Referral Bonus — 2500 Gold after 5 Adsgram ads
-              </Label>
-              <p className="text-xs text-muted-foreground mb-3">Enable Gold and/or USD independently. Users receive whichever are enabled. Affiliate page shows accordingly.</p>
-
-              <div className="grid grid-cols-1 gap-3">
-                {/* Gold Toggle */}
-                <div className="flex items-start gap-3 p-2 rounded-lg bg-white/5">
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, referralRewardSWAGEnabled: !settings.referralRewardSWAGEnabled })}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors mt-0.5 flex-shrink-0 ${
-                      settings.referralRewardSWAGEnabled ? 'bg-green-500' : 'bg-gray-600'
-                    }`}
-                  >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${settings.referralRewardSWAGEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                  </button>
-                  <div className="flex-1">
-                    <Label className="text-xs font-semibold text-green-400">Gold Reward</Label>
-                    <Input
-                      type="number"
-                      value={settings.referralRewardSWAG}
-                      onChange={(e) => setSettings({ ...settings, referralRewardSWAG: e.target.value })}
-                      placeholder="50"
-                      disabled={!settings.referralRewardSWAGEnabled}
-                      className={`h-8 mt-1 ${!settings.referralRewardSWAGEnabled ? 'opacity-50' : ''}`}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Current: {settingsData?.referralRewardGold || 50} Gold per referral</p>
-                  </div>
-                </div>
-
-                {/* USD Toggle */}
-                <div className="flex items-start gap-3 p-2 rounded-lg bg-white/5">
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, referralRewardUSDEnabled: !settings.referralRewardUSDEnabled })}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors mt-0.5 flex-shrink-0 ${
-                      settings.referralRewardUSDEnabled ? 'bg-[#6b21a8]' : 'bg-gray-600'
-                    }`}
-                  >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${settings.referralRewardUSDEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                  </button>
-                  <div className="flex-1">
-                    <Label className="text-xs font-semibold text-blue-400">USD Reward</Label>
-                    <Input
-                      type="number"
-                      value={settings.referralRewardUSD}
-                      onChange={(e) => setSettings({ ...settings, referralRewardUSD: e.target.value })}
-                      placeholder="0.0005"
-                      step="0.0001"
-                      disabled={!settings.referralRewardUSDEnabled}
-                      className={`h-8 mt-1 ${!settings.referralRewardUSDEnabled ? 'opacity-50' : ''}`}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Current: ${settingsData?.referralRewardUSD || 0.0005} per referral</p>
-                  </div>
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="referral-active-gold" className="text-sm font-semibold">Gold reward when a friend becomes active</Label>
+              <Input
+                id="referral-active-gold"
+                type="number"
+                value={settings.referralActiveRewardGold}
+                onChange={(e) => setSettings({ ...settings, referralActiveRewardGold: e.target.value })}
+                min="0"
+                step="1"
+              />
+              <p className="text-xs text-muted-foreground">Added to pending Gold after the friend completes the required Adsgram views. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="referral-ads-required" className="text-sm font-semibold">
                 <i className="fas fa-play-circle mr-2 text-amber-500"></i>
-                Ads Required for Bonus
+                Adsgram ads required to become active
               </Label>
               <Input
                 id="referral-ads-required"
                 type="number"
                 value={settings.referralAdsRequired}
                 onChange={(e) => setSettings({ ...settings, referralAdsRequired: e.target.value })}
-                placeholder="1"
-                min="1"
+                min="0"
+                step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Number of ads a referred user must watch to trigger the referral bonus. Current: {settingsData?.referralAdsRequired || 1}
+                Number of Adsgram ads a referred user must watch to become active. Current: {settingsData?.referralAdsRequired ?? 5}
               </p>
             </div>
           </div>
