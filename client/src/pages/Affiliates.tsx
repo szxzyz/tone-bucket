@@ -213,25 +213,36 @@ export default function Affiliates() {
 
         {/* Referral bonuses are accumulated here and never auto-added to balance. */}
         <div className="text-white text-[11px] font-bold uppercase tracking-[0.12em] mt-5 mb-2 px-1">Bonuses</div>
-        <div className="w-full rounded-[14px] mb-2 overflow-hidden" style={{ background: 'linear-gradient(135deg, #252525 0%, #1d2b24 100%)' }}>
-          <div className="flex items-center justify-between px-3 pt-3">
+        <div className="w-full rounded-2xl mb-2 overflow-hidden" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 8px 24px rgba(0,0,0,0.24)' }}>
+          <div className="flex items-center justify-between px-4 pt-4 pb-3">
             <div>
-              <div className="text-white text-[15px] font-extrabold">Referral Bonuses</div>
-              <div className="text-white/45 text-xs mt-1">2,500 Gold per friend after 5 Adsgram ads</div>
+              <div className="text-white/45 text-[10px] font-black uppercase tracking-[0.14em]">Referral bonuses</div>
+              <div className="text-white text-xl font-black mt-1 tabular-nums">{formatLargeSWAG(totalReferralBonusEarned, false)} <span className="text-xs text-white/50">Gold</span></div>
             </div>
-            <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)' }}>
+              <img src="/assets/gems-icon.svg" alt="Gold" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 px-3 pt-3 pb-3">
-            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-[0.08em]">
+              <span className="text-white/40">Total earned</span>
+              <span className="text-[#39ff14]">{pendingReferralBonus > 0 ? 'READY TO COLLECT' : 'UP TO DATE'}</span>
+            </div>
+            <div className="h-[3px] w-full rounded-full overflow-hidden mt-2" style={{ background: 'rgba(255,255,255,0.07)' }}>
+              <div className="h-full rounded-full" style={{ width: pendingReferralBonus > 0 ? '100%' : '0%', background: 'linear-gradient(90deg, #00b309, #39ff14)' }} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 px-4 pb-4 pt-1 border-t border-white/[0.06]">
+            <div className="rounded-xl px-3 py-2 mt-3" style={{ background: 'rgba(255,255,255,0.045)' }}>
               <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Ready to collect</div>
-              <div className="text-white text-base font-black mt-1">{formatLargeSWAG(pendingReferralBonus, false)} Gold</div>
+              <div className="text-white text-sm font-black mt-1 tabular-nums">{formatLargeSWAG(pendingReferralBonus, false)} Gold</div>
             </div>
-            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Total earned</div>
-              <div className="text-white text-base font-black mt-1">{formatLargeSWAG(totalReferralBonusEarned, false)} Gold</div>
+            <div className="rounded-xl px-3 py-2 mt-3" style={{ background: 'rgba(255,255,255,0.045)' }}>
+              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider">Per friend</div>
+              <div className="text-white text-sm font-black mt-1">2,500 Gold</div>
             </div>
           </div>
-          <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || pendingReferralBonus <= 0} className="mx-3 mb-3 w-[calc(100%-24px)] h-10 rounded-xl text-white text-xs font-bold border-none disabled:opacity-40" style={{ background: pendingReferralBonus > 0 ? '#16a34a' : 'rgba(255,255,255,0.08)' }}>
+          <button onClick={() => claimReferralMutation.mutate(undefined)} disabled={claimReferralMutation.isPending || pendingReferralBonus <= 0} className="mx-4 mb-4 w-[calc(100%-32px)] h-11 rounded-xl text-white text-xs font-black uppercase tracking-[0.1em] border-none disabled:opacity-40" style={{ background: pendingReferralBonus > 0 ? '#007aff' : 'rgba(0,122,255,0.25)' }}>
             {claimReferralMutation.isPending ? 'Collecting…' : pendingReferralBonus > 0 ? 'Collect Gold Bonus' : 'No bonus ready'}
           </button>
         </div>

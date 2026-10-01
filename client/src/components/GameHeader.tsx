@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Plus } from "lucide-react";
+import { Clock, Menu, Plus } from "lucide-react";
 import { TonIcon } from "@/components/TonIcon";
 import DepositPopup from "@/components/DepositPopup";
+import { useLocation } from "wouter";
 
 interface HeaderProps { onMenuOpen?: () => void; }
 
@@ -10,6 +11,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(({ onMenuOpen }, ref) => 
   const [overlayTop, setOverlayTop] = useState(0);
   const innerRef = useRef<HTMLDivElement>(null);
   const [depositOpen, setDepositOpen] = useState(false);
+  const [location] = useLocation();
   useImperativeHandle(ref, () => innerRef.current!);
 
   const { data: user } = useQuery<any>({
@@ -50,7 +52,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(({ onMenuOpen }, ref) => 
   }, [overlayTop]);
 
   return (
-    <div ref={innerRef} className="fixed top-0 left-0 right-0 z-40" style={{ background: "#0f0f0f", paddingTop: `${overlayTop + 6}px` }}>
+      <div ref={innerRef} className="fixed top-0 left-0 right-0 z-40" style={{ background: "#0f0f0f", paddingTop: `${overlayTop + 6}px` }}>
+      {(location === "/mission" || location === "/ads") && <ResetCountdownBanner />}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", padding: "8px 12px 10px", gap: 8 }}>
         <button
           onClick={onMenuOpen}
@@ -86,6 +89,64 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(({ onMenuOpen }, ref) => 
     </div>
   );
 });
+
+function ResetCountdownBanner() {
+  const [resetCountdown, setResetCountdown] = useState("");
+  const [nextResetLabel, setNextResetLabel] = useState("");
+
+  useEffect(() => {
+    function tick() {
+      const now = new Date();
+      const year = now.getUTCFullYear();
+      const month = now.getUTCMonth();
+      const day = now.getUTCDate();
+      const resetMorning = new Date(Date.UTC(year, month, day, 6, 30, 0, 0));
+      const resetEvening = new Date(Date.UTC(year, month, day, 18, 30, 0, 0));
+
+      let nextReset: Date;
+      let label: string;
+      if (now < resetMorning) {
+        nextReset = resetMorning;
+        label = "6:30 AM UTC";
+      } else if (now < resetEvening) {
+        nextReset = resetEvening;
+        label = "6:30 PM UTC";
+      } else {
+        nextReset = new Date(Date.UTC(year, month, day + 1, 6, 30, 0, 0));
+        label = "6:30 AM UTC";
+      }
+
+      const totalSeconds = Math.max(0, Math.floor((nextReset.getTime() - now.getTime()) / 1000));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      setNextResetLabel(label);
+      setResetCountdown(`${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`);
+    }
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      aria-label={`Ad limit resets at ${nextResetLabel}, in ${resetCountdown}`}
+      style={{
+        background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        padding: "5px 16px",
+      }}
+    >
+      <Clock size={11} color="rgba(216,180,254,0.75)" strokeWidth={2.5} aria-hidden="true" />
+      <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(216,180,254,0.6)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Reset</span>
+      <div style={{ width: 1, height: 10, background: "rgba(216,180,254,0.2)", borderRadius: 1 }} />
+      <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(216,180,254,0.85)", letterSpacing: "0.04em", fontFamily: "Roboto Mono, monospace" }}>{nextResetLabel || "––:–– UTC"}</span>
+      <div style={{ width: 1, height: 10, background: "rgba(216,180,254,0.2)", borderRadius: 1 }} />
+      <span style={{ fontSize: 12, fontWeight: 800, color: "#e9d5ff", fontVariantNumeric: "tabular-nums", letterSpacing: "0.03em", fontFamily: "Roboto Mono, monospace" }}>{resetCountdown || "––h ––m ––s"}</span>
+    </div>
+  );
+}
 
 Header.displayName = "Header";
 export default Header;

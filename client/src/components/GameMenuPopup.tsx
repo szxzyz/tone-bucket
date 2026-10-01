@@ -13,6 +13,8 @@ import { MdOutlineSupportAgent } from "react-icons/md";
 import { format } from "date-fns";
 import { getTONPrice } from "@/lib/tonPriceService";
 import { TonIcon } from "@/components/TonIcon";
+import { useAdmin } from "@/hooks/useAdmin";
+import { useLocation } from "wouter";
 
 interface MenuPopupProps {
   onClose: () => void;
@@ -50,6 +52,8 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const [submitted, setSubmitted] = useState(false);
   const [transactionPage, setTransactionPage] = useState(0);
   const [tonPrice, setTonPrice] = useState<number | null>(null);
+  const { isAdmin } = useAdmin();
+  const [, setLocation] = useLocation();
 
   const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
@@ -214,13 +218,22 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               <div className="bg-white/5 rounded-2xl p-4">
                 <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-3">Account Info</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 bg-[#1b1b1b] flex items-center justify-center flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isAdmin) return;
+                      onClose();
+                      setLocation("/admin");
+                    }}
+                    aria-label={isAdmin ? "Open admin panel" : "Profile"}
+                    className={`w-14 h-14 rounded-full overflow-hidden border border-white/10 bg-[#1b1b1b] flex items-center justify-center flex-shrink-0 ${isAdmin ? "cursor-pointer active:scale-95 transition-transform" : "cursor-default"}`}
+                  >
                     {photoUrl ? (
                       <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-6 h-6 text-white/40" />
                     )}
-                  </div>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-bold text-sm truncate">{displayName}</p>
                     {username && <p className="text-white/50 text-xs mt-0.5">@{username}</p>}
