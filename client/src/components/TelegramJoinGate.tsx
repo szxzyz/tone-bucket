@@ -141,7 +141,7 @@ export default function TelegramJoinGate() {
         WebkitBackdropFilter: 'blur(8px)',
       }}
     >
-      <div style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '90vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.06)', borderBottom: 0, borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '90vh', overflowY: 'auto', textAlign: 'center', color: '#fff', background: '#0a0a0a', borderRadius: '20px 20px 0 0', padding: '0 16px max(32px, calc(env(safe-area-inset-bottom, 0px) + 16px))', boxSizing: 'border-box' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #2563eb, #3b82f6, #2563eb, transparent)' }} />
         <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', margin: '12px auto 20px' }} />
         <div id="telegram-join-title" style={{ marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>

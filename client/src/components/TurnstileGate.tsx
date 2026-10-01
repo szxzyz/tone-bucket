@@ -348,7 +348,6 @@ export default function TurnstileGate({ children }: { children: React.ReactNode 
           width: "100%",
           maxWidth: 360,
           background: "#111111",
-          border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 20,
           padding: "28px 24px 24px",
           display: "flex",

@@ -93,7 +93,7 @@ function AdsRewardSummary() {
         style={{
           width: '100%', boxSizing: 'border-box', padding: 14, borderRadius: 16,
           background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)',
-          border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)',
+          boxShadow: '0 8px 22px rgba(0,0,0,0.25)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, marginBottom: 12 }}>

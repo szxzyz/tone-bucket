@@ -119,8 +119,6 @@ export default function SwapSheet({
             style={{
               position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 101,
               background: "linear-gradient(160deg, #0d0d0f, #111118)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderBottom: 0,
               borderTopLeftRadius: 28, borderTopRightRadius: 28,
               padding: "0 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))",
               maxWidth: 480, margin: "0 auto", overflow: "hidden",

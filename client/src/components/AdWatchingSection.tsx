@@ -298,7 +298,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
             return (
               <div key={card.id}
-                style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", cursor: "pointer", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}
+                style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", cursor: "pointer", boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}
                 onClick={() => {
                   if (!isProviderConfigured(card.adType)) return;
                   if (index !== activeIndex) { setActiveIndex(index); return; }
@@ -381,7 +381,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
             );
           })}
           {visibleCards.length === 0 && (
-            <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>
+            <div style={{ borderRadius: 16, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>
               Ads are temporarily unavailable. Please try again shortly.
             </div>
           )}

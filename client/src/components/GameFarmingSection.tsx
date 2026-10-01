@@ -83,7 +83,7 @@ export default function GameFarmingSection() {
   return (
     <section style={{ maxWidth: 680, width: "100%", margin: "18px auto 0" }} aria-labelledby="farming-title">
       <h2 id="farming-title" style={{ margin: "0 0 10px", color: "#fff", fontSize: 16, lineHeight: 1.2, fontWeight: 900 }}>Farming</h2>
-      <div style={{ background: "#141414", borderRadius: 16, padding: 16, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 8px 24px rgba(0,0,0,0.24)" }}>
+      <div style={{ background: "#141414", borderRadius: 16, padding: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.24)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ color: "#8e8e93", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase" }}>Farming status</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: isComplete ? "#39ff14" : isActive ? "#39ff14" : "#8e8e93", fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase" }}>

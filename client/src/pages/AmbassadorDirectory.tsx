@@ -43,7 +43,6 @@ function AmbassadorCard({ amb }: { amb: AmbassadorEntry }) {
       borderRadius: 18,
       overflow: "hidden",
       marginBottom: 10,
-      border: "1px solid rgba(255,255,255,0.08)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
         {/* Avatar */}

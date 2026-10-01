@@ -114,7 +114,6 @@ export default function MissionDailyRewards() {
           borderRadius: 16,
           overflow: "hidden",
           background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 8px 22px rgba(0,0,0,0.25)",
         }}
       >

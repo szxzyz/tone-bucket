@@ -102,7 +102,6 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
         position: "relative",
         width: "100%", maxWidth: 480,
         background: "linear-gradient(170deg, #0e0e14, #111119)",
-        border: "1px solid rgba(255,255,255,0.07)",
         borderRadius: "26px 26px 0 0",
         padding: "28px 20px",
         paddingBottom: "max(28px, calc(env(safe-area-inset-bottom, 0px) + 24px))",
@@ -129,7 +128,6 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
             <div key={i} style={{
               display: "flex", gap: 14, alignItems: "flex-start",
               background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.05)",
               borderRadius: 14, padding: "13px 14px",
             }}>
               <div style={{

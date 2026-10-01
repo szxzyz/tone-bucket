@@ -59,7 +59,6 @@ export default function PopupShell({
           background: "#0a0a0a",
           boxShadow: "0 20px 70px rgba(0,0,0,0.55)",
           borderRadius: 20,
-          border: "1px solid rgba(255,255,255,0.1)",
           padding: "22px 18px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))",
         }}
       >

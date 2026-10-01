@@ -101,7 +101,7 @@ export default function Affiliates() {
   return (
     <Layout>
       <main className="max-w-md mx-auto px-3 pt-2 bg-black pb-0">
-        <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: 'linear-gradient(145deg, #202020 0%, #101010 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: 'linear-gradient(145deg, #202020 0%, #101010 100%)' }}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,190,54,0.14)' }}>
               <Gift className="w-4 h-4 text-amber-300" />
@@ -143,7 +143,7 @@ export default function Affiliates() {
           </div>
         </section>
 
-        <section className="rounded-[14px] p-2 mb-3" style={{ background: '#171717', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <section className="rounded-[14px] p-2 mb-3" style={{ background: '#171717' }}>
           <div className="grid grid-cols-3 gap-2">
             {[
               ['Friends', totalFriends],
@@ -168,7 +168,7 @@ export default function Affiliates() {
           </button>
         </div>
 
-        <button onClick={() => setReferralsOpen(true)} className="w-full h-10 rounded-xl mb-3 flex items-center justify-center gap-2 text-white text-xs font-extrabold" style={{ background: '#202020', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <button onClick={() => setReferralsOpen(true)} className="w-full h-10 rounded-xl mb-3 flex items-center justify-center gap-2 text-white text-xs font-extrabold" style={{ background: '#202020', border: 'none' }}>
           <Users className="w-4 h-4" /> My invites
         </button>
 
@@ -181,7 +181,7 @@ export default function Affiliates() {
           </section>
         )}
 
-        <section className="rounded-[16px] p-3 mb-3" style={{ background: '#151515', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <section className="rounded-[16px] p-3 mb-3" style={{ background: '#151515' }}>
           <div className="text-white text-sm font-black mb-3">How it works</div>
           {[
             ['They join', `Friend opens the app from your link${joinRewardUsd > 0 ? ` · +${formatUsd(joinRewardUsd)}` : ''}`],

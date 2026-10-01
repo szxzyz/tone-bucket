@@ -91,7 +91,7 @@ function TaskCard({
   return (
     <div
       onClick={() => onGo(task)}
-      style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", cursor: "pointer" }}
+      style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", cursor: "pointer" }}
       className="active:scale-[0.98] transition-transform"
     >
       <div className="flex items-center gap-3 px-3 py-2.5">
@@ -234,7 +234,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
       {allowCreate && (
         <button
           onClick={() => setLocation("/tasks/create")}
-          style={{ width: "100%", padding: "12px", borderRadius: 16, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10 }}
+          style={{ width: "100%", padding: "12px", borderRadius: 16, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 10 }}
           className="active:scale-[0.98] transition-transform"
         >
           <Plus size={18} color="#3b82f6" strokeWidth={3} />
@@ -245,7 +245,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
       {isLoading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "30px 0" }}><Loader2 className="animate-spin text-white/20" /></div>
       ) : tasks.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "24px 20px", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", borderRadius: 16 }}>
+        <div style={{ textAlign: "center", padding: "24px 20px", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", borderRadius: 16 }}>
           <p style={{ color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>{kind === "social" ? "No social tasks are available right now." : "No game tasks are available right now."}</p>
         </div>
       ) : (

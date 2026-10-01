@@ -392,7 +392,7 @@ export default function Ambassador() {
           </div>
 
           {/* Two-Tab Navigation */}
-          <div className="flex rounded-2xl overflow-hidden mb-4" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="flex rounded-2xl overflow-hidden mb-4" style={{ background: "#111" }}>
             {([
               { key: 'management' as const, label: 'Ambassador Management' },
               { key: 'promos' as const, label: 'Promo Codes' },
@@ -590,7 +590,7 @@ export default function Ambassador() {
                     {postNowCountdown !== null ? (
                       <div
                         className="w-full h-12 rounded-xl flex items-center justify-center gap-2"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                        style={{ background: "rgba(255,255,255,0.04)" }}
                       >
                         <Timer className="w-4 h-4 text-[#888]" />
                         <span className="text-[#888] text-sm font-semibold">
@@ -786,7 +786,7 @@ export default function Ambassador() {
                     const isExpanded = expandedCode === item.promoCode;
                     return (
                       <div key={item.promoCode} className="rounded-xl overflow-hidden"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                        style={{ background: "rgba(255,255,255,0.05)" }}>
                         {/* Promo code header row — tap to expand */}
                         <button
                           className="w-full flex items-center justify-between px-3 py-3 active:bg-white/5 transition-colors"
