@@ -14,7 +14,7 @@ export default function DailyContestBanner({ prizePool, onClick }: Props) {
       type="button"
       aria-label={`Weekly Contest — Top Earners — Take the prize — $${prizeLabel} prize pool`}
       onClick={onClick}
-      className="mt-3 mb-2 rounded-2xl overflow-hidden relative cursor-pointer active:scale-[0.99] transition-transform"
+      className="mt-1 mb-2 rounded-2xl overflow-hidden relative cursor-pointer active:scale-[0.99] transition-transform"
       style={{
         display: "block",
         width: "100%",
