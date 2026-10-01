@@ -16,7 +16,17 @@ export default function Mission() {
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
         <DailyContestBanner prizePool={appConfig?.weeklyGiveawayAmount} onClick={() => setLocation('/leaderboard')} />
-        <section style={{ marginBottom: 14 }} aria-label="Promo code">
+        <section
+          style={{
+            marginBottom: 14,
+            padding: 12,
+            borderRadius: 16,
+            background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 22px rgba(0,0,0,0.25)',
+          }}
+          aria-label="Promo code"
+        >
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', paddingLeft: 4 }}>
             Promo Code
           </div>

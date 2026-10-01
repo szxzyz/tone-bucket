@@ -53,7 +53,6 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(({ onMenuOpen }, ref) => 
 
   return (
       <div ref={innerRef} className="fixed top-0 left-0 right-0 z-40" style={{ background: "#0f0f0f", paddingTop: `${overlayTop + 6}px` }}>
-      {(location === "/mission" || location === "/ads") && <ResetCountdownBanner />}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", padding: "8px 12px 10px", gap: 8 }}>
         <button
           onClick={onMenuOpen}
@@ -85,6 +84,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(({ onMenuOpen }, ref) => 
         </div>
 
       </div>
+      {(location === "/mission" || location === "/ads") && <ResetCountdownBanner />}
       <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );
