@@ -10,8 +10,6 @@ import { useAdFlow } from "@/hooks/useAdFlow";
 interface AdWatchingSectionProps {
   user: any;
   hideTitle?: boolean;
-  onWatchStart?: () => void;
-  onWatchStop?: () => void;
 }
 
 // Provider cards are controlled by Admin settings and only render when the
@@ -24,7 +22,7 @@ const AD_CARDS = [
   { id: 4, adType: "uslads",  title: "USL Ads", accentColor: "#3b82f6", image: "/usl-logo.jpg" },
 ];
 
-function AdWatchingSection({ user, hideTitle, onWatchStart, onWatchStop }: AdWatchingSectionProps) {
+function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const queryClient = useQueryClient();
   const { startSession, endSession, cancelSession, waitForForeground, getSessionStart } = useAdSession();
   const { t } = useLanguage();
@@ -176,7 +174,6 @@ function AdWatchingSection({ user, hideTitle, onWatchStart, onWatchStop }: AdWat
     currentAdTypeRef.current = card.adType;
 
     const sessionId    = startSession();
-    onWatchStart?.();
     try {
       setCurrentAdStep("loading");
       const regRes = await apiRequest("POST", "/api/ads/register-session", {
@@ -240,7 +237,6 @@ function AdWatchingSection({ user, hideTitle, onWatchStart, onWatchStop }: AdWat
     } finally {
       setCurrentAdStep("idle");
       setIsShowingAds(false);
-      onWatchStop?.();
     }
   };
 
