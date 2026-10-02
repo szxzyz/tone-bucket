@@ -6812,7 +6812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAmount.toFixed(10), method: 'TON', status: 'pending', details: { walletAddress: user.payoutWalletAddress, goldAmount: Math.trunc(gold), axnAmount: Math.trunc(gold), usdValue, fee, feePercent, netAmount, tonAmount: withdrawalTonAmount, marketRateUsd: withdrawalTonPrice, totalDeducted: Math.trunc(gold), manualTonWithdrawal: true }, goldAmount: String(Math.trunc(gold)), usdValue: netAmount.toFixed(10), payoutCurrency: 'TON', cryptoAmount: withdrawalTonAmount.toFixed(18), marketRateUsd: withdrawalTonPrice.toFixed(18), walletAddress: user.payoutWalletAddress!, deducted: true, refunded: false }).returning();
         return withdrawal;
       });
-      const notificationSent = await sendWithdrawalRequestToAdmins({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username || 'unknown', walletAddress: user.payoutWalletAddress, amount: netAmount, usdAmount: netAmount, fee, feePercent, axnAmount: gold, tonAmount: withdrawalTonAmount, tonPrice: withdrawalTonPrice });
+      const notificationSent = await sendWithdrawalRequestToAdmins({ withdrawalId: result.id, userTelegramId: String(user.telegram_id || user.id), userName: user.firstName || user.username || user.id, userTelegramUsername: user.username ? `@${String(user.username).replace(/^@+/, '')}` : 'N/A', walletAddress: user.payoutWalletAddress, amount: netAmount, usdAmount: netAmount, fee, feePercent, axnAmount: gold, tonAmount: withdrawalTonAmount, tonPrice: withdrawalTonPrice });
       if (!notificationSent) console.error(`❌ Withdrawal ${result.id} created but private admin delivery failed`);
       res.json({ success: true, status: 'pending', withdrawalId: result.id, goldAmount: gold, usdValue: netAmount, fee, feePercent, currency: 'TON' });
     } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not create payout' }); }
@@ -10150,11 +10150,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Send real-time update to user
         if (result.withdrawal) {
+          const approvedDetails = result.withdrawal.details as any;
+          const approvedUsdtAmount = Number(approvedDetails?.netAmount ?? result.withdrawal.usdValue ?? result.withdrawal.amount ?? 0);
           sendRealtimeUpdate(result.withdrawal.userId, {
             type: 'withdrawal_approved',
             amount: result.withdrawal.amount,
             method: result.withdrawal.method,
-            message: `Your ${result.withdrawal.goldAmount || result.withdrawal.amount} GEM TON withdrawal was approved; admin will pay manually`
+            message: `Your withdrawal of ${approvedUsdtAmount.toFixed(3)} USDT was approved and processed`
           });
 
           // Also send a balance_update so the frontend refreshes balance AND stars correctly
@@ -10218,11 +10220,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Send real-time update to user
         if (result.withdrawal) {
+          const rejectedDetails = result.withdrawal.details as any;
+          const rejectedUsdtAmount = Number(rejectedDetails?.netAmount ?? result.withdrawal.usdValue ?? result.withdrawal.amount ?? 0);
           sendRealtimeUpdate(result.withdrawal.userId, {
             type: 'withdrawal_rejected',
             amount: result.withdrawal.amount,
             method: result.withdrawal.method,
-            message: `Your withdrawal of ${result.withdrawal.amount} TON has been rejected`
+            message: `Your withdrawal of ${rejectedUsdtAmount.toFixed(3)} USDT has been rejected`
           });
 
           // Broadcast to all admins for instant UI update
