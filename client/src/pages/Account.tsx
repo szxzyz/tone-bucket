@@ -3,47 +3,27 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { Users, CheckCircle2, Clock3, User, UserPlus, Receipt, ChevronRight, Shield, Globe, History, FileCheck2 } from 'lucide-react';
+import { User, UserPlus, Receipt, ChevronRight, Shield, Globe, History, FileCheck2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
 import { useLocation } from 'wouter';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
-import { Badge } from '@/components/ui/badge';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
-import EarningHistoryPopup from '@/components/EarningHistoryPopup';
-import { SettingsPopup } from '@/components/SettingsPopup';
 
-type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
+type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal' | 'language' | 'earnings' | 'invites';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 
 export default function Account() {
   const { isAdmin } = useAdmin();
   const supportLink = useSupportLink();
   const [, setLocation] = useLocation();
-  const [referralsOpen, setReferralsOpen] = useState(false);
-  const [referralsPage, setReferralsPage] = useState(1);
   const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [earningHistoryOpen, setEarningHistoryOpen] = useState(false);
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], retry: false, staleTime: 300000 });
-  const { data: myReferralsData, isLoading: isLoadingReferrals } = useQuery<any>({
-    queryKey: ['/api/referrals/my-referrals', referralsPage],
-    queryFn: async () => {
-      const response = await fetch(`/api/referrals/my-referrals?page=${referralsPage}`, { credentials: 'include' });
-      if (!response.ok) throw new Error('Unable to load friends');
-      return response.json();
-    },
-    retry: false,
-    enabled: referralsOpen,
-    placeholderData: (previousData: any) => previousData,
-  });
-
   const telegramUser = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user : null;
   const profilePhoto = telegramUser?.photo_url || user?.profileImageUrl || null;
   const displayName = user?.firstName || telegramUser?.first_name || 'User';
@@ -53,9 +33,6 @@ export default function Account() {
   const rawBalance = balanceLoaded ? Number(user.balance) : 0;
   const gemBalance = rawBalance < 1 ? Math.round(rawBalance * 10_000_000) : Math.floor(rawBalance);
   const usdBalance = gemBalance / 100_000;
-  const myReferrals: any[] = myReferralsData?.referrals || [];
-  const referralsTotal = Number(myReferralsData?.total ?? myReferrals.length);
-  const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
   const proofOfPaymentLink = String(appConfig?.proofOfPaymentLink || '').trim();
 
   const openSupport = () => {
@@ -79,11 +56,11 @@ export default function Account() {
   };
 
   const menuActions = [
-    { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setSettingsOpen(true) },
-    { label: 'Earning History', icon: <History className="w-5 h-5 text-amber-400" />, action: () => setEarningHistoryOpen(true) },
+    { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setMenuView('language') },
+    { label: 'Earning History', icon: <History className="w-5 h-5 text-amber-400" />, action: () => setMenuView('earnings') },
     { label: 'Proof of Payment', icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
     { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
-    { label: 'My invites', icon: <UserPlus className="w-5 h-5 text-emerald-400" />, action: () => setReferralsOpen(true) },
+    { label: 'My invites', icon: <UserPlus className="w-5 h-5 text-emerald-400" />, action: () => setMenuView('invites') },
     { label: 'Project Statistics', icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
     { label: 'FAQs', icon: <BsQuestionCircleFill className="w-5 h-5 text-sky-400" />, action: () => setMenuView('faq') },
     { label: 'Support', icon: <MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />, action: openSupport },
@@ -137,28 +114,7 @@ export default function Account() {
         <div style={{ height: 104, flexShrink: 0 }} />
       </main>
 
-      <Drawer open={referralsOpen} onOpenChange={(open) => { setReferralsOpen(open); if (open) setReferralsPage(1); }}>
-        <DrawerContent className="max-h-[90vh] rounded-t-2xl border border-white/10 bg-[#0f0f0f] p-0 text-white">
-          <DrawerHeader className="flex items-center justify-between border-b border-white/5 px-5 py-3"><DrawerTitle className="text-white font-bold text-base">My invites</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
-          <div className="px-4 pb-6 overflow-y-auto">
-            {isLoadingReferrals ? <div className="text-white/40 text-sm text-center py-10">Loading…</div> : myReferrals.length === 0 ? <div className="flex flex-col items-center py-10 gap-2"><Users className="w-10 h-10 text-white/20" /><p className="text-white/40 text-sm">No invites yet</p></div> : <>
-              <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10 mb-2"><span className="text-[#888] text-xs font-semibold uppercase tracking-wider">Friend</span><span className="text-[#888] text-xs font-semibold uppercase tracking-wider text-right">Status</span></div>
-              <div className="space-y-2">{myReferrals.map((ref: any) => <div key={ref.id} className="grid grid-cols-2 gap-2 items-center py-2 border-b border-white/5"><div className="min-w-0"><p className="text-white text-sm font-medium truncate">{ref.username ? `@${ref.username}` : ref.displayName}</p>{ref.username && ref.displayName && ref.displayName !== ref.username && <p className="text-[#888] text-xs truncate">{ref.displayName}</p>}</div><div className="flex justify-end">{ref.status === 'success' ? <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[11px] px-2"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge> : <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[11px] px-2"><Clock3 className="w-3 h-3 mr-1" />Pending</Badge>}</div></div>)}</div>
-              <div className="flex items-center justify-between gap-3 mt-4">
-                <button onClick={() => setReferralsPage((page) => Math.max(1, page - 1))} disabled={referralsPage <= 1} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-white/10 disabled:opacity-30">Previous</button>
-                <span className="text-white/50 text-xs tabular-nums">{referralsPage} / {referralsTotalPages}</span>
-                <button onClick={() => setReferralsPage((page) => Math.min(referralsTotalPages, page + 1))} disabled={referralsPage >= referralsTotalPages} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-white/10 disabled:opacity-30">Next</button>
-              </div>
-              <p className="text-[#666] text-xs mt-3 text-center">{referralsTotal} friend{referralsTotal !== 1 ? 's' : ''}</p>
-            </>}
-          </div>
-        </DrawerContent>
-      </Drawer>
-
-      {settingsOpen && <SettingsPopup onClose={() => setSettingsOpen(false)} />}
-
       <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={gemBalance} />
-      <EarningHistoryPopup open={earningHistoryOpen} onClose={() => setEarningHistoryOpen(false)} />
 
       {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} returnToPageOnBack />}
     </Layout>

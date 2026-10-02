@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Sparkles } from 'lucide-react';
-import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 
 type Category = 'all' | 'ads' | 'missions' | 'friends';
 interface EarningItem {
@@ -57,7 +56,7 @@ function displayTitle(item: EarningItem) {
   return labels[item.source] || readableSource(item.source);
 }
 
-export default function EarningHistoryPopup({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function EarningHistoryPopup() {
   const [category, setCategory] = useState<Category>('all');
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = useQuery<HistoryResponse>({
@@ -68,7 +67,6 @@ export default function EarningHistoryPopup({ open, onClose }: { open: boolean; 
       if (!response.ok) throw new Error('Unable to load earning history');
       return response.json();
     },
-    enabled: open,
     retry: false,
     staleTime: 30000,
   });
@@ -79,17 +77,8 @@ export default function EarningHistoryPopup({ open, onClose }: { open: boolean; 
   };
 
   return (
-    <Drawer open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DrawerContent className="w-full max-w-md mx-auto max-h-[90dvh] rounded-t-2xl border border-white/10 bg-[#0f0f0f] p-0 text-white">
-        <DrawerHeader className="flex items-center justify-between border-b border-white/5 px-5 py-3">
-          <div>
-            <DrawerTitle className="text-left text-white font-bold text-lg">Earning History</DrawerTitle>
-            <p className="text-left text-white/40 text-xs mt-1">Your credited rewards, with names and dates</p>
-          </div>
-          <DrawerClose asChild><button className="px-3 py-1 rounded-lg text-white/55 hover:text-white hover:bg-white/10 text-sm">Close</button></DrawerClose>
-        </DrawerHeader>
-
-        <div className="px-4 pb-6 overflow-y-auto">
+        <div className="p-4 overflow-y-auto">
+          <p className="text-white/40 text-xs mb-3">Your credited rewards, with names and dates</p>
           <div role="tablist" aria-label="Filter earning history" className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-3 bg-white/[0.04]">
             {TABS.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={category === tab.id} onClick={() => selectCategory(tab.id)} className={`rounded-lg py-2 px-1 text-[11px] font-bold transition-colors ${category === tab.id ? 'bg-blue-600 text-white' : 'text-white/45 hover:text-white/80'}`}>{tab.label}</button>)}
           </div>
@@ -124,7 +113,5 @@ export default function EarningHistoryPopup({ open, onClose }: { open: boolean; 
             <button type="button" onClick={() => setPage((current) => Math.min(data.totalPages, current + 1))} disabled={page >= data.totalPages} className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-30">Next<ChevronRight className="w-4 h-4" /></button>
           </div>}
         </div>
-      </DrawerContent>
-    </Drawer>
   );
 }

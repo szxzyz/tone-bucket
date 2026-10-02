@@ -13,7 +13,7 @@ interface SettingsPopupProps {
 export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
   const { user } = useAuth();
   const supportLink = useSupportLink();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const [copied, setCopied] = React.useState(false);
 
   const [selectedLegal, setSelectedLegal] = React.useState<string | null>(null);
@@ -131,35 +131,6 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const ALL_LANGUAGES: Array<import('@/hooks/useLanguage').Language> = [
-    'en', 'ru', 'ar', 'uk', 'de', 'zh', 'pt', 'es', 'vi', 'bn',
-  ];
-
-  const LANGUAGE_LABELS: Record<string, string> = {
-    en: 'English', ru: 'Русский', ar: 'العربية', uk: 'Українська',
-    de: 'Deutsch', zh: '中文', pt: 'Português', es: 'Español',
-    vi: 'Tiếng Việt', bn: 'বাংলা',
-  };
-
-  const cycleLanguage = async () => {
-    const idx = ALL_LANGUAGES.indexOf(language as any);
-    const next = ALL_LANGUAGES[(idx + 1) % ALL_LANGUAGES.length];
-    setLanguage(next);
-    // Persist to server so ambassador promo uses correct language image + caption
-    try {
-      await fetch('/api/user/language', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: next }),
-        credentials: 'include',
-      });
-    } catch {
-      // Non-critical — localStorage is already updated
-    }
-  };
-
-  const languageLabel = LANGUAGE_LABELS[language] ?? 'English';
-
   const openLink = (url: string) => {
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(url);
@@ -187,12 +158,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
             />
 
             {/* Language */}
-            <LegalItem
-              icon={<Globe className="w-4 h-4 text-purple-400" />}
-              label={`${t('language')}: ${languageLabel}`}
-              onClick={cycleLanguage}
-              rightIcon={<RefreshCw className="w-3 h-3 text-gray-600" />}
-            />
+            <LanguagePreferenceControl />
 
             {/* Admin Panel (Conditional) */}
             {(user as any)?.isAdmin && (
@@ -293,3 +259,34 @@ const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode,
     {rightIcon || <ChevronRight className="w-3 h-3 text-gray-600" />}
   </div>
 );
+
+export const LanguagePreferenceControl: React.FC = () => {
+  const { language, setLanguage, t } = useLanguage();
+  const ALL_LANGUAGES: Array<import('@/hooks/useLanguage').Language> = ['en', 'ru', 'ar', 'uk', 'de', 'zh', 'pt', 'es', 'vi', 'bn'];
+  const LANGUAGE_LABELS: Record<string, string> = {
+    en: 'English', ru: 'Русский', ar: 'العربية', uk: 'Українська',
+    de: 'Deutsch', zh: '中文', pt: 'Português', es: 'Español', vi: 'Tiếng Việt', bn: 'বাংলা',
+  };
+  const cycleLanguage = async () => {
+    const idx = ALL_LANGUAGES.indexOf(language as any);
+    const next = ALL_LANGUAGES[(idx + 1) % ALL_LANGUAGES.length];
+    setLanguage(next);
+    try {
+      await fetch('/api/user/language', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: next }),
+        credentials: 'include',
+      });
+    } catch {
+      // Local preference is already applied by useLanguage.
+    }
+  };
+
+  return <LegalItem
+    icon={<Globe className="w-4 h-4 text-purple-400" />}
+    label={`${t('language')}: ${LANGUAGE_LABELS[language] ?? 'English'}`}
+    onClick={() => void cycleLanguage()}
+    rightIcon={<RefreshCw className="w-3 h-3 text-gray-500" />}
+  />;
+};
