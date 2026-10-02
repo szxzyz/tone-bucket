@@ -5,7 +5,7 @@ type Props = {
 };
 
 export default function DailyContestBanner({ onClick }: Props) {
-  const prizeLabel = "1M GEM";
+  const prizeLabel = "100K GEM";
 
   return (
     <button
