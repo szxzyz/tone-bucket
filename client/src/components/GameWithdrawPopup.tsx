@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
+import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { showNotification } from '@/components/AppNotification';
@@ -14,6 +14,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const [amount, setAmount] = useState('');
   const [tonPrice, setTonPrice] = useState(0);
   const connectedAddress = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], enabled: open, retry: false });
   const { data: settings } = useQuery<any>({ queryKey: ['/api/app-settings'], enabled: open, retry: false, staleTime: 60000 });
 
@@ -66,6 +67,13 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const netUsd = (value / 100000) * (1 - feePercent / 100);
   const canSubmit = !secondaryAccountBlocked && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && tonPrice > 0 && !withdrawal.isPending;
   const handleMax = () => setAmount(String(Math.floor(userBalance)));
+  const openWallet = async () => {
+    try {
+      await tonConnectUI.openModal();
+    } catch (error: any) {
+      showNotification(error?.message || 'Could not open TON wallet connection', 'error');
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -103,7 +111,9 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                   <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">TON wallet address</label>
                 </div>
                 <div className="flex justify-center">
-                  <TonConnectButton />
+                  <button type="button" onClick={openWallet} className="h-10 px-4 rounded-[10px] border border-[#0098ea]/50 bg-[#0098ea] text-white text-xs font-extrabold shadow-[0_4px_14px_rgba(0,152,234,0.2)]">
+                    {connectedAddress ? 'TON Wallet Connected' : 'Connect TON Wallet'}
+                  </button>
                 </div>
                 {address && <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>}
                 {connectedAddress && !savedAddress && (
