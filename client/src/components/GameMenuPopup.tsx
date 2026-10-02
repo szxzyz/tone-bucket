@@ -15,6 +15,7 @@ import { getTONPrice } from "@/lib/tonPriceService";
 import { TonIcon } from "@/components/TonIcon";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useSupportLink } from "@/hooks/useSupportLink";
+import { useLanguage } from "@/hooks/useLanguage";
 import { showNotification } from "@/components/AppNotification";
 import { useLocation } from "wouter";
 import { LanguagePreferenceControl } from "@/components/SettingsPopup";
@@ -57,6 +58,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const [transactionPage, setTransactionPage] = useState(0);
   const [tonPrice, setTonPrice] = useState<number | null>(null);
   const { isAdmin } = useAdmin();
+  const { t } = useLanguage();
   const supportLink = useSupportLink();
   const [, setLocation] = useLocation();
 
@@ -161,16 +163,16 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
     main: "Menu",
     transactions: "Transactions",
     stats: "Project Statistics",
-    faq: "FAQs",
-    legal: "Legal & Info",
+    faq: t("faq_title"),
+    legal: t("legal_info"),
     contest: "Contest",
-    language: "Language",
+    language: t("language"),
   };
 
   const legalTitles: Record<LegalDocument, string> = {
-    terms: "Terms & Conditions",
-    privacy: "Privacy Policy",
-    acceptable: "Acceptable Use",
+    terms: t("terms_conditions"),
+    privacy: t("privacy_policy"),
+    acceptable: t("acceptable_use"),
   };
 
   const openLegalDocument = (document: LegalDocument) => {
@@ -333,7 +335,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
 
           {view === "language" && (
             <div className="px-4 py-4 space-y-3">
-              <p className="text-white/40 text-xs">Use the app's existing language selector below.</p>
+              <p className="text-white/40 text-xs">{t("select_language")}</p>
               <LanguagePreferenceControl />
             </div>
           )}
@@ -365,10 +367,15 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
           {view === "faq" && (
             <div className="px-5 py-4 space-y-2">
               {[
-                ["How do I earn GEM?", "Complete tasks, watch ads, check in daily, and invite friends to earn GEM."],
-                ["How do I withdraw?", "Open Withdraw from your wallet or balance page, connect your TON wallet, enter an amount, and submit the request."],
-                ["How long do withdrawals take?", "Every withdrawal is reviewed by admin before the TON payment is sent."],
-                ["Can I use more than one account?", "Only one account per user is allowed. Multiple accounts may be blocked."],
+                [t("faq_earn_q"), t("faq_earn_a")],
+                [t("faq_referral_q"), t("faq_referral_a")],
+                [t("faq_withdraw_q"), t("faq_withdraw_a")],
+                [t("faq_status_q"), t("faq_status_a")],
+                [t("faq_currency_q"), t("faq_currency_a")],
+                [t("faq_contest_q"), t("faq_contest_a")],
+                [t("faq_language_q"), t("faq_language_a")],
+                [t("faq_accounts_q"), t("faq_accounts_a")],
+                [t("faq_proof_q"), t("faq_proof_a")],
               ].map(([question, answer]) => <div key={question} className="rounded-2xl bg-white/5 p-4"><p className="text-white font-bold text-sm">{question}</p><p className="text-white/45 text-xs leading-relaxed mt-2">{answer}</p></div>)}
             </div>
           )}
@@ -377,9 +384,9 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
           {view === "legal" && !selectedLegal && (
             <div className="px-5 py-4 space-y-3">
               {([
-                { id: "terms" as LegalDocument, label: "Terms & Conditions", icon: Shield, color: "text-emerald-400" },
-                { id: "privacy" as LegalDocument, label: "Privacy Policy", icon: ScrollText, color: "text-orange-400" },
-                { id: "acceptable" as LegalDocument, label: "Acceptable Use", icon: ShieldCheck, color: "text-rose-400" },
+                { id: "terms" as LegalDocument, label: t("terms_conditions"), icon: Shield, color: "text-emerald-400" },
+                { id: "privacy" as LegalDocument, label: t("privacy_policy"), icon: ScrollText, color: "text-orange-400" },
+                { id: "acceptable" as LegalDocument, label: t("acceptable_use"), icon: ShieldCheck, color: "text-rose-400" },
               ]).map((item) => {
                 const Icon = item.icon;
                 return (
@@ -403,31 +410,30 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
             <div className="flex-1 overflow-y-auto p-6 text-gray-400 text-sm leading-relaxed">
               {selectedLegal === "terms" && (
                 <div className="space-y-4">
-                  <p className="text-[#B9FF66] font-bold">Last Updated: January 21, 2026</p>
-                  <p>Welcome to Money AXN. By accessing or using this app, you agree to comply with these Terms & Conditions. If you do not agree, please do not use the app.</p>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Eligibility</h4><p>Users must be at least 13 years old. You represent that you are of legal age to form a binding contract. You are responsible for maintaining the confidentiality of your account and all activities that occur under your account.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. GEM Rewards</h4><p>Users can earn GEM by completing available tasks, watching ads, checking in daily, and inviting friends. GEM rewards are credited to the in-app balance according to the reward rules shown in the app and may be eligible for withdrawal subject to verification and minimum limits.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Referral Rewards</h4><p>Referral rewards are credited automatically after the invited friend completes the required qualifying activity. Reward amounts and commission terms are shown on the Friends page.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Withdrawals</h4><p>AXN tokens can be converted to TON and withdrawn to your personal wallet. Withdrawals are subject to system verification, minimum limits, and available liquidity. Users must provide valid wallet addresses. We reserve the right to delay or cancel withdrawals for security audits or suspected fraudulent activity.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">5. Account Suspension & Bans</h4><p>We reserve the right to suspend or permanently ban accounts without prior notice if we detect violations of our policies, including multiple accounts, bot usage, script automation, or exploitation of system bugs.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">6. Fraud & Abuse</h4><p>Any attempt to manipulate rewards, exploit technical vulnerabilities, or provide false information during verification may result in account suspension and forfeiture of rewards.</p></div>
+                  <p className="text-[#B9FF66] font-bold">{t("legal_last_updated")}</p>
+                  <p>{t("legal_terms_intro")}</p>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_terms_eligibility_title")}</h4><p>{t("legal_terms_eligibility")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_terms_rewards_title")}</h4><p>{t("legal_terms_gem")}</p><p className="mt-2">{t("legal_terms_referrals")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_terms_withdrawals_title")}</h4><p>{t("legal_terms_withdrawals")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_terms_fair_use_title")}</h4><p>{t("legal_terms_fair_use")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_terms_changes_title")}</h4><p>{t("legal_terms_changes")}</p></div>
                 </div>
               )}
               {selectedLegal === "privacy" && (
                 <div className="space-y-4">
-                  <p>Money AXN respects your privacy and is committed to protecting your personal data.</p>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">1. Data Collection</h4><p>We collect essential data to provide app services, including your Telegram User ID (UID), device information, IP address, app usage statistics, and task and reward activity history.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">2. Data Storage & Security</h4><p>Your data is stored securely using industry-standard encryption. We retain your information for as long as your account is active or as needed to provide our services and comply with legal obligations.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">3. Third-Party Services</h4><p>We integrate with third-party payment gateways for processing TON transactions. These services may collect non-personal data according to their own privacy policies for transaction processing.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">4. Your Rights</h4><p>You have the right to access, correct, or request the deletion of your data. Contact our support team for privacy-related inquiries.</p></div>
+                  <p>{t("legal_privacy_intro")}</p>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_privacy_data_title")}</h4><p>{t("legal_privacy_data")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_privacy_wallet_title")}</h4><p>{t("legal_privacy_wallet")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_privacy_services_title")}</h4><p>{t("legal_privacy_services")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_privacy_retention_title")}</h4><p>{t("legal_privacy_retention")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 italic uppercase tracking-tighter">{t("legal_privacy_contact_title")}</h4><p>{t("legal_privacy_contact")}</p></div>
                 </div>
               )}
               {selectedLegal === "acceptable" && (
                 <div className="space-y-4">
-                  <p>To maintain a fair rewards system for all users, you must adhere to the following rules:</p>
-                  <div><h4 className="text-rose-400 font-bold mb-1 italic uppercase tracking-tighter">Prohibited Actions</h4><ul className="list-disc pl-5 space-y-1"><li>Creating or managing multiple accounts for a single user.</li><li>Using automated bots, scripts, or third-party software to simulate app activity.</li><li>Exploiting technical vulnerabilities or bugs for unauthorized gain.</li><li>Attempting to manipulate rewards or conversion rates.</li><li>Reverse-engineering, decompiling, or attempting to extract source code.</li></ul></div>
-                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />Multi-Account Abuse</h4><p>Our system employs advanced detection for multi-account activity. Users found operating multiple profiles to inflate referral or GEM earnings may face account restrictions across all linked accounts.</p></div>
-                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><CheckCircle className="w-4 h-4 text-green-500" />Compliance</h4><p>All users must use the app in compliance with applicable local and international laws. We cooperate with law enforcement agencies in cases of suspected illegal activity.</p></div>
+                  <p>{t("legal_acceptable_intro")}</p>
+                  <div><h4 className="text-rose-400 font-bold mb-1 italic uppercase tracking-tighter">{t("legal_acceptable_rules_title")}</h4><p>{t("legal_acceptable_prohibited")}</p></div>
+                  <div><h4 className="text-white font-bold mb-1 flex items-center gap-2 italic uppercase tracking-tighter"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />{t("legal_acceptable_enforcement_title")}</h4><p>{t("legal_acceptable_enforcement")}</p></div>
                 </div>
               )}
             </div>

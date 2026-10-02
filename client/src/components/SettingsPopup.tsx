@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, ExternalLink, Check, ChevronRight, RefreshCw } from 'lucide-react';
+import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, ExternalLink, Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { SUPPORTED_LANGUAGES, useLanguage } from '@/hooks/useLanguage';
@@ -34,94 +34,45 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
       title: t('terms_conditions'),
       content: (
         <div className="space-y-4 text-gray-300 text-sm">
-          <p className="text-[#6b21a8] font-bold">Last Updated: December 26, 2025</p>
-          <p>Welcome to Gold Bux. By accessing or using this app, you agree to comply with these Terms & Conditions. If you do not agree, please do not use the app.</p>
-          <div>
-            <h4 className="text-white font-bold mb-1">1. Eligibility</h4>
-            <p>Users must be at least 13 years old. You are responsible for maintaining the confidentiality of your account.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">2. App Usage</h4>
-            <p>Gold Bux allows users to earn GEM tokens through tasks, ads, and activities. Tokens earned in the app do not represent real money unless withdrawn according to app rules.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">3. Rewards & Withdrawals</h4>
-            <p>Rewards depend on task completion and system rules. Withdrawals are subject to verification and minimum limits. Any attempt to exploit, abuse, or manipulate rewards may result in account suspension.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">4. Account Suspension</h4>
-            <p>We reserve the right to suspend or terminate accounts involved in fake activity, multiple accounts, automated/bot usage, or abuse of rewards/bugs.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">5. Changes</h4>
-            <p>We may update these terms at any time. Continued use of the app means you accept the updated terms.</p>
-          </div>
+          <p className="text-[#B9FF66] font-bold">{t('legal_last_updated')}</p>
+          <p>{t('legal_terms_intro')}</p>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_terms_eligibility_title')}</h4><p>{t('legal_terms_eligibility')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_terms_rewards_title')}</h4><p>{t('legal_terms_gem')}</p><p className="mt-2">{t('legal_terms_referrals')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_terms_withdrawals_title')}</h4><p>{t('legal_terms_withdrawals')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_terms_fair_use_title')}</h4><p>{t('legal_terms_fair_use')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_terms_changes_title')}</h4><p>{t('legal_terms_changes')}</p></div>
         </div>
-      )
+      ),
     },
     privacy: {
       title: t('privacy_policy'),
       content: (
         <div className="space-y-4 text-gray-300 text-sm">
-          <p>Gold Bux respects your privacy.</p>
-          <div>
-            <h4 className="text-white font-bold mb-1">1. Information We Collect</h4>
-            <p>We may collect User ID (UID), device & app usage data, task activity, and withdrawal history.</p>
-            <div className="mt-2 flex items-start gap-2 text-rose-400 font-bold bg-rose-400/5 p-2 rounded-lg border border-rose-400/10">
-              <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
-              <p>We do NOT collect: Passwords, personal banking details, or private messages.</p>
-            </div>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">2. How We Use Data</h4>
-            <p>To operate app features, prevent fraud/abuse, and improve app performance.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">3. Data Protection</h4>
-            <p>Your data is stored securely. We do not sell or share personal data with third parties except when legally required.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1">4. Ads & Analytics</h4>
-            <p>Third-party ad networks may collect non-personal data for ad delivery. Gold Bux is not responsible for external ad services.</p>
-          </div>
+          <p>{t('legal_privacy_intro')}</p>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_privacy_data_title')}</h4><p>{t('legal_privacy_data')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_privacy_wallet_title')}</h4><p>{t('legal_privacy_wallet')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_privacy_services_title')}</h4><p>{t('legal_privacy_services')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_privacy_retention_title')}</h4><p>{t('legal_privacy_retention')}</p></div>
+          <div><h4 className="text-white font-bold mb-1">{t('legal_privacy_contact_title')}</h4><p>{t('legal_privacy_contact')}</p></div>
         </div>
-      )
+      ),
     },
     acceptable: {
       title: t('acceptable_use'),
       content: (
         <div className="space-y-4 text-gray-300 text-sm">
-          <p>To keep Gold Bux fair for everyone, users must not:</p>
+          <p>{t('legal_acceptable_intro')}</p>
           <div>
-            <h4 className="text-rose-400 font-bold mb-1 flex items-center gap-2">
-              <X className="w-4 h-4" />
-              Prohibited Activities
-            </h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Create multiple accounts</li>
-              <li>Use bots, scripts, or automation</li>
-              <li>Exploit bugs</li>
-              <li>Manipulate ads or tasks</li>
-              <li>Attempt to hack or reverse-engineer the app</li>
-            </ul>
+            <h4 className="text-rose-400 font-bold mb-1 flex items-center gap-2"><X className="w-4 h-4" />{t('legal_acceptable_rules_title')}</h4>
+            <p>{t('legal_acceptable_prohibited')}</p>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-1 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#6b21a8]" />
-              Consequences
-            </h4>
-            <p>If violations are detected, rewards may be revoked, accounts may be banned, and withdrawals blocked.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-1 flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-500" />
-              Fair Play
-            </h4>
-            <p>All rewards are based on predefined logic.</p>
+            <h4 className="text-white font-bold mb-1 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#B9FF66]" />{t('legal_acceptable_enforcement_title')}</h4>
+            <p>{t('legal_acceptable_enforcement')}</p>
           </div>
         </div>
-      )
-    }
+      ),
+    },
   };
 
   const copyUid = () => {
@@ -262,9 +213,7 @@ const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode,
 
 export const LanguagePreferenceControl: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
-  const cycleLanguage = async () => {
-    const idx = SUPPORTED_LANGUAGES.findIndex(item => item.code === language);
-    const next = SUPPORTED_LANGUAGES[(idx + 1) % SUPPORTED_LANGUAGES.length].code;
+  const chooseLanguage = async (next: (typeof SUPPORTED_LANGUAGES)[number]['code']) => {
     setLanguage(next);
     try {
       await fetch('/api/user/language', {
@@ -278,10 +227,26 @@ export const LanguagePreferenceControl: React.FC = () => {
     }
   };
 
-  return <LegalItem
-    icon={<Globe className="w-4 h-4 text-purple-400" />}
-    label={`${t('language')}: ${SUPPORTED_LANGUAGES.find(item => item.code === language)?.label ?? 'English'}`}
-    onClick={() => void cycleLanguage()}
-    rightIcon={<RefreshCw className="w-3 h-3 text-gray-500" />}
-  />;
+  return (
+    <div className="space-y-2" aria-label={t('language')}>
+      {SUPPORTED_LANGUAGES.map((item) => {
+        const selected = language === item.code;
+        return (
+          <button
+            key={item.code}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => void chooseLanguage(item.code)}
+            className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors ${selected ? 'bg-[#0066D6]/20 text-white' : 'bg-white/[0.05] text-white/75 hover:bg-white/[0.09]'}`}
+          >
+            <span className="flex items-center gap-3">
+              <Globe className={`w-4 h-4 ${selected ? 'text-[#60a5fa]' : 'text-white/45'}`} />
+              <span>{item.label}</span>
+            </span>
+            {selected && <Check className="w-4 h-4 text-[#60a5fa]" />}
+          </button>
+        );
+      })}
+    </div>
+  );
 };
