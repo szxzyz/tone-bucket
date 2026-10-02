@@ -34,7 +34,7 @@ export default function AdminUserEarnings({ userId }: { userId: string }) {
   const rows = (data?.earnings || []).filter((earning) => {
     if (category === 'all') return true;
     if (category === 'ads') return earning.source === 'ad_watch';
-    if (category === 'friends') return earning.source === 'referral' || earning.source === 'referral_commission';
+    if (category === 'friends') return earning.source === 'referral' || earning.source === 'referral_commission' || earning.source === 'referral_contest';
     return missionSources.has(earning.source);
   });
 

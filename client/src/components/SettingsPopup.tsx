@@ -169,9 +169,14 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] px-4 animate-in fade-in duration-200 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[#0d0d0d] rounded-2xl w-full max-w-sm max-h-[90vh] border border-[#1a1a1a] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-[1300] animate-in fade-in duration-200 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="relative bg-[#0f0f0f] rounded-t-2xl w-full max-w-md max-h-[90vh] border border-white/10 overflow-hidden shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-white/5">
+          <h2 className="text-white font-bold text-base">Settings</h2>
+          <button type="button" onClick={onClose} className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button>
+        </div>
+        <div className="p-4 overflow-y-auto custom-scrollbar">
           <div className="space-y-2">
             {/* My UID */}
             <LegalItem
@@ -277,10 +282,10 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
 const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode, label: string, onClick?: () => void, rightIcon?: React.ReactNode }) => (
   <div
     onClick={onClick}
-    className="bg-[#1a1a1a]/50 border border-[#2a2a2a] rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-[#1a1a1a] transition-all active:scale-[0.98]"
+    className="bg-white/[0.05] rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-white/[0.08] transition-all active:scale-[0.98]"
   >
     <div className="flex items-center gap-3">
-      <div className="w-7 h-7 rounded-lg bg-gray-800/50 flex items-center justify-center">
+      <div className="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
         {icon}
       </div>
       <span className="text-gray-300 text-xs font-medium">{label}</span>

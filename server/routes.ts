@@ -3249,7 +3249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'task_community', 'task_claim', 'gigapub_short_link', 'mission_daily_checkin',
             'mission_share_story', 'mission_share_referral', 'mission_check_for_updates',
           ],
-          friends: ['referral', 'referral_commission'],
+          friends: ['referral', 'referral_commission', 'referral_contest'],
         };
         if (category !== 'all' && !sourceGroups[category]) {
           return res.status(400).json({ message: 'Invalid earning category' });
@@ -13195,11 +13195,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startDate = getSetting('weekly_referral_start_date', '');
       // Referral Contest prizes are fixed by rank; admins only control lifecycle settings.
       const prizes = [
-        '500,000 GEM',
-        '250,000 GEM',
-        '100,000 GEM',
         '50,000 GEM',
-        '50,000 GEM',
+        '25,000 GEM',
+        '10,000 GEM',
+        '5,000 GEM',
+        '5,000 GEM',
         '1,000 GEM',
         '1,000 GEM',
         '1,000 GEM',
@@ -13211,13 +13211,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ leaderboard: [], userRank: null, contestActive: false, topN: 10, endDate: endDate || null, startDate: startDate || null, prizes });
       }
 
-      // Count ALL referrals per user within contest period (pending + completed).
-      // This ensures new invites are immediately visible on the leaderboard.
+      // Only completed/active referrals count toward final contest placement.
       const topReferrers = await db.execute(sql`
         SELECT u.id, u.username, u.first_name, u.profile_image_url, COUNT(r.id) AS referral_count
         FROM users u
         INNER JOIN referrals r ON r.referrer_id = u.id
         WHERE u.banned = false
+          AND r.status = 'completed'
           ${startDate ? sql`AND r.created_at >= ${new Date(startDate)}` : sql``}
           ${endDate ? sql`AND r.created_at <= ${new Date(endDate)}` : sql``}
         GROUP BY u.id, u.username, u.first_name, u.profile_image_url
@@ -13244,6 +13244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             SELECT COUNT(r.id) AS referral_count
             FROM referrals r
             WHERE r.referrer_id = ${userId}
+              AND r.status = 'completed'
               ${startDate ? sql`AND r.created_at >= ${new Date(startDate)}` : sql``}
               ${endDate ? sql`AND r.created_at <= ${new Date(endDate)}` : sql``}
           `);
@@ -13257,6 +13258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 FROM referrals r
                 INNER JOIN users u ON u.id = r.referrer_id
                 WHERE u.banned = false
+                  AND r.status = 'completed'
                   ${startDate ? sql`AND r.created_at >= ${new Date(startDate)}` : sql``}
                   ${endDate ? sql`AND r.created_at <= ${new Date(endDate)}` : sql``}
                 GROUP BY r.referrer_id

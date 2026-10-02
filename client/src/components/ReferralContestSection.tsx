@@ -22,7 +22,7 @@ interface ReferralContestData {
   endDate: string | null;
 }
 
-const FALLBACK_REWARDS = [500000, 250000, 100000, 50000, 50000, 1000, 1000, 1000, 1000, 1000];
+const FALLBACK_REWARDS = [50000, 25000, 10000, 5000, 5000, 1000, 1000, 1000, 1000, 1000];
 const MEDALS = ['🥇', '🥈', '🥉'];
 const SURFACE = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 

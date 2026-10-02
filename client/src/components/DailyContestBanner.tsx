@@ -1,18 +1,16 @@
 import { FaMedal, FaTrophy } from "react-icons/fa";
 
 type Props = {
-  prizePool?: number | string | null;
   onClick: () => void;
 };
 
-export default function DailyContestBanner({ prizePool, onClick }: Props) {
-  const parsedPrize = Number(prizePool ?? 10);
-  const prizeLabel = Number.isFinite(parsedPrize) ? parsedPrize.toLocaleString() : "10";
+export default function DailyContestBanner({ onClick }: Props) {
+  const prizeLabel = "1M GEM";
 
   return (
     <button
       type="button"
-      aria-label={`Weekly Contest — Top Earners — Take the prize — $${prizeLabel} prize pool`}
+      aria-label={`Weekly Contest — Top Earners — Take the prize — ${prizeLabel} prize pool`}
       onClick={onClick}
       className="mt-1 mb-2 rounded-2xl overflow-hidden relative cursor-pointer active:scale-[0.99] transition-transform"
       style={{
@@ -59,8 +57,8 @@ export default function DailyContestBanner({ prizePool, onClick }: Props) {
         </span>
         <span className="flex flex-col items-center gap-0.5">
           <FaTrophy style={{ color: "#FFD700", fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.8))" }} />
-          <span style={{ fontSize: 20, fontWeight: 900, color: "rgba(180,180,180,0.9)", textShadow: "0 2px 6px rgba(0,0,0,0.9)", lineHeight: 1 }}>
-            ${prizeLabel}
+            <span style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", textShadow: "0 2px 6px rgba(0,0,0,0.9)", lineHeight: 1 }}>
+            {prizeLabel}
           </span>
           <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em" }}>
             Prize Pool

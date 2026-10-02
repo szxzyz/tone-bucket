@@ -80,8 +80,8 @@ export default function EarningHistoryPopup({ open, onClose }: { open: boolean; 
 
   return (
     <Drawer open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DrawerContent className="max-h-[86dvh] border-white/10 bg-[#111] text-white">
-        <DrawerHeader className="flex items-center justify-between pb-2">
+      <DrawerContent className="w-full max-w-md mx-auto max-h-[90dvh] rounded-t-2xl border border-white/10 bg-[#0f0f0f] p-0 text-white">
+        <DrawerHeader className="flex items-center justify-between border-b border-white/5 px-5 py-3">
           <div>
             <DrawerTitle className="text-left text-white font-bold text-lg">Earning History</DrawerTitle>
             <p className="text-left text-white/40 text-xs mt-1">Your credited rewards, with names and dates</p>

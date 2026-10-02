@@ -4,18 +4,16 @@ import DailyContestBanner from '@/components/DailyContestBanner';
 import MissionDailyRewards from '@/components/MissionDailyRewards';
 import PromoCodeInput from '@/components/PromoCodeInput';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
   const [, setLocation] = useLocation();
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
-  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000, retry: false });
   return (
     <Layout>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
-        <DailyContestBanner prizePool={appConfig?.weeklyGiveawayAmount} onClick={() => setLocation('/affiliates?section=referral-contest')} />
+        <DailyContestBanner onClick={() => setLocation('/affiliates?section=referral-contest')} />
         <section style={{ marginBottom: 14 }} aria-label="Promo code">
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', paddingLeft: 4 }}>
             Promo Code

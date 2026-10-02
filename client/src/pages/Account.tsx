@@ -9,12 +9,12 @@ import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
-import { useLanguage, type Language } from '@/hooks/useLanguage';
 import { useLocation } from 'wouter';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
 import EarningHistoryPopup from '@/components/EarningHistoryPopup';
+import { SettingsPopup } from '@/components/SettingsPopup';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
@@ -22,12 +22,11 @@ const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100
 export default function Account() {
   const { isAdmin } = useAdmin();
   const supportLink = useSupportLink();
-  const { language, setLanguage } = useLanguage();
   const [, setLocation] = useLocation();
   const [referralsOpen, setReferralsOpen] = useState(false);
   const [referralsPage, setReferralsPage] = useState(1);
   const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
-  const [languageOpen, setLanguageOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [earningHistoryOpen, setEarningHistoryOpen] = useState(false);
 
@@ -59,27 +58,6 @@ export default function Account() {
   const referralsTotalPages = Math.max(1, Number(myReferralsData?.totalPages ?? 1));
   const proofOfPaymentLink = String(appConfig?.proofOfPaymentLink || '').trim();
 
-  const languages: Array<{ code: Language; label: string }> = [
-    { code: 'en', label: 'English' }, { code: 'ru', label: 'Русский' }, { code: 'ar', label: 'العربية' },
-    { code: 'uk', label: 'Українська' }, { code: 'de', label: 'Deutsch' }, { code: 'zh', label: '中文' },
-    { code: 'pt', label: 'Português' }, { code: 'es', label: 'Español' }, { code: 'vi', label: 'Tiếng Việt' },
-    { code: 'bn', label: 'বাংলা' },
-  ];
-
-  const chooseLanguage = async (nextLanguage: Language) => {
-    setLanguage(nextLanguage);
-    setLanguageOpen(false);
-    try {
-      const response = await fetch('/api/user/language', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: nextLanguage }), credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Language preference was not saved to the server');
-    } catch {
-      showNotification('Language changed on this device, but could not be saved to your account.', 'error');
-    }
-  };
-
   const openSupport = () => {
     if (!supportLink) {
       showNotification('Support link is not configured', 'error');
@@ -101,7 +79,7 @@ export default function Account() {
   };
 
   const menuActions = [
-    { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setLanguageOpen(true) },
+    { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setSettingsOpen(true) },
     { label: 'Earning History', icon: <History className="w-5 h-5 text-amber-400" />, action: () => setEarningHistoryOpen(true) },
     { label: 'Proof of Payment', icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
     { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
@@ -160,8 +138,8 @@ export default function Account() {
       </main>
 
       <Drawer open={referralsOpen} onOpenChange={(open) => { setReferralsOpen(open); if (open) setReferralsPage(1); }}>
-        <DrawerContent className="bg-[#111] border-none max-h-[80vh]">
-          <DrawerHeader className="flex items-center justify-between pb-2"><DrawerTitle className="text-white font-bold text-lg">My invites</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
+        <DrawerContent className="max-h-[90vh] rounded-t-2xl border border-white/10 bg-[#0f0f0f] p-0 text-white">
+          <DrawerHeader className="flex items-center justify-between border-b border-white/5 px-5 py-3"><DrawerTitle className="text-white font-bold text-base">My invites</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
           <div className="px-4 pb-6 overflow-y-auto">
             {isLoadingReferrals ? <div className="text-white/40 text-sm text-center py-10">Loading…</div> : myReferrals.length === 0 ? <div className="flex flex-col items-center py-10 gap-2"><Users className="w-10 h-10 text-white/20" /><p className="text-white/40 text-sm">No invites yet</p></div> : <>
               <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10 mb-2"><span className="text-[#888] text-xs font-semibold uppercase tracking-wider">Friend</span><span className="text-[#888] text-xs font-semibold uppercase tracking-wider text-right">Status</span></div>
@@ -177,14 +155,7 @@ export default function Account() {
         </DrawerContent>
       </Drawer>
 
-      <Drawer open={languageOpen} onOpenChange={setLanguageOpen}>
-        <DrawerContent className="max-h-[80vh] border-white/10 bg-[#111] text-white">
-          <DrawerHeader className="flex items-center justify-between pb-2"><DrawerTitle className="text-white font-bold text-lg">Change language</DrawerTitle><DrawerClose asChild><button className="text-white/50 hover:text-white text-sm px-3 py-1 rounded-lg hover:bg-white/10">Close</button></DrawerClose></DrawerHeader>
-          <div className="px-4 pb-6 overflow-y-auto space-y-2">
-            {languages.map((item) => <button key={item.code} type="button" onClick={() => void chooseLanguage(item.code)} aria-pressed={language === item.code} className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold ${language === item.code ? 'bg-blue-600 text-white' : 'bg-white/[0.05] text-white/75'}`}><span>{item.label}</span>{language === item.code && <span className="text-xs">Selected</span>}</button>)}
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {settingsOpen && <SettingsPopup onClose={() => setSettingsOpen(false)} />}
 
       <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={gemBalance} />
       <EarningHistoryPopup open={earningHistoryOpen} onClose={() => setEarningHistoryOpen(false)} />

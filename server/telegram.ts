@@ -1737,11 +1737,11 @@ export async function sendWeeklyReferralContest(chatId: string, messageId?: numb
     lines.push(`<code>Position │ Friends │ Prize</code>\n`);
 
     const prizes = [
-      '500,000 GEM',
-      '250,000 GEM',
-      '100,000 GEM',
       '50,000 GEM',
-      '50,000 GEM',
+      '25,000 GEM',
+      '10,000 GEM',
+      '5,000 GEM',
+      '5,000 GEM',
       '1,000 GEM',
       '1,000 GEM',
       '1,000 GEM',
@@ -1886,7 +1886,6 @@ export async function sendMonthlyLeaderboard(chatId: string, messageId?: number)
 // ── Auto-snapshot: send contest final results to all admins when period ends ───
 let lastSnapshotCheckTs = 0;
 export async function checkAndSendContestSnapshots(): Promise<void> {
-  if (!TELEGRAM_BOT_TOKEN) return;
   const now = Date.now();
   // Throttle: run at most once per 5 minutes
   if (now - lastSnapshotCheckTs < 5 * 60_000) return;
@@ -1894,8 +1893,13 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
 
   try {
     const { db: dbConn } = await import('./db');
-    const { adminSettings: adminSettingsTable } = await import('../shared/schema');
-    const { sql: sqlFn } = await import('drizzle-orm');
+    const {
+      adminSettings: adminSettingsTable,
+      users: usersTable,
+      earnings: earningsTable,
+      transactions: transactionsTable,
+    } = await import('../shared/schema');
+    const { sql: sqlFn, eq: eqFn } = await import('drizzle-orm');
 
     const allSettings = await dbConn.select().from(adminSettingsTable);
     const getSetting = (key: string, def: string) =>
@@ -1918,20 +1922,21 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
     const weeklyEnabled = getSetting('weekly_referral_contest_enabled', 'false') === 'true';
     const weeklyEndDate = getSetting('weekly_referral_end_date', '');
     const weekLabel = getCurrentISOWeekLabel();
-    const weeklySnapshotKey = `weekly_contest_snapshot_sent_${weekLabel}`;
+    const startDate = getSetting('weekly_referral_start_date', '');
+    const periodToken = `${startDate || 'no-start'}_${weeklyEndDate}`.replace(/[^a-zA-Z0-9-]/g, '_');
+    const weeklySnapshotKey = `weekly_contest_snapshot_sent_${periodToken}`;
     const weeklySnapshotSent = getSetting(weeklySnapshotKey, 'false') === 'true';
 
     if (weeklyEnabled && weeklyEndDate && !weeklySnapshotSent) {
       const endDate = new Date(weeklyEndDate);
       if (nowDate > endDate) {
         const topN = 10;
-        const startDate = getSetting('weekly_referral_start_date', '');
         const prizes = [
-          '500,000 GEM',
-          '250,000 GEM',
-          '100,000 GEM',
           '50,000 GEM',
-          '50,000 GEM',
+          '25,000 GEM',
+          '10,000 GEM',
+          '5,000 GEM',
+          '5,000 GEM',
           '1,000 GEM',
           '1,000 GEM',
           '1,000 GEM',
@@ -1939,20 +1944,74 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
           '1,000 GEM',
         ];
 
-        const topQuery = await dbConn.execute(sqlFn`
-          SELECT u.id, u.username, u.first_name, COUNT(r.id) AS referral_count
-          FROM users u
-          INNER JOIN referrals r ON r.referrer_id = u.id
-          WHERE r.status = 'completed'
-            AND u.banned = false
-            ${startDate ? sqlFn`AND r.created_at >= ${new Date(startDate)}` : sqlFn``}
-            AND r.created_at <= ${endDate}
-          GROUP BY u.id, u.username, u.first_name
-          HAVING COUNT(r.id) > 0
-          ORDER BY referral_count DESC, u.id ASC
-          LIMIT ${topN}
-        `);
-        const rows = topQuery.rows as any[];
+        const settlementKey = `weekly_referral_rewards_settled_${periodToken}`;
+        const { rows, awardsCredited } = await dbConn.transaction(async (tx) => {
+          await tx.execute(sqlFn`SELECT pg_advisory_xact_lock(hashtext(${settlementKey}))`);
+          const topQuery = await tx.execute(sqlFn`
+            SELECT u.id, u.username, u.first_name, COUNT(r.id) AS referral_count
+            FROM users u
+            INNER JOIN referrals r ON r.referrer_id = u.id
+            WHERE r.status = 'completed'
+              AND u.banned = false
+              ${startDate ? sqlFn`AND r.created_at >= ${new Date(startDate)}` : sqlFn``}
+              AND r.created_at <= ${endDate}
+            GROUP BY u.id, u.username, u.first_name
+            HAVING COUNT(r.id) > 0
+            ORDER BY referral_count DESC, u.id ASC
+            LIMIT ${topN}
+          `);
+          const rankedRows = topQuery.rows as any[];
+          const [settlementMarker] = await tx.select({ settingValue: adminSettingsTable.settingValue })
+            .from(adminSettingsTable)
+            .where(eqFn(adminSettingsTable.settingKey, settlementKey))
+            .limit(1);
+          if (settlementMarker?.settingValue === 'true') return { rows: rankedRows, awardsCredited: [] as any[] };
+
+          const awards: any[] = [];
+          const prizeAmounts = [50000, 25000, 10000, 5000, 5000, 1000, 1000, 1000, 1000, 1000];
+          for (let index = 0; index < rankedRows.length; index++) {
+            const row = rankedRows[index];
+            const userId = String(row.id);
+            const amount = prizeAmounts[index] || 0;
+            if (amount <= 0) continue;
+
+            const creditedUser = await tx.update(usersTable).set({
+              balance: sqlFn`COALESCE(${usersTable.balance}, 0) + ${amount}`,
+              withdrawBalance: sqlFn`COALESCE(${usersTable.withdrawBalance}, 0) + ${amount}`,
+              totalEarned: sqlFn`COALESCE(${usersTable.totalEarned}, 0) + ${amount}`,
+              totalEarnings: sqlFn`COALESCE(${usersTable.totalEarnings}, 0) + ${amount}`,
+              updatedAt: new Date(),
+            }).where(eqFn(usersTable.id, userId)).returning({ id: usersTable.id });
+            if (!creditedUser.length) continue;
+
+            const description = `Weekly Referral Contest — Rank ${index + 1} reward`;
+            const source = `referral_contest_${periodToken}_rank_${index + 1}`;
+            await tx.insert(earningsTable).values({ userId, amount: String(amount), source: 'referral_contest', description, currency: 'GEM' });
+            await tx.insert(transactionsTable).values({
+              userId,
+              amount: String(amount),
+              type: 'addition',
+              source,
+              description,
+              metadata: { rank: index + 1, referralCount: Number(row.referral_count) || 0, contestStartDate: startDate || null, contestEndDate: weeklyEndDate, autoCredited: true },
+            });
+            await tx.execute(sqlFn`
+              INSERT INTO user_balances (user_id, balance, updated_at)
+              VALUES (${userId}, ${amount}, NOW())
+              ON CONFLICT (user_id) DO UPDATE
+              SET balance = COALESCE(user_balances.balance, 0) + ${amount}, updated_at = NOW()
+            `);
+            awards.push({ userId, rank: index + 1, amount });
+          }
+
+          await tx.execute(sqlFn`
+            INSERT INTO admin_settings (setting_key, setting_value, updated_at)
+            VALUES (${settlementKey}, 'true', NOW())
+            ON CONFLICT (setting_key) DO UPDATE SET setting_value = 'true', updated_at = NOW()
+          `);
+          return { rows: rankedRows, awardsCredited: awards };
+        });
+        if (awardsCredited.length) console.log(`✅ Credited ${awardsCredited.length} weekly referral contest prize(s) for ${periodToken}`);
 
         let lines = [
           `🏆 <b>Referral Contest — Final Results</b>`,
@@ -1961,6 +2020,7 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
           `🏷 Contest: ${escapeHtml(weekLabel)}`,
           ``,
           `<code>Pos │ Name │ Active Referrals │ Prize</code>`,
+          `✅ GEM prizes are automatically credited to winners' balances.`,
         ];
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -1974,15 +2034,17 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
         lines.push(``, `🕐 Snapshot taken: ${nowDate.toUTCString()}`);
 
         const snapshotText = lines.join('\n');
-        for (const adminId of adminIds) {
-          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: adminId, text: snapshotText, parse_mode: 'HTML' }),
-          }).catch(() => {});
+        if (TELEGRAM_BOT_TOKEN) {
+          for (const adminId of adminIds) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: adminId, text: snapshotText, parse_mode: 'HTML' }),
+            }).catch(() => {});
+          }
+          await setSetting(weeklySnapshotKey, 'true');
+          console.log(`✅ Weekly contest snapshot sent for ${weekLabel}`);
         }
-        await setSetting(weeklySnapshotKey, 'true');
-        console.log(`✅ Weekly contest snapshot sent for ${weekLabel}`);
       }
     }
 
@@ -2029,15 +2091,17 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
         lines.push(``, `🕐 Snapshot taken: ${nowDate.toUTCString()}`);
 
         const snapshotText = lines.join('\n');
-        for (const adminId of adminIds) {
-          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: adminId, text: snapshotText, parse_mode: 'HTML' }),
-          }).catch(() => {});
+        if (TELEGRAM_BOT_TOKEN) {
+          for (const adminId of adminIds) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: adminId, text: snapshotText, parse_mode: 'HTML' }),
+            }).catch(() => {});
+          }
+          await setSetting(monthlySnapshotKey, 'true');
+          console.log(`✅ Monthly leaderboard snapshot sent for ${monthLabel}`);
         }
-        await setSetting(monthlySnapshotKey, 'true');
-        console.log(`✅ Monthly leaderboard snapshot sent for ${monthLabel}`);
       }
     }
   } catch (err) {
