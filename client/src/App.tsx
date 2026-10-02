@@ -390,9 +390,9 @@ function App() {
     <TonConnectUIProvider
       manifestUrl={manifestUrl}
       actionsConfiguration={{
-        // In Telegram Mini App, tell TonKeeper to return via tgback (Telegram deep link)
+        // In Telegram Mini App, tell wallets to return to the actual Mini App URL.
         returnStrategy: (isTelegramEnv ? 'tgback' : 'back') as any,
-        twaReturnUrl: 'back' as any,
+        twaReturnUrl: 'https://t.me/GrabPennyAppBot/MyWAdz',
       }}
       uiPreferences={{
         theme: 'DARK' as any,

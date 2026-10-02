@@ -112,7 +112,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 </div>
                 <div className="flex justify-center">
                   <button type="button" onClick={openWallet} className="h-9 px-4 rounded-lg border border-[#0098ea]/55 bg-[#0098ea] text-white text-sm font-bold shadow-[0_2px_8px_rgba(0,152,234,0.22)]">
-                    {connectedAddress ? 'TON Wallet Connected' : 'Connect TON Wallet'}
+                    {connectedAddress ? 'CHANGE' : 'Connect TON Wallet'}
                   </button>
                 </div>
                 {address && <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>}

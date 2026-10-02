@@ -125,7 +125,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
             onClick={openWallet}
             style={{ height: 36, padding: "0 16px", border: "1px solid rgba(0,152,234,0.55)", borderRadius: 8, background: "#0098ea", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,152,234,0.22)" }}
           >
-            {connectedAddress ? "TON Wallet Connected" : "Connect TON Wallet"}
+            {connectedAddress ? "CHANGE" : "Connect TON Wallet"}
           </button>
         </div>
 

@@ -83,7 +83,7 @@ app.get('/tonconnect-manifest.json', async (req, res) => {
     process.env.WEBAPP_URL ||
     ''
   ).trim().replace(/\/+$/, '');
-  let appUrl = configuredUrl;
+  let appUrl = configuredUrl || `https://${req.get('host') || ''}`;
   if (!appUrl) {
     return res.status(503).json({ error: 'Public HTTPS app URL is not configured' });
   }
