@@ -15,6 +15,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import BottomNav from "@/components/BottomNav";
 
 import { LanguageProvider } from "@/hooks/useLanguage";
+import { Loader2 } from "lucide-react";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Mission from "@/pages/Mission";
@@ -29,8 +30,7 @@ const Admin = lazy(() => import("@/pages/Admin"));
 const CountryControls = lazy(() => import("@/pages/CountryControls"));
 const AmbassadorPage = lazy(() => import("@/pages/Ambassador"));
 const NotFound = lazy(() => import("@/pages/not-found"));
-// Single lightweight logo — replaces the old 7-image frame sequence (~243KB → ~13KB, no blocking preloads)
-const LOGO_SRC = '/axionet-logo-new.png';
+const LOGO_SRC = '/app-logo.jpg';
 function LoadingFallback() {
   return (
     <div className="fixed inset-0 overflow-hidden" style={{
@@ -38,43 +38,13 @@ function LoadingFallback() {
       pointerEvents: 'auto',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     }}>
-      <style>{`
-        @keyframes axn-dot-bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
-          40% { transform: translateY(-9px); opacity: 1; }
-        }
-        @keyframes axn-text-shimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes axn-logo-glow {
-          0%, 100% { filter: drop-shadow(0 0 12px rgba(59,130,246,0.5)); }
-          50% { filter: drop-shadow(0 0 28px rgba(96,165,250,0.9)); }
-        }
-      `}</style>
-      <img src={LOGO_SRC} alt="Axionet" style={{
-        width: 180, height: 'auto', display: 'block',
-        animation: 'axn-logo-glow 2.4s ease-in-out infinite',
+      <img src={LOGO_SRC} alt="Grab Penny" style={{
+        width: 92, height: 92, borderRadius: '50%', objectFit: 'cover',
+        display: 'block', border: '2px solid rgba(255,255,255,0.12)',
       }} />
-      <div style={{ display: 'flex', gap: 8, marginTop: 40 }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: 'rgba(59,130,246,0.85)',
-            animation: 'axn-dot-bounce 1.2s ease-in-out infinite',
-            animationDelay: `${i * 0.2}s`,
-          }} />
-        ))}
-      </div>
-      <div style={{
-        marginTop: 20, fontSize: 13, fontWeight: 800,
-        letterSpacing: '0.22em', textTransform: 'uppercase',
-        background: 'linear-gradient(90deg, rgba(255,255,255,0.25) 0%, rgba(96,165,250,1) 40%, rgba(147,197,253,1) 50%, rgba(96,165,250,1) 60%, rgba(255,255,255,0.25) 100%)',
-        backgroundSize: '200% auto', WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        animation: 'axn-text-shimmer 2.8s linear infinite',
-      }}>
-        AXIONET DEGITAL TOKEN
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 18, color: '#ffffff' }}>
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        <span style={{ fontSize: 14, fontWeight: 700 }}>Loading</span>
       </div>
     </div>
   );

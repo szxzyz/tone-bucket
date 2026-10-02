@@ -280,8 +280,8 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#6b21a8] text-lg">
-            <img src="/wallet-connection.png" alt="Axionet wallet" className="w-7 h-7 rounded-full object-cover" />
-            Axionet Wallet Setup
+            <img src="/app-logo.jpg" alt="Grab Penny wallet" className="w-7 h-7 rounded-full object-cover" />
+            Grab Penny Wallet Setup
           </DialogTitle>
         </DialogHeader>
 

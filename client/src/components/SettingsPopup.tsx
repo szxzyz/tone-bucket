@@ -176,17 +176,12 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
                 {selectedLegal === 'acceptable' && <ShieldCheck className="w-5 h-5 text-rose-400" />}
                 {legalContent[selectedLegal].title}
               </h2>
+              <button type="button" onClick={() => setSelectedLegal(null)} aria-label="Close legal document" className="w-9 h-9 rounded-full flex items-center justify-center bg-white/5 text-white/70 hover:bg-white/10 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
               {legalContent[selectedLegal].content}
-            </div>
-            <div className="p-6 border-t border-[#1a1a1a]">
-              <Button
-                onClick={() => setSelectedLegal(null)}
-                className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] text-white font-bold rounded-xl"
-              >
-                Back
-              </Button>
             </div>
           </div>
         </div>

@@ -3885,10 +3885,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const webAppUrl = `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`;
 
       // Get share banner image URL
-      const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
+      const shareImageUrl = `${appUrl}/app-logo.jpg?v=grabpenny`;
 
       // Caption for the share message
-      const caption = 'Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!';
+      const caption = 'Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!';
 
       // Send the photo message with inline button
       const result = await sendSharePhotoToChat(
@@ -12112,7 +12112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null) ||
                     'https://vuuug.onrender.com';
 
-      const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
+      const shareImageUrl = `${appUrl}/app-logo.jpg?v=grabpenny`;
       const webAppUrl = referralLink;
 
       console.log(`📤 Preparing share message for user ${userId}`);
@@ -12128,9 +12128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: 'Join Axionet and earn GEM!',
-        description: 'Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!',
-        caption: 'Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!',
+        title: 'Join Grab Penny and earn GEM!',
+        description: 'Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!',
+        caption: 'Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -12179,7 +12179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: false,
             error: prepareResult.description || 'Failed to prepare message',
             referralLink,
-            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!')}`
+            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!')}`
           });
         }
       } catch (telegramError: any) {
@@ -12188,7 +12188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           error: telegramError.message || 'Telegram API error',
           referralLink,
-          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Axionet and earn GEM by watching ads, completing tasks, and inviting friends!')}`
+          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!')}`
         });
       }
 

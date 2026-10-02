@@ -1518,7 +1518,7 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
     }
 
     // Get the share banner image URL - use public URL
-    const shareImageUrl = `${appUrl}/images/axionet-share-banner.png?v=axionet`;
+    const shareImageUrl = `${appUrl}/app-logo.jpg?v=grabpenny`;
     
     console.log(`📷 Share image URL: ${shareImageUrl}`);
     console.log(`🔗 Referral Link: ${referralLink}`);
@@ -1530,9 +1530,9 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: '💵 Join Axionet and earn TON!',
-        description: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
-        caption: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
+        title: '💵 Join Grab Penny and earn TON!',
+        description: '💵 Join Grab Penny and earn TON just by Mining & completing tasks!',
+        caption: '💵 Join Grab Penny and earn TON just by Mining & completing tasks!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -1550,10 +1550,10 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         type: 'article',
         id: `article_${user.referralCode}_${Date.now()}`,
         title: '💸 Share with friends',
-        description: 'Join Axionet and start earning with me.',
+        description: 'Join Grab Penny and start earning with me.',
         thumbnail_url: shareImageUrl,
         input_message_content: {
-          message_text: '💵 Join Axionet and earn TON just by Mining & completing tasks!',
+          message_text: '💵 Join Grab Penny and earn TON just by Mining & completing tasks!',
           parse_mode: 'HTML'
         },
         reply_markup: {

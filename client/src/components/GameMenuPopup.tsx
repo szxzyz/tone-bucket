@@ -24,7 +24,6 @@ interface MenuPopupProps {
   onClose: () => void;
   initialView?: View;
   fullScreen?: boolean;
-  returnToPageOnBack?: boolean;
 }
 
 type View = "main" | "transactions" | "stats" | "faq" | "legal" | "contest" | "language";
@@ -41,9 +40,9 @@ const VIEW_RANGES = [
   { label: "1M+ Views", value: "1m+", reward: "100K GEM" },
 ];
 
-export default function MenuPopup({ onClose, initialView = "main", fullScreen = false, returnToPageOnBack = false }: MenuPopupProps) {
+export default function MenuPopup({ onClose, initialView = "main", fullScreen = false }: MenuPopupProps) {
   const [view, setView] = useState<View>(initialView);
-  const [contestFullScreen, setContestFullScreen] = useState(initialView === "contest");
+  const contestFullScreen = initialView === "contest";
   const [selectedLegal, setSelectedLegal] = useState<LegalDocument | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const documentScreen = fullScreen || selectedLegal !== null || (contestFullScreen && view === "contest");
@@ -180,10 +179,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
     setSelectedLegal(document);
   };
 
-  const closeLegalDocument = () => {
-    setSelectedLegal(null);
-  };
-
   return (
     <AnimatePresence>
       <motion.div
@@ -206,19 +201,12 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
 
           {/* Header */}
           <div className={documentScreen ? "p-6 border-b border-white/5 flex items-center justify-between" : "flex items-center gap-3 px-5 py-3 border-b border-white/5"}>
-            {view !== "main" && !documentScreen && (
-              <button
-                onClick={() => {
-                  if (view === "legal" && selectedLegal) closeLegalDocument();
-                  else if (returnToPageOnBack) onClose();
-                  else { setView("main"); resetContestForm(); }
-                }}
-                className="h-7 px-2.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/80 text-xs font-semibold"
-              >
-                Back
+            <h2 className={documentScreen ? "text-xl font-bold text-white uppercase tracking-tight italic" : "text-white font-bold text-base"}>{view === "legal" && selectedLegal ? legalTitles[selectedLegal] : viewTitle[view]}</h2>
+            {documentScreen && (
+              <button type="button" onClick={onClose} aria-label="Close popup" className="w-9 h-9 rounded-full flex items-center justify-center bg-white/5 text-white/70 hover:bg-white/10 hover:text-white">
+                <X className="w-5 h-5" />
               </button>
             )}
-            <h2 className={documentScreen ? "text-xl font-bold text-white uppercase tracking-tight italic" : "text-white font-bold text-base"}>{view === "legal" && selectedLegal ? legalTitles[selectedLegal] : viewTitle[view]}</h2>
           </div>
 
           {/* ─── Main View ─── */}
@@ -452,17 +440,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
             </div>
           )}
 
-          {view === "legal" && selectedLegal && (
-            <div className="p-6 border-t border-white/5">
-              <button
-                className="w-full h-14 bg-[#1b1b1b] border border-white/5 rounded-2xl font-black uppercase italic tracking-wider text-white"
-                onClick={closeLegalDocument}
-              >
-                Back
-              </button>
-            </div>
-          )}
-
           {/* ─── Contest View ─── */}
           {view === "contest" && !showSubmitForm && (
             <div className={(fullScreen || contestFullScreen) ? "flex-1 overflow-y-auto p-6 space-y-4" : "px-5 py-4 space-y-4"}>
@@ -577,16 +554,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
           {/* ─── Contest Submission Form ─── */}
           {view === "contest" && showSubmitForm && (
             <div className={(fullScreen || contestFullScreen) ? "flex-1 overflow-y-auto p-6 space-y-4" : "px-5 py-4 space-y-4"}>
-              {/* Back to Contest Info is kept for the compact popup only. */}
-              {!(fullScreen || contestFullScreen) && (
-                <button
-                  onClick={() => { resetContestForm(); }}
-                  className="flex items-center gap-1.5 text-white/40 text-xs hover:text-white/60 transition-colors"
-                >
-                  Back
-                </button>
-              )}
-
               {submitted ? (
                 <div className="flex flex-col items-center gap-4 text-center py-8">
                   <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
@@ -713,18 +680,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
             </div>
           )}
 
-          {contestFullScreen && view === "contest" ? (
-            <div className="p-6 border-t border-white/5">
-              <button
-                className="w-full h-14 bg-[#1b1b1b] border border-white/5 rounded-2xl font-black uppercase italic tracking-wider text-white"
-                onClick={() => { setContestFullScreen(false); setView("main"); resetContestForm(); }}
-              >
-                Back
-              </button>
-            </div>
-          ) : (
-            <div className="h-6" />
-          )}
+          {!documentScreen && <div className="h-6" />}
         </motion.div>
       </motion.div>
     </AnimatePresence>

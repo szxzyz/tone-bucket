@@ -113,7 +113,7 @@ export default function Account() {
 
       <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={gemBalance} />
 
-      {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} returnToPageOnBack />}
+      {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} />}
     </Layout>
   );
 }
