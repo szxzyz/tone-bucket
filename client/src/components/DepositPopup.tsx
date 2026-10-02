@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import { TonConnectButton, useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { apiRequest } from "@/lib/queryClient";
 import PopupShell from "@/components/PopupShell";
 
@@ -12,15 +12,6 @@ type Status = "idle" | "sending" | "verifying" | "success" | "error";
 
 function parseError(error: any, fallback: string) {
   return error?.message || fallback;
-}
-
-function TonIcon({ size = 17 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" fill="none" style={{ flexShrink: 0 }}>
-      <path d="M28 0C12.536 0 0 12.536 0 28s12.536 28 28 28 28-12.536 28-28S43.464 0 28 0z" fill="#0098EA"/>
-      <path d="M37.115 15.5H18.885c-3.4 0-5.5 3.7-3.7 6.6l10.3 17.8c.8 1.4 2.8 1.4 3.6 0l10.3-17.8c1.7-2.9-.3-6.6-3.7-6.6zm-10.5 16.5l-6.4-11.1h6.4v11.1zm2.8 0V20.9h6.4l-6.4 11.1z" fill="white"/>
-    </svg>
-  );
 }
 
 export default function DepositPopup({ open = true, onClose }: Props) {
@@ -59,7 +50,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt < MIN_GRAM_AMOUNT) {
       setStatus("error");
-      setMessage(`Minimum deposit is ${MIN_GRAM_AMOUNT} TON.`);
+      setMessage(`Minimum deposit is ${MIN_GRAM_AMOUNT} GRAM.`);
       return;
     }
 
@@ -91,7 +82,7 @@ export default function DepositPopup({ open = true, onClose }: Props) {
 
       if (data.success) {
         setStatus("success");
-        setMessage(`Deposit Successful! ${amt} TON credited.`);
+        setMessage(`Deposit Successful! ${amt} GRAM credited.`);
         queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
       } else if (data.pending) {
@@ -118,47 +109,14 @@ export default function DepositPopup({ open = true, onClose }: Props) {
     <PopupShell onClose={onClose} maxWidth={390} closeOnBackdrop={!busy}>
       <div style={{ position: "relative", width: "100%" }}>
         <div style={{ color: "#fff", fontSize: 18, fontWeight: 900, letterSpacing: "0.02em" }}>
-          <span>TON</span> <span style={{ color: "#6b21a8" }}>DEPOSIT</span>
+          <span>GRAM</span> <span style={{ color: "#6b21a8" }}>DEPOSIT</span>
         </div>
-        <div style={{ color: "#60a5fa", fontSize: 12, fontWeight: 700, marginTop: 5 }}>
-          Enter the deposit amount to add TON to your balance
+        <div style={{ marginTop: 15 }}>
+          <TonConnectButton />
         </div>
-
-        {connectedAddress ? (
-          <div
-            style={{
-              marginTop: 15, width: "100%", boxSizing: "border-box",
-              display: "flex", alignItems: "center", gap: 9,
-              background: "rgba(61,21,128,0.18)", borderRadius: 12, padding: "10px 12px",
-            }}
-          >
-            <TonIcon size={17} />
-            <span style={{ flex: 1, minWidth: 0, color: "#dbeafe", fontFamily: "Roboto Mono", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {connectedAddress.slice(0, 8)}…{connectedAddress.slice(-6)}
-            </span>
-            <span style={{ color: "#60a5fa", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>Connected</span>
-            <button onClick={() => tonConnectUI.disconnect()} style={{ border: "none", background: "none", padding: 0, color: "rgba(255,255,255,0.42)", fontSize: 10, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-              Disconnect
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => tonConnectUI.openModal()}
-            style={{
-              marginTop: 15, width: "100%", boxSizing: "border-box",
-              display: "flex", alignItems: "center", gap: 9,
-              border: "none", borderRadius: 12, padding: "12px 14px",
-              background: "#3d1580", color: "#fff", fontSize: 13,
-              fontWeight: 800, cursor: "pointer", textAlign: "left",
-            }}
-          >
-            <TonIcon size={17} />
-            <span>Connect TON Wallet</span>
-          </button>
-        )}
 
         <div style={{ marginTop: 14 }}>
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, marginBottom: 7 }}>Amount of TON</div>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, marginBottom: 7 }}>Amount of GRAM</div>
           <div style={{ position: "relative" }}>
             <input
               value={amount}
@@ -166,11 +124,11 @@ export default function DepositPopup({ open = true, onClose }: Props) {
               disabled={busy || status === "success"}
               inputMode="decimal"
               placeholder="0.00"
-              style={{ width: "100%", boxSizing: "border-box", border: "none", outline: "none", borderRadius: 12, padding: "13px 14px", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 16, fontWeight: "bold" }}
+              style={{ width: "100%", height: 44, boxSizing: "border-box", border: "none", outline: "none", borderRadius: 12, padding: "0 58px 0 14px", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 14, fontWeight: 700 }}
             />
-            <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 12, fontWeight: 800 }}>TON</div>
+            <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 12, fontWeight: 800 }}>GRAM</div>
           </div>
-          <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 10, marginTop: 7 }}>Minimum deposit: {MIN_GRAM_AMOUNT} TON</div>
+          <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 10, marginTop: 7 }}>Minimum deposit: {MIN_GRAM_AMOUNT} GRAM</div>
         </div>
 
 
@@ -192,10 +150,10 @@ export default function DepositPopup({ open = true, onClose }: Props) {
 
         <button
           onClick={buyGram}
-          disabled={!amount || busy || status === "success"}
-          style={{ width: "100%", marginTop: 16, border: "none", borderRadius: 12, padding: "14px 0", background: amount && !busy && status !== "success" ? "linear-gradient(135deg,#3d1580,#6b21a8)" : "rgba(255,255,255,0.07)", color: amount && !busy && status !== "success" ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 14, fontWeight: 900, cursor: amount && !busy ? "pointer" : "not-allowed", boxShadow: amount && !busy && status !== "success" ? "0 4px 16px rgba(61,21,128,0.35)" : "none" }}
+          disabled={!amount || !connectedAddress || busy || status === "success"}
+          style={{ width: "100%", height: 44, marginTop: 16, border: "none", borderRadius: 12, padding: "0 14px", background: amount && connectedAddress && !busy && status !== "success" ? "linear-gradient(135deg,#3d1580,#6b21a8)" : "rgba(255,255,255,0.07)", color: amount && connectedAddress && !busy && status !== "success" ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 14, fontWeight: 900, cursor: amount && connectedAddress && !busy ? "pointer" : "not-allowed", boxShadow: amount && connectedAddress && !busy && status !== "success" ? "0 4px 16px rgba(61,21,128,0.35)" : "none" }}
         >
-          {status === "success" ? "DONE" : connectedAddress ? "DEPOSIT NOW" : "CONNECT WALLET"}
+          {status === "success" ? "DONE" : "DEPOSIT NOW"}
         </button>
         <style>{`@keyframes deposit-spin { to { transform: rotate(360deg); } }`}</style>
       </div>

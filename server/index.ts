@@ -105,7 +105,7 @@ app.get('/tonconnect-manifest.json', async (req, res) => {
   res.json({
     url: appOrigin,
     name: "Grab Penny",
-    iconUrl: `${appOrigin}/app-logo.jpg`,
+    iconUrl: `${appOrigin}/grab-penny-ton-wallet.png`,
     termsOfUseUrl: `${appOrigin}/terms`,
     privacyPolicyUrl: `${appOrigin}/privacy`
   });

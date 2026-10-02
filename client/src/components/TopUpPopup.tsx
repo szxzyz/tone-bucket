@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useTonConnectUI, useTonAddress } from "@tonconnect/ui-react";
+import { TonConnectButton, useTonConnectUI, useTonAddress } from "@tonconnect/ui-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { showNotification } from "@/components/AppNotification";
@@ -47,7 +47,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
             queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
             setStep("success");
-            showNotification("TON deposit confirmed!", "success");
+            showNotification("GRAM deposit confirmed!", "success");
           }
         } catch {
           // silently retry next tick
@@ -80,7 +80,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
   const handleDeposit = async () => {
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt < MIN_DEPOSIT) {
-      showNotification(`Minimum deposit is ${MIN_DEPOSIT} TON`, "error");
+      showNotification(`Minimum deposit is ${MIN_DEPOSIT} GRAM`, "error");
       return;
     }
 
@@ -156,8 +156,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
       >
         {/* Header — no close button */}
         <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <h2 className="text-white text-lg font-bold tracking-tight">TON Deposit</h2>
-          <p className="text-white/40 text-xs mt-0.5">Enter the deposit amount</p>
+          <h2 className="text-white text-lg font-bold tracking-tight">GRAM Deposit</h2>
         </div>
 
         <div className="px-5 py-5">
@@ -166,8 +165,9 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
             <>
               {/* Amount input */}
               <div className="mb-4">
+                <div className="mb-4"><TonConnectButton /></div>
                 <div
-                  className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                  className="flex items-center gap-3 h-11 px-4 rounded-xl"
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
                 >
                   <img src="/images/ton.png" alt="TON" className="w-6 h-6 rounded-full object-cover shrink-0" />
@@ -179,10 +179,10 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
                     onChange={(e) => setAmount(e.target.value)}
                     min={MIN_DEPOSIT}
                     step="0.1"
-                    className="bg-transparent text-white text-xl font-bold outline-none placeholder:text-white/20"
+                    className="bg-transparent text-white text-sm font-bold outline-none placeholder:text-white/20"
                     style={{ width: 0, flex: 1, minWidth: 0 }}
                   />
-                  <span className="text-white/40 text-sm font-semibold shrink-0">TON</span>
+                  <span className="text-white/40 text-sm font-semibold shrink-0">GRAM</span>
                 </div>
 
                 {/* Quick amounts */}
@@ -207,9 +207,10 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
               {/* Deposit button */}
               <button
                 onClick={handleDeposit}
+                disabled={!amount || !connectedAddress}
                 className="w-full py-3.5 rounded-2xl text-white font-bold text-sm tracking-wide transition-all active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #6b21a8, #6b21a8)",
+                  background: connectedAddress && amount ? "linear-gradient(135deg, #6b21a8, #6b21a8)" : "rgba(255,255,255,0.07)",
                   boxShadow: "0 4px 16px rgba(61,21,128,0.35)",
                 }}
               >
@@ -218,7 +219,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
 
               {/* Info + cancel */}
               <p className="text-white/30 text-xs text-center mt-3 leading-relaxed">
-                Minimum {MIN_DEPOSIT} TON · Credited within 5 minutes
+                Minimum {MIN_DEPOSIT} GRAM · Credited within 5 minutes
               </p>
               <button
                 onClick={handleClose}
@@ -258,7 +259,7 @@ export default function TopUpPopup({ open, onOpenChange }: TopUpPopupProps) {
               <div className="text-center">
                 <p className="text-white font-bold text-base">Deposit Successful!</p>
                 <p className="text-white/40 text-xs mt-1">
-                  {amount} TON has been credited to your account.
+                  {amount} GRAM has been credited to your account.
                 </p>
               </div>
               <button
