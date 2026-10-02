@@ -266,11 +266,11 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   };
 
 	  const getCardReward = (adType: string): number => {
-	    if (adType === "adsgram") return appSettings?.adsgramRewardPerAd ?? appSettings?.rewardPerAd ?? 125;
-	    if (adType === "monetag") return appSettings?.monetagRewardPerAd ?? 125;
-	    if (adType === "gigapub") return appSettings?.gigapubRewardPerAd ?? 125;
-	    if (adType === "uslads")  return appSettings?.usladsRewardPerAd  ?? 125;
-	    return 125;
+	    if (adType === "adsgram") return appSettings?.adsgramRewardPerAd ?? appSettings?.rewardPerAd ?? 50;
+	    if (adType === "monetag") return appSettings?.monetagRewardPerAd ?? 30;
+	    if (adType === "gigapub") return appSettings?.gigapubRewardPerAd ?? 30;
+	    if (adType === "uslads")  return appSettings?.usladsRewardPerAd  ?? 30;
+	    return 30;
 	  };
 
   const isCardLimitReached = (adType: string) =>

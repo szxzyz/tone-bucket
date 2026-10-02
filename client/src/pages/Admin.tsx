@@ -2526,8 +2526,8 @@ function SettingsSection() {
     partnerTaskReward: '5000',
     taskRewardNoVerify: '100',
     taskRewardWithVerify: '500',
-    mysteryBoxMinReward: '1',
-    mysteryBoxMaxReward: '500',
+    mysteryBoxMinReward: '10',
+    mysteryBoxMaxReward: '100',
     minimumClicks: '500',
     seasonBroadcastActive: false,
     referralJoinRewardGold: '0',
@@ -2565,7 +2565,7 @@ function SettingsSection() {
     gigapubRewardPerAd: '30',
     gigapubEnabled: true,
     usladsAdLimit: '20',
-    usladsRewardPerAd: '20',
+    usladsRewardPerAd: '30',
     usladsEnabled: true,
   });
 
@@ -2590,8 +2590,8 @@ function SettingsSection() {
         partnerTaskReward: settingsData.partnerTaskReward?.toString() || '200',
         taskRewardNoVerify: (settingsData as any).taskRewardNoVerify?.toString() || settingsData.channelTaskReward?.toString() || '100',
         taskRewardWithVerify: (settingsData as any).taskRewardWithVerify?.toString() || '500',
-        mysteryBoxMinReward: (settingsData as any).mysteryBoxMinReward?.toString() || '1',
-        mysteryBoxMaxReward: (settingsData as any).mysteryBoxMaxReward?.toString() || '500',
+        mysteryBoxMinReward: (settingsData as any).mysteryBoxMinReward?.toString() || '10',
+        mysteryBoxMaxReward: (settingsData as any).mysteryBoxMaxReward?.toString() || '100',
         minimumClicks: settingsData.minimumClicks?.toString() || '500',
         seasonBroadcastActive: settingsData.seasonBroadcastActive || false,
         referralJoinRewardGold: settingsData.referralJoinRewardGold?.toString() ?? '0',
@@ -2629,7 +2629,7 @@ function SettingsSection() {
         gigapubRewardPerAd: settingsData.gigapubRewardPerAd?.toString() || '30',
         gigapubEnabled: settingsData.gigapubEnabled !== false,
         usladsAdLimit: settingsData.usladsAdLimit?.toString() || '20',
-        usladsRewardPerAd: settingsData.usladsRewardPerAd?.toString() || '20',
+        usladsRewardPerAd: settingsData.usladsRewardPerAd?.toString() || '30',
         usladsEnabled: settingsData.usladsEnabled !== false,
       });
     }
@@ -2659,7 +2659,7 @@ function SettingsSection() {
         gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 30,
         gigapubEnabled: (settings as any).gigapubEnabled !== false,
         usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 20,
-        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 20,
+        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 30,
         usladsEnabled: (settings as any).usladsEnabled !== false,
       };
       const response = await apiRequest('PUT', '/api/admin/settings', payload);
@@ -2704,8 +2704,8 @@ function SettingsSection() {
     const referralJoinRewardGold = Number.parseInt(settings.referralJoinRewardGold, 10);
     const referralActiveRewardGold = Number.parseInt(settings.referralActiveRewardGold, 10);
     const referralAdsRequired = Number.parseInt(settings.referralAdsRequired, 10);
-    const mysteryBoxMinReward = Math.max(1, parseInt((settings as any).mysteryBoxMinReward) || 1);
-    const mysteryBoxMaxReward = Math.min(500, Math.max(mysteryBoxMinReward, parseInt((settings as any).mysteryBoxMaxReward) || 500));
+    const mysteryBoxMinReward = Math.max(10, parseInt((settings as any).mysteryBoxMinReward) || 10);
+    const mysteryBoxMaxReward = Math.min(100, Math.max(mysteryBoxMinReward, parseInt((settings as any).mysteryBoxMaxReward) || 100));
 
     if (isNaN(adLimit) || adLimit <= 0) {
       showNotification("Daily ad limit must be a positive number", "error");
@@ -2788,7 +2788,7 @@ function SettingsSection() {
         gigapubRewardPerAd: parseInt((settings as any).gigapubRewardPerAd) || 30,
         gigapubEnabled: (settings as any).gigapubEnabled !== false,
         usladsAdLimit: parseInt((settings as any).usladsAdLimit) || 20,
-        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 20,
+        usladsRewardPerAd: parseInt((settings as any).usladsRewardPerAd) || 30,
         usladsEnabled: (settings as any).usladsEnabled !== false,
       });
 
@@ -2984,7 +2984,7 @@ function SettingsSection() {
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).usladsRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, usladsRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 20} GEM</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 30} GEM</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -3192,7 +3192,7 @@ function SettingsSection() {
                 type="number"
                 value={settings.maxWithdrawalsPerDay}
                 onChange={(e) => setSettings({ ...settings, maxWithdrawalsPerDay: e.target.value })}
-                placeholder="1"
+                placeholder="10"
                 min="1"
                 step="1"
               />
@@ -3417,10 +3417,10 @@ function SettingsSection() {
             <div className="space-y-2 p-3 border rounded-lg border-[#6b21a8]/20 bg-[#6b21a8]/5">
               <Label className="text-xs font-semibold text-blue-400">Mystery Box Reward Range</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="number" min="1" max="500" value={(settings as any).mysteryBoxMinReward ?? '1'} onChange={(e) => setSettings({ ...settings, mysteryBoxMinReward: e.target.value } as any)} placeholder="1" className="h-8" />
-                <Input type="number" min="1" max="500" value={(settings as any).mysteryBoxMaxReward ?? '500'} onChange={(e) => setSettings({ ...settings, mysteryBoxMaxReward: e.target.value } as any)} placeholder="500" className="h-8" />
+                <Input type="number" min="10" max="100" value={(settings as any).mysteryBoxMinReward ?? '10'} onChange={(e) => setSettings({ ...settings, mysteryBoxMinReward: e.target.value } as any)} placeholder="10" className="h-8" />
+                <Input type="number" min="10" max="100" value={(settings as any).mysteryBoxMaxReward ?? '100'} onChange={(e) => setSettings({ ...settings, mysteryBoxMaxReward: e.target.value } as any)} placeholder="100" className="h-8" />
               </div>
-              <p className="text-xs text-muted-foreground">GEM range: 1–500. Lower rewards are common; high rewards are rare.</p>
+              <p className="text-xs text-muted-foreground">GEM range: 10–100. A random reward is selected for each Mystery Box.</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-pink-500/20 bg-pink-500/5">
@@ -3490,7 +3490,7 @@ function SettingsSection() {
                 type="number"
                 value={settings.minimumClicks}
                 onChange={(e) => setSettings({ ...settings, minimumClicks: e.target.value })}
-                placeholder="500"
+                placeholder="100"
                 min="1"
               />
               <p className="text-xs text-muted-foreground">

@@ -71,7 +71,7 @@ function AdsRewardSummary() {
       id: 'uslads',
       watched: numberOr(user?.usladsAdsWatchedToday, 0),
       limit: numberOr(appSettings?.usladsAdLimit, 20),
-      reward: numberOr(appSettings?.usladsRewardPerAd, 20),
+      reward: numberOr(appSettings?.usladsRewardPerAd, 30),
       enabled: appSettings?.usladsEnabled !== false,
       configured: Boolean(appConfig?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID || 'plc_992db36dbed33f7c'),
     },

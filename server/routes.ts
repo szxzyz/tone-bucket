@@ -1476,7 +1476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const gigapubRewardPerAd    = parseInt(getSetting('gigapub_reward_per_ad',    '30'));
       const gigapubEnabled        = getSetting('gigapub_enabled', 'true') === 'true';
       const usladsAdLimit         = parseInt(getSetting('uslads_ad_limit',          '20'));
-      const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '20'));
+      const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '30'));
       const usladsEnabled         = getSetting('uslads_enabled', 'true') === 'true';
 
       // Legacy compatibility - keep old values for backwards compatibility
@@ -2703,7 +2703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/mystery-box — up to 5 opens per UTC day, random Gems reward.
+  // POST /api/mystery-box — up to 5 opens per UTC day, a random 10–100 GEM reward.
   // Requires a server-verified ad session (context 'mystery_box').
   app.post('/api/mystery-box', authenticateTelegram, async (req: any, res) => {
     try {
@@ -2719,18 +2719,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Mystery Gift limit reached for this period", claimsToday });
       }
 
-      const minReward = Math.max(1, parseInt(await getAdminSetting('mystery_box_min_reward', '1')) || 1);
-      const maxReward = Math.min(500, Math.max(minReward, parseInt(await getAdminSetting('mystery_box_max_reward', '500')) || 500));
-      // Weighted reward: low rewards are common and high rewards are rare.
-      const span = maxReward - minReward;
-      const roll = Math.random();
-      const reward = roll < 0.70
-        ? Math.floor(minReward + span * 0.10 * Math.random())
-        : roll < 0.95
-          ? Math.floor(minReward + span * (0.10 + 0.30 * Math.random()))
-          : roll < 0.999
-            ? Math.floor(minReward + span * (0.40 + 0.60 * Math.random()))
-            : maxReward;
+      const minReward = Math.max(10, parseInt(await getAdminSetting('mystery_box_min_reward', '10')) || 10);
+      const maxReward = Math.min(100, Math.max(minReward, parseInt(await getAdminSetting('mystery_box_max_reward', '100')) || 100));
+      // Uniform random reward: every integer from 10 through 100 is possible.
+      const reward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
 
       const outcome = await db.transaction(async (tx) => {
         const adVerified = await consumeRewardAdSession(tx, userId, req.body, 'mystery_box');
@@ -5012,7 +5004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gigapubRewardPerAd: parseInt(getSetting('gigapub_reward_per_ad', '30')),
         gigapubEnabled: getSetting('gigapub_enabled', 'true') === 'true',
         usladsAdLimit: parseInt(getSetting('uslads_ad_limit', '20')),
-        usladsRewardPerAd: parseInt(getSetting('uslads_reward_per_ad', '20')),
+        usladsRewardPerAd: parseInt(getSetting('uslads_reward_per_ad', '30')),
         usladsEnabled: getSetting('uslads_enabled', 'true') === 'true',
       });
     } catch (error) {

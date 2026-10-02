@@ -4,11 +4,10 @@ import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
-import { showAdgramAd } from "@/lib/showAd";
+import { useAdFlow } from "@/hooks/useAdFlow";
 
 const MYSTERY_DAILY_LIMIT = 5;
 
-type AdContext = "daily_checkin" | "mystery_box";
 type AdProof = { sessionId: string; backgroundEntered: boolean; backgroundDuration: number };
 
 function getTodayKey() {
@@ -17,7 +16,8 @@ function getTodayKey() {
 
 export default function MissionDailyRewards() {
   const queryClient = useQueryClient();
-  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
+  const { startSession, endSession, cancelSession } = useAdSession();
+  const { showMonetagAd } = useAdFlow();
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [mysteryClaimsToday, setMysteryClaimsToday] = useState(0);
   const [mysteryAdLoading, setMysteryAdLoading] = useState(false);
@@ -48,21 +48,17 @@ export default function MissionDailyRewards() {
     }
   }, [user]);
 
-  const runVerifiedAdsgramAd = async (context: AdContext): Promise<AdProof> => {
+  const runVerifiedMonetagAd = async (context: "mystery_box"): Promise<AdProof> => {
     const sessionId = startSession();
     try {
       const response = await apiRequest("POST", "/api/ads/register-session", {
         sessionId,
-        adType: "adsgram",
+        adType: "monetag",
         context,
       });
       if (!response.ok) throw new Error("Could not start ad session");
-
-      const blockId = context === "mystery_box"
-        ? (appConfig?.adsgramMysteryBoxBlockId || "")
-        : (appConfig?.adsgramCheckinBlockId || "");
-      await showAdgramAd(blockId);
-      await waitForForeground();
+      const adResult = await showMonetagAd();
+      if (!adResult.success) throw new Error("Monetag ad was not completed");
       const session = endSession();
       return {
         sessionId: session.sessionId,
@@ -74,13 +70,12 @@ export default function MissionDailyRewards() {
       throw error;
     }
   };
-
   const handleMysteryOpen = async () => {
     if (mysteryClaimsToday >= MYSTERY_DAILY_LIMIT || mysteryAdLoading) return;
     setMysteryAdLoading(true);
     let proof: AdProof;
     try {
-      proof = await runVerifiedAdsgramAd("mystery_box");
+      proof = await runVerifiedMonetagAd("mystery_box");
     } catch {
       setMysteryAdLoading(false);
       showNotification("Ad was not completed. No Mystery Box reward was granted.", "error");
@@ -137,7 +132,7 @@ export default function MissionDailyRewards() {
               color: checkinClaimed ? "rgba(255,255,255,0.3)" : "#fff",
               border: "none", width: 92, height: 38, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
               cursor: checkinClaimed ? "not-allowed" : "pointer", flexShrink: 0, letterSpacing: "0.03em", whiteSpace: "nowrap",
-              boxShadow: checkinClaimed ? "none" : "0 2px 12px rgba(61,21,128,0.4)",
+              boxShadow: checkinClaimed ? "none" : "0 2px 12px rgba(37,99,235,0.4)",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
             }}
             className="active:scale-95 transition-transform"
@@ -167,7 +162,7 @@ export default function MissionDailyRewards() {
               border: "none", width: 92, height: 38, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
               cursor: mysteryOpened || mysteryAdLoading ? "not-allowed" : "pointer", flexShrink: 0, whiteSpace: "nowrap",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-              boxShadow: mysteryOpened ? "none" : "0 2px 12px rgba(61,21,128,0.4)",
+              boxShadow: mysteryOpened ? "none" : "0 2px 12px rgba(37,99,235,0.4)",
             }}
             className="active:scale-95 transition-transform"
           >

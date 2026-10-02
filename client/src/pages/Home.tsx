@@ -17,6 +17,7 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
 import InviteFriendsSection from "@/components/InviteFriendsSection";
 import { showAdgramAd } from "@/lib/showAd";
+import { useAdFlow } from "@/hooks/useAdFlow";
 
 
 
@@ -46,7 +47,7 @@ function getTodayKey() {
 const CARD = 'rgba(255,255,255,0.07)';
 const TEXT = '#fff';
 const TEXT_DIM = 'rgba(255,255,255,0.35)';
-const BLUE = '#6b21a8';
+const BLUE = '#2563eb';
 
 
 
@@ -331,6 +332,7 @@ export default function Home() {
   // available for these existing reward contexts; the main ad-watching card
   // now lives on the Mission page.
   const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
+  const { showMonetagAd: showMonetagRewarded } = useAdFlow();
   const runVerifiedAdgramAd = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = startSession();
     try {
@@ -355,6 +357,28 @@ export default function Home() {
     }
   };
 
+  const runVerifiedMonetagAd = async (context: 'mystery_box') => {
+    const sessionId = startSession();
+    try {
+      const regRes = await apiRequest('POST', '/api/ads/register-session', {
+        sessionId, adType: 'monetag', context,
+      });
+      if (!regRes.ok) throw new Error('Could not start ad session');
+      const adResult = await showMonetagRewarded();
+      if (!adResult.success) {
+        throw new Error(adResult.unavailable ? 'Monetag ad is unavailable' : 'Monetag ad was not completed');
+      }
+      const session = endSession();
+      return {
+        sessionId: session.sessionId,
+        backgroundEntered: session.backgroundEntered,
+        backgroundDuration: session.backgroundDuration,
+      };
+    } catch (err) {
+      cancelSession();
+      throw err;
+    }
+  };
   // Daily Check-In mutation (calls /api/daily-checkin — distinct from missions daily-checkin)
   const dailyCheckMutation = useMutation({
     mutationFn: async (proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number }) => {
@@ -392,7 +416,7 @@ export default function Home() {
     setMysteryAdLoading(true);
     let proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number };
     try {
-      proof = await runVerifiedAdgramAd('mystery_box');
+      proof = await runVerifiedMonetagAd('mystery_box');
     } catch {
       setMysteryAdLoading(false);
       showNotification('Ad was not completed. No Mystery Gift reward was granted.', 'error');
@@ -519,9 +543,9 @@ export default function Home() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="flex gap-1 justify-center mb-4">
-            <div className="w-2 h-2 rounded-full bg-[#6b21a8] animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-[#6b21a8] animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-[#6b21a8] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            <div className="w-2 h-2 rounded-full bg-[#2563eb] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 rounded-full bg-[#2563eb] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 rounded-full bg-[#2563eb] animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
           <div className="text-foreground font-medium">{t('loading')}</div>
         </div>
@@ -588,13 +612,13 @@ export default function Home() {
                 onClick={() => setCheckinSheetOpen(true)}
                 disabled={checkinStatus?.alreadyClaimedToday}
                 style={{
-                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)',
                   color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.3)' : '#fff',
                   border: 'none',
                   width: 92, height: 38, boxSizing: 'border-box' as const, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer',
                   flexShrink: 0, letterSpacing: '0.03em', whiteSpace: 'nowrap',
-                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
+                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 }}
                 className="active:scale-95 transition-transform"
@@ -617,7 +641,7 @@ export default function Home() {
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
                   <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    1–500
+                    10–100
                   </span>
                 </div>
               </div>
@@ -625,12 +649,12 @@ export default function Home() {
                 onClick={handleMysteryOpen}
                 disabled={mysteryOpened || mysteryAdLoading}
                 style={{
-                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
+                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)',
                   color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
                   border: 'none',
                   width: 92, height: 38, boxSizing: 'border-box' as const, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
                   cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer', flexShrink: 0,
-                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(61,21,128,0.4)',
+                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, letterSpacing: '0.03em',
                 }}
                 className="active:scale-95 transition-transform"

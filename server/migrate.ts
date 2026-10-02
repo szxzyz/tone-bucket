@@ -601,10 +601,17 @@ export async function ensureDatabaseSchema(): Promise<void> {
         ('gigapub_ad_limit', '30', 'Default daily Gigapub ad limit'),
         ('gigapub_reward_per_ad', '30', 'Default Gigapub GEM reward per ad'),
         ('uslads_ad_limit', '20', 'Default daily USL ad limit'),
-        ('uslads_reward_per_ad', '20', 'Default USL GEM reward per ad')
+        ('uslads_reward_per_ad', '30', 'Default USL GEM reward per ad')
       ON CONFLICT (setting_key) DO NOTHING
     `);
     console.log('✅ [MIGRATION] Admin settings defaults ensured');
+    // Apply the new requested USL reward default to the previous seeded value.
+    await db.execute(sql`
+      UPDATE admin_settings
+      SET setting_value = '30', updated_at = NOW()
+      WHERE setting_key = 'uslads_reward_per_ad' AND setting_value = '20'
+    `);
+    console.log('✅ [MIGRATION] USL reward default normalized to 30 GEM');
 
     // 20% was the old UI's hard-coded default and could have been persisted
     // when an admin saved unrelated settings. Change that legacy default once;
