@@ -743,8 +743,6 @@ function getWithdrawalGroupChatId(): string {
 function isTelegramGroupChatId(value: string | undefined): value is string {
   return Boolean(value && /^-\d+$/.test(String(value).trim()));
 }
-const WITHDRAWAL_SUPPORT_LINK = 'https://t.me/szxzyz';
-
 // Post a new withdrawal REQUEST to the group chat with Approve / Reject buttons
 export async function sendWithdrawalRequestToGroup(withdrawalData: {
   withdrawalId: string;
@@ -2880,10 +2878,13 @@ Share your unique referral link and earn GEM when your friends join:
             const rejectedUser = await storage.getUser(result.withdrawal.userId);
             if (rejectedUser?.telegram_id) {
               const rejectedAmount = parseFloat((result.withdrawal.details as any)?.netAmount || result.withdrawal.amount).toFixed(3);
+              const supportKeyboard = /^https?:\/\//i.test(config.support.link)
+                ? { inline_keyboard: [[{ text: '📩 Contact Support', url: config.support.link }]] }
+                : undefined;
               await sendUserTelegramNotification(
                 rejectedUser.telegram_id,
                 `❌ Your withdrawal request of <b>${rejectedAmount} USDT</b> has been rejected.\n\nYour balance has been refunded. Please contact support if you have any questions.`,
-                { inline_keyboard: [[{ text: '📩 Contact Support', url: WITHDRAWAL_SUPPORT_LINK }]] }
+                supportKeyboard
               );
             }
             
