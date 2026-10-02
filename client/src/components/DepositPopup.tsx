@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { TonConnectButton, useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -109,9 +109,9 @@ export default function DepositPopup({ open = true, onClose }: Props) {
     <PopupShell onClose={onClose} maxWidth={390} closeOnBackdrop={!busy}>
       <div style={{ position: "relative", width: "100%" }}>
         <div style={{ color: "#fff", fontSize: 18, fontWeight: 900, letterSpacing: "0.02em" }}>
-          <span>GRAM</span> <span style={{ color: "#6b21a8" }}>DEPOSIT</span>
+          <span>GRAM</span> <span style={{ color: "#fff" }}>DEPOSIT</span>
         </div>
-        <div style={{ marginTop: 15 }}>
+        <div style={{ marginTop: 15, display: "flex", justifyContent: "center" }}>
           <TonConnectButton />
         </div>
 

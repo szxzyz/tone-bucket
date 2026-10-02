@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Download, Loader2 } from 'lucide-react';
-import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
+import { Loader2 } from 'lucide-react';
+import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { showNotification } from '@/components/AppNotification';
@@ -14,7 +14,6 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const [amount, setAmount] = useState('');
   const [tonPrice, setTonPrice] = useState(0);
   const connectedAddress = useTonAddress();
-  const [tonConnectUI] = useTonConnectUI();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], enabled: open, retry: false });
   const { data: settings } = useQuery<any>({ queryKey: ['/api/app-settings'], enabled: open, retry: false, staleTime: 60000 });
 
@@ -83,8 +82,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5">
-              <Download className="w-5 h-5 text-[#0066D6]" />
+            <div className="flex items-center px-5 py-3 border-b border-white/5">
               <h2 className="text-white font-bold text-base">GEM Withdrawal</h2>
             </div>
             <div className="px-5 py-4 space-y-4">
@@ -94,19 +92,20 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 </div>
               )}
               <div className="bg-white/5 rounded-xl px-4 py-3 flex justify-between items-center">
-                <span className="text-white/50 text-xs font-semibold">Available Balance</span>
-                <span className="text-[#0066D6] text-sm font-black tabular-nums">{Math.floor(userBalance).toLocaleString()} GEM</span>
+                <span className="text-white text-xs font-semibold">Available Balance</span>
+                <span className="text-white text-sm font-black tabular-nums inline-flex items-center gap-1.5">
+                  <img src="/assets/gems-icon.svg" alt="GEM" className="w-5 h-5 object-contain" />
+                  {Math.floor(userBalance).toLocaleString()} GEM
+                </span>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">TON wallet address</label>
-                  <button onClick={() => tonConnectUI.openModal()} className="text-[#0066D6] text-[10px] font-semibold">{address ? 'CHANGE' : 'CONNECT'}</button>
                 </div>
-                {address ? (
-                  <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>
-                ) : (
-                  <button onClick={() => tonConnectUI.openModal()} className="w-full h-11 bg-white/5 border border-white/10 text-white/60 rounded-xl text-sm">Connect TON Wallet</button>
-                )}
+                <div className="flex justify-center">
+                  <TonConnectButton />
+                </div>
+                {address && <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>}
                 {connectedAddress && !savedAddress && (
                   <button onClick={() => saveWallet.mutate()} disabled={saveWallet.isPending} className="w-full h-10 bg-[#007AFF]/15 hover:bg-[#007AFF]/25 text-[#60a5fa] rounded-xl text-xs font-black uppercase tracking-wider">
                     {saveWallet.isPending ? 'Saving…' : 'Use Connected Wallet'}
@@ -117,7 +116,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">GEM amount</label>
                 <div className="relative">
                   <input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} placeholder={minimum.toLocaleString()} className="w-full bg-white/5 border border-white/10 text-white h-11 rounded-xl font-bold text-sm px-3.5 pr-16 placeholder:text-white/20 focus:outline-none focus:border-[#0066D6]/40" />
-                  <button onClick={handleMax} className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-[#007AFF]/20 hover:bg-[#007AFF]/30 text-[#0066D6] text-[10px] font-black rounded-lg uppercase">Max</button>
+                  <button onClick={handleMax} className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white hover:bg-gray-200 text-gray-700 text-[10px] font-black rounded-lg uppercase">Max</button>
                 </div>
                 {value > 0 && value < minimum && <p className="text-red-400 text-[11px]">Minimum {minimum.toLocaleString()} GEM required</p>}
               </div>

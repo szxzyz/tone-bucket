@@ -12112,7 +12112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null) ||
                     'https://vuuug.onrender.com';
 
-      const shareImageUrl = `${appUrl}/app-logo.jpg?v=grabpenny`;
+      const shareImageUrl = `${appUrl}/images/grab-penny-invite-banner.png?v=grabpenny`;
+      const shareCaption = '🚀 Join Grab Penny and earn GRAM by watching ads! Sign up with my referral link 👇';
       const webAppUrl = referralLink;
 
       console.log(`📤 Preparing share message for user ${userId}`);
@@ -12128,9 +12129,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: 'Join Grab Penny and earn GEM!',
-        description: 'Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!',
-        caption: 'Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!',
+        title: 'Join Grab Penny and earn GRAM!',
+        description: shareCaption,
+        caption: `${shareCaption}\n${referralLink}`,
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -12179,7 +12180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: false,
             error: prepareResult.description || 'Failed to prepare message',
             referralLink,
-            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!')}`
+            fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareCaption)}`
           });
         }
       } catch (telegramError: any) {
@@ -12188,7 +12189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           error: telegramError.message || 'Telegram API error',
           referralLink,
-          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!')}`
+          fallbackUrl: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareCaption)}`
         });
       }
 
