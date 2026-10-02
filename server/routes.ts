@@ -2703,7 +2703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/mystery-box — up to 5 opens per UTC day, a random 10–100 GEM reward.
+  // POST /api/mystery-box — one open per reset period, with a random 10–100 GEM reward.
   // Requires a server-verified ad session (context 'mystery_box').
   app.post('/api/mystery-box', authenticateTelegram, async (req: any, res) => {
     try {
@@ -2711,11 +2711,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      const MYSTERY_DAILY_LIMIT = parseInt(await getAdminSetting('mystery_box_daily_limit', '5'));
+      const MYSTERY_CLAIM_LIMIT = 1;
       const periodKey = getResetPeriod();
-      const claimsToday = user.lastResetPeriod === periodKey ? (user.mysteryBoxCount || 0) : 0;
+      const claimsToday = (user.mysteryBoxPeriod === periodKey ||
+        (user.mysteryBoxPeriod == null && user.lastResetPeriod === periodKey && (user.mysteryBoxCount || 0) > 0)) ? 1 : 0;
 
-      if (claimsToday >= MYSTERY_DAILY_LIMIT) {
+      if (claimsToday >= MYSTERY_CLAIM_LIMIT) {
         return res.status(400).json({ message: "Mystery Gift limit reached for this period", claimsToday });
       }
 
@@ -2734,8 +2735,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .update(users)
           .set({
             mysteryBoxDate: new Date(),
-            lastResetPeriod: periodKey,
-            mysteryBoxCount: sql`CASE WHEN last_reset_period = ${periodKey} THEN COALESCE(mystery_box_count, 0) + 1 ELSE 1 END`,
+            mysteryBoxPeriod: periodKey,
+            mysteryBoxCount: 1,
             balance: sql`COALESCE(balance, 0) + ${reward}`,
             withdrawBalance: sql`COALESCE(withdraw_balance, 0) + ${reward}`,
             totalEarned: sql`COALESCE(total_earned, 0) + ${reward}`,
@@ -2744,7 +2745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .where(and(
             eq(users.id, userId),
-            sql`(last_reset_period IS NULL OR last_reset_period != ${periodKey} OR COALESCE(mystery_box_count, 0) < ${MYSTERY_DAILY_LIMIT})`,
+            sql`(mystery_box_period IS NULL AND NOT (last_reset_period = ${periodKey} AND COALESCE(mystery_box_count, 0) > 0) OR mystery_box_period != ${periodKey})`,
           ))
           .returning({ mysteryBoxCount: users.mysteryBoxCount, balance: users.balance });
         if (updated.length === 0) return { error: 'limit_reached' as const };
@@ -2780,7 +2781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             errorType: 'ad_not_verified',
           });
         }
-        return res.status(400).json({ message: "Mystery Gift limit reached for today", claimsToday });
+        return res.status(400).json({ message: "Mystery Gift can only be claimed once per reset period", claimsToday: 1 });
       }
 
       res.json({

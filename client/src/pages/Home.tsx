@@ -76,7 +76,7 @@ export default function Home() {
   const [dailyChecked, setDailyChecked] = useState(() => localStorage.getItem('daily_check_date') === getTodayKey());
   const [dailyAdLoading, setDailyAdLoading] = useState(false);
   const [mysteryClaimsToday, setMysteryClaimsToday] = useState(0);
-  const MYSTERY_DAILY_LIMIT = 5;
+  const MYSTERY_DAILY_LIMIT = 1;
   const mysteryOpened = mysteryClaimsToday >= MYSTERY_DAILY_LIMIT;
   const [mysteryAdLoading, setMysteryAdLoading] = useState(false);
 

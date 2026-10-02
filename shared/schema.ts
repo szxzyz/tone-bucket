@@ -103,6 +103,7 @@ export const users = pgTable("users", {
   dailyCheckinStreak: integer("daily_checkin_streak").default(0),
   dailyCheckinLastClaimDate: timestamp("daily_checkin_last_claim_date"),
   mysteryBoxDate: timestamp("mystery_box_date"),
+  mysteryBoxPeriod: text("mystery_box_period"),
   mysteryBoxCount: integer("mystery_box_count").default(0),
   // Wallet details
   tonWalletAddress: text("ton_wallet_address"),

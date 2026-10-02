@@ -6,7 +6,7 @@ import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
 import { useAdFlow } from "@/hooks/useAdFlow";
 
-const MYSTERY_DAILY_LIMIT = 5;
+const MYSTERY_DAILY_LIMIT = 1;
 
 type AdProof = { sessionId: string; backgroundEntered: boolean; backgroundDuration: number };
 

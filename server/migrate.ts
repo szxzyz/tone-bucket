@@ -692,7 +692,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
 	          ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_checkin_streak INTEGER DEFAULT 0;
 	          ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_checkin_last_claim_date TIMESTAMP;
 	          ALTER TABLE users ADD COLUMN IF NOT EXISTS mystery_box_date TIMESTAMP;
-		          ALTER TABLE users ADD COLUMN IF NOT EXISTS mystery_box_count INTEGER DEFAULT 0;
+	          ALTER TABLE users ADD COLUMN IF NOT EXISTS mystery_box_period TEXT;
+	          ALTER TABLE users ADD COLUMN IF NOT EXISTS mystery_box_count INTEGER DEFAULT 0;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user' NOT NULL;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS last_reset_at TIMESTAMP;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS last_reset_period TEXT;
