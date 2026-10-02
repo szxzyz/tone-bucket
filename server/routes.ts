@@ -12131,7 +12131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         thumbnail_url: shareImageUrl,
         title: 'Join Grab Penny and earn GRAM!',
         description: shareCaption,
-        caption: `${shareCaption}\n${referralLink}`,
+        caption: shareCaption,
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
