@@ -22,9 +22,11 @@
 
     <!-- Ad SDKs — all async so a slow/blocked network never hangs the app -->
 
-    <!-- Monetag and GiGaPub are loaded dynamically in useAdFlow.ts so an
-         unset ad configuration never leaves an invalid script placeholder. -->
+    <!-- Monetag is loaded dynamically in useAdFlow.ts. Gigapub is loaded with
+         the same publisher script format as TON Faucet. -->
 
+    <!-- Gigapub publisher SDK (same format as TON Faucet, publisher id 5883) -->
+    <script async src="https://ad.gigapub.tech/script?id=5883"></script>
     <!-- AdsGram SDK -->
     <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
 

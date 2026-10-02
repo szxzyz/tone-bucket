@@ -146,7 +146,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       });
 
   const isProviderConfigured = (adType: string) => {
-    if (adType === 'gigapub') return Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID);
+    if (adType === 'gigapub') return Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID || '5883');
     // Keep the USL card actionable so a missing secret never appears as a
     // misleading "SETUP NEEDED" state. The SDK call reports a clear error if
     // the deployment has not supplied the real TowerAds API key yet.

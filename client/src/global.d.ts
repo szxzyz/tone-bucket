@@ -32,7 +32,7 @@ declare global {
     show_11123429?: () => Promise<unknown>;
 
     // ── GigaPub ────────────────────────────────────────────────────────
-    showGiga?: () => Promise<unknown> | unknown;
+    showGiga?: (placement?: string) => Promise<unknown> | unknown;
 
     // ── Cloudflare Turnstile ───────────────────────────────────────────
     turnstile?: {

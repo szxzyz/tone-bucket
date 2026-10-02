@@ -65,7 +65,7 @@ function AdsRewardSummary() {
       limit: numberOr(appSettings?.gigapubAdLimit, 30),
       reward: numberOr(appSettings?.gigapubRewardPerAd, 30),
       enabled: appSettings?.gigapubEnabled !== false,
-      configured: Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID),
+      configured: Boolean(appConfig?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID || '5883'),
     },
     {
       id: 'uslads',

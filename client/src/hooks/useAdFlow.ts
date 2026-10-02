@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 declare global {
   interface Window {
     show_10013974?: (type?: string) => Promise<void>;
-    showGiga?: () => Promise<unknown> | unknown;
+    showGiga?: (placement?: string) => Promise<unknown> | unknown;
     TowerAds: new (config: {
       apiKey: string;
       placementId: string;
@@ -75,13 +75,21 @@ let _gigaPubScriptLoaded = false;
 async function ensureGigaPubScript(): Promise<boolean> {
   if (_gigaPubScriptLoaded || typeof window.showGiga === 'function') return true;
   const cfg = await getAppConfig();
-  const scriptId = cfg?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID || '';
+  const scriptId = cfg?.gigapubScriptId || import.meta.env.VITE_GIGAPUB_SCRIPT_ID || '5883';
   if (!scriptId) return false;
 
   return new Promise((resolve) => {
+    const src = `https://ad.gigapub.tech/script?id=${scriptId}`;
+    const existing = Array.from(document.scripts).find((script) => script.src === src) as HTMLScriptElement | undefined;
+    if (existing) {
+      existing.addEventListener('load', () => { _gigaPubScriptLoaded = true; resolve(true); }, { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      window.setTimeout(() => resolve(typeof window.showGiga === 'function'), 8_000);
+      return;
+    }
     const script = document.createElement('script');
     script.async = true;
-    script.src = `https://ad.gigapub.tech/script?id=${scriptId}`;
+    script.src = src;
     script.onload = () => { _gigaPubScriptLoaded = true; resolve(true); };
     script.onerror = () => resolve(false);
     document.head.appendChild(script);
@@ -181,7 +189,7 @@ export function useAdFlow() {
       }, 30_000);
 
       try {
-        const adResult = window.showGiga?.();
+        const adResult = window.showGiga?.('main');
         if (adResult && typeof (adResult as any).then === 'function') {
           (adResult as Promise<unknown>)
             .then(() => {
