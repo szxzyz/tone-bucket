@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { User, UserPlus, Receipt, ChevronRight, Shield, Globe, History, FileCheck2 } from 'lucide-react';
+import { User, Receipt, ChevronRight, Shield, Globe, FileCheck2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -12,7 +12,7 @@ import { useSupportLink } from '@/hooks/useSupportLink';
 import { useLocation } from 'wouter';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
 
-type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal' | 'language' | 'earnings' | 'invites';
+type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal' | 'language';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 
 export default function Account() {
@@ -57,10 +57,8 @@ export default function Account() {
 
   const menuActions = [
     { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setMenuView('language') },
-    { label: 'Earning History', icon: <History className="w-5 h-5 text-amber-400" />, action: () => setMenuView('earnings') },
     { label: 'Proof of Payment', icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
     { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
-    { label: 'My invites', icon: <UserPlus className="w-5 h-5 text-emerald-400" />, action: () => setMenuView('invites') },
     { label: 'Project Statistics', icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
     { label: 'FAQs', icon: <BsQuestionCircleFill className="w-5 h-5 text-sky-400" />, action: () => setMenuView('faq') },
     { label: 'Support', icon: <MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />, action: openSupport },

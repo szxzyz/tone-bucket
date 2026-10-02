@@ -17,7 +17,6 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useSupportLink } from "@/hooks/useSupportLink";
 import { showNotification } from "@/components/AppNotification";
 import { useLocation } from "wouter";
-import EarningHistoryPopup from "@/components/EarningHistoryPopup";
 import { LanguagePreferenceControl } from "@/components/SettingsPopup";
 
 interface MenuPopupProps {
@@ -27,7 +26,7 @@ interface MenuPopupProps {
   returnToPageOnBack?: boolean;
 }
 
-type View = "main" | "transactions" | "stats" | "faq" | "legal" | "contest" | "language" | "earnings" | "invites";
+type View = "main" | "transactions" | "stats" | "faq" | "legal" | "contest" | "language";
 type LegalDocument = "terms" | "privacy" | "acceptable";
 
 const VIEW_RANGES = [
@@ -56,7 +55,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const [check3, setCheck3] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [transactionPage, setTransactionPage] = useState(0);
-  const [invitesPage, setInvitesPage] = useState(1);
   const [tonPrice, setTonPrice] = useState<number | null>(null);
   const { isAdmin } = useAdmin();
   const supportLink = useSupportLink();
@@ -80,17 +78,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
     refetchInterval: 30_000,
     retry: 1,
   });
-  const { data: invitesData, isLoading: invitesLoading, isError: invitesError } = useQuery<any>({
-    queryKey: ["/api/referrals/my-referrals", invitesPage],
-    queryFn: async () => {
-      const response = await fetch(`/api/referrals/my-referrals?page=${invitesPage}`, { credentials: "include" });
-      if (!response.ok) throw new Error("Unable to load friends");
-      return response.json();
-    },
-    enabled: view === "invites",
-    retry: false,
-    placeholderData: (previousData: any) => previousData,
-  });
 
   const telegramUser =
     typeof window !== "undefined"
@@ -106,9 +93,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const transactionsPerPage = 5;
   const transactionPageCount = Math.max(1, Math.ceil(withdrawals.length / transactionsPerPage));
   const visibleWithdrawals = withdrawals.slice(transactionPage * transactionsPerPage, (transactionPage + 1) * transactionsPerPage);
-  const invites: any[] = invitesData?.referrals || [];
-  const invitesTotal = Number(invitesData?.total ?? invites.length);
-  const invitesTotalPages = Math.max(1, Number(invitesData?.totalPages ?? 1));
   React.useEffect(() => {
     setTransactionPage(page => Math.min(page, transactionPageCount - 1));
   }, [transactionPageCount]);
@@ -181,8 +165,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
     legal: "Legal & Info",
     contest: "Contest",
     language: "Language",
-    earnings: "Earning History",
-    invites: "My invites",
   };
 
   const legalTitles: Record<LegalDocument, string> = {
@@ -353,53 +335,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
             <div className="px-4 py-4 space-y-3">
               <p className="text-white/40 text-xs">Use the app's existing language selector below.</p>
               <LanguagePreferenceControl />
-            </div>
-          )}
-
-          {view === "earnings" && <EarningHistoryPopup />}
-
-          {view === "invites" && (
-            <div style={{ padding: 16, overflowY: "auto", boxSizing: "border-box" }}>
-              {invitesLoading ? (
-                <div className="flex items-center justify-center py-10"><Loader2 className="w-5 h-5 text-blue-400 animate-spin" /></div>
-              ) : invitesError ? (
-                <div className="py-10 text-center text-sm text-red-300">Could not load your invites. Please try again.</div>
-              ) : invites.length === 0 ? (
-                <div className="py-10 text-center">
-                  <Users className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                  <p className="text-white font-bold text-sm">No invites yet</p>
-                </div>
-              ) : (
-                <>
-                  <div style={{ background: "rgba(255,255,255,.07)", borderRadius: 14, overflow: "hidden" }}>
-                    {invites.map((invite: any) => {
-                      const active = invite.status === "success";
-                      const name = invite.username ? `@${invite.username}` : invite.displayName || "Unknown";
-                      const date = invite.createdAt ? new Date(invite.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
-                      return (
-                        <div key={invite.id} style={{ padding: "13px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-white text-sm font-bold truncate">{name}</p>
-                              {invite.username && invite.displayName && invite.displayName !== invite.username && <p className="text-white/40 text-[11px] mt-0.5 truncate">{invite.displayName}</p>}
-                            </div>
-                            <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase ${active ? "bg-green-400/10 text-green-400" : "bg-amber-400/10 text-amber-300"}`}>
-                              {active ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{active ? "Active" : "Pending"}
-                            </span>
-                          </div>
-                          <p className="text-white/35 text-[10px] mt-2">{date}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {invitesTotalPages > 1 && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
-                    <button type="button" onClick={() => setInvitesPage(page => Math.max(1, page - 1))} disabled={invitesPage <= 1} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: invitesPage === 1 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: invitesPage === 1 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>← Previous</button>
-                    <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{invitesPage} / {invitesTotalPages}</span>
-                    <button type="button" onClick={() => setInvitesPage(page => Math.min(invitesTotalPages, page + 1))} disabled={invitesPage >= invitesTotalPages} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: invitesPage >= invitesTotalPages ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: invitesPage >= invitesTotalPages ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>Next →</button>
-                  </div>}
-                  <p className="text-center text-white/35 text-[10px] mt-3">{invitesTotal} friend{invitesTotal === 1 ? "" : "s"}</p>
-                </>
-              )}
             </div>
           )}
 

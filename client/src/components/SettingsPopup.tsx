@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, ExternalLink, Check, ChevronRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { useLanguage } from '@/hooks/useLanguage';
+import { SUPPORTED_LANGUAGES, useLanguage } from '@/hooks/useLanguage';
 import { showNotification } from '@/components/AppNotification';
 import { useSupportLink } from '@/hooks/useSupportLink';
 
@@ -262,14 +262,9 @@ const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode,
 
 export const LanguagePreferenceControl: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
-  const ALL_LANGUAGES: Array<import('@/hooks/useLanguage').Language> = ['en', 'ru', 'ar', 'uk', 'de', 'zh', 'pt', 'es', 'vi', 'bn'];
-  const LANGUAGE_LABELS: Record<string, string> = {
-    en: 'English', ru: 'Русский', ar: 'العربية', uk: 'Українська',
-    de: 'Deutsch', zh: '中文', pt: 'Português', es: 'Español', vi: 'Tiếng Việt', bn: 'বাংলা',
-  };
   const cycleLanguage = async () => {
-    const idx = ALL_LANGUAGES.indexOf(language as any);
-    const next = ALL_LANGUAGES[(idx + 1) % ALL_LANGUAGES.length];
+    const idx = SUPPORTED_LANGUAGES.findIndex(item => item.code === language);
+    const next = SUPPORTED_LANGUAGES[(idx + 1) % SUPPORTED_LANGUAGES.length].code;
     setLanguage(next);
     try {
       await fetch('/api/user/language', {
@@ -285,7 +280,7 @@ export const LanguagePreferenceControl: React.FC = () => {
 
   return <LegalItem
     icon={<Globe className="w-4 h-4 text-purple-400" />}
-    label={`${t('language')}: ${LANGUAGE_LABELS[language] ?? 'English'}`}
+    label={`${t('language')}: ${SUPPORTED_LANGUAGES.find(item => item.code === language)?.label ?? 'English'}`}
     onClick={() => void cycleLanguage()}
     rightIcon={<RefreshCw className="w-3 h-3 text-gray-500" />}
   />;

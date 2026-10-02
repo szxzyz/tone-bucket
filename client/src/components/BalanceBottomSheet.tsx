@@ -19,14 +19,6 @@ interface User {
   [key: string]: any;
 }
 
-interface Earning {
-  id: number;
-  amount: string;
-  source: string;
-  description?: string;
-  createdAt: string;
-}
-
 interface BalanceBottomSheetProps {
   open: boolean;
   onClose: () => void;
@@ -41,17 +33,6 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
 
   const { data: appSettings } = useQuery<any>({
     queryKey: ['/api/app-settings'],
-    retry: false,
-  });
-
-  const { data: earningsData } = useQuery<Earning[]>({
-    queryKey: ['/api/earnings', 5],
-    queryFn: async () => {
-      const res = await fetch('/api/earnings?limit=5', { credentials: 'include' });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: open,
     retry: false,
   });
 
@@ -82,7 +63,6 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/earnings", 5] });
     },
     onError: (error: Error) => {
       showNotification(error.message, "error");
@@ -152,18 +132,6 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
     minimumFractionDigits: 2,
     maximumFractionDigits: 6
   });
-
-  const formatEarningDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const formatEarningAmount = (amount: string) => {
-    const n = parseFloat(amount);
-    if (!isFinite(n)) return amount;
-    const axn = n < 1 ? Math.round(n * 10000000) : Math.round(n);
-    return `+${axn.toLocaleString()}`;
-  };
 
   return (
     <>
@@ -318,39 +286,6 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
                   </button>
                 </div>
 
-                {/* Earning History */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 16, paddingBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>History</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#6b21a8' }}>›</span>
-                  </div>
-
-                  {!earningsData || earningsData.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 13, padding: '16px 0' }}>
-                      No earning history yet
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {earningsData.slice(0, 5).map((earning) => (
-                        <div
-                          key={earning.id}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '10px 12px', borderRadius: 10,
-                            background: 'rgba(255,255,255,0.04)',
-                          }}
-                        >
-                          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
-                            {formatEarningDate(earning.createdAt)}
-                          </span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{formatEarningAmount(earning.amount)} <img src="/assets/gems-icon.svg" style={{ width: 12, height: 12 }} /></div>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* bottom padding for safe area */}
