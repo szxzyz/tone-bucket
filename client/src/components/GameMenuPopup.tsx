@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Users, Activity, Coins, ArrowDownToLine, ClipboardList, CheckCircle2,
-  Receipt, ChevronRight, Shield, ShieldCheck, ScrollText, ArrowLeft, Clock, CheckCircle,
+  User, Users, Activity, Coins, ClipboardList, CheckCircle2,
+  Receipt, Shield, ShieldCheck, ScrollText, Clock, CheckCircle,
   XCircle, Loader2, Trophy, Video, Link2, Eye, CheckSquare, Square,
   X, Plus, Youtube, Instagram,
 } from "lucide-react";
@@ -45,6 +45,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const [view, setView] = useState<View>(initialView);
   const [contestFullScreen, setContestFullScreen] = useState(initialView === "contest");
   const [selectedLegal, setSelectedLegal] = useState<LegalDocument | null>(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const documentScreen = fullScreen || selectedLegal !== null || (contestFullScreen && view === "contest");
 
   // Contest form state
@@ -212,9 +213,9 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   else if (returnToPageOnBack) onClose();
                   else { setView("main"); resetContestForm(); }
                 }}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="h-7 px-2.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/80 text-xs font-semibold"
               >
-                <ArrowLeft className="w-4 h-4 text-white" />
+                Back
               </button>
             )}
             <h2 className={documentScreen ? "text-xl font-bold text-white uppercase tracking-tight italic" : "text-white font-bold text-base"}>{view === "legal" && selectedLegal ? legalTitles[selectedLegal] : viewTitle[view]}</h2>
@@ -254,23 +255,20 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
               {/* Transactions */}
               <button
                 onClick={() => setView("transactions")}
-                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                className="w-full flex items-center gap-3 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center gap-3">
                   <Receipt className="w-5 h-5 text-yellow-400" />
                   <span className="text-white font-bold text-sm">Transactions</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
-              <button onClick={() => setView("stats")} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+              <button onClick={() => setView("stats")} className="w-full flex items-center gap-3 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><RiBarChartFill className="w-5 h-5 text-blue-400" /><span className="text-white font-bold text-sm">Project Statistics</span></div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
-              <button onClick={() => setView("faq")} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+              <button onClick={() => setView("faq")} className="w-full flex items-center gap-3 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><BsQuestionCircleFill className="w-5 h-5 text-sky-400" /><span className="text-white font-bold text-sm">FAQs</span></div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
               <button onClick={() => {
@@ -280,21 +278,19 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 }
                 const tg = (window as any).Telegram?.WebApp;
                 if (tg?.openTelegramLink) tg.openTelegramLink(supportLink); else window.open(supportLink, "_blank", "noopener,noreferrer");
-              }} className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
+              }} className="w-full flex items-center gap-3 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]">
                 <div className="flex items-center gap-3"><MdOutlineSupportAgent className="w-5 h-5 text-pink-400" /><span className="text-white font-bold text-sm">Support</span></div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
 
               {/* Legal Info */}
               <button
                 onClick={() => setView("legal")}
-                className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                className="w-full flex items-center gap-3 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-purple-400" />
                   <span className="text-white font-bold text-sm">Legal & Info</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30" />
               </button>
             </div>
           )}
@@ -324,9 +320,9 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                     })}
                   </div>
                   {transactionPageCount > 1 && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
-                    <button type="button" onClick={() => setTransactionPage(page => Math.max(0, page - 1))} disabled={transactionPage === 0} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: transactionPage === 0 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: transactionPage === 0 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>← Previous</button>
+                    <button type="button" onClick={() => setTransactionPage(page => Math.max(0, page - 1))} disabled={transactionPage === 0} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: transactionPage === 0 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: transactionPage === 0 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>Previous</button>
                     <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{transactionPage + 1} / {transactionPageCount}</span>
-                    <button type="button" onClick={() => setTransactionPage(page => Math.min(transactionPageCount - 1, page + 1))} disabled={transactionPage >= transactionPageCount - 1} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: transactionPage >= transactionPageCount - 1 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: transactionPage >= transactionPageCount - 1 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>Next →</button>
+                    <button type="button" onClick={() => setTransactionPage(page => Math.min(transactionPageCount - 1, page + 1))} disabled={transactionPage >= transactionPageCount - 1} style={{ flex: 1, border: "none", borderRadius: 12, padding: "11px 12px", background: transactionPage >= transactionPageCount - 1 ? "rgba(255,255,255,.05)" : "rgba(37,99,235,.18)", color: transactionPage >= transactionPageCount - 1 ? "rgba(255,255,255,.25)" : "#93c5fd", fontSize: 12, fontWeight: 800 }}>Next</button>
                   </div>}
                 </>
               )}
@@ -347,7 +343,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   { label: "Total users", value: appStatistics ? Number(appStatistics.totalUsers ?? 0).toLocaleString() : "—", icon: Users },
                   { label: "Active today", value: appStatistics ? Number(appStatistics.activeToday ?? 0).toLocaleString() : "—", icon: Activity },
                   { label: "GEM earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
-                  { label: "Total withdrawal", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} TON` : "—", icon: ArrowDownToLine },
+                  { label: "Total withdrawal", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} TON` : "—", icon: Coins },
                   { label: "Tasks created", value: appStatistics ? Number(appStatistics.taskCreated ?? 0).toLocaleString() : "—", icon: ClipboardList },
                   { label: "Tasks completed", value: appStatistics ? Number(appStatistics.taskCompleted ?? 0).toLocaleString() : "—", icon: CheckCircle2 },
                 ].map((card) => {
@@ -376,7 +372,25 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 [t("faq_language_q"), t("faq_language_a")],
                 [t("faq_accounts_q"), t("faq_accounts_a")],
                 [t("faq_proof_q"), t("faq_proof_a")],
-              ].map(([question, answer]) => <div key={question} className="rounded-2xl bg-white/5 p-4"><p className="text-white font-bold text-sm">{question}</p><p className="text-white/45 text-xs leading-relaxed mt-2">{answer}</p></div>)}
+              ].map(([question, answer], index) => {
+                const isOpen = openFaqIndex === index;
+                const answerId = `faq-answer-${index}`;
+                return (
+                  <div key={question} className="rounded-2xl bg-white/5 overflow-hidden">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={answerId}
+                      onClick={() => setOpenFaqIndex(current => current === index ? null : index)}
+                      className="w-full flex items-center justify-between gap-3 p-4 text-left"
+                    >
+                      <span className="text-white font-bold text-sm">{question}</span>
+                      <span aria-hidden="true" className="text-white/50 text-lg leading-none shrink-0">{isOpen ? "−" : "+"}</span>
+                    </button>
+                    {isOpen && <p id={answerId} className="px-4 pb-4 text-white/45 text-xs leading-relaxed">{answer}</p>}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -393,14 +407,13 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   <button
                     key={item.id}
                     onClick={() => openLegalDocument(item.id)}
-                    className="w-full flex items-center justify-between bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
+                    className="w-full flex items-center gap-3 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all active:scale-[0.99]"
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={`w-5 h-5 ${item.color}`} />
                       <span className="text-white font-bold text-sm">{item.label}</span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-white/30" />
-                  </button>
+                      </button>
                 );
               })}
             </div>
@@ -570,7 +583,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   onClick={() => { resetContestForm(); }}
                   className="flex items-center gap-1.5 text-white/40 text-xs hover:text-white/60 transition-colors"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back
+                  Back
                 </button>
               )}
 

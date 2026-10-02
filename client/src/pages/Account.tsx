@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { User, Receipt, ChevronRight, Shield, Globe, FileCheck2 } from 'lucide-react';
+import { User, Receipt, Shield, Globe, FileCheck2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -105,7 +105,6 @@ export default function Account() {
           {menuActions.map(({ label, icon, action }) => (
             <button key={label} onClick={action} className="w-full flex items-center justify-between rounded-2xl p-4 hover:brightness-110 transition-all active:scale-[0.99]" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
               <div className="flex items-center gap-3">{icon}<span className="text-white font-bold text-sm">{label}</span></div>
-              <ChevronRight className="w-4 h-4 text-white/30" />
             </button>
           ))}
         </section>

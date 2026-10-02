@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, CheckCircle2, AlertCircle, ArrowDown } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { showNotification } from "@/components/AppNotification";
 import { getTONPrice } from "@/lib/tonPriceService";
 
@@ -157,11 +157,6 @@ export default function SwapUsdtToTonPopup({ open, onOpenChange, usdBalance }: S
                 >
                   MAX
                 </button>
-              </div>
-
-              {/* Arrow */}
-              <div className="flex justify-center my-2">
-                <ArrowDown size={14} color="rgba(255,255,255,0.5)" />
               </div>
 
               {/* Receive (TON) */}

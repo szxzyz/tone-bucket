@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { getTONPrice } from "@/lib/tonPriceService";
 import { showNotification } from "@/components/AppNotification";
 
@@ -179,13 +179,6 @@ export default function SwapSheet({
                     <span style={{ fontSize: 11, color: "#ff6b6b" }}>Exceeds balance</span>
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: cardBg, border: `1px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ArrowDown size={14} color="rgba(255,255,255,0.5)" />
               </div>
             </div>
 

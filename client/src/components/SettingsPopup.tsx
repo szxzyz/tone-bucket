@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, ExternalLink, Check, ChevronRight } from 'lucide-react';
+import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { SUPPORTED_LANGUAGES, useLanguage } from '@/hooks/useLanguage';
@@ -105,7 +105,7 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
               icon={<Copy className="w-4 h-4 text-[#6b21a8]" />}
               label={`${t('my_uid')}: ${uid}`}
               onClick={copyUid}
-              rightIcon={copied ? <Check className="w-3 h-3 text-green-500" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
+              rightIcon={copied ? <Check className="w-3 h-3 text-green-500" /> : null}
             />
 
             {/* Language */}
@@ -131,7 +131,6 @@ export const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose }) => {
                 if (!supportLink) { showNotification('Support link is not configured', 'error'); return; }
                 openLink(supportLink);
               }}
-              rightIcon={<ExternalLink className="w-3 h-3 text-gray-600" />}
             />
 
             {/* Legal Section */}
@@ -207,7 +206,7 @@ const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode,
       </div>
       <span className="text-gray-300 text-xs font-medium">{label}</span>
     </div>
-    {rightIcon || <ChevronRight className="w-3 h-3 text-gray-600" />}
+    {rightIcon}
   </div>
 );
 
