@@ -7,6 +7,7 @@ import { db } from './db';
 import { earnings, withdrawals } from '../shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { config } from './config';
+import { GEMS_PER_USD } from './tonPriceService';
 import { CONTEST_PRIZE_AMOUNTS } from '../shared/constants';
 // The centralized env config (server/config.ts) is also used at line ~665
 // for the withdrawal group chat id fallback.
@@ -1268,10 +1269,16 @@ function buildAmbassadorPromoPayload(
   const s = AMB_PROMO_STRINGS[(lang as AmbPromoLang)] ?? AMB_PROMO_STRINGS.en;
   const rewardInt = parseInt(rewardAmount || '10000');
   const rewardPow = rewardInt.toLocaleString('en-US');
+  const rewardUsd = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+  }).format(rewardInt / GEMS_PER_USD);
 
   const lines: string[] = [
     `👤 <b>First ${maxClaims} Active Users Only!</b>`,
-    `🎁 <b>Reward: ${escHtml(rewardPow)} Gems | ${(rewardInt / 10_000_000).toFixed(4)} TON</b>`,
+    `🎁 <b>Reward: ${escHtml(rewardPow)} Gems | ${escHtml(rewardUsd)} USD</b>`,
     '',
     `🎟 <b>Claim Code 1:</b> <code>${escHtml(code1)}</code>`,
     `🎟 <b>Claim Code 2:</b> <code>${escHtml(code2)}</code>`,
