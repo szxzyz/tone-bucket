@@ -174,10 +174,7 @@ export default function MissionDailyRewards() {
         </div>
       </div>
 
-      <div style={{ marginTop: 12, borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)" }}>
-        <div style={{ padding: "16px 16px 4px", color: "#fff", fontSize: 15, fontWeight: 800 }}>Daily Tasks</div>
-        <DailyMissionTasks />
-      </div>
+      <DailyMissionTasks />
       <DailyCheckinSheet
         open={checkinSheetOpen}
         onClose={() => setCheckinSheetOpen(false)}
