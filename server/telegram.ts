@@ -968,7 +968,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 
     const replyMarkup = {
       inline_keyboard: [
-        [{ text: '💎 Open Grab Penny', url: botLink }],
+        [{ text: '⭐ Open Star Earning', url: botLink }],
       ]
     };
 
@@ -1519,7 +1519,7 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
     }
 
     // Get the share banner image URL - use public URL
-    const shareImageUrl = `${appUrl}/app-logo.jpg?v=grabpenny`;
+    const shareImageUrl = `${appUrl}/images/paid-adz-invite-banner.png?v=paidadz`;
     
     console.log(`📷 Share image URL: ${shareImageUrl}`);
     console.log(`🔗 Referral Link: ${referralLink}`);
@@ -1531,9 +1531,9 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: '💵 Join Grab Penny and earn TON!',
-        description: '💵 Join Grab Penny and earn TON just by Mining & completing tasks!',
-        caption: '💵 Join Grab Penny and earn TON just by Mining & completing tasks!',
+        title: '💵 Join Paid Adz and earn TON!',
+        description: '💵 Join Paid Adz and earn TON just by Mining & completing tasks!',
+        caption: '💵 Join Paid Adz and earn TON just by Mining & completing tasks!',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -1551,10 +1551,10 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         type: 'article',
         id: `article_${user.referralCode}_${Date.now()}`,
         title: '💸 Share with friends',
-        description: 'Join Grab Penny and start earning with me.',
+        description: 'Join Paid Adz and start earning with me.',
         thumbnail_url: shareImageUrl,
         input_message_content: {
-          message_text: '💵 Join Grab Penny and earn TON just by Mining & completing tasks!',
+          message_text: '💵 Join Paid Adz and earn TON just by Mining & completing tasks!',
           parse_mode: 'HTML'
         },
         reply_markup: {
@@ -3084,7 +3084,7 @@ Share your unique referral link and earn GEM when your friends join:
           const botUsername = await getBotUsername();
           const botLink = `https://t.me/${botUsername}/MyWAdz`;
           const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
-          const shareText = `🎉 My withdrawal of ${netUsdtAmount.toFixed(3)} USDT has just been successfully completed! 💰\n\nJoin Grabpenny using my referral link and start earning together! 🚀`;
+          const shareText = `🎉 My withdrawal of ${netUsdtAmount.toFixed(3)} USDT has just been successfully completed! 💰\n\nJoin Paid Adz using my referral link and start earning together! 🚀`;
           const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
           const successKeyboard = {
             inline_keyboard: [

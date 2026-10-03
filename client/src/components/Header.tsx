@@ -52,7 +52,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
   useEffect(() => {
     if (withdrawals.length === 0) return;
     try {
-      const seen = new Set<string>(JSON.parse(localStorage.getItem('grabpenny_seen_transactions') || '[]'));
+      const seen = new Set<string>(JSON.parse(localStorage.getItem('paidadz_seen_transactions') || '[]'));
       setUnreadCount(withdrawals.filter((item: any) => !seen.has(String(item.id))).length);
     } catch {
       setUnreadCount(withdrawals.length);
@@ -147,7 +147,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           </div>
 
           <div style={{ position: 'relative', flexShrink: 0 }}>
-            <button onClick={() => { setNotificationOpen(v => !v); const ids = withdrawals.map((item: any) => String(item.id)); localStorage.setItem('grabpenny_seen_transactions', JSON.stringify(ids)); setUnreadCount(0); }} aria-label="Notifications" style={{ width: 36, height: 36, borderRadius: '50%', background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: notificationOpen ? '#60a5fa' : 'rgba(255,255,255,0.65)', cursor: 'pointer', position: 'relative' }}>
+            <button onClick={() => { setNotificationOpen(v => !v); const ids = withdrawals.map((item: any) => String(item.id)); localStorage.setItem('paidadz_seen_transactions', JSON.stringify(ids)); setUnreadCount(0); }} aria-label="Notifications" style={{ width: 36, height: 36, borderRadius: '50%', background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: notificationOpen ? '#60a5fa' : 'rgba(255,255,255,0.65)', cursor: 'pointer', position: 'relative' }}>
               <Bell size={21} strokeWidth={2} />
               {unreadCount > 0 && <span style={{ position: 'absolute', top: 0, right: -1, minWidth: 17, height: 17, padding: '0 4px', boxSizing: 'border-box', borderRadius: 9, background: '#ef4444', border: '1.5px solid #0a0a0a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, lineHeight: 1 }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </button>

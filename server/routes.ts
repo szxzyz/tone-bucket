@@ -3941,10 +3941,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const webAppUrl = `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`;
 
       // Get share banner image URL
-      const shareImageUrl = `${appUrl}/app-logo.jpg?v=grabpenny`;
+      const shareImageUrl = `${appUrl}/images/paid-adz-invite-banner.png?v=paidadz`;
 
       // Caption for the share message
-      const caption = 'Join Grab Penny and earn GEM by watching ads, completing tasks, and inviting friends!';
+      const caption = 'Join Paid Adz and earn GEM by watching ads, completing tasks, and inviting friends!';
 
       // Send the photo message with inline button
       const result = await sendSharePhotoToChat(
@@ -12256,8 +12256,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null) ||
                     'https://vuuug.onrender.com';
 
-      const shareImageUrl = `${appUrl}/images/grab-penny-invite-banner.png?v=grabpenny`;
-      const shareCaption = '🚀 Join Grab Penny and earn GRAM by watching ads! Sign up with my referral link 👇';
+      const shareImageUrl = `${appUrl}/images/paid-adz-invite-banner.png?v=paidadz`;
+      const shareCaption = '🚀 Join Paid Adz and earn GRAM by watching ads! Sign up with my referral link 👇';
       const webAppUrl = referralLink;
 
       console.log(`📤 Preparing share message for user ${userId}`);
@@ -12273,7 +12273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: 'Join Grab Penny and earn GRAM!',
+        title: 'Join Paid Adz and earn GRAM!',
         description: shareCaption,
         caption: shareCaption,
         parse_mode: 'HTML',
@@ -14232,7 +14232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         if (user?.telegram_id) {
           const { getBotUsername, sendUserTelegramNotification } = await import('./telegram');
-          const botUsername = (await getBotUsername())?.replace(/^@/, '') || 'Grab Penny';
+          const botUsername = (await getBotUsername())?.replace(/^@/, '') || 'GrabPennyAppBot';
           const promoReward = parseInt(await storage.getAppSetting('ambassador_promo_reward', '10000'), 10) || 10000;
           const commissionGemsSetting = await storage.getAppSetting('ambassador_commission_gems', '');
           const legacyCommissionUsd = await storage.getAppSetting('ambassador_commission_usd', '0.0005');

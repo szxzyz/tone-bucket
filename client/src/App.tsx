@@ -29,7 +29,7 @@ import Ads from "@/pages/Ads";
 const Admin = lazy(() => import("@/pages/Admin"));
 const CountryControls = lazy(() => import("@/pages/CountryControls"));
 const NotFound = lazy(() => import("@/pages/not-found"));
-const LOGO_SRC = '/grab-penny-ton-wallet.png';
+const LOGO_SRC = '/paid-adz-logo.png';
 function LoadingFallback() {
   return (
     <div className="fixed inset-0 overflow-hidden" style={{
@@ -37,7 +37,7 @@ function LoadingFallback() {
       pointerEvents: 'auto',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     }}>
-      <img src={LOGO_SRC} alt="Grab Penny" style={{
+      <img src={LOGO_SRC} alt="Paid Adz" style={{
         width: 92, height: 92, borderRadius: '50%', objectFit: 'cover',
         display: 'block', border: '2px solid rgba(255,255,255,0.12)',
       }} />
