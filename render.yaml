@@ -6,7 +6,9 @@ services:
     runtime: node
     plan: starter
     region: oregon
-    buildCommand: npm ci && npm run build
+    # Keep deployment builds deterministic; security updates must be reviewed
+    # separately because npm audit fix can install breaking major versions.
+    buildCommand: npm ci && npm run check && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
