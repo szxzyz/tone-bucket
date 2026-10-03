@@ -6,7 +6,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
   CheckCircle2, XCircle, Loader2,
-  Scroll, AlertTriangle, Info, ChevronDown, ChevronRight,
+  Scroll, AlertTriangle, Info, ChevronDown, ChevronRight, Copy,
   Clock, Plus, Trash2, Zap, Timer,
 } from "lucide-react";
 import {
@@ -136,6 +136,15 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
   const amb = dashboard?.ambassador ?? status?.ambassador;
   const stats = dashboard?.stats;
+
+  const copyPromoCode = async (promoCode: string) => {
+    try {
+      await navigator.clipboard.writeText(promoCode);
+      showNotification("Promo code copied", "success");
+    } catch {
+      showNotification("Could not copy promo code", "error");
+    }
+  };
 
   // Sync schedule slots and settings from server data once when ambassador data first loads
   const ambId = (amb as any)?.id as string | undefined;
@@ -693,8 +702,8 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                   <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
                 </div>
               ) : (dashboard?.promoCodeHistory?.length ?? 0) === 0 ? (
-                <div className="rounded-2xl p-6 text-center" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
-                  <Scroll className="w-10 h-10 text-white/20 mx-auto mb-2" />
+                <div className="rounded-[16px] p-4 text-center" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+                  <Scroll className="w-8 h-8 text-white/20 mx-auto mb-2" />
                   <p className="text-white/40 text-sm">{t("no_promo_codes_yet")}</p>
                   <p className="text-white/25 text-xs mt-1">{t("codes_appear_once_posted")}</p>
                 </div>
@@ -707,11 +716,16 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                     const remaining = pc.remainingClaims;
                     const totalRewarded = Math.round(parseFloat(pc.totalRewardsDistributed || "0"));
                     return (
-                      <div key={pc.promoCode} className="rounded-2xl overflow-hidden" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+                      <div key={pc.promoCode} className="rounded-[16px] overflow-hidden" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                         {/* Code header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                          <span className="font-mono text-white text-sm font-bold">{pc.promoCode}</span>
-                          <span className={`text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-mono text-white text-sm font-bold truncate">{pc.promoCode}</span>
+                            <button type="button" onClick={() => copyPromoCode(pc.promoCode)} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform" style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)" }} title="Copy promo code" aria-label={`Copy promo code ${pc.promoCode}`}>
+                              <Copy className="w-3.5 h-3.5 text-white" />
+                            </button>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-wider flex-shrink-0 ${
                             pc.status === "active"
                               ? "bg-green-500/15 text-green-400"
                               : "bg-white/10 text-white/40"
@@ -719,7 +733,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                         </div>
 
                         {/* Stats */}
-                        <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        <div className="px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-2">
                           <div>
                             <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Reward / Claim</p>
                             <p className="text-white text-sm font-bold mt-0.5">{rewardPow.toLocaleString()} GEM</p>

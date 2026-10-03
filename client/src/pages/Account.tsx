@@ -112,7 +112,6 @@ export default function Account() {
             </button>
           ))}
         </section>
-        <div style={{ height: 104, flexShrink: 0 }} />
       </main>
 
       <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={gemBalance} />

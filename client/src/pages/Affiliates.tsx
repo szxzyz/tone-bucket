@@ -156,7 +156,6 @@ export default function Affiliates() {
             {referralsLoading ? <div className="py-8 text-center text-xs text-white/40">Loading friends…</div> : visibleFriends.length === 0 ? <div className="py-8 text-center"><Users className="mx-auto mb-2 text-white/20" size={25} /><p className="m-0 text-xs text-white/40">No {friendTab === 'all' ? '' : friendTab} friends yet.</p></div> : <div className="flex flex-col gap-2">{visibleFriends.map((friend) => <FriendCard key={friend.id} friend={friend} />)}</div>}
           </>
         )}
-        <div style={{ height: 104, flexShrink: 0 }} />
       </main>
     </Layout>
   );
