@@ -33,7 +33,9 @@ export default function Layout({ children, onAddTask }: LayoutProps) {
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
         style={{
-          paddingBottom: "env(safe-area-inset-bottom, 0px)", // Removed extra bottom padding to prevent over-scrolling
+          // BottomNav is fixed and sits above the scroll container. Reserve its
+          // full height so the final card/action is not hidden underneath it.
+          paddingBottom: "calc(76px + max(var(--tg-content-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 6px))",
           paddingTop: "var(--header-height, 56px)",
           WebkitOverflowScrolling: 'touch',
         }}
