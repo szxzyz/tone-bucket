@@ -6,7 +6,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
   CheckCircle2, XCircle, Loader2,
-  Scroll, AlertTriangle, Send, Info, ChevronDown, ChevronRight,
+  Scroll, AlertTriangle, Info, ChevronDown, ChevronRight,
   Clock, Plus, Trash2, Zap, Timer,
 } from "lucide-react";
 import {
@@ -344,18 +344,18 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
     return (
       <AmbassadorShell embedded={embedded}>
         <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
-          <div className="mb-6">
-            <h1 className="text-2xl font-black text-white tracking-tight mb-2">
+          <div className="mb-4">
+            <h1 className="text-lg font-black text-white tracking-tight mb-1">
               {t("not_approved_title")}
             </h1>
-            <p className="text-[#888] text-sm leading-relaxed">
+            <p className="text-[#888] text-xs leading-relaxed">
               {status.application.rejectionReason
                 ? <><span className="text-white font-semibold">{t("reason_label")}: </span>{status.application.rejectionReason}</>
                 : t("application_not_approved_text")}
             </p>
           </div>
 
-          <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(239,68,68,0.08)" }}>
+          <div className="rounded-[16px] p-3 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)", border: "1px solid rgba(239,68,68,0.2)" }}>
             <div className="flex items-center gap-3">
               <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
               <p className="text-red-400 text-sm font-medium">{t("application_rejected")}</p>
@@ -372,10 +372,10 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                 application: null,
               }));
             }}
-            className="w-full h-12 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
-            style={{ background: "rgba(255,255,255,0.12)" }}
+            className="w-full h-[38px] rounded-xl flex items-center justify-center active:scale-95 transition-transform"
+            style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 8px 22px rgba(37,99,235,0.22)" }}
           >
-            <span className="text-white font-semibold text-sm">{t("apply_again")}</span>
+            <span className="text-white font-bold text-xs">{t("apply_again")}</span>
           </button>
         </main>
       </AmbassadorShell>
@@ -1038,13 +1038,13 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
         <button
           onClick={() => applyMutation.mutate({ channelLink, termsAccepted })}
           disabled={!canSubmit || applyMutation.isPending}
-          className="w-full h-14 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 mb-4"
-          style={{ background: "rgba(255,255,255,0.12)" }}
+          className="w-full h-[38px] rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 mb-4"
+          style={{ background: canSubmit ? "linear-gradient(135deg, #2563eb, #3b82f6)" : "rgba(255,255,255,0.12)", boxShadow: canSubmit ? "0 8px 22px rgba(37,99,235,0.22)" : "none" }}
         >
           {applyMutation.isPending
-            ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-            : <Send className="w-5 h-5 text-white/70" />}
-          <span className="text-white font-bold tracking-widest text-sm">
+            ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+            : null}
+          <span className="text-white font-bold text-xs">
             {applyMutation.isPending ? t("submitting_ellipsis") : t("submit_application_btn")}
           </span>
         </button>

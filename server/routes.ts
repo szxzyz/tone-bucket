@@ -13611,10 +13611,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (_) {}
 
       // ── Minimum subscriber requirement ───────────────────────────────────────
-      if (subscriberCount !== null && subscriberCount < 1000) {
+      if (subscriberCount !== null && subscriberCount < 500) {
         return res.status(400).json({
           success: false,
-          message: `Your channel needs at least 1,000 subscribers to apply. Current count: ${subscriberCount.toLocaleString()}. Please grow your channel and try again.`,
+          message: `Your channel needs at least 500 subscribers to apply. Current count: ${subscriberCount.toLocaleString()}. Please grow your channel and try again.`,
         });
       }
 
@@ -13909,6 +13909,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (!check.hasPostPermission) {
         return res.json({ success: false, verified: false, message: `@${botName} is an admin but "Post Messages" permission is disabled. Please enable it and verify again.` });
+      }
+
+      const countResp = await fetch(`https://api.telegram.org/bot${botToken}/getChatMemberCount?chat_id=${channelIdentifier}`);
+      if (countResp.ok) {
+        const countData = await countResp.json();
+        const subscriberCount = countData.ok ? Number(countData.result) : null;
+        if (subscriberCount !== null && subscriberCount < 500) {
+          return res.json({ success: false, verified: false, message: `Your channel needs at least 500 subscribers to apply. Current count: ${subscriberCount.toLocaleString()}. Please grow your channel and try again.` });
+        }
       }
 
       res.json({ success: true, verified: true, message: `✅ Channel verified! @${botName} can post to this channel.` });
