@@ -455,6 +455,17 @@ export default function AdminPage() {
           )}
 
           <TabsContent value="ambassadors" className="mt-0">
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">Ambassador Page</p>
+                <p className="mt-1 text-xs text-muted-foreground">Open the ambassador dashboard and promo management page.</p>
+              </div>
+              <Link href="/ambassador" className="shrink-0">
+                <Button size="sm" className="h-8 gap-1.5 bg-[#6b21a8] px-3 text-xs hover:bg-[#7c2bbd]">
+                  <Award size={13} /> Open Page
+                </Button>
+              </Link>
+            </div>
             <AmbassadorAdminSection />
           </TabsContent>
 
