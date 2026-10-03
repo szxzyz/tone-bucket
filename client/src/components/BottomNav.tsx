@@ -110,6 +110,7 @@ export default function BottomNav() {
               {tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : tab.id === "account" ? <AccountIcon active={active} c={color} />
+                : tab.id === "leaderboard" ? <LeaderboardIcon active={active} c={color} />
                 : <AdsIcon active={active} c={color} />}
             </div>
             <span style={{ fontSize: "clamp(10px, 2.7vw, 11px)", fontWeight: active ? 700 : 500, letterSpacing: 0, color, lineHeight: 1, whiteSpace: "nowrap" }}>
