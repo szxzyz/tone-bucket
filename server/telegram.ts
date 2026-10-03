@@ -1321,7 +1321,7 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
     text += seg;
   };
 
-  addSegment('👋 Welcome to Grabpenny!\n\n', { bold: true });
+  addSegment('👋 Welcome to Paid Adz!\n\n', { bold: true });
   addSegment('💎 Turn your time into ');
   addSegment('GRAM rewards!', { bold: true });
   addSegment('\n\n');
