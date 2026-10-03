@@ -13476,7 +13476,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const referrer = await storage.getUser(userId);
       if (!referrer?.referralCode) return res.json({ referrals: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
 
-      const pageSize = 10;
+      // The Friends page shows the complete referral list in local status tabs.
+      // Keep a generous cap so older referrals are not silently omitted.
+      const pageSize = 5000;
       const requestedPage = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
       const [{ count }] = await db
         .select({ count: sql<number>`COUNT(*)` })
@@ -13495,6 +13497,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          adsWatched: users.adsWatched,
         })
         .from(users)
         .leftJoin(referrals, and(eq(referrals.refereeId, users.id), eq(referrals.referrerId, userId)))
@@ -13509,7 +13513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displayName: r.firstName
           ? `${r.firstName}${r.lastName ? ' ' + r.lastName : ''}`.trim()
           : (r.username || 'Unknown'),
-        status: r.referralStatus === 'completed' || r.referralStatus === 'active' ? 'success' : 'pending',
+        avatarUrl: r.profileImageUrl || null,
+        adsWatched: Number(r.adsWatched || 0),
+        status: r.referralStatus === 'completed' || r.referralStatus === 'active' ? 'active' : 'pending',
         createdAt: r.referralCreatedAt || r.userCreatedAt,
       }));
 
