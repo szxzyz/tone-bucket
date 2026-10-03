@@ -46,6 +46,8 @@ import { eq, desc, and, gte, lt, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { getResetPeriodKey, getPeriodStart } from "./resetPeriod";
 
+export const ADSGRAM_AD_EARNING_DESCRIPTION = 'AdsGram ad';
+
 function getISOWeek(): string {
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -870,7 +872,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (!referrer.referralCode) throw new Error('Referrer does not have a referral code');
-    const joinRewardGold = Math.max(0, parseInt(await this.getAppSetting('referral_reward_join_gold', '0')) || 0);
+    const joinRewardGold = Math.max(0, parseInt(await this.getAppSetting('referral_reward_join_gold', '500')) || 0);
 
     // Serialize referral creation per referee so simultaneous requests cannot
     // create duplicate relationships or award the on-join GEM more than once.
@@ -980,19 +982,25 @@ export class DatabaseStorage implements IStorage {
             ))
         : [];
 
-      // A referral qualifies after the admin-configured number of rewarded ads
-      // from any provider in the Ad Watching section.
-      const referralAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '5')) || 0);
-
-      // Count successful Ad Watching section rewards across all providers.
-      const [adCount] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(earnings)
-        .where(and(
-          eq(earnings.userId, userId),
-          eq(earnings.source, 'ad_watch')
-        ));
-      const adsWatched = Number(adCount?.count || 0);
+      // Only rewarded AdsGram watches qualify a referral for activation.
+      const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '15'), 10);
+      const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
+        ? configuredAdsRequired
+        : 15;
+      const [[allAdCount], [adsgramAdCount]] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` })
+          .from(earnings)
+          .where(and(eq(earnings.userId, userId), eq(earnings.source, 'ad_watch'))),
+        db.select({ count: sql<number>`count(*)` })
+          .from(earnings)
+          .where(and(
+            eq(earnings.userId, userId),
+            eq(earnings.source, 'ad_watch'),
+            eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
+          )),
+      ]);
+      const adsWatched = Number(allAdCount?.count || 0);
+      const adsgramAdsWatched = Number(adsgramAdCount?.count || 0);
 
       // Mark first ad watched if not already done
       if (!user.firstAdWatched && adsWatched >= 1) {
@@ -1005,13 +1013,13 @@ export class DatabaseStorage implements IStorage {
       // No pending referrals — nothing else to credit
       if (pendingReferrals.length === 0) return activatedReferrerIds;
 
-      if (adsWatched < referralAdsRequired) return activatedReferrerIds;
+      if (adsgramAdsWatched < referralAdsRequired) return activatedReferrerIds;
 
       // Read the admin-configured GEM reward. The amount is queued atomically
       // with activation and swept into the referrer's balance immediately after.
       const canonicalReward = await this.getAppSetting('referral_reward_pad', '');
       const legacyReward = canonicalReward ? '' : await this.getAppSetting('referral_reward_swag', '');
-      const referralRewardGold = Math.max(0, parseInt(canonicalReward || legacyReward || '2500') || 0);
+      const referralRewardGold = Math.max(0, parseInt(canonicalReward || legacyReward || '2000') || 0);
 
       // Activate each pending referral — use atomic conditional update to prevent race-condition
       // double-payments. Its temporary GEM queue is written with the status change.
@@ -1522,10 +1530,10 @@ export class DatabaseStorage implements IStorage {
         : 5;
       if (commissionPercent <= 0) return;
       const commissionRate = commissionPercent / 100;
-      const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '5'), 10);
+      const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '15'), 10);
       const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
         ? configuredAdsRequired
-        : 5;
+        : 15;
 
       const credited = await db.transaction(async (tx) => {
         // Lock the original earning so retries/concurrent calls cannot pay it twice.
@@ -1559,7 +1567,7 @@ export class DatabaseStorage implements IStorage {
             inArray(referrals.status, ['completed', 'active'])
           ))
           .limit(1);
-        if (!referralInfo || referralInfo.refereeBanned) return null;
+        if (!referralInfo || referralInfo.refereeBanned !== false) return null;
 
         // A stale/incorrect status must never bypass the real activity threshold.
         const [activityCount] = await tx
@@ -1567,7 +1575,8 @@ export class DatabaseStorage implements IStorage {
           .from(earnings)
           .where(and(
             eq(earnings.userId, userId),
-            eq(earnings.source, 'ad_watch')
+            eq(earnings.source, 'ad_watch'),
+            eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
           ));
         if (Number(activityCount?.count || 0) < referralAdsRequired) return null;
 
@@ -3491,17 +3500,36 @@ export class DatabaseStorage implements IStorage {
     return task;
   }
 
-  // Get valid (completed) referral count for a user
+  // Count referrals currently eligible under the AdsGram-only activation rule.
   async getValidReferralCount(userId: string): Promise<number> {
-    const result = await db
-      .select({ count: sql<number>`count(*)` })
+    const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '15'), 10);
+    const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
+      ? configuredAdsRequired
+      : 15;
+    const activeReferrals = await db
+      .select({ refereeId: referrals.refereeId })
       .from(referrals)
+      .innerJoin(users, eq(users.id, referrals.refereeId))
       .where(and(
         eq(referrals.referrerId, userId),
-        eq(referrals.status, 'completed')
+        inArray(referrals.status, ['completed', 'active']),
+        eq(users.banned, false),
       ));
-    
-    return Number(result[0]?.count || 0);
+    const refereeIds = Array.from(new Set(activeReferrals.map(row => row.refereeId)));
+    if (refereeIds.length === 0) return 0;
+    if (referralAdsRequired === 0) return refereeIds.length;
+
+    const adsgramCounts = await db
+      .select({ userId: earnings.userId, count: sql<number>`count(*)` })
+      .from(earnings)
+      .where(and(
+        inArray(earnings.userId, refereeIds),
+        eq(earnings.source, 'ad_watch'),
+        eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
+      ))
+      .groupBy(earnings.userId);
+    const countsByUser = new Map(adsgramCounts.map(row => [row.userId, Number(row.count || 0)]));
+    return refereeIds.filter(refereeId => (countsByUser.get(refereeId) || 0) >= referralAdsRequired).length;
   }
 
   // Get tasks created by a specific user (my tasks)
@@ -3811,7 +3839,7 @@ export class DatabaseStorage implements IStorage {
   /**
    * fullReferralRepair — runs on every server startup.
    * Pass 1: users whose `referred_by` is set but have no row in `referrals` → create the row.
-   * Pass 2: all pending referrals whose referee already watched enough ads → activate bonus.
+   * Pass 2: pending referrals whose referee watched enough AdsGram ads → activate bonus.
    * Returns a stats object so callers (admin endpoint / startup) can log results.
    */
   async fullReferralRepair(): Promise<{
@@ -3854,19 +3882,20 @@ export class DatabaseStorage implements IStorage {
             .limit(1);
           if (anyExisting.length > 0) continue;
 
-          // Check whether the referee already watched enough ads from any provider — insert as completed
+          // Check whether the referee already watched enough AdsGram ads — insert as completed
           // to avoid re-triggering a reward for users who were already paid
           const [adCountRow] = await db
             .select({ count: sql<number>`count(*)` })
             .from(earnings)
             .where(and(
               eq(earnings.userId, u.userId),
-              eq(earnings.source, 'ad_watch')
+              eq(earnings.source, 'ad_watch'),
+              eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
             ));
-          const adsAlreadyWatched = Number(adCountRow?.count || 0);
-          const repairAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '5')) || 0);
+          const adsGramAlreadyWatched = Number(adCountRow?.count || 0);
+          const repairAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '15')) || 0);
 
-          const insertStatus = adsAlreadyWatched >= repairAdsRequired ? 'completed' : 'pending';
+          const insertStatus = adsGramAlreadyWatched >= repairAdsRequired ? 'completed' : 'pending';
           await db.insert(referrals).values({
             referrerId: referrer.id,
             refereeId: u.userId,
@@ -3874,7 +3903,7 @@ export class DatabaseStorage implements IStorage {
             status: insertStatus,
           });
           if (insertStatus === 'completed') {
-            console.log(`  ℹ️ Inserted referral as 'completed' (referee already watched ${adsAlreadyWatched} ads — no duplicate reward)`);
+            console.log(`  ℹ️ Inserted referral as 'completed' (referee already watched ${adsGramAlreadyWatched} AdsGram ads — no duplicate reward)`);
           }
           stats.referralsCreated++;
           stats.usersLinked++;
@@ -3885,8 +3914,8 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // ── PASS 2: Activate pending referrals whose referee watched enough ads ─
-      const referralAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '5')) || 0);
+      // ── PASS 2: Activate pending referrals whose referee watched enough AdsGram ads ─
+      const referralAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '15')) || 0);
 
       const pendingRows = await db
         .select({
@@ -3906,15 +3935,16 @@ export class DatabaseStorage implements IStorage {
             .from(earnings)
             .where(and(
               eq(earnings.userId, ref.refereeId),
-              eq(earnings.source, 'ad_watch')
+              eq(earnings.source, 'ad_watch'),
+              eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
             ));
-          const adsWatched = Number(adCount?.count || 0);
-          if (adsWatched < referralAdsRequired) continue;
+          const adsGramAdsWatched = Number(adCount?.count || 0);
+          if (adsGramAdsWatched < referralAdsRequired) continue;
 
           // Use the existing per-user activation path so reward logic stays in one place
           await this.checkAndActivateReferralBonus(ref.refereeId);
           stats.referralsActivated++;
-          console.log(`  ✅ Activated referral ${ref.id} (referee ${ref.refereeId} has ${adsWatched} ads)`);
+          console.log(`  ✅ Activated referral ${ref.id} (referee ${ref.refereeId} has ${adsGramAdsWatched} AdsGram ads)`);
         } catch (err) {
           stats.errors++;
           console.error(`  ⚠️ Pass 2 error for referral ${ref.id}:`, err);
@@ -4110,13 +4140,12 @@ export class DatabaseStorage implements IStorage {
     try {
       const referrers = await db.select({
         referrerId: referrals.referrerId,
-        count: sql<number>`count(*)::integer`,
       }).from(referrals)
-        .where(eq(referrals.status, 'completed'))
         .groupBy(referrals.referrerId);
       for (const row of referrers) {
+        const count = await this.getValidReferralCount(row.referrerId);
         await db.update(users)
-          .set({ friendsInvited: row.count })
+          .set({ friendsInvited: count })
           .where(eq(users.id, row.referrerId));
       }
       console.log(`✅ Friends-invited counts synced for ${referrers.length} users`);

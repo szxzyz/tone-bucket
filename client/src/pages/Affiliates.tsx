@@ -45,7 +45,7 @@ function FriendCard({ friend }: { friend: ReferralFriend }) {
           <p style={{ margin: '3px 0 0', fontSize: 10, lineHeight: 1.2, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.username ? `@${friend.username.replace(/^@/, '')}` : 'Telegram user'}</p>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ads Watched</p>
+          <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>AdsGram Ads</p>
           <p style={{ margin: '3px 0 0', fontSize: 15, fontWeight: 900, color: '#fff' }}>{friend.adsWatched.toLocaleString()}</p>
         </div>
       </div>
@@ -87,8 +87,9 @@ export default function Affiliates() {
     refetchInterval: 30000,
   });
   const settingsLoaded = appSettings !== undefined;
-  const joinReward = Math.max(0, Number(appSettings?.referralJoinRewardGold ?? 0) || 0);
-  const activeReward = Math.max(0, Number(appSettings?.referralActiveRewardGold ?? 2500) || 0);
+  const joinReward = Math.max(0, Number(appSettings?.referralJoinRewardGold ?? 500) || 0);
+  const activeReward = Math.max(0, Number(appSettings?.referralActiveRewardGold ?? 2000) || 0);
+  const referralAdsRequired = Math.max(0, Number(appSettings?.referralAdsRequired ?? 15) || 0);
   const totalReward = joinReward + activeReward;
   const gemsPerUsd = Math.max(1, Number(appSettings?.padPerUsd ?? 100000) || 100000);
   const worthUsd = totalReward / gemsPerUsd;
@@ -149,7 +150,7 @@ export default function Affiliates() {
             <section className="rounded-[14px] p-2 mb-3" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}><div className="grid grid-cols-3 gap-2">{[['Friends', totalFriends], ['Active', activeFriends], ['Earned GEM', formatLargeSWAG(totalEarned, false)]].map(([label, value]) => <div key={String(label)} className="text-center rounded-lg py-2" style={{ background: 'rgba(255,255,255,0.045)' }}><div className="text-white text-sm font-black tabular-nums truncate">{value}</div><div className="text-white/40 text-[9px] font-bold uppercase tracking-wider mt-1 truncate">{label}</div></div>)}</div></section>
             <div className="flex items-center gap-2 mb-4"><button onClick={inviteFriends} disabled={isSharing || !referralLink} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }}><Send className="w-4 h-4 text-white" /><span className="text-white font-bold text-xs">{isSharing ? 'Opening…' : 'Invite Friends'}</span></button><button onClick={copyLink} disabled={!referralLink} className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0" style={{ background: INVITE_BUTTON_BACKGROUND, boxShadow: '0 8px 22px rgba(37,99,235,0.22)' }} title="Copy referral link" aria-label="Copy referral link"><Copy className="w-4 h-4 text-white" /></button></div>
 
-            <div className="px-1 mb-3"><h2 className="m-0 text-base font-black text-white">Your Friends</h2><p className="m-0 mt-1 text-[10px] text-white/40">See who joined through your invite.</p></div>
+            <div className="px-1 mb-3"><h2 className="m-0 text-base font-black text-white">Your Friends</h2><p className="m-0 mt-1 text-[10px] text-white/40">A friend becomes active after watching {referralAdsRequired} AdsGram ads. Other ad providers do not count.</p></div>
             <div style={{ margin: '0 0 10px', padding: 4, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }} role="tablist" aria-label="Friend status filters">
               {([['all', 'All'], ['active', 'Active'], ['pending', 'Pending']] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={friendTab === id} onClick={() => setFriendTab(id)} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: friendTab === id ? INVITE_BUTTON_BACKGROUND : 'transparent', color: friendTab === id ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>{label}</button>)}
             </div>

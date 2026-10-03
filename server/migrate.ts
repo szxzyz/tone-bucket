@@ -615,9 +615,9 @@ export async function ensureDatabaseSchema(): Promise<void> {
       INSERT INTO admin_settings (setting_key, setting_value, description)
       VALUES
         ('l1_commission_percent', '5', 'Direct referral commission percentage'),
-        ('referral_reward_join_gold', '0', 'GEM reward when a referred friend joins'),
-        ('referral_reward_pad', '2500', 'GEM reward when a referred friend becomes active'),
-        ('referral_ads_required', '5', 'Rewarded ads from any provider required to activate a referral'),
+        ('referral_reward_join_gold', '500', 'GEM reward when a referred friend joins'),
+        ('referral_reward_pad', '2000', 'GEM reward when a referred friend becomes active'),
+        ('referral_ads_required', '15', 'AdsGram rewarded ads required to activate a referral'),
         ('daily_ad_limit', '510', 'Maximum number of ads a user can watch per day'),
         ('hourly_ad_limit', '63', 'Maximum number of ads a user can watch per hour'),
         ('ad_reward_pad', '1000', 'SWAG reward amount per ad watched'),
@@ -636,6 +636,44 @@ export async function ensureDatabaseSchema(): Promise<void> {
       ON CONFLICT (setting_key) DO NOTHING
     `);
     console.log('✅ [MIGRATION] Admin settings defaults ensured');
+
+    // Upgrade only the previous referral defaults once. Admins can still set
+    // custom values afterward, including 0 or a different AdsGram threshold.
+    await db.execute(sql`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM admin_settings WHERE setting_key = 'referral_adsgram_defaults_500_2000_15_migrated'
+        ) THEN
+          UPDATE admin_settings
+          SET setting_value = '500', description = 'GEM reward when a referred friend joins', updated_at = NOW()
+          WHERE setting_key = 'referral_reward_join_gold' AND setting_value = '0';
+
+          UPDATE admin_settings
+          SET setting_value = '2000', description = 'GEM reward when a referred friend becomes active', updated_at = NOW()
+          WHERE setting_key = 'referral_reward_pad' AND setting_value = '2500';
+
+          UPDATE admin_settings
+          SET setting_value = '15', description = 'AdsGram rewarded ads required to activate a referral', updated_at = NOW()
+          WHERE setting_key = 'referral_ads_required' AND setting_value IN ('5', '10');
+
+          UPDATE admin_settings
+          SET description = 'GEM reward when a referred friend joins', updated_at = NOW()
+          WHERE setting_key = 'referral_reward_join_gold';
+          UPDATE admin_settings
+          SET description = 'GEM reward when a referred friend becomes active', updated_at = NOW()
+          WHERE setting_key = 'referral_reward_pad';
+          UPDATE admin_settings
+          SET description = 'AdsGram rewarded ads required to activate a referral', updated_at = NOW()
+          WHERE setting_key = 'referral_ads_required';
+
+          INSERT INTO admin_settings (setting_key, setting_value, description, updated_at)
+          VALUES ('referral_adsgram_defaults_500_2000_15_migrated', 'true', 'One-time migration of referral defaults to 500/2000 GEM and 15 AdsGram ads', NOW())
+          ON CONFLICT (setting_key) DO NOTHING;
+        END IF;
+      END $$
+    `);
+
     // Apply the new requested USL reward default to the previous seeded value.
     await db.execute(sql`
       UPDATE admin_settings

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, ADSGRAM_AD_EARNING_DESCRIPTION } from "./storage";
 import { WebSocketServer, WebSocket } from 'ws';
 import { alias } from "drizzle-orm/pg-core";
 import {
@@ -1363,20 +1363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user.referralCode = updatedUser?.referralCode || '';
       }
 
-      // Ensure friendsInvited is properly calculated from COMPLETED referrals only
-      // Pending referrals (where friend hasn't watched their first ad) don't count
-      // Also exclude banned users from referral count
-      const actualReferralsCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(referrals)
-        .innerJoin(users, eq(referrals.refereeId, users.id))
-        .where(and(
-          eq(referrals.referrerId, userId),
-          eq(referrals.status, 'completed'),
-          eq(users.banned, false)
-        ));
-
-      const friendsInvited = actualReferralsCount[0]?.count || 0;
+      // Friends count as active only after the configured number of rewarded AdsGram ads.
+      const friendsInvited = await storage.getValidReferralCount(userId);
 
       // Update DB if count is different (sync)
       if (user.friendsInvited !== friendsInvited) {
@@ -1502,9 +1490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const withdrawalCurrency = getSetting('withdrawal_currency', 'TON');
 
       // Referral reward settings
-      const referralJoinRewardGold = Math.max(0, parseInt(getSetting('referral_reward_join_gold', '0')) || 0);
-      const referralActiveRewardGold = Math.max(0, parseInt(getSetting('referral_reward_pad', getSetting('referral_reward_swag', '2500'))) || 0);
-      const referralAdsRequired = Math.max(0, parseInt(getSetting('referral_ads_required', '5')) || 0);
+      const referralJoinRewardGold = Math.max(0, parseInt(getSetting('referral_reward_join_gold', '500')) || 0);
+      const referralActiveRewardGold = Math.max(0, parseInt(getSetting('referral_reward_pad', getSetting('referral_reward_swag', '2000'))) || 0);
+      const referralAdsRequired = Math.max(0, parseInt(getSetting('referral_ads_required', '15')) || 0);
       const l1CommissionPercent = Math.min(100, Math.max(0, parseFloat(getSetting('l1_commission_percent', '5')) || 0));
 
       // Daily task rewards (for TaskSection.tsx)
@@ -2075,7 +2063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Process reward with error handling to ensure success response
         // Capture the earning so we can reference its ID for referral commission tracking
         const adTypeDisplayNames: Record<string, string> = {
-          adsgram:  'AdsGram ad',
+          adsgram:  ADSGRAM_AD_EARNING_DESCRIPTION,
           monetag:  'Monetag ad',
           gigapub:  'Gigapub ad',
           uslads:   'USL Ads ad',
@@ -2177,12 +2165,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : 5;
             const l1Rate = commissionPercent / 100;
             const configuredAdsRequired = Number.parseInt(
-              allAdminSettings.find((s: any) => s.settingKey === 'referral_ads_required')?.settingValue || '5',
+              allAdminSettings.find((s: any) => s.settingKey === 'referral_ads_required')?.settingValue || '15',
               10,
             );
             const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
               ? configuredAdsRequired
-              : 5;
+              : 15;
             const [activeReferral] = await db
               .select({ referrerId: referrals.referrerId })
               .from(referrals)
@@ -2214,11 +2202,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     inArray(referrals.status, ['completed', 'active']),
                   ))
                   .limit(1);
-                if (!activeReferralRow || activeReferralRow.refereeBanned) return false;
+                if (!activeReferralRow || activeReferralRow.refereeBanned !== false) return false;
                 const [activityCount] = await tx
                   .select({ count: sql<number>`count(*)` })
                   .from(earnings)
-                  .where(and(eq(earnings.userId, userId), eq(earnings.source, 'ad_watch')));
+                  .where(and(
+                    eq(earnings.userId, userId),
+                    eq(earnings.source, 'ad_watch'),
+                    eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
+                  ));
                 if (Number(activityCount?.count || 0) < referralAdsRequired) return false;
 
                 const [alreadyCredited] = await tx
@@ -3147,7 +3139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to claim milestone' });
     }
   });
-  // Get valid referral count (friends who watched at least 1 ad)
+  // Get valid referral count (friends who met the configured AdsGram activation threshold)
   app.get('/api/referrals/valid-count', authenticateTelegram, async (req: any, res) => {
     try {
       const userId = req.user?.user?.id || req.session?.user?.user?.id;
@@ -3232,7 +3224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invite requirement
       const withdrawalInviteRequirementEnabled = getSetting('withdrawal_invite_requirement_enabled', 'true') === 'true';
       const MINIMUM_INVITES_FOR_WITHDRAWAL = parseInt(getSetting('minimum_invites_for_withdrawal', '3'));
-      const friendsInvited = user.friendsInvited || 0;
+      const friendsInvited = await storage.getValidReferralCount(userId);
 
       // 12-hour limit check (resets at 06:30 and 18:30 UTC)
       const maxWithdrawalsPerDay = parseInt(getSetting('max_withdrawals_per_day', '1'));
@@ -5078,9 +5070,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minimumClicks: parseInt(getSetting('minimum_clicks', '500')), // NEW: Min clicks for task creation
         seasonBroadcastActive: getSetting('season_broadcast_active', 'false') === 'true',
         hourlyAdLimit: parseInt(getSetting('hourly_ad_limit', '63')),
-        referralJoinRewardGold: Math.max(0, parseInt(getSetting('referral_reward_join_gold', '0')) || 0),
-        referralActiveRewardGold: Math.max(0, parseInt(getSetting('referral_reward_pad', getSetting('referral_reward_swag', '2500'))) || 0),
-        referralAdsRequired: Math.max(0, parseInt(getSetting('referral_ads_required', '5')) || 0),
+        referralJoinRewardGold: Math.max(0, parseInt(getSetting('referral_reward_join_gold', '500')) || 0),
+        referralActiveRewardGold: Math.max(0, parseInt(getSetting('referral_reward_pad', getSetting('referral_reward_swag', '2000'))) || 0),
+        referralAdsRequired: Math.max(0, parseInt(getSetting('referral_ads_required', '15')) || 0),
         // Daily task rewards
         streakReward: parseInt(getSetting('streak_reward', '100')),
         shareTaskReward: parseInt(getSetting('share_task_reward', '100')),
@@ -9620,7 +9612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // ✅ Require at least 1 active (completed) referral before withdrawing (if enabled)
+        // ✅ Require active referrals that satisfy the configured AdsGram threshold before withdrawing.
         const [inviteRequirementEnabledSetting] = await tx
           .select({ settingValue: adminSettings.settingValue })
           .from(adminSettings)
@@ -9628,16 +9620,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .limit(1);
         const withdrawalInviteRequirementEnabled = (inviteRequirementEnabledSetting?.settingValue || 'true') === 'true';
 
+        let activeReferralCount = 0;
         if (withdrawalInviteRequirementEnabled) {
-          const activeReferralCount = await tx
+          const [referralAdsSetting] = await tx
+            .select({ settingValue: adminSettings.settingValue })
+            .from(adminSettings)
+            .where(eq(adminSettings.settingKey, 'referral_ads_required'))
+            .limit(1);
+          const configuredRequiredAds = Number.parseInt(referralAdsSetting?.settingValue || '15', 10);
+          const requiredAds = Number.isFinite(configuredRequiredAds) && configuredRequiredAds >= 0 ? configuredRequiredAds : 15;
+          const [activeReferralRow] = await tx
             .select({ count: sql<number>`count(*)` })
             .from(referrals)
+            .innerJoin(users, eq(users.id, referrals.refereeId))
             .where(and(
               eq(referrals.referrerId, userId),
-              eq(referrals.status, 'completed')
+              inArray(referrals.status, ['completed', 'active']),
+              eq(users.banned, false),
+              sql`(
+                SELECT COUNT(*)
+                FROM earnings AS referral_ads
+                WHERE referral_ads.user_id = ${referrals.refereeId}
+                  AND referral_ads.source = 'ad_watch'
+                  AND referral_ads.description = ${ADSGRAM_AD_EARNING_DESCRIPTION}
+              ) >= ${requiredAds}`,
             ));
-          if (Number(activeReferralCount[0]?.count ?? 0) < 1) {
-            throw new Error('You need at least 1 active referral to withdraw. Invite a friend and have them watch 10 ads to activate your referral.');
+          activeReferralCount = Number(activeReferralRow?.count ?? 0);
+          if (activeReferralCount < 1) {
+            throw new Error(`You need at least 1 active referral to withdraw. Invite a friend and have them watch ${requiredAds} AdsGram ads to activate your referral.`);
           }
         }
 
@@ -9653,7 +9663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Only check invite requirement if it's enabled in admin settings
         if (withdrawalInviteRequirementEnabled) {
-          const friendsInvited = user.friendsInvited || 0;
+          const friendsInvited = activeReferralCount;
           if (friendsInvited < minimumInvitesForWithdrawal) {
             const remaining = minimumInvitesForWithdrawal - friendsInvited;
             throw new Error(`Invite ${remaining} more friend${remaining !== 1 ? 's' : ''} to unlock withdrawals.`);
@@ -13020,7 +13030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Count friends
       const allReferrals = await db.query.referrals.findMany({ where: eq(referrals.referrerId, id) });
-      const activeReferralsCount = allReferrals.filter((r: any) => r.status === 'active').length;
+      const activeReferralsCount = await storage.getValidReferralCount(id);
 
       // Completed tasks (advertiser task clicks) + Gems earned from them
       const taskStats = await db
@@ -13177,6 +13187,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             refereeName: refereeUser.firstName,
             rewardAmount: referrals.rewardAmount,
             status: referrals.status,
+            adsgramAdsWatched: sql<number>`(
+              SELECT COUNT(*)::int
+              FROM earnings AS referral_ads
+              WHERE referral_ads.user_id = ${refereeUser.id}
+                AND referral_ads.source = 'ad_watch'
+                AND referral_ads.description = ${ADSGRAM_AD_EARNING_DESCRIPTION}
+            )`,
+            banned: refereeUser.banned,
             createdAt: referrals.createdAt,
           })
           .from(referrals)
@@ -13195,11 +13213,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const totalReferralIncome = commissionStats[0]?.totalIncome || '0';
       const totalTransactions = commissionStats[0]?.totalTransactions || 0;
-      const activeCount = userReferrals.filter((r: any) => r.status === 'active').length;
+      const configuredRequiredAds = Number.parseInt(await storage.getAppSetting('referral_ads_required', '15'), 10);
+      const requiredAds = Number.isFinite(configuredRequiredAds) && configuredRequiredAds >= 0 ? configuredRequiredAds : 15;
+      const referralsWithCurrentStatus = userReferrals.map((referral: any) => ({
+        ...referral,
+        status: (referral.status === 'completed' || referral.status === 'active')
+          && referral.banned === false
+          && Number(referral.adsgramAdsWatched || 0) >= requiredAds
+          ? 'active'
+          : 'pending',
+      }));
+      const activeCount = referralsWithCurrentStatus.filter((referral: any) => referral.status === 'active').length;
 
       res.json({
         success: true,
-        referrals: userReferrals,
+        referrals: referralsWithCurrentStatus,
         summary: {
           totalIncome: totalReferralIncome,
           totalTransactions,
@@ -13599,6 +13627,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           id: users.id,
           referralStatus: referrals.status,
+          adsgramAdsWatched: sql<number>`(
+            SELECT COUNT(*)::int
+            FROM earnings AS referral_ads
+            WHERE referral_ads.user_id = ${users.id}
+              AND referral_ads.source = 'ad_watch'
+              AND referral_ads.description = ${ADSGRAM_AD_EARNING_DESCRIPTION}
+          )`,
+          banned: users.banned,
           referralCreatedAt: referrals.createdAt,
           userCreatedAt: users.createdAt,
           username: users.username,
@@ -13614,6 +13650,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(pageSize)
         .offset((page - 1) * pageSize);
 
+      const configuredRequiredAds = Number.parseInt(await storage.getAppSetting('referral_ads_required', '15'), 10);
+      const requiredAds = Number.isFinite(configuredRequiredAds) && configuredRequiredAds >= 0 ? configuredRequiredAds : 15;
       const result = myReferrals.map(r => ({
         id: r.id,
         username: r.username || null,
@@ -13621,8 +13659,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? `${r.firstName}${r.lastName ? ' ' + r.lastName : ''}`.trim()
           : (r.username || 'Unknown'),
         avatarUrl: r.profileImageUrl || null,
-        adsWatched: Number(r.adsWatched || 0),
-        status: r.referralStatus === 'completed' || r.referralStatus === 'active' ? 'active' : 'pending',
+        adsWatched: Number(r.adsgramAdsWatched || 0),
+        status: (r.referralStatus === 'completed' || r.referralStatus === 'active')
+          && r.banned === false
+          && Number(r.adsgramAdsWatched || 0) >= requiredAds
+          ? 'active'
+          : 'pending',
         createdAt: r.referralCreatedAt || r.userCreatedAt,
       }));
 

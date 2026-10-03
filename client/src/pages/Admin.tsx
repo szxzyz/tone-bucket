@@ -2535,9 +2535,9 @@ function SettingsSection() {
     mysteryBoxMaxReward: '100',
     minimumClicks: '500',
     seasonBroadcastActive: false,
-    referralJoinRewardGold: '0',
-    referralActiveRewardGold: '2500',
-    referralAdsRequired: '5',
+    referralJoinRewardGold: '500',
+    referralActiveRewardGold: '2000',
+    referralAdsRequired: '15',
     // Withdrawal requirements
     withdrawalAdRequirementEnabled: true,
     minimumAdsForWithdrawal: '100',
@@ -2601,9 +2601,9 @@ function SettingsSection() {
         mysteryBoxMaxReward: (settingsData as any).mysteryBoxMaxReward?.toString() || '100',
         minimumClicks: settingsData.minimumClicks?.toString() || '500',
         seasonBroadcastActive: settingsData.seasonBroadcastActive || false,
-        referralJoinRewardGold: settingsData.referralJoinRewardGold?.toString() ?? '0',
-        referralActiveRewardGold: settingsData.referralActiveRewardGold?.toString() ?? '2500',
-        referralAdsRequired: settingsData.referralAdsRequired?.toString() ?? '5',
+        referralJoinRewardGold: settingsData.referralJoinRewardGold?.toString() ?? '500',
+        referralActiveRewardGold: settingsData.referralActiveRewardGold?.toString() ?? '2000',
+        referralAdsRequired: settingsData.referralAdsRequired?.toString() ?? '15',
         // Withdrawal requirements
         withdrawalAdRequirementEnabled: settingsData.withdrawalAdRequirementEnabled !== false,
         minimumAdsForWithdrawal: settingsData.minimumAdsForWithdrawal?.toString() || '100',
@@ -3076,13 +3076,13 @@ function SettingsSection() {
                 min="0"
                 step="1"
               />
-              <p className="text-xs text-muted-foreground">Added to pending GEM after the friend watches the required number of ads from any provider. Set to 0 to disable.</p>
+              <p className="text-xs text-muted-foreground">Added to pending GEM after the friend watches the required number of AdsGram ads. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="referral-ads-required" className="text-sm font-semibold">
                 <i className="fas fa-play-circle mr-2 text-amber-500"></i>
-                Ads from any provider required to become active
+                AdsGram ads required to become active
               </Label>
               <Input
                 id="referral-ads-required"
@@ -3093,7 +3093,7 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Number of rewarded ads from any provider in the Ad Watching section a referred user must watch to become active. Current: {settingsData?.referralAdsRequired ?? 5}
+                Number of rewarded AdsGram ads in the Ad Watching section a referred user must watch to become active. Current: {settingsData?.referralAdsRequired ?? 15}
               </p>
             </div>
           </div>
