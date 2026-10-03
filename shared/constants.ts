@@ -1,5 +1,7 @@
 export const APP_VERSION = "1.0.0";
 export const SWAG_TO_USD = 100_000; // 100,000 GEM = 1 USDT
+// Both weekly contests use the same rank-based GEM rewards.
+export const CONTEST_PRIZE_AMOUNTS = [50_000, 25_000, 10_000, 5_000, 5_000, 1_000, 1_000, 1_000, 1_000, 1_000] as const;
 export const APP_COLORS = {
   primary: "#4aa8ff", // light blue
   background: "#000000", // pure black

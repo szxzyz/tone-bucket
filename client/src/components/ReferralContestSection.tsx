@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FaSync } from 'react-icons/fa';
 import { useAuth } from '@/hooks/useAuth';
+import { CONTEST_PRIZE_AMOUNTS } from '@shared/constants';
 
 interface ReferralEntry {
   userId: string;
@@ -22,7 +23,6 @@ interface ReferralContestData {
   endDate: string | null;
 }
 
-const FALLBACK_REWARDS = [50000, 25000, 10000, 5000, 5000, 1000, 1000, 1000, 1000, 1000];
 const MEDALS = ['🥇', '🥈', '🥉'];
 const SURFACE = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 
@@ -115,7 +115,7 @@ export default function ReferralContestSection({ highlighted = false }: { highli
   const topN = Math.max(1, Math.min(50, Number(data?.topN) || 10));
   const entriesByRank = new Map((data?.leaderboard || []).map((entry) => [entry.rank, entry]));
   const userRank = data?.userRank && data.contestActive ? data.userRank : null;
-  const prizeAt = (rank: number) => data?.prizes?.[rank - 1] || `${(FALLBACK_REWARDS[rank - 1] || 0).toLocaleString()} GEM`;
+  const prizeAt = (rank: number) => data?.prizes?.[rank - 1] || `${(CONTEST_PRIZE_AMOUNTS[rank - 1] || 0).toLocaleString()} GEM`;
   const showPlayerList = !isLoading && !isError && !!data?.contestActive;
 
   return (

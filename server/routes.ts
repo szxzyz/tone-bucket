@@ -61,6 +61,7 @@ import { computeRiskScore, analyzeAdBehavior, checkRateLimit, checkKnownBotSigna
 import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
+import { CONTEST_PRIZE_AMOUNTS } from "../shared/constants";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -85,7 +86,7 @@ export async function settleExpiredAdContest(): Promise<void> {
   }).onConflictDoNothing().returning({ settingKey: adminSettings.settingKey });
   if (!lock) return;
 
-  const prizes = [500000, 250000, 100000, 50000, 50000, 1000, 1000, 1000, 1000, 1000];
+  const prizes = CONTEST_PRIZE_AMOUNTS;
   try {
     const topN = Math.min(prizes.length, Math.max(1, parseInt(getSetting('monthly_contest_top_users', '10')) || 10));
     const winners = await db.execute(sql`
@@ -13254,19 +13255,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const topN = Math.max(1, Math.min(1000, parseInt(getSetting('monthly_contest_top_users', '10')) || 10));
       const endDate = getSetting('monthly_contest_end_date', '');
       const startDate = getSetting('monthly_contest_start_date', '');
-      // Weekly Ad Leaderboard prizes are fixed by rank; admins only control the contest lifecycle.
-      const prizes = [
-        '500,000 GEM',
-        '250,000 GEM',
-        '100,000 GEM',
-        '50,000 GEM',
-        '50,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-      ];
+      // Both weekly contests use the same fixed rank rewards.
+      const prizes = CONTEST_PRIZE_AMOUNTS.map((amount) => `${amount.toLocaleString()} GEM`);
 
       if (!contestEnabled) {
         return res.json({ leaderboard: [], userRank: null, userStars: 0, contestActive: false, topN: 10, endDate: endDate || null, startDate: startDate || null, prizes });
@@ -13328,19 +13318,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const topN = 10;
       const endDate = getSetting('weekly_referral_end_date', '');
       const startDate = getSetting('weekly_referral_start_date', '');
-      // Referral Contest prizes are fixed by rank; admins only control lifecycle settings.
-      const prizes = [
-        '50,000 GEM',
-        '25,000 GEM',
-        '10,000 GEM',
-        '5,000 GEM',
-        '5,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-        '1,000 GEM',
-      ];
+      // Both weekly contests use the same fixed rank rewards.
+      const prizes = CONTEST_PRIZE_AMOUNTS.map((amount) => `${amount.toLocaleString()} GEM`);
 
       if (!contestEnabled) {
         return res.json({ leaderboard: [], userRank: null, contestActive: false, topN: 10, endDate: endDate || null, startDate: startDate || null, prizes });

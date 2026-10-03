@@ -7,6 +7,7 @@ import { db } from './db';
 import { earnings, withdrawals } from '../shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { config } from './config';
+import { CONTEST_PRIZE_AMOUNTS } from '../shared/constants';
 // The centralized env config (server/config.ts) is also used at line ~665
 // for the withdrawal group chat id fallback.
 
@@ -1732,18 +1733,7 @@ export async function sendWeeklyReferralContest(chatId: string, messageId?: numb
     lines.push(`${escapeHtml(weekLabel)}\n`);
     lines.push(`<code>Position │ Friends │ Prize</code>\n`);
 
-    const prizes = [
-      '50,000 GEM',
-      '25,000 GEM',
-      '10,000 GEM',
-      '5,000 GEM',
-      '5,000 GEM',
-      '1,000 GEM',
-      '1,000 GEM',
-      '1,000 GEM',
-      '1,000 GEM',
-      '1,000 GEM',
-    ];
+    const prizes = CONTEST_PRIZE_AMOUNTS.map((amount) => `${amount.toLocaleString()} GEM`);
 
     for (let i = 0; i < topN; i++) {
       const row = rows[i];
@@ -1964,7 +1954,7 @@ export async function checkAndSendContestSnapshots(): Promise<void> {
           if (settlementMarker?.settingValue === 'true') return { rows: rankedRows, awardsCredited: [] as any[] };
 
           const awards: any[] = [];
-          const prizeAmounts = [50000, 25000, 10000, 5000, 5000, 1000, 1000, 1000, 1000, 1000];
+          const prizeAmounts = CONTEST_PRIZE_AMOUNTS;
           for (let index = 0; index < rankedRows.length; index++) {
             const row = rankedRows[index];
             const userId = String(row.id);

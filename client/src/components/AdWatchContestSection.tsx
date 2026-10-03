@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FaSync } from 'react-icons/fa';
 import { useAuth } from '@/hooks/useAuth';
+import { CONTEST_PRIZE_AMOUNTS } from '@shared/constants';
 
 interface AdEntry {
   userId: string;
@@ -24,7 +25,6 @@ interface AdContestData {
   endDate: string | null;
 }
 
-const FALLBACK_REWARDS = [500000, 250000, 100000, 50000, 50000, 1000, 1000, 1000, 1000, 1000];
 const MEDALS = ['🥇', '🥈', '🥉'];
 const SURFACE = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 
@@ -119,7 +119,7 @@ export default function AdWatchContestSection({ highlighted = false }: { highlig
   const topN = Math.max(1, Math.min(50, Number(data?.topN ?? appSettings?.monthlyContestTopUsers) || 10));
   const entriesByRank = new Map((data?.leaderboard || []).map((entry) => [entry.rank, entry]));
   const userRank = data?.userRank && data.contestActive ? data.userRank : null;
-  const prizeAt = (rank: number) => data?.prizes?.[rank - 1] || `${(FALLBACK_REWARDS[rank - 1] || 0).toLocaleString()} GEM`;
+  const prizeAt = (rank: number) => data?.prizes?.[rank - 1] || `${(CONTEST_PRIZE_AMOUNTS[rank - 1] || 0).toLocaleString()} GEM`;
   const showPlayerList = !isLoading && !isError && !!data?.contestActive;
 
   return (
@@ -146,7 +146,7 @@ export default function AdWatchContestSection({ highlighted = false }: { highlig
 
       {showPlayerList && <div aria-label="Ad watch contest rankings" style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 10 }}>
         {Array.from({ length: topN }, (_, index) => index + 1).map((rank) => <AdParticipant key={rank} rank={rank} entry={entriesByRank.get(rank) || null} prize={prizeAt(rank)} currentUserId={user?.id} />)}
-        {!data?.leaderboard?.length && <p style={{ margin: '2px 0 0', textAlign: 'center', color: 'rgba(255,255,255,0.38)', fontSize: 11 }}>Watch ads to earn stars and rank up!</p>}
+        {!data?.leaderboard?.length && <p style={{ margin: '2px 0 0', textAlign: 'center', color: 'rgba(255,255,255,0.38)', fontSize: 11 }}>Watch ads to earn stars and climb!</p>}
       </div>}
     </div>
   );
