@@ -253,7 +253,7 @@ export default function CreatePanel({ open, onClose, onFlowChange }: Props) {
 
   const pills = [
     { id: "advertise" as Flow, label: t("advertise_label"),  icon: Radio,  nav: undefined },
-    { id: null        as Flow, label: t("ambassador_label"), icon: Rocket, nav: "/ambassador" },
+    { id: null        as Flow, label: t("ambassador_label"), icon: Rocket, nav: "/affiliates" },
   ];
 
   return (

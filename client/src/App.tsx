@@ -28,7 +28,6 @@ import Ads from "@/pages/Ads";
 // Lazy-load heavy/rare pages only
 const Admin = lazy(() => import("@/pages/Admin"));
 const CountryControls = lazy(() => import("@/pages/CountryControls"));
-const AmbassadorPage = lazy(() => import("@/pages/Ambassador"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const LOGO_SRC = '/grab-penny-ton-wallet.png';
 function LoadingFallback() {
@@ -61,7 +60,6 @@ function Router() {
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
         <Route path="/leaderboard" component={Leaderboard} />
-        <Route path="/ambassador" component={AmbassadorPage} />
         <Route path="/tasks/create" component={CreateTask} />
         {/* Primary navigation destinations */}
         <Route path="/account" component={Account} />

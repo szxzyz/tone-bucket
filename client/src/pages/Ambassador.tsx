@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 
-const SECTION_BG = "#1C1C1E";
+const SECTION_BG = "linear-gradient(145deg, #1a1c20 0%, #121317 100%)";
 
 function AmbassadorShell({ embedded, children }: { embedded: boolean; children: ReactNode }) {
   return embedded ? <>{children}</> : <Layout>{children}</Layout>;
@@ -254,7 +254,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
   // ── How It Works Drawer ───────────────────────────────────────────────────
   const HowItWorksDrawer = (
     <Drawer open={howItWorksOpen} onOpenChange={setHowItWorksOpen}>
-      <DrawerContent className="border-none max-h-[80vh]" style={{ background: SECTION_BG }}>
+      <DrawerContent className="border-none max-h-[80vh]" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
         <DrawerHeader className="flex items-center justify-between pb-2">
           <DrawerTitle className="text-white font-bold text-lg">{t("how_it_works_title")}</DrawerTitle>
           <DrawerClose asChild>
@@ -265,9 +265,9 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
         </DrawerHeader>
         <div className="px-4 pb-6 overflow-y-auto space-y-1">
           {[
-            { n: 1, color: "#6b21a8", bg: "rgba(59,130,246,0.15)", title: t("hiw_step1_title"), sub: t("hiw_step1_sub") },
-            { n: 2, color: "#6b21a8", bg: "rgba(59,130,246,0.15)", title: t("hiw_step2_title"), sub: t("hiw_step2_sub", { bot: botName }) },
-            { n: 3, color: "#6b21a8", bg: "rgba(59,130,246,0.15)", title: t("hiw_step3_title"), sub: t("hiw_step3_sub") },
+            { n: 1, color: "#2563eb", bg: "rgba(59,130,246,0.15)", title: t("hiw_step1_title"), sub: t("hiw_step1_sub") },
+            { n: 2, color: "#2563eb", bg: "rgba(59,130,246,0.15)", title: t("hiw_step2_title"), sub: t("hiw_step2_sub", { bot: botName }) },
+            { n: 3, color: "#2563eb", bg: "rgba(59,130,246,0.15)", title: t("hiw_step3_title"), sub: t("hiw_step3_sub") },
             { n: 4, color: "#22c55e", bg: "rgba(34,197,94,0.15)", title: t("hiw_step4_title"), sub: t("hiw_step4_sub") },
           ].map(({ n, color, bg, title, sub }) => (
             <div key={n} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-none">
@@ -311,7 +311,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
             </p>
           </div>
 
-          <div className="rounded-2xl p-4" style={{ background: SECTION_BG }}>
+          <div className="rounded-2xl p-4" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
             <div className="flex items-center justify-between py-2 border-b border-white/5">
               <p className="text-[#888] text-xs font-semibold uppercase tracking-wider">{t("channel_label")}</p>
               <p className="text-white text-sm font-medium">{status.application.channelLink}</p>
@@ -412,7 +412,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                 onClick={() => setAmbActiveTab(tab.key)}
                 className="flex-1 py-3 text-xs font-semibold transition-all"
                 style={{
-                  background: ambActiveTab === tab.key ? "#6b21a8" : "transparent",
+                  background: ambActiveTab === tab.key ? "#2563eb" : "transparent",
                   color: ambActiveTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
                   borderRadius: ambActiveTab === tab.key ? 14 : 0,
                 }}
@@ -428,12 +428,12 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
               {/* Stats Cards */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {[
-                  { label: t("todays_claims"), value: stats?.todayClaims ?? 0, color: "#6b21a8" },
+                  { label: t("todays_claims"), value: stats?.todayClaims ?? 0, color: "#2563eb" },
                   { label: t("total_promo_claims"), value: stats?.lifetimeClaims ?? 0, color: "#fff" },
                   { label: "Active Codes", value: dashboard?.activePromos?.length ?? 0, color: "#fff" },
                   { label: t("total_promo_earnings"), value: `${totalEarnings > 0 ? totalEarnings.toFixed(4) : "0.0000"}`, color: "#22c55e" },
                 ].map((stat, i) => (
-                  <div key={i} className="rounded-xl p-3" style={{ background: SECTION_BG }}>
+                  <div key={i} className="rounded-xl p-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                     <p className="text-[#666] text-[10px] font-semibold uppercase tracking-wider mb-1">{stat.label}</p>
                     {dashLoading ? <StatSkeleton /> : (
                       <p className="font-black text-lg" style={{ color: stat.color }}>{stat.value}</p>
@@ -444,7 +444,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
               {/* Channel Info */}
               {(amb as any).channelId && (
-                <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG }}>
+                <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                   <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-3">Channel</p>
                   <div className="flex items-center justify-between">
                     <div>
@@ -462,7 +462,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                       onClick={() => verifyChannelMutation.mutate()}
                       disabled={verifyChannelMutation.isPending}
                       className="w-full h-10 mt-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40"
-                      style={{ background: "#6b21a8" }}
+                      style={{ background: "#2563eb" }}
                     >
                       {verifyChannelMutation.isPending
                         ? <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -476,7 +476,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
               )}
 
               {/* Custom Promo Code Name */}
-              <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG }}>
+              <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                 <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-3">{t("custom_promo_name")}</p>
 
                 <div className="flex items-center justify-between py-2 border-b border-white/5 mb-3">
@@ -521,7 +521,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                       onClick={() => promoNameMutation.mutate(customPromoInput)}
                       disabled={customPromoInput.length < 3 || promoNameMutation.isPending}
                       className="h-11 px-4 rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
-                      style={{ background: "#6b21a8" }}
+                      style={{ background: "#2563eb" }}
                     >
                       {promoNameMutation.isPending
                         ? <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -532,9 +532,9 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
               </div>
 
               {/* Posting Mode + Schedule */}
-              <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG }}>
+              <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 text-[#6b21a8]" />
+                  <Clock className="w-4 h-4 text-[#2563eb]" />
                   <p className="text-[#888] text-xs font-semibold uppercase tracking-wider">{t("posting_schedule_label")}</p>
                 </div>
 
@@ -546,8 +546,8 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                       onClick={() => setPostingMode(m)}
                       className="flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-semibold transition-all"
                       style={{
-                        background: postingMode === m ? "rgba(107,33,168,0.22)" : "transparent",
-                        color: postingMode === m ? "#6b21a8" : "#555",
+                        background: postingMode === m ? "rgba(37,99,235,0.22)" : "transparent",
+                        color: postingMode === m ? "#2563eb" : "#555",
                       }}
                     >
                       {m === "automatic" ? <Clock className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
@@ -615,7 +615,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                         onClick={() => postNowMutation.mutate()}
                         disabled={postNowMutation.isPending}
                         className="w-full h-12 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40"
-                        style={{ background: "#6b21a8" }}
+                        style={{ background: "#2563eb" }}
                       >
                         {postNowMutation.isPending
                           ? <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -641,8 +641,8 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                     onClick={() => setRequireChannelJoin(prev => !prev)}
                     className="relative w-12 h-6 rounded-full transition-all flex-shrink-0"
                     style={{
-                      background: requireChannelJoin ? "#6b21a8" : "rgba(255,255,255,0.1)",
-                      border: requireChannelJoin ? "1.5px solid rgba(107,33,168,0.5)" : "1.5px solid rgba(255,255,255,0.12)",
+                      background: requireChannelJoin ? "#2563eb" : "rgba(255,255,255,0.1)",
+                      border: requireChannelJoin ? "1.5px solid rgba(37,99,235,0.5)" : "1.5px solid rgba(255,255,255,0.12)",
                     }}
                   >
                     <span
@@ -659,7 +659,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                   onClick={() => scheduleMutation.mutate()}
                   disabled={scheduleMutation.isPending || (postingMode === "automatic" && scheduleSlots.length === 0)}
                   className="w-full h-11 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40"
-                  style={{ background: "#6b21a8" }}
+                  style={{ background: "#2563eb" }}
                 >
                   {scheduleMutation.isPending
                     ? <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -680,7 +680,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                 <button
                   onClick={() => setHistoryOpen(true)}
                   className="w-full h-12 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform"
-                  style={{ background: "#6b21a8" }}
+                  style={{ background: "#2563eb" }}
                 >
                   <Scroll className="w-4 h-4 text-white" />
                   <span className="text-white font-bold text-sm">{t("claim_history_label")}</span>
@@ -693,7 +693,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                   <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
                 </div>
               ) : (dashboard?.promoCodeHistory?.length ?? 0) === 0 ? (
-                <div className="rounded-2xl p-6 text-center" style={{ background: SECTION_BG }}>
+                <div className="rounded-2xl p-6 text-center" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                   <Scroll className="w-10 h-10 text-white/20 mx-auto mb-2" />
                   <p className="text-white/40 text-sm">{t("no_promo_codes_yet")}</p>
                   <p className="text-white/25 text-xs mt-1">{t("codes_appear_once_posted")}</p>
@@ -707,7 +707,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                     const remaining = pc.remainingClaims;
                     const totalRewarded = Math.round(parseFloat(pc.totalRewardsDistributed || "0"));
                     return (
-                      <div key={pc.promoCode} className="rounded-2xl overflow-hidden" style={{ background: SECTION_BG }}>
+                      <div key={pc.promoCode} className="rounded-2xl overflow-hidden" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                         {/* Code header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                           <span className="font-mono text-white text-sm font-bold">{pc.promoCode}</span>
@@ -740,7 +740,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                           </div>
                           <div className="col-span-2">
                             <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Total Distributed</p>
-                            <p className="text-[#6b21a8] text-sm font-bold mt-0.5">{totalRewarded.toLocaleString()} GEM</p>
+                            <p className="text-[#2563eb] text-sm font-bold mt-0.5">{totalRewarded.toLocaleString()} GEM</p>
                           </div>
                           {pc.expiresAt && (
                             <div className="col-span-2">
@@ -769,7 +769,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
         {/* Claim History Drawer */}
         <Drawer open={historyOpen} onOpenChange={setHistoryOpen}>
-          <DrawerContent className="border-none max-h-[85vh]" style={{ background: SECTION_BG }}>
+          <DrawerContent className="border-none max-h-[85vh]" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
             <DrawerHeader className="flex items-center justify-between pb-2">
               <DrawerTitle className="text-white font-bold text-lg">{t("claim_history_label")}</DrawerTitle>
               <DrawerClose asChild>
@@ -853,7 +853,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                               </div>
                               <div className="flex items-center justify-between col-span-2">
                                 <span className="text-[#888]">Total Distributed</span>
-                                <span className="text-purple-400 font-semibold">{Math.round(parseFloat(item.totalRewardsDistributed || "0")).toLocaleString()} GEM</span>
+                                <span className="text-blue-400 font-semibold">{Math.round(parseFloat(item.totalRewardsDistributed || "0")).toLocaleString()} GEM</span>
                               </div>
                             </div>
                             {item.claims.length === 0 ? (
@@ -925,7 +925,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
         </button>
 
         {/* Apply Now */}
-        <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG }}>
+        <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
           <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-3">{t("apply_now_label")}</p>
 
           {/* Channel link */}
@@ -1026,7 +1026,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
               onClick={() => setTermsAccepted(!termsAccepted)}
               className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer transition-all"
               style={{
-                background: termsAccepted ? "#6b21a8" : "rgba(255,255,255,0.08)",
+                background: termsAccepted ? "#2563eb" : "rgba(255,255,255,0.08)",
                 border: termsAccepted ? "none" : "1px solid rgba(255,255,255,0.2)",
               }}
             >
@@ -1054,7 +1054,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
         </button>
 
         {/* Requirements */}
-        <div className="rounded-2xl p-4" style={{ background: SECTION_BG }}>
+        <div className="rounded-2xl p-4" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
           <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-2">{t("requirements_label")}</p>
           <div className="space-y-1.5">
             {[
