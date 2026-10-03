@@ -2,6 +2,7 @@ import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import DailyContestBanner from '@/components/DailyContestBanner';
 import MissionDailyRewards from '@/components/MissionDailyRewards';
+import { StarterTasksSection } from '@/components/DailyMissionTasks';
 import PromoCodeInput from '@/components/PromoCodeInput';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
@@ -32,6 +33,7 @@ export default function Mission() {
           </p>
           <MissionDailyRewards />
         </section>
+        <StarterTasksSection />
         <AdvertiserTaskFeed kind="social" title="Social Tasks" />
         <AdvertiserTaskFeed kind="game" title="Game Tasks" />
         <CreatePanel open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
