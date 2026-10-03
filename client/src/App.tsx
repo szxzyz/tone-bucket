@@ -43,7 +43,7 @@ function LoadingFallback() {
       }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 18, color: '#ffffff' }}>
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        <span style={{ fontSize: 14, fontWeight: 700 }}>Loading</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>Connecting to Paid Adz…</span>
       </div>
     </div>
   );
@@ -260,6 +260,9 @@ function App() {
   useEffect(() => {
     // Don't wait for country check — run auth immediately in parallel
     if (isCountryBlocked) {
+      // Let the country-blocked screen render instead of leaving the loading
+      // fallback mounted indefinitely.
+      setIsAuthenticating(false);
       return;
     }
 
@@ -319,10 +322,13 @@ function App() {
         }
       }
       
+      const authController = new AbortController();
+      const authTimeout = window.setTimeout(() => authController.abort(), 12_000);
       fetch("/api/auth/telegram", {
         method: "POST",
         headers,
         body: JSON.stringify(body),
+        signal: authController.signal,
       })
         .then(res => res.json())
         .then(data => {
@@ -342,9 +348,14 @@ function App() {
             setIsAuthenticating(false);
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Telegram authentication request failed:", error);
           setIsAuthenticating(false);
         });
+      return () => {
+        window.clearTimeout(authTimeout);
+        authController.abort();
+      };
     } else {
       setIsAuthenticating(false);
     }
