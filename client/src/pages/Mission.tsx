@@ -9,7 +9,7 @@ import CreatePanel from '@/components/CreatePanel';
 import { Plus } from 'lucide-react';
 export default function Mission() {
   const [, setLocation] = useLocation();
-  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(() => new URLSearchParams(window.location.search).get('open') === 'create');
   return (
     <Layout onAddTask={() => setCreateTaskOpen(true)}>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">

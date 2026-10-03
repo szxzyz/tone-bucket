@@ -10,7 +10,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
   const [overlayTop, setOverlayTop] = useState(0);
   const innerRef = useRef<HTMLDivElement>(null);
   const [depositOpen, setDepositOpen] = useState(false);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   useImperativeHandle(ref, () => innerRef.current!);
 
   const { data: user } = useQuery<any>({
@@ -72,7 +72,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
             <span style={{ width: 15, height: 15, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(255,255,255,0.16)", color: "#fff" }}><Plus size={10} strokeWidth={3} /></span>
           </button>
         </div>
-          {location === "/mission" && onAddTask && <button type="button" onClick={onAddTask} aria-label="Add Task" className="active:scale-95 transition-transform" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "7px 10px", minWidth: 86, height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", border: "none", borderRadius: 10, cursor: "pointer", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 900 }}><Plus size={15} strokeWidth={3} />Add Task</button>}
+          {<button type="button" onClick={() => onAddTask ? onAddTask() : setLocation("/mission?open=create")} aria-label="Add Task" className="active:scale-95 transition-transform" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "7px 10px", minWidth: 86, height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", border: "none", borderRadius: 10, cursor: "pointer", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 900 }}><Plus size={15} strokeWidth={3} />Add Task</button>}
       </div>
       {(location === "/mission" || location === "/ads") && <ResetCountdownBanner />}
       <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
