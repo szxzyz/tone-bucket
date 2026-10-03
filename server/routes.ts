@@ -66,6 +66,66 @@ function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Idempotent settlement for the Ad Watch Contest. A database setting acts as
+// the once-only period lock, so concurrent requests/scheduler ticks cannot pay
+// the same rank twice.
+export async function settleExpiredAdContest(): Promise<void> {
+  const settings = await db.select().from(adminSettings);
+  const getSetting = (key: string, fallback = '') => settings.find((row) => row.settingKey === key)?.settingValue || fallback;
+  if (getSetting('monthly_contest_enabled', 'false') !== 'true') return;
+  const endDate = getSetting('monthly_contest_end_date', '');
+  const endMs = endDate ? new Date(endDate).getTime() : NaN;
+  if (!Number.isFinite(endMs) || Date.now() <= endMs) return;
+
+  const periodKey = `ad_watch_contest_settled_${endDate.replace(/[^0-9A-Za-z]/g, '_')}`;
+  const [lock] = await db.insert(adminSettings).values({
+    settingKey: periodKey,
+    settingValue: 'processing',
+    description: 'Ad Watch Contest automatic prize settlement lock',
+  }).onConflictDoNothing().returning({ settingKey: adminSettings.settingKey });
+  if (!lock) return;
+
+  const prizes = [500000, 250000, 100000, 50000, 50000, 1000, 1000, 1000, 1000, 1000];
+  try {
+    const topN = Math.min(prizes.length, Math.max(1, parseInt(getSetting('monthly_contest_top_users', '10')) || 10));
+    const winners = await db.execute(sql`
+      SELECT id, weekly_stars FROM users
+      WHERE weekly_stars > 0 AND banned = false
+      ORDER BY weekly_stars DESC, id ASC
+      LIMIT ${topN}
+    `);
+    for (const [index, winner] of (winners.rows as any[]).entries()) {
+      const amount = prizes[index] || 0;
+      if (!amount) continue;
+      const userId = String(winner.id);
+      const description = `Ad Watch Contest prize — rank ${index + 1}`;
+      const [earning] = await db.insert(earnings).values({
+        userId, amount: String(amount), source: 'ad_contest', description, currency: 'GEM',
+      }).returning({ id: earnings.id });
+      await db.insert(transactions).values({
+        userId, amount: String(amount), type: 'addition', source: 'ad_contest', description,
+        metadata: { rank: index + 1, weeklyStars: Number(winner.weekly_stars) || 0, autoCredited: true, contestEndDate: endDate, earningId: earning?.id },
+      });
+      await db.execute(sql`
+        UPDATE users SET
+          balance = COALESCE(balance, 0) + ${amount},
+          withdraw_balance = COALESCE(withdraw_balance, 0) + ${amount},
+          total_earned = COALESCE(total_earned, 0) + ${amount},
+          total_earnings = COALESCE(total_earnings, 0) + ${amount},
+          updated_at = NOW()
+        WHERE id = ${userId}
+      `);
+    }
+    await db.execute(sql`UPDATE users SET weekly_stars = 0, updated_at = NOW() WHERE weekly_stars <> 0`);
+    await db.update(adminSettings).set({ settingValue: 'settled', updatedAt: new Date() }).where(eq(adminSettings.settingKey, periodKey));
+    console.log(`✅ Ad Watch Contest prizes automatically credited for period ending ${endDate}`);
+  } catch (error) {
+    // Release the lock so the next scheduler tick can retry after a transient DB failure.
+    await db.delete(adminSettings).where(eq(adminSettings.settingKey, periodKey)).catch(() => {});
+    throw error;
+  }
+}
+
 const MINING_DURATION_SECONDS = 60 * 60;
 const MINING_BASE_RATE_PER_HOUR = 23.9574;
 const MINING_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25] as const;
@@ -13183,6 +13243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Leaderboard: Monthly Stars Contest ───────────────────────────────────────
   app.get('/api/leaderboard/weekly', async (req: any, res) => {
     try {
+      await settleExpiredAdContest();
       const userId = req.session?.user?.user?.id || req.user?.user?.id || null;
 
       const allSettings = await db.select().from(adminSettings);

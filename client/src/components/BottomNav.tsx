@@ -36,9 +36,13 @@ const AdsIcon = ({ active, c }: { active: boolean; c: string }) => (
   </svg>
 );
 
+const LeaderboardIcon = ({ active }: { active: boolean; c: string }) => (
+  <img src="/assets/gems-icon.svg" alt="" aria-hidden="true" style={{ width: 29, height: 29, objectFit: "contain", opacity: active ? 1 : 0.48, filter: active ? "none" : "grayscale(0.35)" }} />
+);
 const TABS = [
   { id: "mission", label: "Mission", path: "/mission" },
   { id: "ads", label: "Ads", path: "/ads" },
+  { id: "leaderboard", label: "Rank", path: "/leaderboard" },
   { id: "friends", label: "Friends", path: "/affiliates" },
   { id: "account", label: "Account", path: "/account" },
 ] as const;

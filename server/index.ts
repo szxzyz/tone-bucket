@@ -3,7 +3,7 @@ import './env';
 
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
-import { registerRoutes } from "./routes";
+import { registerRoutes, settleExpiredAdContest } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { ensureDatabaseSchema } from "./migrate";
@@ -255,6 +255,13 @@ app.use((req, res, next) => {
       }
     }, 10 * 60 * 1000);
 
+    // Ad Watch Contest settlement and Telegram snapshot — runs every 5 minutes.
+    // Prize crediting is idempotent and does not require an admin reset click.
+    const settleContest = async () => {
+      try { await settleExpiredAdContest(); } catch (error) { console.error('❌ Error settling Ad Watch Contest:', error); }
+    };
+    void settleContest();
+    setInterval(settleContest, 5 * 60 * 1000);
     // Contest snapshot check — runs every 5 minutes, auto-sends results when period ends
     setInterval(async () => {
       try {

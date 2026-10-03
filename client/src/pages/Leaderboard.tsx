@@ -132,11 +132,16 @@ export default function Leaderboard() {
   return (
     <Layout>
       <div style={{ background: '#0a0a0a', minHeight: '100%' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px 4px' }}>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Weekly leaderboard based on ads watched. Resets every Sunday.</p>
-        </div>
-
-        <div style={{ margin: '14px 16px 0', background: '#1a1a1a', borderRadius: 18, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <section style={{ margin: '12px 12px 0', padding: 12, borderRadius: 18, background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+              <div><h1 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Ad Watch Contest</h1><p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Watch ads, earn stars and rank up.</p></div>
+            </div>
+            <button type="button" onClick={() => void refetch()} disabled={isFetching} aria-label="Refresh ad watch contest" style={{ width: 34, height: 34, flexShrink: 0, border: 0, borderRadius: 10, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)', display: 'grid', placeItems: 'center' }}><FaSync style={{ fontSize: 12, animation: isFetching ? 'spin 1s linear infinite' : undefined }} /></button>
+          </div>
+        </section>
+        <div style={{ margin: '14px 16px 0', background: 'rgba(255,255,255,0.045)', borderRadius: 18, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
             ['Your Rank', userRank ? rankLabel(userRank.rank) : '—'],
             ['Ads Watched', (data?.userStars || userRank?.weeklyStars || 0).toLocaleString()],
@@ -144,7 +149,7 @@ export default function Leaderboard() {
           ].map(([label, value]) => <div key={label} style={{ minWidth: 0 }}><p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p><p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p></div>)}
         </div>
 
-        {(startDateLabel || endDateLabel) && <div style={{ margin: '14px 16px 0', background: '#1a1a1a', borderRadius: 18, padding: '12px 14px' }}>
+        {(startDateLabel || endDateLabel) && <div style={{ margin: '14px 16px 0', background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', borderRadius: 18, padding: '12px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div><p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Started</p><p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 800, color: '#fff' }}>{startDateLabel || '—'}</p></div>
             <div style={{ textAlign: 'right' }}><p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ends</p><p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 800, color: '#fff' }}>{endDateLabel || '—'}</p></div>
