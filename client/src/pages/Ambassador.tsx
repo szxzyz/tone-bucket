@@ -721,7 +721,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/5">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="font-mono text-white text-sm font-bold truncate">{pc.promoCode}</span>
-                            <button type="button" onClick={() => copyPromoCode(pc.promoCode)} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform" style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)" }} title="Copy promo code" aria-label={`Copy promo code ${pc.promoCode}`}>
+                            <button type="button" onClick={() => copyPromoCode(pc.promoCode)} className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform" style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)" }} title="Copy promo code" aria-label={`Copy promo code ${pc.promoCode}`}>
                               <Copy className="w-3.5 h-3.5 text-white" />
                             </button>
                           </div>
@@ -733,40 +733,40 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                         </div>
 
                         {/* Stats */}
-                        <div className="px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-2">
+                        <div className="px-3 py-2 grid grid-cols-3 gap-x-2 gap-y-1.5">
                           <div>
-                            <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Reward / Claim</p>
-                            <p className="text-white text-sm font-bold mt-0.5">{rewardPow.toLocaleString()} GEM</p>
+                            <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Reward</p>
+                            <p className="text-white text-xs font-bold mt-0.5 truncate">{rewardPow.toLocaleString()} GEM</p>
                           </div>
                           <div>
-                            <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Claim Limit</p>
-                            <p className="text-white text-sm font-bold mt-0.5">{maxClaims !== null ? maxClaims.toLocaleString() : "∞"}</p>
+                            <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Limit</p>
+                            <p className="text-white text-xs font-bold mt-0.5 truncate">{maxClaims !== null ? maxClaims.toLocaleString() : "∞"}</p>
                           </div>
                           <div>
-                            <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Total Claims</p>
-                            <p className="text-white text-sm font-bold mt-0.5">{claimsUsed.toLocaleString()}</p>
+                            <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Claims</p>
+                            <p className="text-white text-xs font-bold mt-0.5 truncate">{claimsUsed.toLocaleString()}</p>
                           </div>
                           <div>
-                            <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Remaining</p>
-                            <p className={`text-sm font-bold mt-0.5 ${remaining !== null && remaining === 0 ? "text-red-400" : "text-white"}`}>
+                            <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Left</p>
+                            <p className={`text-xs font-bold mt-0.5 truncate ${remaining !== null && remaining === 0 ? "text-red-400" : "text-white"}`}>
                               {remaining !== null ? remaining.toLocaleString() : "∞"}
                             </p>
                           </div>
-                          <div className="col-span-2">
-                            <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Total Distributed</p>
-                            <p className="text-[#2563eb] text-sm font-bold mt-0.5">{totalRewarded.toLocaleString()} GEM</p>
+                          <div>
+                            <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Paid</p>
+                            <p className="text-[#2563eb] text-xs font-bold mt-0.5 truncate">{totalRewarded.toLocaleString()} GEM</p>
                           </div>
                           {pc.expiresAt && (
-                            <div className="col-span-2">
-                              <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Expires</p>
-                              <p className="text-white/60 text-sm font-semibold mt-0.5">
+                            <div>
+                              <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Expires</p>
+                              <p className="text-white/60 text-xs font-semibold mt-0.5 truncate">
                                 {new Date(pc.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                               </p>
                             </div>
                           )}
-                          <div className="col-span-2">
-                            <p className="text-[#555] text-[10px] font-semibold uppercase tracking-wider">Created</p>
-                            <p className="text-white/60 text-sm font-semibold mt-0.5">
+                            <div>
+                              <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Created</p>
+                              <p className="text-white/60 text-xs font-semibold mt-0.5 truncate">
                               {new Date(pc.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </p>
                           </div>

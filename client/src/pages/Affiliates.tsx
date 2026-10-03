@@ -127,7 +127,7 @@ export default function Affiliates() {
 
   return (
     <Layout>
-      <main className="max-w-md mx-auto min-h-full px-3 pt-3 bg-black pb-0 text-white">
+      <main className="max-w-md mx-auto min-h-full px-3 pt-3 bg-black pb-[88px] text-white">
         <div className="px-1 mb-3">
           <h1 className="m-0 text-xl font-black text-white">Friends</h1>
           <p className="m-0 mt-1 text-xs text-white/45">Invite your network to grow your GEM earnings.</p>

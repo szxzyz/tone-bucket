@@ -67,7 +67,7 @@ export default function Account() {
 
   return (
     <Layout>
-      <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-0">
+      <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-[88px]">
         <div className="px-1 mb-3">
           <h1 className="m-0 text-xl font-black text-white">Profile</h1>
           <p className="m-0 mt-1 text-xs text-white/45">Manage your language settings and TON wallet payouts</p>

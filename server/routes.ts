@@ -10775,6 +10775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             requireChannelJoin: ambassadors.requireChannelJoin,
             channelUsername: ambassadorApplications.channelUsername,
             channelTitle: ambassadorApplications.channelTitle,
+            channelLink: ambassadorApplications.channelLink,
           })
             .from(ambassadors)
             .leftJoin(ambassadorApplications, eq(ambassadors.applicationId, ambassadorApplications.id))
@@ -10788,7 +10789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const { verifyChannelMembership } = await import('./telegram');
               const isMember = await verifyChannelMembership(telegramId, ambRow.channelId, botToken);
               if (!isMember) {
-                const channelLink = ambRow.channelUsername ? `https://t.me/${ambRow.channelUsername}` : null;
+                const channelLink = ambRow.channelLink || (ambRow.channelUsername ? `https://t.me/${ambRow.channelUsername}` : null);
                 return res.status(403).json({
                   success: false,
                   message: `You must join the ambassador's Telegram channel before claiming this promo code.`,
