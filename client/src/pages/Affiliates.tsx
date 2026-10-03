@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Send } from 'lucide-react';
 import Layout from '@/components/Layout';
-import ReferralContestSection from '@/components/ReferralContestSection';
 import { formatLargeSWAG } from '@/lib/utils';
 import { showNotification } from '@/components/AppNotification';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -15,7 +14,6 @@ const formatWorthUsd = (value: number) => `$${value.toFixed(value > 0 && value <
 export default function Affiliates() {
   const { t } = useLanguage();
   const [isSharing, setIsSharing] = useState(false);
-  const [contestHighlighted, setContestHighlighted] = useState(false);
   const preparedShareRef = useRef<Promise<any> | null>(null);
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000 });
@@ -48,18 +46,6 @@ export default function Affiliates() {
     preparedShareRef.current = null;
     if (referralLink) void prepareShareMessage();
   }, [referralLink]);
-
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('section') !== 'referral-contest') return;
-    const timer = window.setTimeout(() => {
-      const target = document.getElementById('referral-contest');
-      if (!target) return;
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setContestHighlighted(true);
-      window.setTimeout(() => setContestHighlighted(false), 2200);
-    }, 180);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   const inviteFriends = async () => {
     if (isSharing || !referralLink) return;
@@ -145,7 +131,6 @@ export default function Affiliates() {
           </button>
         </div>
 
-        <ReferralContestSection highlighted={contestHighlighted} />
         <div style={{ height: 104, flexShrink: 0 }} />
       </main>
     </Layout>

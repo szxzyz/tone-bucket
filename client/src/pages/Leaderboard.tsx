@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { FaStar, FaSync } from 'react-icons/fa';
 import Layout from '@/components/Layout';
+import ReferralContestSection from '@/components/ReferralContestSection';
 
 interface MonthlyEntry {
   userId: string;
@@ -71,8 +72,8 @@ function WeeklyParticipant({ rank, entry, score, currentUserId, prize }: {
   const isMe = !!entry && String(entry.userId) === String(currentUserId);
 
   return (
-    <div style={{ width: '100%', borderRadius: 18, overflow: 'hidden', background: '#171717', border: isMe ? '1px solid rgba(107,33,168,0.65)' : 'none', marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
+    <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', background: '#171717', border: isMe ? '1px solid rgba(59,130,246,0.6)' : 'none', marginBottom: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px' }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, overflow: 'hidden', background: '#2b2b2b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {entry?.avatarUrl ? <img src={entry.avatarUrl} alt={name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(event) => { event.currentTarget.style.display = 'none'; }} /> : <span style={{ fontSize: 14, fontWeight: 900, color: 'rgba(255,255,255,0.7)' }}>{entry ? name.slice(0, 2).toUpperCase() : '—'}</span>}
         </div>
@@ -101,6 +102,10 @@ function WeeklyParticipant({ rank, entry, score, currentUserId, prize }: {
 
 export default function Leaderboard() {
   const { user } = useAuth() as any;
+  const [activeTab, setActiveTab] = useState<'ad' | 'ref'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('contest') === 'ref' || params.get('section') === 'referral-contest' ? 'ref' : 'ad';
+  });
   const { data: appSettings } = useQuery<any>({ queryKey: ['/api/app-settings'], staleTime: 0, refetchInterval: 15000 });
   const { data, isLoading, isError, refetch, isFetching } = useQuery<WeeklyLeaderboardData>({
     queryKey: ['/api/leaderboard/weekly', 'current'],
@@ -132,6 +137,12 @@ export default function Leaderboard() {
   return (
     <Layout>
       <div style={{ background: '#0a0a0a', minHeight: '100%' }}>
+        <div style={{ margin: '12px 12px 0', padding: 4, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }} role="tablist" aria-label="Leaderboard contests">
+          {([['ad', 'Ad Contest'], ['ref', 'Ref Contest']] as const).map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={activeTab === id} onClick={() => setActiveTab(id)} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === id ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent', color: activeTab === id ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>{label}</button>
+          ))}
+        </div>
+        {activeTab === 'ad' ? <>
         <section style={{ margin: '12px 12px 0', padding: 12, borderRadius: 18, background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -168,6 +179,7 @@ export default function Leaderboard() {
                 {!hasData && <div style={{ textAlign: 'center', padding: '12px 24px 0' }}><p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Watch ads to earn stars and climb!</p></div>}
               </>}
         <div style={{ height: 24 }} />
+        </> : <ReferralContestSection />}
       </div>
     </Layout>
   );
