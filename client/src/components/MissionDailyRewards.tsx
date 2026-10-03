@@ -5,6 +5,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import DailyMissionTasks from "@/components/DailyMissionTasks";
 
 const MYSTERY_DAILY_LIMIT = 1;
 
@@ -173,6 +174,10 @@ export default function MissionDailyRewards() {
         </div>
       </div>
 
+      <div style={{ marginTop: 12, borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)" }}>
+        <div style={{ padding: "16px 16px 4px", color: "#fff", fontSize: 15, fontWeight: 800 }}>Daily Tasks</div>
+        <DailyMissionTasks />
+      </div>
       <DailyCheckinSheet
         open={checkinSheetOpen}
         onClose={() => setCheckinSheetOpen(false)}
