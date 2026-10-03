@@ -1513,80 +1513,116 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Process referral commission (10% of user's earnings)
+  // Process referral commission once for an eligible task earning.
   async processReferralCommission(userId: string, originalEarningId: number, earningAmount: string): Promise<void> {
     try {
-      // Ads and completed mission tasks generate referral commissions.
-      const [earning] = await db
-        .select()
-        .from(earnings)
-        .where(eq(earnings.id, originalEarningId))
-        .limit(1);
+      const configuredPercent = Number(await this.getAppSetting('l1_commission_percent', '5'));
+      const commissionPercent = Number.isFinite(configuredPercent)
+        ? Math.min(100, Math.max(0, configuredPercent))
+        : 5;
+      if (commissionPercent <= 0) return;
+      const commissionRate = commissionPercent / 100;
 
-      if (!earning || !['ad_watch', 'task_completion'].includes(earning.source)) {
-        // Other rewards do not generate network commissions.
-        return;
-      }
+      const credited = await db.transaction(async (tx) => {
+        // Lock the original earning so retries/concurrent calls cannot pay it twice.
+        const [earning] = await tx
+          .select({ userId: earnings.userId, source: earnings.source, amount: earnings.amount })
+          .from(earnings)
+          .where(eq(earnings.id, originalEarningId))
+          .for('update');
+        if (!earning || earning.userId !== userId || earning.source !== 'task_completion') return null;
 
-      // Find who referred this user (must be completed referral)
-      const [referralInfo] = await db
-        .select({ referrerId: referrals.referrerId })
-        .from(referrals)
-        .where(and(
-          eq(referrals.refereeId, userId),
-          eq(referrals.status, 'completed') // Only completed referrals earn commissions
-        ))
-        .limit(1);
-
-      if (!referralInfo) {
-        // User was not referred by anyone or referral not activated
-        return;
-      }
-
-      const [referredUser] = await db
-        .select({ firstName: users.firstName, telegramUsername: users.telegramUsername })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      const friendLabel = referredUser?.firstName || (referredUser?.telegramUsername ? `@${referredUser.telegramUsername.replace(/^@/, '')}` : 'your friend');
-
-      // Calculate the admin-configured direct commission on eligible earnings.
-      const commissionRate = Math.min(100, Math.max(0, parseFloat(await this.getAppSetting('l1_commission_percent', '5')) || 0)) / 100;
-      if (commissionRate <= 0) return;
-      const commissionAmount = (parseFloat(earningAmount) * commissionRate).toFixed(8);
-      
-      // Record the referral commission
-      await db.insert(referralCommissions).values({
-        referrerId: referralInfo.referrerId,
-        referredUserId: userId,
-        originalEarningId,
-        commissionAmount,
-      });
-
-      // Add commission as earnings to the referrer
-      await this.addEarning({
-        userId: referralInfo.referrerId,
-        amount: commissionAmount,
-        source: 'referral_commission',
-        description: `${commissionRate * 100}% commission from ${friendLabel}'s earnings`,
-      });
-
-      // Log commission transaction
-      await this.logTransaction({
-        userId: referralInfo.referrerId,
-        amount: commissionAmount,
-        type: 'addition',
-        source: 'referral_commission',
-        description: `${commissionRate * 100}% commission from ${friendLabel}'s earnings`,
-        metadata: { 
-          originalEarningId, 
-          referredUserId: userId,
-          commissionRate: `${commissionRate * 100}%`
+        const requestedAmount = Number(earningAmount);
+        const persistedAmount = Number(earning.amount);
+        if (!Number.isFinite(persistedAmount) || persistedAmount <= 0) return null;
+        if (Number.isFinite(requestedAmount) && Math.abs(requestedAmount - persistedAmount) > 0.0000001) {
+          console.warn(`Referral commission amount mismatch for earning ${originalEarningId}; using persisted earning amount`);
         }
+
+        const [alreadyCredited] = await tx
+          .select({ id: referralCommissions.id })
+          .from(referralCommissions)
+          .where(eq(referralCommissions.originalEarningId, originalEarningId))
+          .limit(1);
+        if (alreadyCredited) return null;
+
+        const [referralInfo] = await tx
+          .select({ referrerId: referrals.referrerId })
+          .from(referrals)
+          .where(and(
+            eq(referrals.refereeId, userId),
+            eq(referrals.status, 'completed')
+          ))
+          .limit(1);
+        if (!referralInfo) return null;
+
+        const commissionAmount = (persistedAmount * commissionRate).toFixed(8);
+        if (!Number.isFinite(Number(commissionAmount)) || Number(commissionAmount) <= 0) return null;
+
+        const [referredUser] = await tx
+          .select({ firstName: users.firstName, telegramUsername: users.telegramUsername })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        const friendLabel = referredUser?.firstName || (referredUser?.telegramUsername ? `@${referredUser.telegramUsername.replace(/^@/, '')}` : 'your friend');
+        const description = `${commissionPercent}% commission from ${friendLabel}'s earnings`;
+
+        await tx.insert(referralCommissions).values({
+          referrerId: referralInfo.referrerId,
+          referredUserId: userId,
+          originalEarningId,
+          commissionAmount,
+        });
+
+        const [commissionEarning] = await tx.insert(earnings).values({
+          userId: referralInfo.referrerId,
+          amount: commissionAmount,
+          source: 'referral_commission',
+          description,
+        }).returning({ id: earnings.id });
+
+        await tx.insert(transactions).values({
+          userId: referralInfo.referrerId,
+          amount: commissionAmount,
+          type: 'addition',
+          source: 'referral_commission',
+          description,
+          metadata: {
+            earningId: commissionEarning.id,
+            originalEarningId,
+            referredUserId: userId,
+            commissionRate: `${commissionPercent}%`,
+          },
+        });
+
+        const now = new Date();
+        await tx.insert(userBalances).values({
+          userId: referralInfo.referrerId,
+          balance: commissionAmount,
+          updatedAt: now,
+        }).onConflictDoUpdate({
+          target: userBalances.userId,
+          set: {
+            balance: sql`COALESCE(${userBalances.balance}, 0) + ${commissionAmount}`,
+            updatedAt: now,
+          },
+        });
+
+        await tx.update(users).set({
+          balance: sql`COALESCE(${users.balance}, 0) + ${commissionAmount}`,
+          withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${commissionAmount}`,
+          totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${commissionAmount}`,
+          totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${commissionAmount}`,
+          updatedAt: now,
+        }).where(eq(users.id, referralInfo.referrerId));
+
+        return { referrerId: referralInfo.referrerId, commissionAmount };
       });
 
-      console.log(`✅ Referral commission of ${commissionAmount} awarded to ${referralInfo.referrerId} from ${userId}'s ad earnings`);
-      
+      if (credited) {
+        console.log(`✅ Referral commission of ${credited.commissionAmount} awarded to ${credited.referrerId} from ${userId}'s task earnings`);
+      }
+
       // NOTE: Commission notifications removed to prevent spam on every ad watch
       // Only activation reward notifications are sent via sendReferralRewardNotification.
     } catch (error) {
@@ -2759,12 +2795,15 @@ export class DatabaseStorage implements IStorage {
       // earning ledger and atomically increments the user's GEM balance once;
       // calling addBalance here as well would credit the same task twice.
       // Add earning record
-      await this.addEarning({
+      const taskEarning = await this.addEarning({
         userId,
         amount: rewardAmount,
         source: isDailyTask ? 'daily_task_completion' : 'task_completion',
         description: `Task completed: ${promotion.title}`,
       });
+      if (!isDailyTask) {
+        await this.processReferralCommission(userId, taskEarning.id, rewardAmount);
+      }
 
       // Update task status to claimed
       await this.setTaskStatus(userId, promotionId, 'claimed', periodDate);
@@ -3307,22 +3346,13 @@ export class DatabaseStorage implements IStorage {
       ));
 
     // Add reward to user balance
-    await this.addEarning({
+    const taskEarning = await this.addEarning({
       userId,
       amount: task.rewardAmount,
       source: 'task_completion',
       description: `Task ${taskLevel} completed: Watch ${task.required} ads`,
     });
-
-    // Log transaction
-    await this.logTransaction({
-      userId,
-      amount: task.rewardAmount,
-      type: 'addition',
-      source: 'task_completion',
-      description: `Task ${taskLevel} reward`,
-      metadata: { taskLevel, required: task.required, resetDate }
-    });
+    await this.processReferralCommission(userId, taskEarning.id, task.rewardAmount);
 
     return {
       success: true,
