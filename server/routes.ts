@@ -10741,6 +10741,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Promo code endpoints
+  const resolveAmbassadorForPromoCode = async (cleanCode: string) => {
+    const [ambassador] = await db.select({
+      id: ambassadors.id,
+      channelId: ambassadors.channelId,
+      requireChannelJoin: ambassadors.requireChannelJoin,
+      channelUsername: ambassadorApplications.channelUsername,
+      channelTitle: ambassadorApplications.channelTitle,
+      channelLink: ambassadorApplications.channelLink,
+    })
+      .from(ambassadors)
+      .leftJoin(ambassadorApplications, eq(ambassadors.applicationId, ambassadorApplications.id))
+      .where(sql`${cleanCode} LIKE UPPER(COALESCE(${ambassadors.promoPrefix}, ${ambassadors.promoCodeName})) || '%'`)
+      .orderBy(desc(sql`length(COALESCE(${ambassadors.promoPrefix}, ${ambassadors.promoCodeName}))`))
+      .limit(1);
+    return ambassador || null;
+  };
+
+  const checkAmbassadorPromoChannel = async (userId: string, ambassador: any) => {
+    if (!ambassador?.requireChannelJoin) {
+      return { channelRequired: false, isMember: true, channelLink: null, channelName: null, unavailable: false };
+    }
+
+    const botToken = config.bot.token || process.env.TELEGRAM_BOT_TOKEN;
+    const channelId = String(ambassador.channelId || '').trim();
+    const channelLink = ambassador.channelLink || (ambassador.channelUsername ? `https://t.me/${ambassador.channelUsername}` : null);
+    const channelName = ambassador.channelTitle || ambassador.channelUsername || 'Channel';
+    if (!botToken || !channelId) {
+      return { channelRequired: true, isMember: false, channelLink, channelName, unavailable: true };
+    }
+
+    const [userRow] = await db.select({ telegram_id: users.telegram_id }).from(users).where(eq(users.id, userId)).limit(1);
+    const telegramId = Number(userRow?.telegram_id);
+    if (!Number.isSafeInteger(telegramId) || telegramId <= 0) {
+      return { channelRequired: true, isMember: false, channelLink, channelName, unavailable: true };
+    }
+
+    const { verifyChannelMembership } = await import('./telegram');
+    const isMember = await verifyChannelMembership(telegramId, channelId, botToken);
+    return { channelRequired: true, isMember, channelLink, channelName, unavailable: false };
+  };
+
+  // Check membership before showing a rewarded ad; the actual claim endpoint
+  // repeats this check so the user cannot bypass it by calling redeem directly.
+  app.post('/api/promo-codes/check-channel', authenticateTelegram, async (req: any, res) => {
+    try {
+      const { code } = req.body || {};
+      if (typeof code !== 'string' || !code.trim()) {
+        return res.status(400).json({ success: false, message: 'Please enter a promo code' });
+      }
+      const cleanCode = code.trim().toUpperCase();
+      const userId = req.user.user.id;
+      const ambassador = await resolveAmbassadorForPromoCode(cleanCode);
+      const status = await checkAmbassadorPromoChannel(userId, ambassador);
+      if (status.unavailable) {
+        return res.status(503).json({
+          success: false,
+          message: 'Channel membership cannot be verified right now. Please try again later.',
+          errorType: 'channel_verification_unavailable',
+        });
+      }
+      return res.json({ success: true, ...status });
+    } catch (error) {
+      console.error('Error checking ambassador promo channel:', error);
+      return res.status(500).json({ success: false, message: 'Could not verify channel membership' });
+    }
+  });
+
   // Redeem promo code
   app.post('/api/promo-codes/redeem', authenticateTelegram, async (req: any, res) => {
     // Declared here (not inside try) so the catch block can safely check
@@ -10764,39 +10831,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cleanCode = code.trim().toUpperCase();
 
       // STEP 0: Resolve ambassador ownership before redemption. This makes the
-      // current admin-configured GEM reward authoritative even for codes that
-      // were generated before the setting was changed.
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const [ambassadorForCode] = await db.select({
-        id: ambassadors.id,
-        channelId: ambassadors.channelId,
-        requireChannelJoin: ambassadors.requireChannelJoin,
-        channelUsername: ambassadorApplications.channelUsername,
-        channelTitle: ambassadorApplications.channelTitle,
-        channelLink: ambassadorApplications.channelLink,
-      })
-        .from(ambassadors)
-        .leftJoin(ambassadorApplications, eq(ambassadors.applicationId, ambassadorApplications.id))
-        .where(sql`${cleanCode} LIKE UPPER(COALESCE(${ambassadors.promoPrefix}, ${ambassadors.promoCodeName})) || '%'`)
-        .limit(1);
-
-      if (botToken && ambassadorForCode?.requireChannelJoin && ambassadorForCode.channelId) {
-        const [userRow] = await db.select({ telegram_id: users.telegram_id }).from(users).where(eq(users.id, userId)).limit(1);
-        const telegramId = userRow?.telegram_id ? parseInt(userRow.telegram_id) : null;
-        if (telegramId) {
-          const { verifyChannelMembership } = await import('./telegram');
-          const isMember = await verifyChannelMembership(telegramId, ambassadorForCode.channelId, botToken);
-          if (!isMember) {
-            const channelLink = ambassadorForCode.channelLink || (ambassadorForCode.channelUsername ? `https://t.me/${ambassadorForCode.channelUsername}` : null);
-            return res.status(403).json({
-              success: false,
-              message: `You must join the ambassador's Telegram channel before claiming this promo code.`,
-              errorType: 'channel_required',
-              channelLink,
-              channelName: ambassadorForCode.channelTitle || ambassadorForCode.channelUsername || 'Channel',
-            });
-          }
-        }
+      // current admin-configured GEM reward authoritative even for old codes.
+      const ambassadorForCode = await resolveAmbassadorForPromoCode(cleanCode);
+      const channelStatus = await checkAmbassadorPromoChannel(userId, ambassadorForCode);
+      if (channelStatus.unavailable) {
+        return res.status(503).json({
+          success: false,
+          message: 'Channel membership cannot be verified right now. Please try again later.',
+          errorType: 'channel_verification_unavailable',
+        });
+      }
+      if (channelStatus.channelRequired && !channelStatus.isMember) {
+        return res.status(403).json({
+          success: false,
+          message: `Join ${channelStatus.channelName} before claiming this promo code.`,
+          errorType: 'channel_required',
+          channelLink: channelStatus.channelLink,
+          channelName: channelStatus.channelName,
+        });
       }
 
       // STEP 1: Validate only — does NOT record usage yet

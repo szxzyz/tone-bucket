@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { showNotification } from "@/components/AppNotification";
-import { FiCheck, FiExternalLink } from "react-icons/fi";
+import { FiExternalLink } from "react-icons/fi";
 import { Ticket } from "lucide-react";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PromoCodeInput() {
   const [promoCode, setPromoCode] = useState("");
@@ -50,27 +51,40 @@ export default function PromoCodeInput() {
     },
   });
 
-  // Validate + show ad → then redeem directly (Cloudflare Turnstile challenge removed)
-  const handleSubmit = async () => {
+  // Check the ambassador's channel first. Only after membership is confirmed
+  // do we show the rewarded ad and submit the normal promo redemption request.
+  const runPromoClaimFlow = async (verificationAttempt = false) => {
     const code = promoCode.trim().toUpperCase();
     if (!code) {
       setInlineError("Please enter a promo code");
       return;
     }
     setInlineError(null);
-    setChannelRequired(null);
     setBusy(true);
 
     try {
+      const checkResponse = await apiRequest("POST", "/api/promo-codes/check-channel", { code });
+      const channelStatus = await checkResponse.json();
+      if (!checkResponse.ok) {
+        throw new Error(channelStatus.message || "Could not verify channel membership");
+      }
+      if (channelStatus.channelRequired && !channelStatus.isMember) {
+        setChannelRequired({
+          channelLink: channelStatus.channelLink || null,
+          channelName: channelStatus.channelName || "Channel",
+        });
+        setInlineError(verificationAttempt ? "Membership not detected yet. Join the channel, then try Verify & Claim again." : null);
+        return;
+      }
+
+      setChannelRequired(null);
       const adResult = await showMonetagAd();
       if (!adResult.success) {
         setInlineError(adResult.unavailable ? "Monetag ad is not available right now. Please try again." : "Please watch the Monetag ad to claim your reward.");
-        setBusy(false);
         return;
       }
-    } catch {
-      setInlineError("Please watch the Monetag ad to claim your reward.");
-      setBusy(false);
+    } catch (error: any) {
+      setInlineError(error?.message || "Could not verify membership or complete the ad. Please try again.");
       return;
     } finally {
       setBusy(false);
@@ -78,12 +92,8 @@ export default function PromoCodeInput() {
     redeemPromoMutation.mutate({ code });
   };
 
-  // "I've Joined — Verify & Claim" button — redeem directly
-  const handleRetryAfterJoin = () => {
-    const code = promoCode.trim().toUpperCase();
-    if (!code) return;
-    redeemPromoMutation.mutate({ code });
-  };
+  const handleSubmit = () => { void runPromoClaimFlow(); };
+  const handleRetryAfterJoin = () => { void runPromoClaimFlow(true); };
 
   const handleJoinChannel = () => {
     if (!channelRequired?.channelLink) return;
@@ -105,61 +115,6 @@ export default function PromoCodeInput() {
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {inlineError && (
         <span style={{ fontSize: 11, fontWeight: 700, color: '#f87171', letterSpacing: '0.04em' }}>{inlineError}</span>
-      )}
-
-      {/* Channel required message */}
-      {channelRequired && (
-        <div style={{
-          background: "rgba(251,113,133,0.10)",
-          border: "1px solid rgba(251,113,133,0.25)",
-          borderRadius: 10,
-          padding: "10px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#f87171' }}>
-            You must join <strong>{channelRequired.channelName}</strong> before claiming this promo code.
-          </span>
-          {channelRequired.channelLink && (
-            <button
-              onClick={handleJoinChannel}
-              style={{
-                height: 34,
-                borderRadius: 8,
-                border: "none",
-                background: "rgba(251,113,133,0.20)",
-                color: "#f87171",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-              }}
-            >
-              <FiExternalLink size={12} />
-              Join {channelRequired.channelName}
-            </button>
-          )}
-          <button
-            onClick={handleRetryAfterJoin}
-            disabled={isLoading}
-            style={{
-              height: 34,
-              borderRadius: 8,
-              border: "none",
-              background: isLoading ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.15)",
-              color: isLoading ? "rgba(255,255,255,0.2)" : "#22c55e",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: isLoading ? "not-allowed" : "pointer",
-            }}
-          >
-            {isLoading ? "Verifying…" : "✓ I've Joined — Verify & Claim"}
-          </button>
-        </div>
       )}
 
       {/* Single Line Input Row - Refined Sizes */}
@@ -231,6 +186,44 @@ export default function PromoCodeInput() {
           )}
         </button>
       </div>
+      <Dialog
+        open={!!channelRequired}
+        onOpenChange={(open) => {
+          if (!open && !isLoading) {
+            setChannelRequired(null);
+            setInlineError(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm border-white/10 bg-[#121317] text-white">
+          <DialogHeader>
+            <DialogTitle>Join {channelRequired?.channelName || "the channel"}</DialogTitle>
+            <DialogDescription className="text-white/65">
+              Join this ambassador channel, then verify. Once verified, the rewarded ad will play before your promo reward is claimed.
+            </DialogDescription>
+          </DialogHeader>
+          {inlineError && <p className="text-sm text-red-400">{inlineError}</p>}
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={handleJoinChannel}
+              disabled={!channelRequired?.channelLink || isLoading}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-white/10 text-sm font-bold disabled:opacity-40"
+            >
+              <FiExternalLink size={14} />
+              {channelRequired?.channelLink ? `Join ${channelRequired.channelName}` : "Channel link unavailable"}
+            </button>
+            <button
+              type="button"
+              onClick={handleRetryAfterJoin}
+              disabled={isLoading || redeemPromoMutation.isPending}
+              className="h-11 rounded-xl bg-blue-600 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {isLoading ? "Checking membership…" : "Verify & Claim"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
