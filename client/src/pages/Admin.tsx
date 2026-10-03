@@ -3093,7 +3093,7 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Number of rewarded AdsGram ads in the Ad Watching section a referred user must watch to become active. Current: {settingsData?.referralAdsRequired ?? 15}
+                Pending referrals need this many rewarded AdsGram ads to activate. Previously completed referrals stay active if this setting changes. Current: {settingsData?.referralAdsRequired ?? 15}
               </p>
             </div>
           </div>

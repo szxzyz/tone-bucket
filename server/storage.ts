@@ -1521,7 +1521,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Process referral commission once for an eligible task earning.
+  // Process a commission only for a referral whose activation is already recorded.
   async processReferralCommission(userId: string, originalEarningId: number, earningAmount: string): Promise<void> {
     try {
       const configuredPercent = Number(await this.getAppSetting('l1_commission_percent', '5'));
@@ -1530,11 +1530,6 @@ export class DatabaseStorage implements IStorage {
         : 5;
       if (commissionPercent <= 0) return;
       const commissionRate = commissionPercent / 100;
-      const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '15'), 10);
-      const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
-        ? configuredAdsRequired
-        : 15;
-
       const credited = await db.transaction(async (tx) => {
         // Lock the original earning so retries/concurrent calls cannot pay it twice.
         const [earning] = await tx
@@ -1567,18 +1562,10 @@ export class DatabaseStorage implements IStorage {
             inArray(referrals.status, ['completed', 'active'])
           ))
           .limit(1);
-        if (!referralInfo || referralInfo.refereeBanned !== false) return null;
+        if (!referralInfo || referralInfo.refereeBanned === true) return null;
 
-        // A stale/incorrect status must never bypass the real activity threshold.
-        const [activityCount] = await tx
-          .select({ count: sql<number>`count(*)` })
-          .from(earnings)
-          .where(and(
-            eq(earnings.userId, userId),
-            eq(earnings.source, 'ad_watch'),
-            eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
-          ));
-        if (Number(activityCount?.count || 0) < referralAdsRequired) return null;
+        // A completed/active row is the durable activation record. Do not
+        // re-evaluate a historical referral against today's AdsGram threshold.
 
         const commissionAmount = (persistedAmount * commissionRate).toFixed(8);
         if (!Number.isFinite(Number(commissionAmount)) || Number(commissionAmount) <= 0) return null;
@@ -3500,36 +3487,19 @@ export class DatabaseStorage implements IStorage {
     return task;
   }
 
-  // Count referrals currently eligible under the AdsGram-only activation rule.
+  // Count referrals whose activation has already been recorded. Completion is
+  // sticky: changing today's AdsGram threshold must not demote prior actives.
   async getValidReferralCount(userId: string): Promise<number> {
-    const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '15'), 10);
-    const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
-      ? configuredAdsRequired
-      : 15;
     const activeReferrals = await db
-      .select({ refereeId: referrals.refereeId })
+      .select({ count: sql<number>`count(DISTINCT ${referrals.refereeId})` })
       .from(referrals)
       .innerJoin(users, eq(users.id, referrals.refereeId))
       .where(and(
         eq(referrals.referrerId, userId),
         inArray(referrals.status, ['completed', 'active']),
-        eq(users.banned, false),
+        sql`${users.banned} IS NOT TRUE`,
       ));
-    const refereeIds = Array.from(new Set(activeReferrals.map(row => row.refereeId)));
-    if (refereeIds.length === 0) return 0;
-    if (referralAdsRequired === 0) return refereeIds.length;
-
-    const adsgramCounts = await db
-      .select({ userId: earnings.userId, count: sql<number>`count(*)` })
-      .from(earnings)
-      .where(and(
-        inArray(earnings.userId, refereeIds),
-        eq(earnings.source, 'ad_watch'),
-        eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
-      ))
-      .groupBy(earnings.userId);
-    const countsByUser = new Map(adsgramCounts.map(row => [row.userId, Number(row.count || 0)]));
-    return refereeIds.filter(refereeId => (countsByUser.get(refereeId) || 0) >= referralAdsRequired).length;
+    return Number(activeReferrals[0]?.count || 0);
   }
 
   // Get tasks created by a specific user (my tasks)
