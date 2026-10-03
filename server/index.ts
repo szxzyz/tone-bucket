@@ -25,11 +25,10 @@ if (TELEGRAM_PROXY) {
 
 console.log('🚀 Starting server...');
 
-// Run database schema migration. All CREATE TABLE statements execute first so
-// the server is ready to handle requests. ALTER TABLE column additions are
-// batched to minimise round-trips (see server/migrate.ts).
-await ensureDatabaseSchema();
-console.log('✅ Database schema verified, starting server setup...');
+// Do not await database migration before opening the HTTP port. Render marks
+// the deploy unhealthy when no port is listening while managed PostgreSQL is
+// slow or unavailable. Migration starts after the server is listening below.
+console.log('✅ Starting server setup; database migration will run in background...');
 
 const app = express();
 // Compress every response (API JSON + static assets) — was previously
@@ -188,6 +187,11 @@ app.use((req, res, next) => {
 
   server.listen({ port, host: "0.0.0.0", reusePort: true }, async () => {
     log(`serving on port ${port}`);
+
+    // Keep Render startup responsive while the schema is being prepared.
+    void ensureDatabaseSchema()
+      .then(() => console.log('✅ Background database migration completed'))
+      .catch((error) => console.error('❌ Background database migration failed:', error));
 
     // ── Non-blocking background tasks ──────────────────────────────────────
     // Run these AFTER the server is listening so they never delay startup.
