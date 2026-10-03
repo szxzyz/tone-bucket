@@ -617,7 +617,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         ('l1_commission_percent', '5', 'Direct referral commission percentage'),
         ('referral_reward_join_gold', '0', 'GEM reward when a referred friend joins'),
         ('referral_reward_pad', '2500', 'GEM reward when a referred friend becomes active'),
-        ('referral_ads_required', '5', 'Adsgram ads required to activate a referral'),
+        ('referral_ads_required', '5', 'Rewarded ads from any provider required to activate a referral'),
         ('daily_ad_limit', '510', 'Maximum number of ads a user can watch per day'),
         ('hourly_ad_limit', '63', 'Maximum number of ads a user can watch per hour'),
         ('ad_reward_pad', '1000', 'SWAG reward amount per ad watched'),

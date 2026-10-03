@@ -949,7 +949,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Check and activate the GEM referral bonus after the configured Adsgram view threshold.
+  // Check and activate the GEM referral bonus after the configured ad-watch threshold.
   // Uses admin-configured 'referral_ads_required' setting instead of hardcoded value
   // Returns list of referrer IDs that received rewards (so caller can push WebSocket updates)
   async checkAndActivateReferralBonus(userId: string): Promise<string[]> {
@@ -980,18 +980,17 @@ export class DatabaseStorage implements IStorage {
             ))
         : [];
 
-      // A referral qualifies after the admin-configured number of Adsgram ads.
-      // This is intentionally independent of the general ad count.
+      // A referral qualifies after the admin-configured number of rewarded ads
+      // from any provider in the Ad Watching section.
       const referralAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '5')) || 0);
 
-      // Count ads watched by this user (from earnings table so timing is always accurate)
+      // Count successful Ad Watching section rewards across all providers.
       const [adCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(earnings)
         .where(and(
           eq(earnings.userId, userId),
-          eq(earnings.source, 'ad_watch'),
-          sql`LOWER(COALESCE(${earnings.description}, '')) LIKE '%adsgram%'`
+          eq(earnings.source, 'ad_watch')
         ));
       const adsWatched = Number(adCount?.count || 0);
 
@@ -3810,15 +3809,14 @@ export class DatabaseStorage implements IStorage {
             .limit(1);
           if (anyExisting.length > 0) continue;
 
-          // Check if the referee already watched enough ads — if so, insert as completed
+          // Check whether the referee already watched enough ads from any provider — insert as completed
           // to avoid re-triggering a reward for users who were already paid
           const [adCountRow] = await db
             .select({ count: sql<number>`count(*)` })
             .from(earnings)
             .where(and(
               eq(earnings.userId, u.userId),
-              eq(earnings.source, 'ad_watch'),
-              sql`LOWER(COALESCE(${earnings.description}, '')) LIKE '%adsgram%'`
+              eq(earnings.source, 'ad_watch')
             ));
           const adsAlreadyWatched = Number(adCountRow?.count || 0);
           const repairAdsRequired = Math.max(0, parseInt(await this.getAppSetting('referral_ads_required', '5')) || 0);
@@ -3863,8 +3861,7 @@ export class DatabaseStorage implements IStorage {
             .from(earnings)
             .where(and(
               eq(earnings.userId, ref.refereeId),
-              eq(earnings.source, 'ad_watch'),
-              sql`LOWER(COALESCE(${earnings.description}, '')) LIKE '%adsgram%'`
+              eq(earnings.source, 'ad_watch')
             ));
           const adsWatched = Number(adCount?.count || 0);
           if (adsWatched < referralAdsRequired) continue;

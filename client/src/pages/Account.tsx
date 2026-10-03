@@ -33,7 +33,9 @@ export default function Account() {
   const rawBalance = balanceLoaded ? Number(user.balance) : 0;
   const gemBalance = rawBalance < 1 ? Math.round(rawBalance * 10_000_000) : Math.floor(rawBalance);
   const usdBalance = gemBalance / 100_000;
-  const proofOfPaymentLink = String(appConfig?.proofOfPaymentLink || '').trim();
+  // Match the Telegram bot's PAYOUTS inline button (TELEGRAM_PAYOUT_CHANNEL_LINK).
+  // Keep the legacy proof URL as a fallback for deployments that still use it.
+  const proofOfPaymentLink = String(appConfig?.payoutChannelUrl || appConfig?.proofOfPaymentLink || '').trim();
 
   const openSupport = () => {
     if (!supportLink) {

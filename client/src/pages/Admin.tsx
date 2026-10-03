@@ -3076,13 +3076,13 @@ function SettingsSection() {
                 min="0"
                 step="1"
               />
-              <p className="text-xs text-muted-foreground">Added to pending GEM after the friend completes the required Adsgram views. Set to 0 to disable.</p>
+              <p className="text-xs text-muted-foreground">Added to pending GEM after the friend watches the required number of ads from any provider. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="referral-ads-required" className="text-sm font-semibold">
                 <i className="fas fa-play-circle mr-2 text-amber-500"></i>
-                Adsgram ads required to become active
+                Ads from any provider required to become active
               </Label>
               <Input
                 id="referral-ads-required"
@@ -3093,7 +3093,7 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Number of Adsgram ads a referred user must watch to become active. Current: {settingsData?.referralAdsRequired ?? 5}
+                Number of rewarded ads from any provider in the Ad Watching section a referred user must watch to become active. Current: {settingsData?.referralAdsRequired ?? 5}
               </p>
             </div>
           </div>
