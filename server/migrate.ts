@@ -5,7 +5,9 @@ import * as schema from "../shared/schema";
 import { sql } from 'drizzle-orm';
 
 export async function ensureDatabaseSchema(): Promise<void> {
-  const rawConnectionString = process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL;
+  // Prefer Render's managed database URL; keep Aiven only as a legacy
+  // fallback for older deployments.
+  const rawConnectionString = process.env.DATABASE_URL || process.env.AIVEN_DATABASE_URL;
   if (!rawConnectionString) throw new Error('DATABASE_URL must be set for migrations');
 
   let connectionString = rawConnectionString;

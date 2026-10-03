@@ -4,7 +4,10 @@ const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema";
 
-const rawConnectionString = process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL;
+// Render provides DATABASE_URL for its managed PostgreSQL service. Prefer it
+// over the legacy Aiven variable so an old Aiven hostname cannot override the
+// current database connection after a service migration.
+const rawConnectionString = process.env.DATABASE_URL || process.env.AIVEN_DATABASE_URL;
 
 if (!rawConnectionString) {
   throw new Error(
