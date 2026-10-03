@@ -10763,42 +10763,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const cleanCode = code.trim().toUpperCase();
 
-      // STEP 0: Check if this code belongs to an ambassador who requires channel membership
+      // STEP 0: Resolve ambassador ownership before redemption. This makes the
+      // current admin-configured GEM reward authoritative even for codes that
+      // were generated before the setting was changed.
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      if (botToken) {
-        const [promoRow] = await db.select({ id: promoCodes.id, code: promoCodes.code })
-          .from(promoCodes).where(eq(promoCodes.code, cleanCode)).limit(1);
-        if (promoRow) {
-          // Find the ambassador who owns this code (via ambassador_earnings pattern — match prefix)
-          const [ambRow] = await db.select({
-            channelId: ambassadors.channelId,
-            requireChannelJoin: ambassadors.requireChannelJoin,
-            channelUsername: ambassadorApplications.channelUsername,
-            channelTitle: ambassadorApplications.channelTitle,
-            channelLink: ambassadorApplications.channelLink,
-          })
-            .from(ambassadors)
-            .leftJoin(ambassadorApplications, eq(ambassadors.applicationId, ambassadorApplications.id))
-            .where(sql`${ambassadors.requireChannelJoin} = true AND ${ambassadors.channelId} IS NOT NULL AND ${cleanCode} LIKE UPPER(COALESCE(${ambassadors.promoPrefix}, ${ambassadors.promoCodeName})) || '%'`)
-            .limit(1);
+      const [ambassadorForCode] = await db.select({
+        id: ambassadors.id,
+        channelId: ambassadors.channelId,
+        requireChannelJoin: ambassadors.requireChannelJoin,
+        channelUsername: ambassadorApplications.channelUsername,
+        channelTitle: ambassadorApplications.channelTitle,
+        channelLink: ambassadorApplications.channelLink,
+      })
+        .from(ambassadors)
+        .leftJoin(ambassadorApplications, eq(ambassadors.applicationId, ambassadorApplications.id))
+        .where(sql`${cleanCode} LIKE UPPER(COALESCE(${ambassadors.promoPrefix}, ${ambassadors.promoCodeName})) || '%'`)
+        .limit(1);
 
-          if (ambRow?.requireChannelJoin && ambRow.channelId) {
-            const [userRow] = await db.select({ telegram_id: users.telegram_id }).from(users).where(eq(users.id, userId)).limit(1);
-            const telegramId = userRow?.telegram_id ? parseInt(userRow.telegram_id) : null;
-            if (telegramId) {
-              const { verifyChannelMembership } = await import('./telegram');
-              const isMember = await verifyChannelMembership(telegramId, ambRow.channelId, botToken);
-              if (!isMember) {
-                const channelLink = ambRow.channelLink || (ambRow.channelUsername ? `https://t.me/${ambRow.channelUsername}` : null);
-                return res.status(403).json({
-                  success: false,
-                  message: `You must join the ambassador's Telegram channel before claiming this promo code.`,
-                  errorType: 'channel_required',
-                  channelLink,
-                  channelName: ambRow.channelTitle || ambRow.channelUsername || 'Channel',
-                });
-              }
-            }
+      if (botToken && ambassadorForCode?.requireChannelJoin && ambassadorForCode.channelId) {
+        const [userRow] = await db.select({ telegram_id: users.telegram_id }).from(users).where(eq(users.id, userId)).limit(1);
+        const telegramId = userRow?.telegram_id ? parseInt(userRow.telegram_id) : null;
+        if (telegramId) {
+          const { verifyChannelMembership } = await import('./telegram');
+          const isMember = await verifyChannelMembership(telegramId, ambassadorForCode.channelId, botToken);
+          if (!isMember) {
+            const channelLink = ambassadorForCode.channelLink || (ambassadorForCode.channelUsername ? `https://t.me/${ambassadorForCode.channelUsername}` : null);
+            return res.status(403).json({
+              success: false,
+              message: `You must join the ambassador's Telegram channel before claiming this promo code.`,
+              errorType: 'channel_required',
+              channelLink,
+              channelName: ambassadorForCode.channelTitle || ambassadorForCode.channelUsername || 'Channel',
+            });
           }
         }
       }
@@ -10810,9 +10806,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Pull validated values from result (no second DB fetch needed)
-      const rewardAmount  = result.reward || '0';
+      const rewardAmount  = ambassadorForCode
+        ? await storage.getAppSetting('ambassador_promo_reward', '10000')
+        : (result.reward || '0');
       const promoCodeId   = result.promoCodeId!;
       const usageId       = result.usageId!;
+      if (ambassadorForCode) {
+        await db.update(promoCodeUsage).set({ rewardAmount }).where(eq(promoCodeUsage.id, usageId));
+      }
       promoCodeIdForRollback = promoCodeId;
       usageIdForRollback = usageId;
       let   rewardType    = (result.rewardType || 'Gems').toUpperCase();
@@ -10922,19 +10923,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       if (!ambassador || ambassador.status !== 'active') return;
 
-      // Get commission rate from admin settings
-      const [commSetting] = await db.select({ settingValue: adminSettings.settingValue })
-        .from(adminSettings).where(eq(adminSettings.settingKey, 'ambassador_commission_usd')).limit(1);
-      const commissionUsd = commSetting?.settingValue || '0.0001';
+      // Get the ambassador's GEM commission from admin settings. Fall back to
+      // the legacy USD setting for installations that have not saved the new
+      // GEM setting yet (100,000 GEM = $1).
+      const commissionGemsSetting = await storage.getAppSetting('ambassador_commission_gems', '');
+      const legacyCommissionUsd = await storage.getAppSetting('ambassador_commission_usd', '0.0005');
+      const commissionGems = commissionGemsSetting
+        ? Math.max(0, Math.floor(Number(commissionGemsSetting) || 0))
+        : Math.max(0, Math.round((Number(legacyCommissionUsd) || 0.0005) * 100000));
+      const commissionUsd = (commissionGems / 100000).toFixed(8);
 
       // Insert ambassador earning (unique constraint prevents duplicates)
-      await db.insert(ambassadorEarnings).values({
+      const [insertedEarning] = await db.insert(ambassadorEarnings).values({
         ambassadorId: ambassador.id,
         promoCodeId,
         claimUserId,
         promoCode: code,
         commissionUsd,
-      }).onConflictDoNothing();
+      }).onConflictDoNothing().returning({ id: ambassadorEarnings.id });
+      if (!insertedEarning) return;
 
       // Update ambassador stats
       const today = new Date().toISOString().split('T')[0];
@@ -10951,9 +10958,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date(),
       }).where(eq(ambassadors.id, ambassador.id));
 
-      // Credit USD to ambassador's account
-      await storage.addUSDBalance(ambassador.userId, commissionUsd, 'ambassador_commission',
-        `Ambassador commission: ${code} claimed`);
+      // Credit GEM to the ambassador's normal balance.
+      if (commissionGems > 0) {
+        await storage.addEarning({
+          userId: ambassador.userId,
+          amount: String(commissionGems),
+          source: 'ambassador_commission',
+          description: `Ambassador commission: ${code} claimed`,
+        });
+      }
 
       // Notify ambassador via Telegram
       try {
@@ -10962,7 +10975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { sendTelegramMessage } = await import('./telegram');
           await sendTelegramMessage(
             `🎉 Your promo code <b>${code}</b> was just claimed!\n` +
-            `💰 You earned <b>$${parseFloat(commissionUsd).toFixed(4)}</b>\n` +
+            `💰 You earned <b>${commissionGems.toLocaleString()} GEM</b>\n` +
             `📊 Total claims: <b>${(ambassador.totalClaims || 0) + 1}</b>`,
             { parse_mode: 'HTML', chat_id: ambUser.telegram_id }
           );
@@ -12806,6 +12819,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       // Wrap in transaction so partial failure leaves no orphaned rows
       await db.transaction(async (tx) => {
+        // Claimed ambassador codes have earning rows referencing the code.
+        // Remove those dependents first so deletion also works after a claim.
+        await tx.delete(ambassadorEarnings).where(eq(ambassadorEarnings.promoCodeId, id));
         await tx.delete(promoCodeUsage).where(eq(promoCodeUsage.promoCodeId, id));
         await tx.delete(promoCodes).where(eq(promoCodes.id, id));
       });
@@ -14218,7 +14234,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { getBotUsername, sendUserTelegramNotification } = await import('./telegram');
           const botUsername = (await getBotUsername())?.replace(/^@/, '') || 'Grab Penny';
           const promoReward = parseInt(await storage.getAppSetting('ambassador_promo_reward', '10000'), 10) || 10000;
-          const commissionUsd = await storage.getAppSetting('ambassador_commission_usd', '0.0001');
+          const commissionGemsSetting = await storage.getAppSetting('ambassador_commission_gems', '');
+          const legacyCommissionUsd = await storage.getAppSetting('ambassador_commission_usd', '0.0005');
+          const commissionGems = commissionGemsSetting
+            ? Math.max(0, Math.floor(Number(commissionGemsSetting) || 0))
+            : Math.max(0, Math.round((Number(legacyCommissionUsd) || 0.0005) * 100000));
           const miniAppUrl = `https://t.me/${botUsername}/MyWAdz?startapp=page_ambassador`;
           await sendUserTelegramNotification(
             String(user.telegram_id),
@@ -14226,7 +14246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `You're now a <b>${botUsername}</b> Ambassador!\n\n` +
             `Your promo code prefix: <b>${promoCodeName}</b>\n\n` +
             `Your first promo post will go out shortly. After that, a new post will be published automatically every <b>12 hours</b> (2 posts per day).\n\n` +
-            `Every time someone claims your code, they receive <b>${promoReward.toLocaleString()} Gems</b> and you earn <b>$${commissionUsd}</b>!\n\n` +
+            `Every time someone claims your code, they receive <b>${promoReward.toLocaleString()} Gems</b> and you earn <b>${commissionGems.toLocaleString()} GEM</b>!\n\n` +
             `Open the app to view your Ambassador Dashboard.`,
             { inline_keyboard: [[{ text: 'Open Ambassador Dashboard', web_app: { url: miniAppUrl } }]] },
             'HTML'
@@ -14510,7 +14530,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const defaults: Record<string, string> = {
         ambassador_program_enabled:    'true',
-        ambassador_commission_usd:     '0.0001',
+        ambassador_commission_gems:    '50',
+        ambassador_commission_usd:     '0.0005',
         ambassador_promo_reward:       '10000',
         ambassador_max_claims:         '100',
         ambassador_posting_cooldown:   '24',
@@ -14534,6 +14555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const {
         ambassadorProgramEnabled,
+        ambassadorCommissionGems,
         ambassadorCommissionUsd,
         ambassadorPromoReward,
         ambassadorMaxClaims,
@@ -14545,7 +14567,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updates: Record<string, string> = {};
       if (ambassadorProgramEnabled  !== undefined) updates['ambassador_program_enabled']    = ambassadorProgramEnabled  ? 'true' : 'false';
-      if (ambassadorCommissionUsd   !== undefined) updates['ambassador_commission_usd']     = String(parseFloat(ambassadorCommissionUsd)   || 0.0001);
+      if (ambassadorCommissionGems !== undefined) {
+        const gems = Math.max(0, Math.floor(Number(ambassadorCommissionGems) || 0));
+        updates['ambassador_commission_gems'] = String(gems);
+        updates['ambassador_commission_usd'] = (gems / 100000).toFixed(8);
+      } else if (ambassadorCommissionUsd !== undefined) {
+        const usd = Math.max(0, Number(ambassadorCommissionUsd) || 0);
+        updates['ambassador_commission_usd'] = usd.toFixed(8);
+        updates['ambassador_commission_gems'] = String(Math.round(usd * 100000));
+      }
       if (ambassadorPromoReward     !== undefined) updates['ambassador_promo_reward']        = String(parseInt(ambassadorPromoReward)       || 10000);
       if (ambassadorMaxClaims       !== undefined) updates['ambassador_max_claims']          = String(parseInt(ambassadorMaxClaims)         || 100);
       if (ambassadorPostingCooldown !== undefined) updates['ambassador_posting_cooldown']   = String(parseInt(ambassadorPostingCooldown)   || 24);
@@ -14663,7 +14693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function generateAmbassadorPromoCode(ambassadorId: string, promoCodeName: string): Promise<void> {
     try {
       // Load all ambassador settings dynamically from DB
-      const settingKeys = ['ambassador_promo_reward', 'ambassador_max_claims', 'ambassador_promo_expiry_hours', 'ambassador_commission_usd'];
+      const settingKeys = ['ambassador_promo_reward', 'ambassador_max_claims', 'ambassador_promo_expiry_hours', 'ambassador_commission_gems', 'ambassador_commission_usd'];
       const settingRows = await db.select({ k: adminSettings.settingKey, v: adminSettings.settingValue })
         .from(adminSettings)
         .where(sql`${adminSettings.settingKey} IN (${sql.join(settingKeys.map(k => sql`${k}`), sql`, `)})`);
@@ -14672,7 +14702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rewardAmount = getSetting('ambassador_promo_reward', '10000');
       const maxClaims = parseInt(getSetting('ambassador_max_claims', '100'));
       const expiryHours = parseInt(getSetting('ambassador_promo_expiry_hours', '24'));
-      const commissionUsd = getSetting('ambassador_commission_usd', '0.0001');
+      const commissionGems = getSetting('ambassador_commission_gems', String(Math.round((Number(getSetting('ambassador_commission_usd', '0.0005')) || 0.0005) * 100000)));
 
       const codeUpper = promoCodeName.toUpperCase();
       const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
@@ -14715,16 +14745,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = await storage.getUser(ambassador.userId);
         if (user?.telegram_id) {
           const rewardPow = parseInt(rewardAmount).toLocaleString('en-US');
-          const usdValue = (parseInt(rewardAmount) / 100000).toFixed(2);
           const { sendTelegramMessage } = await import('./telegram');
           await sendTelegramMessage(
             `🎯 <b>Your Daily Promo Code is Ready!</b>\n\n` +
             `📛 Code: <code>${codeUpper}</code>\n` +
-            `🎁 Reward: <b>${rewardPow} Gems | $${usdValue}</b>\n` +
+            `🎁 Reward: <b>${rewardPow} Gems</b>\n` +
             `👥 Max Claims: <b>${maxClaims}</b>\n` +
             `⏰ Valid for ${expiryHours} hours\n\n` +
             `Share this code with your followers!\n` +
-            `You earn <b>$${commissionUsd}</b> for every successful claim.\n\n` +
+            `You earn <b>${parseInt(commissionGems).toLocaleString()} GEM</b> for every successful claim.\n\n` +
             `Post it in your channel now! 🚀`,
             { parse_mode: 'HTML', chat_id: user.telegram_id }
           ).catch(() => {});

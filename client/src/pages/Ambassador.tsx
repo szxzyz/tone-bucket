@@ -440,7 +440,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                   { label: t("todays_claims"), value: stats?.todayClaims ?? 0, color: "#2563eb" },
                   { label: t("total_promo_claims"), value: stats?.lifetimeClaims ?? 0, color: "#fff" },
                   { label: "Active Codes", value: dashboard?.activePromos?.length ?? 0, color: "#fff" },
-                  { label: t("total_promo_earnings"), value: `${totalEarnings > 0 ? totalEarnings.toFixed(4) : "0.0000"}`, color: "#22c55e" },
+                  { label: "Total Commission", value: `${Math.round(Math.max(0, totalEarnings) * 100000).toLocaleString()} GEM`, color: "#22c55e" },
                 ].map((stat, i) => (
                   <div key={i} className="rounded-[16px] p-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                     <p className="text-[#666] text-[10px] font-semibold uppercase tracking-wider mb-1">{stat.label}</p>

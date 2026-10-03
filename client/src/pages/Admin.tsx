@@ -5005,7 +5005,7 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
               </div>
               <div className="bg-white/5 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Commission</p>
-                <p className="text-sm font-bold text-green-400 mt-0.5">${parseFloat(totals.totalEarningsUsd || '0').toFixed(4)}</p>
+                <p className="text-sm font-bold text-green-400 mt-0.5">{Math.round(parseFloat(totals.totalEarningsUsd || '0') * 100000).toLocaleString()} GEM</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Rewarded</p>
@@ -5061,7 +5061,7 @@ function AmbassadorAdminSection() {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<'applications' | 'ambassadors' | 'settings'>('applications');
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
-  const [commission, setCommission] = useState('0.0001');
+  const [commission, setCommission] = useState('50');
   const [programEnabled, setProgramEnabled] = useState(true);
   const [promoReward, setPromoReward] = useState('10000');
   const [maxClaims, setMaxClaims] = useState('100');
@@ -5091,7 +5091,7 @@ function AmbassadorAdminSection() {
   // Sync form state whenever settings load from the server
   useEffect(() => {
     if (!settingsData) return;
-    setCommission(settingsData.ambassador_commission_usd || '0.0001');
+    setCommission(settingsData.ambassador_commission_gems || String(Math.round((Number(settingsData.ambassador_commission_usd || '0.0005') || 0.0005) * 100000)));
     setProgramEnabled(settingsData.ambassador_program_enabled !== 'false');
     setPromoReward(settingsData.ambassador_promo_reward || '10000');
     setMaxClaims(settingsData.ambassador_max_claims || '100');
@@ -5175,7 +5175,7 @@ function AmbassadorAdminSection() {
     try {
       await apiRequest('POST', '/api/admin/ambassadors/settings', {
         ambassadorProgramEnabled:   programEnabled,
-        ambassadorCommissionUsd:    commission,
+        ambassadorCommissionGems:  commission,
         ambassadorPromoReward:      promoReward,
         ambassadorMaxClaims:        maxClaims,
         ambassadorPostingCooldown:  postingCooldown,
@@ -5562,17 +5562,17 @@ function AmbassadorAdminSection() {
             </div>
             <div className="px-4 py-3 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-400 font-medium">Commission per Claim (USD)</label>
+                <label className="text-xs text-gray-400 font-medium">Commission per Claim (GEM)</label>
                 <Input
                   type="number"
-                  step="0.0001"
+                  step="1"
                   min="0"
                   value={commission}
                   onChange={e => setCommission(e.target.value)}
-                  placeholder="0.0001"
+                  placeholder="50"
                   className="bg-[#1a1a1a] border-white/10 text-white h-9 text-sm focus:border-white/25"
                 />
-                <p className="text-[10px] text-gray-600">Credited to the ambassador each time their promo code is claimed</p>
+                <p className="text-[10px] text-gray-600">GEM credited to the ambassador for each successful promo-code claim</p>
               </div>
             </div>
           </div>
