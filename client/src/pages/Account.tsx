@@ -51,7 +51,13 @@ export default function Account() {
       return;
     }
     const tgWebApp = (window as any).Telegram?.WebApp;
-    if (tgWebApp?.openLink) tgWebApp.openLink(proofOfPaymentLink);
+    // Keep Telegram channel/bot links inside Telegram; ordinary web URLs use
+    // the regular external-link opener.
+    if (/^https?:\/\/t\.me\//i.test(proofOfPaymentLink) && tgWebApp?.openTelegramLink) {
+      tgWebApp.openTelegramLink(proofOfPaymentLink);
+    } else if (tgWebApp?.openLink) {
+      tgWebApp.openLink(proofOfPaymentLink);
+    }
     else window.open(proofOfPaymentLink, '_blank', 'noopener,noreferrer');
   };
 
