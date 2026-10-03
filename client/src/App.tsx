@@ -82,6 +82,9 @@ function DeepLinkRedirector() {
     } else if (param === "page_referral") {
       localStorage.removeItem("tg_start_param");
       setLocation("/affiliates");
+    } else if (param === "page_ambassador") {
+      localStorage.removeItem("tg_start_param");
+      setLocation("/affiliates?tab=ambassador");
     }
   }, [setLocation]);
   return null;

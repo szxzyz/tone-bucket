@@ -14214,14 +14214,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Notify user
       try {
         if (user?.telegram_id) {
-          const { sendTelegramMessage } = await import('./telegram');
-          await sendTelegramMessage(
-            `<b>Congratulations! You're now a Paid Adz Ambassador!</b>\n\n` +
+          const { getBotUsername, sendUserTelegramNotification } = await import('./telegram');
+          const botUsername = (await getBotUsername())?.replace(/^@/, '') || 'Grab Penny';
+          const promoReward = parseInt(await storage.getAppSetting('ambassador_promo_reward', '10000'), 10) || 10000;
+          const commissionUsd = await storage.getAppSetting('ambassador_commission_usd', '0.0001');
+          const miniAppUrl = `https://t.me/${botUsername}/MyWAdz?startapp=page_ambassador`;
+          await sendUserTelegramNotification(
+            String(user.telegram_id),
+            `<b>🎉 Congratulations!</b>\n\n` +
+            `You're now a <b>${botUsername}</b> Ambassador!\n\n` +
             `Your promo code prefix: <b>${promoCodeName}</b>\n\n` +
             `Your first promo post will go out shortly. After that, a new post will be published automatically every <b>12 hours</b> (2 posts per day).\n\n` +
-            `Every time someone claims your code, they receive <b>2,000 Gems</b> and you earn <b>$0.0001</b>!\n\n` +
+            `Every time someone claims your code, they receive <b>${promoReward.toLocaleString()} Gems</b> and you earn <b>$${commissionUsd}</b>!\n\n` +
             `Open the app to view your Ambassador Dashboard.`,
-            { parse_mode: 'HTML', chat_id: user.telegram_id }
+            { inline_keyboard: [[{ text: 'Open Ambassador Dashboard', web_app: { url: miniAppUrl } }]] },
+            'HTML'
           );
         }
       } catch (_) {}

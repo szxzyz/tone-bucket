@@ -301,9 +301,9 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
   if (status?.application?.status === "pending" && !status?.isAmbassador) {
     return (
       <AmbassadorShell embedded={embedded}>
-        <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
-          <div className="mb-6">
-            <h1 className="text-2xl font-black text-white tracking-tight mb-2">
+        <main className={embedded ? "w-full min-h-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
+          <div className="mb-4">
+            <h1 className="text-lg font-black text-white tracking-tight mb-1">
               {t("under_review_title")}
             </h1>
             <p className="text-[#888] text-xs leading-relaxed">
@@ -311,7 +311,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
             </p>
           </div>
 
-          <div className="rounded-2xl p-4" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+          <div className="rounded-[16px] p-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
             <div className="flex items-center justify-between py-2 border-b border-white/5">
               <p className="text-[#888] text-xs font-semibold uppercase tracking-wider">{t("channel_label")}</p>
               <p className="text-white text-sm font-medium">{status.application.channelLink}</p>
@@ -330,9 +330,9 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
             )}
           </div>
 
-          <div className="mt-4 rounded-2xl p-4 flex items-center gap-3" style={{ background: "rgba(234,179,8,0.08)" }}>
-            <Loader2 className="w-5 h-5 text-yellow-400 animate-spin flex-shrink-0" />
-            <p className="text-yellow-400 text-sm font-medium">{t("review_in_progress")}</p>
+          <div className="mt-3 rounded-[16px] p-3 flex items-center gap-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)", border: "1px solid rgba(234,179,8,0.18)" }}>
+            <Loader2 className="w-4 h-4 text-yellow-400 animate-spin flex-shrink-0" />
+            <p className="text-yellow-400 text-xs font-semibold">{t("review_in_progress")}</p>
           </div>
         </main>
       </AmbassadorShell>
@@ -343,7 +343,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
   if (status?.application?.status === "rejected" && !status?.isAmbassador) {
     return (
       <AmbassadorShell embedded={embedded}>
-        <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
+        <main className={embedded ? "w-full min-h-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
           <div className="mb-4">
             <h1 className="text-lg font-black text-white tracking-tight mb-1">
               {t("not_approved_title")}
@@ -389,11 +389,11 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
     return (
       <AmbassadorShell embedded={embedded}>
-        <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
+        <main className={embedded ? "w-full min-h-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
 
           {/* Header */}
           <div className="mb-4">
-            <h1 className="text-2xl font-black text-white tracking-tight mb-1">
+            <h1 className="text-lg font-black text-white tracking-tight mb-1">
               {t("ambassador_dashboard")}
             </h1>
             <p className="text-[#888] text-xs leading-relaxed">
@@ -402,7 +402,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
           </div>
 
           {/* Two-Tab Navigation */}
-          <div className="flex rounded-2xl overflow-hidden mb-4" style={{ background: "#111" }}>
+          <div className="flex rounded-[14px] overflow-hidden mb-3 p-1" style={{ background: "rgba(255,255,255,0.06)" }}>
             {([
               { key: 'management' as const, label: 'Ambassador Management' },
               { key: 'promos' as const, label: 'Promo Codes' },
@@ -410,11 +410,11 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
               <button
                 key={tab.key}
                 onClick={() => setAmbActiveTab(tab.key)}
-                className="flex-1 py-3 text-xs font-semibold transition-all"
+                className="flex-1 h-[38px] text-[11px] font-bold transition-all"
                 style={{
-                  background: ambActiveTab === tab.key ? "#2563eb" : "transparent",
+                  background: ambActiveTab === tab.key ? "linear-gradient(135deg, #2563eb, #3b82f6)" : "transparent",
                   color: ambActiveTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
-                  borderRadius: ambActiveTab === tab.key ? 14 : 0,
+                  borderRadius: 10,
                 }}
               >
                 {tab.label}
@@ -433,7 +433,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                   { label: "Active Codes", value: dashboard?.activePromos?.length ?? 0, color: "#fff" },
                   { label: t("total_promo_earnings"), value: `${totalEarnings > 0 ? totalEarnings.toFixed(4) : "0.0000"}`, color: "#22c55e" },
                 ].map((stat, i) => (
-                  <div key={i} className="rounded-xl p-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+                  <div key={i} className="rounded-[16px] p-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                     <p className="text-[#666] text-[10px] font-semibold uppercase tracking-wider mb-1">{stat.label}</p>
                     {dashLoading ? <StatSkeleton /> : (
                       <p className="font-black text-lg" style={{ color: stat.color }}>{stat.value}</p>
@@ -679,8 +679,8 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
               <div className="mb-3">
                 <button
                   onClick={() => setHistoryOpen(true)}
-                  className="w-full h-12 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform"
-                  style={{ background: "#2563eb" }}
+                  className="w-full h-[38px] rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                  style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 8px 22px rgba(37,99,235,0.22)" }}
                 >
                   <Scroll className="w-4 h-4 text-white" />
                   <span className="text-white font-bold text-sm">{t("claim_history_label")}</span>
@@ -902,7 +902,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
   return (
     <AmbassadorShell embedded={embedded}>
-      <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
+      <main className={embedded ? "w-full min-h-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
 
         {/* Header */}
         <div className="mb-4">
