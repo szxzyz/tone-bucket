@@ -172,9 +172,9 @@ export default function MissionDailyRewards() {
             ) : mysteryOpened ? "DONE" : "OPEN"}
           </button>
         </div>
+        <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
+        <DailyMissionTasks />
       </div>
-
-      <DailyMissionTasks />
       <DailyCheckinSheet
         open={checkinSheetOpen}
         onClose={() => setCheckinSheetOpen(false)}
