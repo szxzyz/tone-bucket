@@ -68,6 +68,10 @@ export default function Account() {
   return (
     <Layout>
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-0">
+        <div className="px-1 mb-3">
+          <h1 className="m-0 text-xl font-black text-white">Profile</h1>
+          <p className="m-0 mt-1 text-xs text-white/45">Manage your language settings and TON wallet payouts</p>
+        </div>
         <section className="rounded-2xl p-4 mb-3" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">Account Info</p>
           <div className="flex items-center gap-3">
