@@ -2176,25 +2176,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? Math.min(100, Math.max(0, parsedCommissionPercent))
               : 5;
             const l1Rate = commissionPercent / 100;
+            const configuredAdsRequired = Number.parseInt(
+              allAdminSettings.find((s: any) => s.settingKey === 'referral_ads_required')?.settingValue || '5',
+              10,
+            );
+            const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
+              ? configuredAdsRequired
+              : 5;
             const [activeReferral] = await db
               .select({ referrerId: referrals.referrerId })
               .from(referrals)
               .where(and(
                 eq(referrals.refereeId, userId),
-                eq(referrals.status, 'completed'),
+                inArray(referrals.status, ['completed', 'active']),
               ))
               .limit(1);
             const l1Referrer = activeReferral ? await storage.getUser(activeReferral.referrerId) : null;
-            if (l1Referrer && l1Rate > 0) {
+            if (l1Referrer && !user.banned && l1Rate > 0) {
               const l1CommissionGems = Math.ceil(adRewardGems * l1Rate);
               const credited = await db.transaction(async (tx) => {
                 // Serialize on the original earning so retries/concurrent callbacks cannot pay twice.
                 const [lockedEarning] = await tx
-                  .select({ id: earnings.id })
+                  .select({ id: earnings.id, userId: earnings.userId, source: earnings.source })
                   .from(earnings)
                   .where(eq(earnings.id, adWatchEarning.id))
                   .for('update');
-                if (!lockedEarning) return false;
+                if (!lockedEarning || lockedEarning.userId !== userId || lockedEarning.source !== 'ad_watch') return false;
+
+                // Don't let a stale completed/active row bypass the user's actual activity threshold.
+                const [activeReferralRow] = await tx
+                  .select({ id: referrals.id, refereeBanned: users.banned })
+                  .from(referrals)
+                  .innerJoin(users, eq(users.id, referrals.refereeId))
+                  .where(and(
+                    eq(referrals.referrerId, l1Referrer.id),
+                    eq(referrals.refereeId, userId),
+                    inArray(referrals.status, ['completed', 'active']),
+                  ))
+                  .limit(1);
+                if (!activeReferralRow || activeReferralRow.refereeBanned) return false;
+                const [activityCount] = await tx
+                  .select({ count: sql<number>`count(*)` })
+                  .from(earnings)
+                  .where(and(eq(earnings.userId, userId), eq(earnings.source, 'ad_watch')));
+                if (Number(activityCount?.count || 0) < referralAdsRequired) return false;
+
                 const [alreadyCredited] = await tx
                   .select({ id: referralCommissions.id })
                   .from(referralCommissions)

@@ -1522,6 +1522,10 @@ export class DatabaseStorage implements IStorage {
         : 5;
       if (commissionPercent <= 0) return;
       const commissionRate = commissionPercent / 100;
+      const configuredAdsRequired = Number.parseInt(await this.getAppSetting('referral_ads_required', '5'), 10);
+      const referralAdsRequired = Number.isFinite(configuredAdsRequired) && configuredAdsRequired >= 0
+        ? configuredAdsRequired
+        : 5;
 
       const credited = await db.transaction(async (tx) => {
         // Lock the original earning so retries/concurrent calls cannot pay it twice.
@@ -1547,14 +1551,25 @@ export class DatabaseStorage implements IStorage {
         if (alreadyCredited) return null;
 
         const [referralInfo] = await tx
-          .select({ referrerId: referrals.referrerId })
+          .select({ referrerId: referrals.referrerId, refereeBanned: users.banned })
           .from(referrals)
+          .innerJoin(users, eq(users.id, referrals.refereeId))
           .where(and(
             eq(referrals.refereeId, userId),
-            eq(referrals.status, 'completed')
+            inArray(referrals.status, ['completed', 'active'])
           ))
           .limit(1);
-        if (!referralInfo) return null;
+        if (!referralInfo || referralInfo.refereeBanned) return null;
+
+        // A stale/incorrect status must never bypass the real activity threshold.
+        const [activityCount] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(earnings)
+          .where(and(
+            eq(earnings.userId, userId),
+            eq(earnings.source, 'ad_watch')
+          ));
+        if (Number(activityCount?.count || 0) < referralAdsRequired) return null;
 
         const commissionAmount = (persistedAmount * commissionRate).toFixed(8);
         if (!Number.isFinite(Number(commissionAmount)) || Number(commissionAmount) <= 0) return null;
