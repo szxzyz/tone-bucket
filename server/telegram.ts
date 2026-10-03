@@ -968,7 +968,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 
     const replyMarkup = {
       inline_keyboard: [
-        [{ text: '⭐ Open Star Earning', url: botLink }],
+        [{ text: '💸 Start Earning', url: botLink }],
       ]
     };
 
@@ -3088,7 +3088,7 @@ Share your unique referral link and earn GEM when your friends join:
           const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
           const successKeyboard = {
             inline_keyboard: [
-              [{ text: '🚀 Start earning', url: referralLink }],
+              [{ text: '💸 Start Earning', url: referralLink }],
               [{ text: '👤 Share with friends', url: shareUrl }],
             ],
           };
