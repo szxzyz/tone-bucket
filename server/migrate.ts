@@ -579,6 +579,35 @@ export async function ensureDatabaseSchema(): Promise<void> {
       ON CONFLICT (setting_key) DO NOTHING
     `);
 
+    // Starter Tasks are official admin-created tasks, separate from advertiser/partner tasks.
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS starter_tasks (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        title TEXT NOT NULL,
+        subtitle TEXT DEFAULT '',
+        link TEXT DEFAULT '',
+        reward_amount DECIMAL(30,0) NOT NULL DEFAULT '100',
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS starter_task_claims (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        starter_task_id VARCHAR NOT NULL REFERENCES starter_tasks(id),
+        user_id VARCHAR NOT NULL REFERENCES users(id),
+        reward_amount DECIMAL(30,0) NOT NULL,
+        claimed_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT starter_task_user_unique UNIQUE (starter_task_id, user_id)
+      );
+    `);
+    await db.execute(sql`
+      INSERT INTO admin_settings (setting_key, setting_value, description) VALUES
+        ('referral_bio_reward', '500', 'GEM reward for putting the referral link in Telegram bio'),
+        ('ads_10_reward', '100', 'GEM reward for watching 10 video ads')
+      ON CONFLICT (setting_key) DO NOTHING
+    `);
+
     // Default admin settings
     await db.execute(sql`
       INSERT INTO admin_settings (setting_key, setting_value, description)

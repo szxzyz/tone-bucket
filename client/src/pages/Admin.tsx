@@ -317,6 +317,7 @@ export default function AdminPage() {
               ...(can('manage_admins') ? [{ value: 'admins', icon: <Shield size={13}/>, label: 'Admins' }] : []),
               { value: 'ambassadors', icon: <Award size={13}/>, label: 'Ambassadors' },
               { value: 'partner',     icon: <Handshake size={13}/>, label: 'Partner Tasks' },
+              { value: 'starter',     icon: <Target size={13}/>, label: 'Starter Tasks' },
               { value: 'backups',     icon: <Database size={13}/>,  label: 'Backups' },
             ] as { value: string; icon: React.ReactNode; label: string }[]).map(tab => (
               <TabsTrigger key={tab.value} value={tab.value} className="flex-shrink-0 text-xs px-3 py-1.5 whitespace-nowrap flex items-center gap-1">
@@ -459,6 +460,10 @@ export default function AdminPage() {
 
           <TabsContent value="partner" className="mt-0">
             <PartnerTasksSection />
+          </TabsContent>
+
+          <TabsContent value="starter" className="mt-0">
+            <StarterTasksSection />
           </TabsContent>
 
           <TabsContent value="backups" className="mt-0">
@@ -2548,6 +2553,8 @@ function SettingsSection() {
     checkAnnouncementReward: '1000',
     adsgramCheckinReward: '1000',
     firstActiveReferralReward: '2500',
+    referralBioReward: '500',
+    ads10Reward: '100',
     monetagMissionReward: '50',
     monetagMissionLimit: '10',
     adexiumMissionReward: '50',
@@ -2612,6 +2619,8 @@ function SettingsSection() {
         checkAnnouncementReward: settingsData.checkAnnouncementReward?.toString() || '1000',
         adsgramCheckinReward: settingsData.adsgramCheckinReward?.toString() || '1000',
         firstActiveReferralReward: settingsData.firstActiveReferralReward?.toString() || '2500',
+        referralBioReward: settingsData.referralBioReward?.toString() || '500',
+        ads10Reward: settingsData.ads10Reward?.toString() || '100',
         monetagMissionReward: settingsData.monetagMissionReward?.toString() || '50',
         monetagMissionLimit: settingsData.monetagMissionLimit?.toString() || '10',
         adexiumMissionReward: settingsData.adexiumMissionReward?.toString() || '50',
@@ -2777,6 +2786,8 @@ function SettingsSection() {
         checkAnnouncementReward: parseInt((settings as any).checkAnnouncementReward) || 1000,
         adsgramCheckinReward: parseInt((settings as any).adsgramCheckinReward) || 1000,
         firstActiveReferralReward: parseInt((settings as any).firstActiveReferralReward) || 2500,
+        referralBioReward: parseInt((settings as any).referralBioReward) || 500,
+        ads10Reward: parseInt((settings as any).ads10Reward) || 100,
         // Per-provider ad card settings
         adsgramAdLimit: parseInt((settings as any).adsgramAdLimit) || 40,
         adsgramRewardPerAd: parseInt((settings as any).adsgramRewardPerAd) || 50,
@@ -3609,6 +3620,17 @@ function SettingsSection() {
               <Input type="number" value={(settings as any).adsgramCheckinReward || '1000'}
                 onChange={(e) => setSettings({ ...settings, adsgramCheckinReward: e.target.value } as any)}
                 placeholder="1000" min="0" className="h-8" />
+            </div>
+
+            <div className="p-3 border rounded-lg border-green-500/20 bg-green-500/5">
+              <Label className="text-xs font-semibold text-green-400 block mb-2">🔗 Telegram Bio Referral (daily)</Label>
+              <Input type="number" value={(settings as any).referralBioReward || '500'} onChange={(e) => setSettings({ ...settings, referralBioReward: e.target.value } as any)} placeholder="500" min="0" className="h-8" />
+              <p className="text-xs text-muted-foreground mt-1">Reward for copying the referral link into Telegram bio.</p>
+            </div>
+            <div className="p-3 border rounded-lg border-blue-500/20 bg-blue-500/5">
+              <Label className="text-xs font-semibold text-blue-400 block mb-2">📺 Watch 10 Video Ads (daily)</Label>
+              <Input type="number" value={(settings as any).ads10Reward || '100'} onChange={(e) => setSettings({ ...settings, ads10Reward: e.target.value } as any)} placeholder="100" min="0" className="h-8" />
+              <p className="text-xs text-muted-foreground mt-1">Reward after the user watches 10 verified ads.</p>
             </div>
 
             {/* First Active Referral Mission */}
@@ -5564,6 +5586,31 @@ function AmbassadorAdminSection() {
       )}
     </div>
   );
+}
+
+function StarterTasksSection() {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [link, setLink] = useState('');
+  const [rewardAmount, setRewardAmount] = useState('100');
+  const { data, isLoading } = useQuery<{ tasks: any[] }>({ queryKey: ['/api/admin/starter-tasks'], queryFn: () => apiRequest('GET', '/api/admin/starter-tasks').then(r => r.json()) });
+  const save = async () => { if (!title.trim()) return showNotification('Title is required', 'error'); try { await apiRequest('POST', '/api/admin/starter-tasks', { title, subtitle, link, rewardAmount: Number(rewardAmount) || 0 }); setTitle(''); setSubtitle(''); setLink(''); setRewardAmount('100'); queryClient.invalidateQueries({ queryKey: ['/api/admin/starter-tasks'] }); showNotification('Starter task added', 'success'); } catch (e: any) { showNotification(e.message || 'Failed to add task', 'error'); } };
+  const remove = async (id: string) => { try { await apiRequest('DELETE', `/api/admin/starter-tasks/${id}`); queryClient.invalidateQueries({ queryKey: ['/api/admin/starter-tasks'] }); showNotification('Starter task deleted', 'success'); } catch (e: any) { showNotification(e.message || 'Failed to delete task', 'error'); } };
+  return <div className="space-y-4">
+    <div><h2 className="text-lg font-semibold text-white">Starter Tasks</h2><p className="text-xs text-gray-500 mt-1">Official app tasks shown separately from advertiser and partner tasks. Each task has its own GEM reward and can be claimed once per user.</p></div>
+    <div className="bg-[#121212] border border-white/10 rounded-xl p-4 space-y-3">
+      <h3 className="text-sm font-semibold text-white">Add official task</h3>
+      <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" className="bg-[#1a1a1a] border-white/10 text-white" />
+      <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Subtitle / instructions" className="bg-[#1a1a1a] border-white/10 text-white" />
+      <Input value={link} onChange={e => setLink(e.target.value)} placeholder="Optional Telegram or website link" className="bg-[#1a1a1a] border-white/10 text-white" />
+      <div className="flex gap-2"><Input type="number" min="0" value={rewardAmount} onChange={e => setRewardAmount(e.target.value)} placeholder="Reward GEM" className="bg-[#1a1a1a] border-white/10 text-white" /><Button onClick={save} className="bg-[#6b21a8] text-white"><Plus size={14} className="mr-1"/>Add</Button></div>
+    </div>
+    <div className="bg-[#121212] border border-white/10 rounded-xl divide-y divide-white/5">
+      <div className="px-4 py-3 text-sm font-semibold text-white">Published starter tasks</div>
+      {isLoading ? <div className="p-4 text-xs text-gray-400">Loading…</div> : (data?.tasks || []).length === 0 ? <div className="p-4 text-xs text-gray-500">No starter tasks yet.</div> : (data?.tasks || []).map((task: any) => <div key={task.id} className="p-4 flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-semibold text-white">{task.title}</p><p className="text-xs text-gray-400 mt-1">{task.subtitle || 'No subtitle'}</p><p className="text-xs text-[#c084fc] mt-2">{task.rewardAmount} GEM {task.link ? `· ${task.link}` : ''}</p></div><Button size="sm" variant="outline" onClick={() => remove(task.id)} className="h-7 text-[10px] border-red-500/30 text-red-400"><Trash2 size={12}/></Button></div>)}
+    </div>
+  </div>;
 }
 
 // ─── Partner Tasks Section ─────────────────────────────────────

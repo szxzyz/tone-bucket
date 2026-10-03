@@ -2,104 +2,30 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 
 function DailyTaskItem({ icon, title, subtitle, buttonLabel, goldReward = 0, isCompleted, isClaimed, onAction, onClaim }: any) {
-  return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px',
-        width: '100%', boxSizing: 'border-box', background: 'transparent',
-        borderRadius: 0, marginBottom: 0,
-      }}
-      onClick={isClaimed ? undefined : (isCompleted ? onClaim : onAction)}
-    >
-      <div style={{ width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={icon} alt="" loading="lazy" decoding="async" style={{ width: 36, height: 36, objectFit: 'contain' }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, lineHeight: 1.2 }}>{title}</div>
-        {subtitle ? <div style={{ color: isCompleted ? '#22c55e' : 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 4, lineHeight: 1.25 }}>{subtitle}</div> : null}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff' }}>
-            <img src="/assets/gems-icon.svg" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-            <span style={{ fontSize: 16, fontWeight: 900, color: '#ffffff' }}>{Number(goldReward).toLocaleString()}</span>
-          </span>
-        </div>
-      </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); isCompleted ? onClaim() : onAction(); }}
-        disabled={isClaimed}
-        style={{
-          background: isClaimed ? 'rgba(255,255,255,0.06)' : isCompleted ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #3d1580, #6b21a8)',
-          color: isClaimed ? 'rgba(255,255,255,0.3)' : '#fff', border: 'none', width: buttonLabel === 'Share' ? 78 : 70,
-          height: 38, boxSizing: 'border-box' as const, borderRadius: 10, padding: 0, fontSize: 12, fontWeight: 800,
-          cursor: isClaimed ? 'not-allowed' : 'pointer', flexShrink: 0, letterSpacing: '0.03em',
-          boxShadow: isClaimed ? 'none' : isCompleted ? '0 2px 12px rgba(34,197,94,0.4)' : '0 2px 12px rgba(61,21,128,0.4)',
-        }}
-        className="active:scale-95 transition-transform"
-      >
-        {isClaimed ? 'DONE' : isCompleted ? 'CLAIM' : buttonLabel}
-      </button>
-    </div>
-  );
+  return <div style={{display:'flex',alignItems:'center',gap:14,padding:'16px',width:'100%',boxSizing:'border-box'}}>
+    <div style={{width:36,height:36,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}><img src={icon} alt="" loading="lazy" style={{width:36,height:36,objectFit:'contain'}} /></div>
+    <div style={{flex:1,minWidth:0}}><div style={{color:'#fff',fontSize:15,fontWeight:800,lineHeight:1.2}}>{title}</div>{subtitle&&<div style={{color:isCompleted?'#22c55e':'rgba(255,255,255,.45)',fontSize:12,marginTop:4,lineHeight:1.3}}>{subtitle}</div>}<div style={{display:'flex',alignItems:'center',gap:3,marginTop:7,color:'#fff',fontSize:16,fontWeight:900}}><img src="/assets/gems-icon.svg" alt="" style={{width:20,height:20}} />{Number(goldReward).toLocaleString()}</div></div>
+    <button onClick={(e)=>{e.stopPropagation();isCompleted?onClaim():onAction();}} disabled={isClaimed} style={{background:isClaimed?'rgba(255,255,255,.06)':isCompleted?'linear-gradient(135deg,#22c55e,#16a34a)':'linear-gradient(135deg,#3d1580,#6b21a8)',color:isClaimed?'rgba(255,255,255,.3)':'#fff',border:0,width:78,height:38,borderRadius:10,fontSize:12,fontWeight:800,cursor:isClaimed?'not-allowed':'pointer',flexShrink:0}}>{isClaimed?'DONE':isCompleted?'CLAIM':buttonLabel}</button>
+  </div>;
 }
 
 export default function DailyMissionTasks() {
-  const queryClient = useQueryClient();
-  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 5 * 60_000, retry: false });
-  const { data: missionStatus } = useQuery<any>({ queryKey: ['/api/missions/status'], retry: false });
-
-  const claimMissionMutation = useMutation({
-    mutationFn: async ({ type, goalType }: { type: string; goalType?: string }) => {
-      const endpoint = type === 'ads_goal' ? '/api/missions/ads-goal/claim' : `/api/missions/${type.replace(/_/g, '-')}/claim`;
-      const res = await fetch(endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goalType }), credentials: 'include',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to claim');
-      return data;
-    },
-    onSuccess: (data) => {
-      showNotification(data.message || 'Reward claimed!', 'success');
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/missions/status'] });
-    },
-    onError: (err: Error) => showNotification(err.message, 'error'),
-  });
-
-  return (
-    <>
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />
-      <DailyTaskItem
-        icon="/assets/check-updates.png" title="Check for updates" subtitle="" buttonLabel="Go" goldReward={100}
-        isCompleted={missionStatus?.checkForUpdates?.completed} isClaimed={missionStatus?.checkForUpdates?.claimed}
-        onAction={() => {
-          const url = appConfig?.updateUrl || appConfig?.channelUrl;
-          if (!url) {
-            showNotification('Update link is not configured yet', 'error');
-            return;
-          }
-          if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url); else window.open(url, '_blank');
-          setTimeout(() => claimMissionMutation.mutate({ type: 'check_for_updates' }), 2000);
-        }}
-        onClaim={() => claimMissionMutation.mutate({ type: 'check_for_updates' })}
-      />
-      <DailyTaskItem
-        icon="/assets/share-with-friends.png" title="Share With Friends" subtitle="" buttonLabel="Share" goldReward={100}
-        isCompleted={missionStatus?.shareReferral?.completed} isClaimed={missionStatus?.shareReferral?.claimed}
-        onAction={async () => {
-          try {
-            const res = await fetch('/api/share/prepare-message', { method: 'POST', credentials: 'include' });
-            const data = await res.json();
-            if (data.success && window.Telegram?.WebApp?.shareMessage) {
-              window.Telegram.WebApp.shareMessage(data.messageId, (sent: boolean) => { if (sent) claimMissionMutation.mutate({ type: 'share_referral' }); });
-            } else {
-              const link = data.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(data.referralLink)}`;
-              if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(link); else window.open(link, '_blank');
-              setTimeout(() => claimMissionMutation.mutate({ type: 'share_referral' }), 3000);
-            }
-          } catch (e) { console.error(e); }
-        }}
-        onClaim={() => claimMissionMutation.mutate({ type: 'share_referral' })}
-      />
-    </>
-  );
+  const queryClient=useQueryClient();
+  const {data:appConfig}=useQuery<any>({queryKey:['/api/config/app'],staleTime:300000,retry:false});
+  const {data:user}=useQuery<any>({queryKey:['/api/auth/user'],retry:false});
+  const {data:missionStatus}=useQuery<any>({queryKey:['/api/missions/status'],retry:false});
+  const {data:starterData}=useQuery<any>({queryKey:['/api/starter-tasks'],retry:false});
+  const claimMutation=useMutation({mutationFn:async({type,goalType}:{type:string;goalType?:string})=>{const endpoint=type==='ads_goal'?'/api/missions/ads-goal/claim':`/api/missions/${type.replace(/_/g,'-')}/claim`;const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goalType}),credentials:'include'});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed to claim');return d;},onSuccess:d=>{showNotification(d.message||'Reward claimed!','success');queryClient.invalidateQueries({queryKey:['/api/auth/user']});queryClient.invalidateQueries({queryKey:['/api/missions/status']});},onError:(e:Error)=>showNotification(e.message,'error')});
+  const starterClaim=useMutation({mutationFn:async(id:string)=>{const r=await fetch(`/api/starter-tasks/${id}/claim`,{method:'POST',credentials:'include'});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed to claim');return d;},onSuccess:d=>{showNotification(d.message||'Starter reward claimed!','success');queryClient.invalidateQueries({queryKey:['/api/starter-tasks']});queryClient.invalidateQueries({queryKey:['/api/auth/user']});},onError:(e:Error)=>showNotification(e.message,'error')});
+  const referralLink=user?.referralCode&&appConfig?.botUsername?`https://t.me/${String(appConfig.botUsername).replace(/^@/,'')}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`:'';
+  const copyBioLink=async()=>{if(!referralLink)return showNotification('Referral link is not available yet','error');await navigator.clipboard.writeText(referralLink);showNotification('Referral link copied. Paste it in Telegram bio, save, then tap CLAIM.','success');};
+  const openAds=()=>{const el=document.querySelector('[data-ad-watching-section]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});else showNotification('Open Watch Ads and watch 10 video ads.','info');};
+  const starterTasks=starterData?.tasks||[];
+  return <><div style={{height:1,background:'rgba(255,255,255,.05)',margin:'0 16px'}} />
+    <DailyTaskItem icon="/assets/check-updates.png" title="Check for updates" subtitle="" buttonLabel="GO" goldReward={100} isCompleted={!!missionStatus?.checkForUpdates?.completed} isClaimed={!!missionStatus?.checkForUpdates?.claimed} onAction={()=>{const url=appConfig?.updateUrl||appConfig?.channelUrl;if(!url)return showNotification('Update link is not configured yet','error');if(window.Telegram?.WebApp)window.Telegram.WebApp.openTelegramLink(url);else window.open(url,'_blank');setTimeout(()=>claimMutation.mutate({type:'check_for_updates'}),2000)}} onClaim={()=>claimMutation.mutate({type:'check_for_updates'})}/>
+    <DailyTaskItem icon="/assets/share-with-friends.png" title="Share With Friends" subtitle="" buttonLabel="SHARE" goldReward={100} isCompleted={!!missionStatus?.shareReferral?.completed} isClaimed={!!missionStatus?.shareReferral?.claimed} onAction={async()=>{try{const r=await fetch('/api/share/prepare-message',{method:'POST',credentials:'include'});const d=await r.json();if(d.success&&window.Telegram?.WebApp?.shareMessage)window.Telegram.WebApp.shareMessage(d.messageId,(sent:boolean)=>{if(sent)claimMutation.mutate({type:'share_referral'})});else{const link=d.fallbackUrl||`https://t.me/share/url?url=${encodeURIComponent(d.referralLink)}`;if(window.Telegram?.WebApp)window.Telegram.WebApp.openTelegramLink(link);else window.open(link,'_blank');setTimeout(()=>claimMutation.mutate({type:'share_referral'}),3000)}}catch(e){showNotification('Unable to prepare sharing','error')}}} onClaim={()=>claimMutation.mutate({type:'share_referral'})}/>
+    <DailyTaskItem icon="/assets/share-with-friends.png" title="Put your referral link in your Telegram bio" subtitle="Settings > Edit profile > Bio: paste the link, save, then tap Claim." buttonLabel="COPY" goldReward={missionStatus?.referralBio?.reward??500} isCompleted={!!missionStatus?.referralBio?.completed} isClaimed={!!missionStatus?.referralBio?.claimed} onAction={copyBioLink} onClaim={()=>claimMutation.mutate({type:'referral_bio'})}/>
+    <DailyTaskItem icon="/assets/watch-ads.png" title="Watch 10 Video Ads" subtitle={`${missionStatus?.ads10?.progress??0}/10 video ads watched today`} buttonLabel="WATCH" goldReward={missionStatus?.ads10?.reward??100} isCompleted={!!missionStatus?.ads10?.completed} isClaimed={!!missionStatus?.ads10?.claimed} onAction={openAds} onClaim={()=>claimMutation.mutate({type:'ads_goal',goalType:'ads_10'})}/>
+    {starterTasks.length>0&&<div style={{marginTop:8,borderTop:'1px solid rgba(255,255,255,.06)'}}><div style={{padding:'16px 16px 6px',color:'#c084fc',fontSize:13,fontWeight:900,letterSpacing:'.08em',textTransform:'uppercase'}}>Starter Tasks</div>{starterTasks.map((task:any)=><DailyTaskItem key={task.id} icon="/assets/check-updates.png" title={task.title} subtitle={task.subtitle||'Complete this official app task, then claim your reward.'} buttonLabel={task.link?'OPEN':'CLAIM'} goldReward={task.rewardAmount} isCompleted={!task.claimed} isClaimed={task.claimed} onAction={()=>{if(task.link)window.Telegram?.WebApp?.openTelegramLink?window.Telegram.WebApp.openTelegramLink(task.link):window.open(task.link,'_blank');}} onClaim={()=>starterClaim.mutate(task.id)}/>)}</div>}
+  </>;
 }

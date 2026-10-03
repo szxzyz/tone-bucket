@@ -420,6 +420,26 @@ export const dailyMissions = pgTable("daily_missions", {
 ]);
 
 // Per-user/platform/day counters for mission ad rewards (prevents unlimited-claim exploits)
+export const starterTasks = pgTable("starter_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  subtitle: text("subtitle").default(""),
+  link: text("link").default(""),
+  rewardAmount: decimal("reward_amount", { precision: 30, scale: 0 }).notNull().default("100"),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const starterTaskClaims = pgTable("starter_task_claims", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  starterTaskId: varchar("starter_task_id").references(() => starterTasks.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  rewardAmount: decimal("reward_amount", { precision: 30, scale: 0 }).notNull(),
+  claimedAt: timestamp("claimed_at").defaultNow(),
+}, (table) => [unique("starter_task_user_unique").on(table.starterTaskId, table.userId)]);
+
 export const missionAdClaims = pgTable("mission_ad_claims", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
@@ -499,6 +519,7 @@ export const insertBanLogSchema = createInsertSchema(banLogs).omit({ id: true, c
 export const insertSpinDataSchema = createInsertSchema(spinData).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSpinHistorySchema = createInsertSchema(spinHistory).omit({ id: true, createdAt: true });
 export const insertDailyMissionSchema = createInsertSchema(dailyMissions).omit({ id: true, createdAt: true });
+export const insertStarterTaskSchema = createInsertSchema(starterTasks).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertBlockedCountrySchema = createInsertSchema(blockedCountries).omit({ id: true, createdAt: true });
 export const insertAdminRoleSchema = createInsertSchema(adminRoles).omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -695,6 +716,8 @@ export type InsertSpinData = z.infer<typeof insertSpinDataSchema>;
 export type SpinHistory = typeof spinHistory.$inferSelect;
 export type InsertSpinHistory = z.infer<typeof insertSpinHistorySchema>;
 export type DailyMission = typeof dailyMissions.$inferSelect;
+export type StarterTask = typeof starterTasks.$inferSelect;
+export type StarterTaskClaim = typeof starterTaskClaims.$inferSelect;
 export type InsertDailyMission = z.infer<typeof insertDailyMissionSchema>;
 export type BlockedCountry = typeof blockedCountries.$inferSelect;
 export type InsertBlockedCountry = z.infer<typeof insertBlockedCountrySchema>;

@@ -278,7 +278,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
   return (
     <>
-      <div className={hideTitle ? "" : "mb-4"}>
+      <div data-ad-watching-section className={hideTitle ? "" : "mb-4"}>
         {!hideTitle && (
           <div className="mb-3 text-left">
             <h2 className="text-[15px] font-extrabold text-white tracking-widest uppercase mb-0.5">

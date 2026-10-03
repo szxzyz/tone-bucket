@@ -22,6 +22,8 @@ import {
   spinData,
   spinHistory,
   dailyMissions,
+  starterTasks,
+  starterTaskClaims,
   missionAdClaims,
   adSessions,
   adsgramRewardCallbacks,
@@ -4994,6 +4996,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checkAnnouncementReward: parseInt(getSetting('check_announcement_reward', '1000')),
         adsgramCheckinReward: parseInt(getSetting('adsgram_checkin_reward', '1000')),
         firstActiveReferralReward: parseInt(getSetting('first_active_referral_reward', '2500')),
+        referralBioReward: parseInt(getSetting('referral_bio_reward', '500')),
+        ads10Reward: parseInt(getSetting('ads_10_reward', '100')),
         // Per-provider ad card settings (with enabled/disabled status)
         adsgramAdLimit: parseInt(getSetting('adsgram_ad_limit', '40')),
         adsgramRewardPerAd: parseInt(getSetting('adsgram_reward_per_ad', '50')),
@@ -6130,6 +6134,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, message: "Failed to process self-unban" });
     }
   });
+
+  // ============ Official Starter Tasks (separate from advertiser tasks) ============
+  app.get('/api/starter-tasks', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.user?.id;
+      const tasks = await db.select().from(starterTasks).where(eq(starterTasks.isActive, true)).orderBy(starterTasks.sortOrder, starterTasks.createdAt);
+      const claims = await db.select({ taskId: starterTaskClaims.starterTaskId }).from(starterTaskClaims).where(eq(starterTaskClaims.userId, userId));
+      const claimed = new Set(claims.map((c: any) => c.taskId));
+      res.json({ success: true, tasks: tasks.map(t => ({ ...t, claimed: claimed.has(t.id) })) });
+    } catch (error) { console.error('Starter tasks fetch error:', error); res.status(500).json({ error: 'Failed to load starter tasks' }); }
+  });
+
+  app.post('/api/starter-tasks/:taskId/claim', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.user?.id;
+      const [task] = await db.select().from(starterTasks).where(and(eq(starterTasks.id, req.params.taskId), eq(starterTasks.isActive, true))).limit(1);
+      if (!task) return res.status(404).json({ error: 'Starter task not found' });
+      const result = await db.transaction(async (tx) => {
+        const inserted = await tx.insert(starterTaskClaims).values({ starterTaskId: task.id, userId, rewardAmount: task.rewardAmount }).onConflictDoNothing().returning({ id: starterTaskClaims.id });
+        if (!inserted.length) return { already: true };
+        await tx.update(users).set({ balance: sql`COALESCE(${users.balance}, 0) + ${task.rewardAmount}`, updatedAt: new Date() }).where(eq(users.id, userId));
+        await tx.update(userBalances).set({ balance: sql`COALESCE(${userBalances.balance}, 0) + ${task.rewardAmount}`, updatedAt: new Date() });
+        await tx.insert(earnings).values({ userId, amount: String(task.rewardAmount), source: 'starter_task', description: task.title, currency: 'GOLD' });
+        await tx.insert(transactions).values({ userId, amount: String(task.rewardAmount), type: 'addition', source: 'starter_task', description: task.title });
+        return { already: false };
+      });
+      if (result.already) return res.status(400).json({ error: 'Starter task already claimed' });
+      res.json({ success: true, reward: task.rewardAmount, message: `You earned ${task.rewardAmount} Gems!` });
+    } catch (error) { console.error('Starter task claim error:', error); res.status(500).json({ error: 'Failed to claim starter task' }); }
+  });
+
+  app.get('/api/admin/starter-tasks', authenticateAdmin, async (_req: any, res) => { try { res.json({ success: true, tasks: await db.select().from(starterTasks).orderBy(starterTasks.sortOrder, starterTasks.createdAt) }); } catch { res.status(500).json({ error: 'Failed to load starter tasks' }); } });
+  app.post('/api/admin/starter-tasks', authenticateAdmin, async (req: any, res) => {
+    try { const { title, subtitle = '', link = '', rewardAmount = 100, sortOrder = 0, isActive = true } = req.body; const reward = Math.max(0, Math.floor(Number(rewardAmount))); if (!title?.trim() || !Number.isFinite(reward)) return res.status(400).json({ error: 'Title and valid reward are required' }); const [task] = await db.insert(starterTasks).values({ title: title.trim(), subtitle: String(subtitle || '').trim(), link: String(link || '').trim(), rewardAmount: String(reward), sortOrder: Number(sortOrder) || 0, isActive: Boolean(isActive), updatedAt: new Date() }).returning(); res.json({ success: true, task }); } catch (error) { console.error('Starter task create error:', error); res.status(500).json({ error: 'Failed to create starter task' }); }
+  });
+  app.patch('/api/admin/starter-tasks/:taskId', authenticateAdmin, async (req: any, res) => { try { const data: any = {}; for (const k of ['title','subtitle','link','isActive']) if (req.body[k] !== undefined) data[k] = k === 'isActive' ? Boolean(req.body[k]) : String(req.body[k]); if (req.body.rewardAmount !== undefined) data.rewardAmount = String(Math.max(0, Math.floor(Number(req.body.rewardAmount)))); if (req.body.sortOrder !== undefined) data.sortOrder = Number(req.body.sortOrder) || 0; data.updatedAt = new Date(); const [task] = await db.update(starterTasks).set(data).where(eq(starterTasks.id, req.params.taskId)).returning(); if (!task) return res.status(404).json({ error: 'Starter task not found' }); res.json({ success: true, task }); } catch { res.status(500).json({ error: 'Failed to update starter task' }); } });
+  app.delete('/api/admin/starter-tasks/:taskId', authenticateAdmin, async (req: any, res) => { try { await db.delete(starterTaskClaims).where(eq(starterTaskClaims.starterTaskId, req.params.taskId)); await db.delete(starterTasks).where(eq(starterTasks.id, req.params.taskId)); res.json({ success: true }); } catch { res.status(500).json({ error: 'Failed to delete starter task' }); } });
 
   // ============ Admin Task Management Endpoints ============
 
@@ -11536,6 +11577,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ error: 'User not authenticated' });
       }
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
 
       const today = getResetPeriodKey();
 
@@ -11556,6 +11599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ads10Mission = missions.find(m => m.missionType === 'ads_10');
       const ads30Mission = missions.find(m => m.missionType === 'ads_30');
       const ads50Mission = missions.find(m => m.missionType === 'ads_50');
+      const referralBioMission = missions.find(m => m.missionType === 'referral_bio');
 
       // first_active_referral is permanent (not daily) — check all-time
       const firstActiveReferralMission = await db.query.dailyMissions.findFirst({
@@ -11599,9 +11643,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reward: parseInt(getS('adsgram_checkin_reward', '1000')),
         },
         ads10: {
-          completed: ads10Mission?.completed || false,
+          completed: (user.adsWatchedToday || 0) >= 10 || !!ads10Mission?.completed,
           claimed: !!ads10Mission?.claimedAt,
-          reward: 100,
+          progress: Math.min(user.adsWatchedToday || 0, 10),
+          required: 10,
+          reward: parseInt(getS('ads_10_reward', '100')),
+        },
+        referralBio: {
+          completed: !!referralBioMission?.completed,
+          claimed: !!referralBioMission?.claimedAt,
+          reward: parseInt(getS('referral_bio_reward', '500')),
         },
         ads30: {
           completed: ads30Mission?.completed || false,
@@ -11991,6 +12042,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/missions/referral-bio/claim - daily claim after copying the referral link
+  app.post('/api/missions/referral-bio/claim', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.user?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+      const today = getResetPeriodKey();
+      const settingsRows = await db.select().from(adminSettings);
+      const reward = parseInt(settingsRows.find((x: any) => x.settingKey === 'referral_bio_reward')?.settingValue || '500');
+      const result = await db.transaction(async (tx) => {
+        const existing = await tx.query.dailyMissions.findFirst({ where: and(eq(dailyMissions.userId, userId), eq(dailyMissions.missionType, 'referral_bio'), eq(dailyMissions.resetDate, today)) });
+        if (existing?.claimedAt) return { already: true };
+        if (existing) await tx.update(dailyMissions).set({ completed: true, claimedAt: new Date() }).where(eq(dailyMissions.id, existing.id));
+        else await tx.insert(dailyMissions).values({ userId, missionType: 'referral_bio', completed: true, claimedAt: new Date(), resetDate: today });
+        await tx.update(users).set({ balance: sql`COALESCE(${users.balance}, 0) + ${reward}`, updatedAt: new Date() }).where(eq(users.id, userId));
+        await tx.update(userBalances).set({ balance: sql`COALESCE(${userBalances.balance}, 0) + ${reward}`, updatedAt: new Date() }).where(eq(userBalances.userId, userId));
+        await tx.insert(earnings).values({ userId, amount: String(reward), source: 'mission_referral_bio', description: 'Telegram bio referral link mission', currency: 'GOLD' });
+        await tx.insert(transactions).values({ userId, amount: String(reward), type: 'addition', source: 'mission_referral_bio', description: 'Telegram bio referral link mission' });
+        return { already: false };
+      });
+      if (result.already) return res.status(400).json({ error: 'Already claimed today' });
+      return res.json({ success: true, reward, message: `You earned ${reward} Gems!` });
+    } catch (error) { console.error('Referral bio claim error:', error); return res.status(500).json({ error: 'Failed to claim reward' }); }
+  });
+
   // POST /api/missions/ads-goal/claim - Claim ads goal reward (10, 30, or 50 ads)
   app.post('/api/missions/ads-goal/claim', requireAuth, async (req: any, res) => {
     try {
@@ -12008,7 +12083,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = getResetPeriodKey();
       const adsWatched = user.adsWatchedToday || 0;
       const requiredAds = goalType === 'ads_10' ? 10 : goalType === 'ads_30' ? 30 : 50;
-      const reward = 100; // 100 GEM for every Daily Milestone
+      const settingsForAdsGoal = await db.select().from(adminSettings);
+      const reward = parseInt(settingsForAdsGoal.find((x: any) => x.settingKey === `${goalType}_reward`)?.settingValue || '100');
 
       if (adsWatched < requiredAds) {
         return res.status(400).json({ error: `You need to watch ${requiredAds} ads first. Currently: ${adsWatched}` });
