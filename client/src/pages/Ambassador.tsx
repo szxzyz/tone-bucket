@@ -6,7 +6,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
   CheckCircle2, XCircle, Loader2,
-  Scroll, AlertTriangle, Send, Info, UserCheck, ChevronDown, ChevronRight,
+  Scroll, AlertTriangle, Send, Info, ChevronDown, ChevronRight,
   Clock, Plus, Trash2, Zap, Timer,
 } from "lucide-react";
 import {
@@ -301,12 +301,12 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
   if (status?.application?.status === "pending" && !status?.isAmbassador) {
     return (
       <AmbassadorShell embedded={embedded}>
-        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
+        <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
           <div className="mb-6">
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">
               {t("under_review_title")}
             </h1>
-            <p className="text-[#888] text-sm leading-relaxed">
+            <p className="text-[#888] text-xs leading-relaxed">
               {t("under_review_desc")}
             </p>
           </div>
@@ -343,7 +343,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
   if (status?.application?.status === "rejected" && !status?.isAmbassador) {
     return (
       <AmbassadorShell embedded={embedded}>
-        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
+        <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
           <div className="mb-6">
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">
               {t("not_approved_title")}
@@ -389,7 +389,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
     return (
       <AmbassadorShell embedded={embedded}>
-        <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
+        <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
 
           {/* Header */}
           <div className="mb-4">
@@ -444,7 +444,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
               {/* Channel Info */}
               {(amb as any).channelId && (
-                <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+                <div className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                   <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-3">Channel</p>
                   <div className="flex items-center justify-between">
                     <div>
@@ -902,14 +902,14 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
 
   return (
     <AmbassadorShell embedded={embedded}>
-      <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
+      <main className={embedded ? "w-full px-0 pt-0 pb-4 bg-black" : "max-w-md mx-auto px-4 pt-4 pb-8 bg-black"}>
 
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-white tracking-tight mb-2">
+        <div className="mb-4">
+          <h1 className="text-lg font-black text-white tracking-tight mb-1">
             Ambassador program
           </h1>
-          <p className="text-[#888] text-sm leading-relaxed">
+          <p className="text-[#888] text-xs leading-relaxed">
             Promote <span className="text-white font-semibold">{botName || 'our Telegram bot'}</span> on your channel and earn $0.0005 for every user who claims your promo code.
           </p>
         </div>
@@ -917,15 +917,15 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
         {/* How It Works button */}
         <button
           onClick={() => setHowItWorksOpen(true)}
-          className="w-full h-14 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform mb-4"
-          style={{ background: "rgba(255,255,255,0.12)" }}
+          className="w-full h-[38px] rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform mb-3"
+          style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 8px 22px rgba(37,99,235,0.22)" }}
         >
-          <Info className="w-5 h-5 text-white/70" />
-          <span className="text-white font-bold tracking-widest text-sm">{t("how_it_works_title")}</span>
+          <Info className="w-4 h-4 text-white" />
+          <span className="text-white font-bold text-xs">{t("how_it_works_title")}</span>
         </button>
 
         {/* Apply Now */}
-        <div className="rounded-2xl p-4 mb-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+        <div className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
           <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-3">{t("apply_now_label")}</p>
 
           {/* Channel link */}
@@ -1004,15 +1004,11 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                     preVerifyMutation.mutate(channelLink.trim());
                   }}
                   disabled={preVerifyMutation.isPending}
-                  className="w-full h-11 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
-                  style={{ background: "rgba(59,130,246,0.18)", border: "1px solid rgba(59,130,246,0.3)" }}
+                  className="w-full h-[38px] rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 8px 22px rgba(37,99,235,0.22)" }}
                 >
-                  {preVerifyMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                  ) : (
-                    <UserCheck className="w-4 h-4 text-blue-400" />
-                  )}
-                  <span className="text-blue-400 font-semibold text-sm">
+                  {preVerifyMutation.isPending && <Loader2 className="w-4 h-4 text-white animate-spin" />}
+                  <span className="text-white font-bold text-xs">
                     {preVerifyMutation.isPending ? t("verifying_ellipsis") : t("verify_channel_btn")}
                   </span>
                 </button>

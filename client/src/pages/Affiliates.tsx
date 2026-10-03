@@ -129,9 +129,9 @@ export default function Affiliates() {
           <p className="m-0 mt-1 text-xs text-white/45">Invite your network to grow your GEM earnings.</p>
         </div>
 
-        <div style={{ margin: '0 0 12px', padding: 4, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }} role="tablist" aria-label="Friends sections">
-          <button type="button" role="tab" aria-selected={activeTab === 'affiliates'} onClick={() => setActiveTab('affiliates')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'affiliates' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'affiliates' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Affiliates</button>
-          <button type="button" role="tab" aria-selected={activeTab === 'ambassador'} onClick={() => setActiveTab('ambassador')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'ambassador' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'ambassador' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Ambassador</button>
+        <div style={{ width: '100%', maxWidth: 300, margin: '0 auto 12px', padding: 3, borderRadius: 13, background: 'rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }} role="tablist" aria-label="Friends sections">
+          <button type="button" role="tab" aria-selected={activeTab === 'affiliates'} onClick={() => setActiveTab('affiliates')} style={{ height: 38, border: 0, borderRadius: 10, padding: '0 10px', background: activeTab === 'affiliates' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'affiliates' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>Affiliates</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'ambassador'} onClick={() => setActiveTab('ambassador')} style={{ height: 38, border: 0, borderRadius: 10, padding: '0 10px', background: activeTab === 'ambassador' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'ambassador' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>Ambassador</button>
         </div>
 
         {activeTab === 'ambassador' ? (
