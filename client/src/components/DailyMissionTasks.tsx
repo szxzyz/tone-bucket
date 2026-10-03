@@ -4,7 +4,7 @@ import { showNotification } from "@/components/AppNotification";
 function TaskIcon({ type }: { type: string }) {
   return <div style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {type === "check" && <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></>}
+      {type === "check" && <><path d="M20 11a8 8 0 0 0-14.7-4L3 9"/><path d="M3 4v5h5"/><path d="M4 13a8 8 0 0 0 14.7 4L21 15"/><path d="M21 20v-5h-5"/><circle cx="12" cy="12" r="1.2" fill="rgba(255,255,255,0.7)" stroke="none"/></>}
       {type === "share" && <><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="7.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="16.7"/></>}
       {type === "starter" && <><path d="M3 8h18v13H3z"/><path d="M1 8h22v-4H1zM12 8v13"/><path d="M12 4c-5 1-7-1-6-3 1-2 5-1 6 3Zm0 0c5 1 7-1 6-3-1-2-5-1-6 3Z"/></>}
     </svg>
