@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Copy, Send, ExternalLink, Users, CheckCircle2, Clock3, Lock } from 'lucide-react';
-import { Link } from 'wouter';
+import { Copy, Send, Users, CheckCircle2, Clock3 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import Ambassador from '@/pages/Ambassador';
 import { formatLargeSWAG } from '@/lib/utils';
 import { showNotification } from '@/components/AppNotification';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -72,7 +72,6 @@ export default function Affiliates() {
   const { data: botInfo } = useQuery<{ username: string }>({ queryKey: ['/api/bot-info'], retry: false, staleTime: 5 * 60 * 1000 });
   const { data: stats } = useQuery<any>({ queryKey: ['/api/referrals/stats'], retry: false });
   const { data: appSettings } = useQuery<any>({ queryKey: ['/api/app-settings'], retry: false });
-  const { data: ambassadorStatus, isLoading: ambassadorStatusLoading } = useQuery<any>({ queryKey: ['/api/ambassador/status'], retry: false, staleTime: 30000 });
   const { data: referralData, isLoading: referralsLoading } = useQuery<{ referrals: ReferralFriend[] }>({
     queryKey: ['/api/referrals/my-referrals'],
     queryFn: async () => {
@@ -96,7 +95,6 @@ export default function Affiliates() {
   const referralLink = user?.referralCode ? `https://t.me/${botInfo?.username || ''}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}` : '';
   const friends = referralData?.referrals || [];
   const visibleFriends = useMemo(() => friendTab === 'all' ? friends : friends.filter((friend) => friend.status === friendTab), [friendTab, friends]);
-  const isAmbassador = ambassadorStatus?.isAmbassador === true;
 
   const prepareShareMessage = () => {
     if (!referralLink) return Promise.resolve(null);
@@ -133,13 +131,11 @@ export default function Affiliates() {
 
         <div style={{ margin: '0 0 12px', padding: 4, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }} role="tablist" aria-label="Friends sections">
           <button type="button" role="tab" aria-selected={activeTab === 'affiliates'} onClick={() => setActiveTab('affiliates')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'affiliates' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'affiliates' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Affiliates</button>
-          <button type="button" role="tab" aria-selected={activeTab === 'ambassador'} onClick={() => setActiveTab('ambassador')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'ambassador' ? (isAmbassador ? INVITE_BUTTON_BACKGROUND : 'rgba(255,255,255,0.12)') : 'transparent', color: activeTab === 'ambassador' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Lock size={12} /> Ambassador</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'ambassador'} onClick={() => setActiveTab('ambassador')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'ambassador' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'ambassador' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Ambassador</button>
         </div>
 
         {activeTab === 'ambassador' ? (
-          <section className="rounded-2xl p-5 text-center" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
-            {ambassadorStatusLoading ? <p className="m-0 py-6 text-xs text-white/40">Checking ambassador access…</p> : isAmbassador ? <><div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/15 text-purple-300"><Users size={26} /></div><h2 className="m-0 text-lg font-black text-white">Ambassador Program</h2><p className="mt-2 text-xs leading-relaxed text-white/45">Manage your ambassador dashboard, promo codes and channel settings.</p><Link href="/ambassador" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-black text-white" style={{ background: INVITE_BUTTON_BACKGROUND }}><ExternalLink size={15} /> Open Ambassador Page</Link></> : <><div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-white/30"><Lock size={25} /></div><h2 className="m-0 text-lg font-black text-white">Ambassador Locked</h2><p className="mt-2 text-xs leading-relaxed text-white/45">This section is available only to approved ambassadors.</p></>}
-          </section>
+          <Ambassador embedded />
         ) : (
           <>
             <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,6 +19,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const SECTION_BG = "#1C1C1E";
+
+function AmbassadorShell({ embedded, children }: { embedded: boolean; children: ReactNode }) {
+  return embedded ? <>{children}</> : <Layout>{children}</Layout>;
+}
 
 function StatSkeleton() {
   return (
@@ -81,7 +85,7 @@ interface DashboardData {
   activePromos: any[];
 }
 
-export default function Ambassador() {
+export default function Ambassador({ embedded = false }: { embedded?: boolean; [key: string]: any }) {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
 
@@ -91,8 +95,14 @@ export default function Ambassador() {
     staleTime: 5 * 60_000,
     retry: false,
   });
-  const botName = appConfig?.botUsername
-    ? (appConfig.botUsername.startsWith('@') ? appConfig.botUsername : `@${appConfig.botUsername}`)
+  const { data: botInfo } = useQuery<{ username?: string }>({
+    queryKey: ['/api/bot-info'],
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const liveBotUsername = botInfo?.username || appConfig?.botUsername;
+  const botName = liveBotUsername
+    ? (liveBotUsername.startsWith('@') ? liveBotUsername : `@${liveBotUsername}`)
     : (import.meta as any).env?.VITE_BOT_USERNAME
       ? `@${(import.meta as any).env.VITE_BOT_USERNAME.replace(/^@/, '')}`
       : '';
@@ -277,20 +287,20 @@ export default function Ambassador() {
   // ── Loading state ─────────────────────────────────────────────────────────
   if (statusLoading) {
     return (
-      <Layout>
+      <AmbassadorShell embedded={embedded}>
         <main className="max-w-md mx-auto px-4 pt-4 bg-black">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-white/30 animate-spin" />
           </div>
         </main>
-      </Layout>
+      </AmbassadorShell>
     );
   }
 
   // ── Pending state ─────────────────────────────────────────────────────────
   if (status?.application?.status === "pending" && !status?.isAmbassador) {
     return (
-      <Layout>
+      <AmbassadorShell embedded={embedded}>
         <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
           <div className="mb-6">
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">
@@ -325,14 +335,14 @@ export default function Ambassador() {
             <p className="text-yellow-400 text-sm font-medium">{t("review_in_progress")}</p>
           </div>
         </main>
-      </Layout>
+      </AmbassadorShell>
     );
   }
 
   // ── Rejected state ─────────────────────────────────────────────────────────
   if (status?.application?.status === "rejected" && !status?.isAmbassador) {
     return (
-      <Layout>
+      <AmbassadorShell embedded={embedded}>
         <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
           <div className="mb-6">
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">
@@ -368,7 +378,7 @@ export default function Ambassador() {
             <span className="text-white font-semibold text-sm">{t("apply_again")}</span>
           </button>
         </main>
-      </Layout>
+      </AmbassadorShell>
     );
   }
 
@@ -378,7 +388,7 @@ export default function Ambassador() {
     const totalEarnings = parseFloat(stats?.totalEarnings || "0");
 
     return (
-      <Layout>
+      <AmbassadorShell embedded={embedded}>
         <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
 
           {/* Header */}
@@ -883,7 +893,7 @@ export default function Ambassador() {
             </div>
           </DrawerContent>
         </Drawer>
-      </Layout>
+      </AmbassadorShell>
     );
   }
 
@@ -891,16 +901,16 @@ export default function Ambassador() {
   const canSubmit = channelLink.trim().length > 0 && channelAdded && termsAccepted;
 
   return (
-    <Layout>
+    <AmbassadorShell embedded={embedded}>
       <main className="max-w-md mx-auto px-4 pt-4 pb-8 bg-black">
 
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-black text-white tracking-tight mb-2">
-            {t("ambassador_program_title")}
+            Ambassador program
           </h1>
           <p className="text-[#888] text-sm leading-relaxed">
-            {t("ambassador_program_desc")}
+            Promote <span className="text-white font-semibold">{botName || 'our Telegram bot'}</span> on your channel and earn $0.0005 for every user who claims your promo code.
           </p>
         </div>
 
@@ -1064,6 +1074,6 @@ export default function Ambassador() {
       </main>
 
       {HowItWorksDrawer}
-    </Layout>
+    </AmbassadorShell>
   );
 }
