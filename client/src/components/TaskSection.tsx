@@ -65,7 +65,7 @@ export default function TaskSection() {
   }, [taskStatus]);
 
   const streakRewardGold = appSettings?.streakReward || 100;
-  const shareTaskRewardGold = appSettings?.shareTaskReward || 1000;
+  const shareTaskRewardGold = appSettings?.shareTaskReward || 100;
   const channelTaskRewardGold = appSettings?.channelTaskReward || 1000;
   const communityTaskRewardGold = appSettings?.communityTaskReward || 1000;
 

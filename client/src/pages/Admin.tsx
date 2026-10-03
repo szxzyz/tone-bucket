@@ -2547,7 +2547,7 @@ function SettingsSection() {
     minimumTasksForWithdrawal: '10',
     // Daily task rewards
     streakReward: '100',
-    shareTaskReward: '1000',
+    shareTaskReward: '100',
     communityTaskReward: '1000',
     shareReferralReward: '1000',
     checkAnnouncementReward: '1000',
@@ -2613,7 +2613,7 @@ function SettingsSection() {
         minimumTasksForWithdrawal: settingsData.minimumTasksForWithdrawal?.toString() || '10',
         // Daily task rewards
         streakReward: settingsData.streakReward?.toString() || '100',
-        shareTaskReward: settingsData.shareTaskReward?.toString() || '1000',
+        shareTaskReward: settingsData.shareTaskReward?.toString() || '100',
         communityTaskReward: settingsData.communityTaskReward?.toString() || '1000',
         shareReferralReward: settingsData.shareReferralReward?.toString() || '1000',
         checkAnnouncementReward: settingsData.checkAnnouncementReward?.toString() || '1000',
@@ -2774,7 +2774,7 @@ function SettingsSection() {
         withdrawalTaskRequirementEnabled: settings.withdrawalTaskRequirementEnabled,
         minimumTasksForWithdrawal: parseInt(settings.minimumTasksForWithdrawal) || 10,
         streakReward: parseInt(settings.streakReward) || 100,
-        shareTaskReward: parseInt(settings.shareTaskReward) || 1000,
+        shareTaskReward: parseInt(settings.shareTaskReward) || 100,
         communityTaskReward: parseInt(settings.communityTaskReward) || 1000,
         monetagMissionReward: parseInt(settings.monetagMissionReward) || 50,
         monetagMissionLimit: parseInt(settings.monetagMissionLimit) || 10,

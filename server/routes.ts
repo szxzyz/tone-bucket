@@ -1509,7 +1509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Daily task rewards (for TaskSection.tsx)
       const streakReward = parseInt(getSetting('streak_reward', '100')); // Daily streak claim reward in Gems
-      const shareTaskReward = parseInt(getSetting('share_task_reward', '1000')); // Share with friends reward in Gems
+      const shareTaskReward = parseInt(getSetting('share_task_reward', '100')); // Share with friends reward in Gems
       const communityTaskReward = parseInt(getSetting('community_task_reward', '1000')); // Join community reward in Gems
 
       // Partner task reward (highest tier, always verified)
@@ -3841,48 +3841,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
 
       if (!userId) {
-        return res.json({ success: true, skipAuth: true });
+        return res.status(401).json({ success: false, message: 'Authentication required' });
       }
 
-      // Check if already completed today
-      const [user] = await db
-        .select({ taskShareCompletedToday: users.taskShareCompletedToday })
-        .from(users)
-        .where(eq(users.id, userId));
+      // GEM balances are stored as whole numbers. Match the configured amount
+      // shown to users; do not write a fractional TON value into a GEM balance.
+      const configuredReward = parseInt(String(await storage.getAppSetting('share_task_reward', '100')), 10);
+      const rewardGems = Number.isSafeInteger(configuredReward) && configuredReward > 0 ? configuredReward : 100;
+      const rewardAmount = String(rewardGems);
+      const description = 'Share with Friends task completed';
 
-      if (user?.taskShareCompletedToday) {
-        return res.status(400).json({
-          success: false,
-          message: 'Task already completed today'
-        });
-      }
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx
+          .select({ taskShareCompletedToday: users.taskShareCompletedToday })
+          .from(users)
+          .where(eq(users.id, userId))
+          .for('update');
 
-      // Reward: 0.0001 TON = 1,000 Gems
-      const rewardAmount = '0.0001';
+        if (!user) return 'not_found' as const;
+        if (user.taskShareCompletedToday) return 'already_completed' as const;
 
-      await db.transaction(async (tx) => {
-        // Update balance and mark task complete — no star reward from tasks
-        await tx.execute(sql`
-          UPDATE users SET
-            balance                    = balance + ${rewardAmount}::numeric,
-            task_share_completed_today = true,
-            updated_at                 = NOW()
-          WHERE id = ${userId}
-        `);
-
-        // Add earning record
-        await storage.addEarning({
+        const [earning] = await tx.insert(earnings).values({
           userId,
           amount: rewardAmount,
           source: 'task_share',
-          description: 'Share with Friends task completed'
+          description,
+          currency: 'GOLD',
+        }).returning({ id: earnings.id });
+
+        await tx.insert(transactions).values({
+          userId,
+          amount: rewardAmount,
+          type: 'addition',
+          source: 'task_share',
+          description,
+          metadata: { earningId: earning.id, currency: 'GEM' },
         });
+
+        const now = new Date();
+        await tx.insert(userBalances).values({
+          userId,
+          balance: rewardAmount,
+          updatedAt: now,
+        }).onConflictDoUpdate({
+          target: userBalances.userId,
+          set: {
+            balance: sql`COALESCE(${userBalances.balance}, 0) + ${rewardAmount}`,
+            updatedAt: now,
+          },
+        });
+
+        await tx.update(users).set({
+          balance: sql`COALESCE(${users.balance}, 0) + ${rewardAmount}`,
+          withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${rewardAmount}`,
+          totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${rewardAmount}`,
+          totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${rewardAmount}`,
+          taskShareCompletedToday: true,
+          updatedAt: now,
+        }).where(eq(users.id, userId));
+
+        return 'claimed' as const;
       });
+
+      if (result === 'not_found') {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      if (result === 'already_completed') {
+        return res.status(400).json({ success: false, message: 'Task already completed today' });
+      }
 
       res.json({
         success: true,
         message: 'Task completed!',
-        rewardAmount
+        reward: rewardGems,
+        rewardAmount,
+        currency: 'GEM',
       });
 
     } catch (error) {
@@ -5024,7 +5057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referralAdsRequired: Math.max(0, parseInt(getSetting('referral_ads_required', '5')) || 0),
         // Daily task rewards
         streakReward: parseInt(getSetting('streak_reward', '100')),
-        shareTaskReward: parseInt(getSetting('share_task_reward', '1000')),
+        shareTaskReward: parseInt(getSetting('share_task_reward', '100')),
         communityTaskReward: parseInt(getSetting('community_task_reward', '1000')),
         // Withdrawal requirements
         withdrawalAdRequirementEnabled: getSetting('withdrawal_ad_requirement_enabled', 'true') === 'true',
