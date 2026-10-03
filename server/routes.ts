@@ -13602,13 +13602,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           id: users.id,
           referralStatus: referrals.status,
-          adsgramAdsWatched: sql<number>`(
-            SELECT COUNT(*)::int
-            FROM earnings AS referral_ads
-            WHERE referral_ads.user_id = ${users.id}
-              AND referral_ads.source = 'ad_watch'
-              AND referral_ads.description = ${ADSGRAM_AD_EARNING_DESCRIPTION}
-          )`,
           banned: users.banned,
           referralCreatedAt: referrals.createdAt,
           userCreatedAt: users.createdAt,
@@ -13616,7 +13609,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: users.firstName,
           lastName: users.lastName,
           profileImageUrl: users.profileImageUrl,
-          adsWatched: users.adsWatched,
         })
         .from(users)
         .leftJoin(referrals, and(eq(referrals.refereeId, users.id), eq(referrals.referrerId, userId)))
@@ -13625,6 +13617,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(pageSize)
         .offset((page - 1) * pageSize);
 
+      const referralUserIds = myReferrals.map(referral => referral.id);
+      const adCountRows = referralUserIds.length > 0
+        ? await db
+            .select({
+              userId: earnings.userId,
+              totalAdsWatched: sql<number>`COUNT(*)::int`,
+              adsgramAdsWatched: sql<number>`COUNT(*) FILTER (WHERE ${earnings.description} = ${ADSGRAM_AD_EARNING_DESCRIPTION})::int`,
+            })
+            .from(earnings)
+            .where(and(
+              inArray(earnings.userId, referralUserIds),
+              eq(earnings.source, 'ad_watch'),
+            ))
+            .groupBy(earnings.userId)
+        : [];
+      const adCountsByUser = new Map(adCountRows.map(row => [row.userId, {
+        totalAdsWatched: Number(row.totalAdsWatched || 0),
+        adsgramAdsWatched: Number(row.adsgramAdsWatched || 0),
+      }]));
+
       const result = myReferrals.map(r => ({
         id: r.id,
         username: r.username || null,
@@ -13632,7 +13644,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? `${r.firstName}${r.lastName ? ' ' + r.lastName : ''}`.trim()
           : (r.username || 'Unknown'),
         avatarUrl: r.profileImageUrl || null,
-        adsWatched: Number(r.adsgramAdsWatched || 0),
+        totalAdsWatched: adCountsByUser.get(r.id)?.totalAdsWatched || 0,
+        adsgramAdsWatched: adCountsByUser.get(r.id)?.adsgramAdsWatched || 0,
         status: (r.referralStatus === 'completed' || r.referralStatus === 'active')
           && r.banned !== true
           ? 'active'
