@@ -2113,14 +2113,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Background lifecycle data is retained as diagnostics only. AdsGram's
-      // SDK resolves show() only after the rewarded ad is completed; requiring
-      // a WebView minimize event here rejects valid views on clients that do
-      // not emit visibility/activation events consistently.
+      // AdsGram requires the Mini App to leave the foreground at least once
+      // during the ad. One event is enough; no minimum background duration is
+      // required. This is a server-side gate and cannot be faked by the claim
+      // request after the session has been registered.
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
+
+      if (serverAdType === 'adsgram' && !bgEntered) {
+        await db.update(adSessions)
+          .set({ status: 'failed', usedAt: new Date(), backgroundEntered: false, backgroundDurationMs: bgDuration })
+          .where(and(eq(adSessions.id, sessionId), eq(adSessions.status, 'pending')));
+        return res.status(400).json({
+          message: 'Please minimize the Mini App once during the AdsGram ad and return to claim the reward.',
+          errorType: 'insufficient_background',
+        });
+      }
 
       // 6. Per-user rate limit: max 10 ad reward requests per minute (prevents replay spam)
       if (checkRateLimit(`ad:${userId}`, 10)) {
@@ -2828,8 +2838,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Atomically consume a pre-registered ad session for a reward claim (inside
   // the caller's transaction). The session must be registered before the ad,
   // belong to this user + context, remain pending, be fresh, and be old enough
-  // to plausibly contain an ad view. The caller only submits after its ad SDK
-  // reports completion; background/minimize events are not a reward condition.
+  // to plausibly contain an ad view. AdsGram additionally requires one
+  // background/minimize event; no minimum background duration is required.
   const consumeRewardAdSession = async (
     tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box' | 'promo_code',
   ): Promise<boolean | 'pending'> => {
@@ -2851,6 +2861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     if (!session) return false;
     if (!hasTrustedRewardCallback(session.adType)) return false;
+    if (session.adType === 'adsgram' && !bgEntered) return false;
 
     const [providerCallback] = await tx
       .select({ id: adRewardCallbacks.id })
