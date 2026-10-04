@@ -1,27 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { showNotification } from '@/components/AppNotification';
-import { getTONPrice } from '@/lib/tonPriceService';
 
 type Props = { open: boolean; onClose: () => void; userBalance: number };
 
 export default function GameWithdrawPopup({ open, onClose, userBalance }: Props) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
-  const [tonPrice, setTonPrice] = useState(0);
   const connectedAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], enabled: open, retry: false });
   const { data: settings } = useQuery<any>({ queryKey: ['/api/app-settings'], enabled: open, retry: false, staleTime: 60000 });
-
-  useEffect(() => {
-    if (!open) return;
-    getTONPrice().then(setTonPrice).catch(() => {});
-  }, [open]);
 
   const savedAddress = user?.payoutWalletAddress || '';
   const address = connectedAddress || savedAddress;
@@ -65,7 +58,9 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
 
   const value = Number(amount || 0);
   const netUsd = (value / 100000) * (1 - feePercent / 100);
-  const canSubmit = !secondaryAccountBlocked && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && tonPrice > 0 && !withdrawal.isPending;
+  // The server obtains the authoritative TON market quote during submission.
+  // A failed UI-only quote request must not leave this button permanently disabled.
+  const canSubmit = !secondaryAccountBlocked && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && !withdrawal.isPending;
   const handleMax = () => setAmount(String(Math.floor(userBalance)));
   const openWallet = async () => {
     try {
@@ -135,7 +130,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 <div className="h-px bg-white/5" />
                 <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} GEM</span></div>
                 <div className="h-px bg-white/5" />
-                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{tonPrice > 0 && value > 0 ? `$${netUsd.toFixed(3)} USD` : '—'}</span></div>
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{value > 0 ? `$${netUsd.toFixed(3)} USD` : '—'}</span></div>
               </div>
               <button onClick={() => withdrawal.mutate()} disabled={!canSubmit} className="w-full h-11 bg-[#007AFF] hover:bg-[#0066D6] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center justify-center gap-2">
                 {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw GEM'}
