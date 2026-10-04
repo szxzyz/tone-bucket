@@ -432,6 +432,27 @@ export async function ensureDatabaseSchema(): Promise<void> {
     `);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS adsgram_reward_callbacks_user_idx ON adsgram_reward_callbacks(user_id)`);
 
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ad_reward_callbacks (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        provider VARCHAR NOT NULL,
+        event_key VARCHAR NOT NULL,
+        user_id VARCHAR NOT NULL REFERENCES users(id),
+        session_id VARCHAR NOT NULL REFERENCES ad_sessions(id),
+        event_type VARCHAR NOT NULL,
+        reward_event_type VARCHAR NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS ad_reward_callbacks_provider_event_unique
+        ON ad_reward_callbacks(provider, event_key)
+    `);
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS ad_reward_callbacks_session_unique
+        ON ad_reward_callbacks(session_id)
+    `);
+
 
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS promotion_claims (

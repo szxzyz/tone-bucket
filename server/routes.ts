@@ -26,7 +26,7 @@ import {
   starterTaskClaims,
   missionAdClaims,
   adSessions,
-  adsgramRewardCallbacks,
+  adRewardCallbacks,
   adminRoles,
   ambassadorApplications,
   ambassadors,
@@ -41,7 +41,7 @@ import {
   type TaskStatus,
 } from "../shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, and, gte, inArray } from "drizzle-orm";
+import { eq, sql, desc, and, gte, inArray, lt } from "drizzle-orm";
 import crypto from "crypto";
 import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToAdmins } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
@@ -274,10 +274,25 @@ async function getCachedBotUsername(): Promise<string> {
 // bypass, so the added complexity of persisting them isn't worth it here.
 const adUserCooldowns   = new Map<string, number>();  // userId     → lastRewardAt (ms)
 const AD_REWARD_COOLDOWN_MS = 15_000;  // 15 s minimum between rewards (was 5 s — increased to prevent rapid replay)
-const MIN_PROVIDER_SESSION_MS = 3_000; // Non-AdsGram providers need a server-measured watch window
 // How long a pending ad_sessions row is honored before it's considered stale/abandoned.
 const AD_SESSION_MAX_AGE_MS = 15 * 60_000; // 15 minutes
 // No hard cap on per-ad reward — the admin-configured value is always used as-is.
+
+// Rewards are available only for networks with an authenticated, session-bound
+// server callback. GigaPub/TowerAds stay disabled until that verification exists.
+function hasTrustedRewardCallback(provider: string): boolean {
+  if (provider === 'adsgram') return Boolean(process.env.ADSGRAM_REWARD_SECRET?.trim());
+  if (provider === 'monetag') return Boolean(process.env.MONETAG_POSTBACK_SECRET?.trim());
+  return false;
+}
+
+function matchesCallbackSecret(candidate: unknown, configured: string | undefined): boolean {
+  if (typeof candidate !== 'string' || !configured) return false;
+  const expected = configured.trim();
+  const received = candidate.trim();
+  if (!expected || !received || Buffer.byteLength(expected) !== Buffer.byteLength(received)) return false;
+  return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+}
 
 // Prune stale cooldown entries every 15 minutes to prevent unbounded memory growth.
 setInterval(() => {
@@ -1521,16 +1536,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Per-provider ad limits and rewards
       const adsgramAdLimit        = parseInt(getSetting('adsgram_ad_limit',        '40'));
       const adsgramRewardPerAd    = parseInt(getSetting('adsgram_reward_per_ad',    '50'));
-      const adsgramEnabled        = getSetting('adsgram_enabled', 'true') === 'true';
+      const adsgramEnabled        = getSetting('adsgram_enabled', 'true') === 'true' && hasTrustedRewardCallback('adsgram');
       const monetagAdLimit        = parseInt(getSetting('monetag_ad_limit',         '30'));
       const monetagRewardPerAd    = parseInt(getSetting('monetag_reward_per_ad',    '30'));
-      const monetagEnabled        = getSetting('monetag_enabled', 'true') === 'true';
+      const monetagEnabled        = getSetting('monetag_enabled', 'true') === 'true' && hasTrustedRewardCallback('monetag');
       const gigapubAdLimit        = parseInt(getSetting('gigapub_ad_limit',         '30'));
       const gigapubRewardPerAd    = parseInt(getSetting('gigapub_reward_per_ad',    '30'));
-      const gigapubEnabled        = getSetting('gigapub_enabled', 'true') === 'true';
+      const gigapubEnabled        = false;
       const usladsAdLimit         = parseInt(getSetting('uslads_ad_limit',          '20'));
       const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '30'));
-      const usladsEnabled         = getSetting('uslads_enabled', 'true') === 'true';
+      const usladsEnabled         = false;
 
       // Legacy compatibility - keep old values for backwards compatibility
       const taskCostPerClick = channelTaskCostUSD; // Use channel cost as default
@@ -1665,15 +1680,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid session ID", errorType: 'invalid_session' });
       }
 
-      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box'];
+      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code'];
       const normalizedContext = allowedContexts.includes(context ?? '') ? (context as string) : 'ads_watch';
       const allowedAdTypes =
         normalizedContext === 'mission_ad' ? ['monetag', 'gigapub']
+        : normalizedContext === 'promo_code' ? ['monetag']
         : (normalizedContext === 'daily_checkin' || normalizedContext === 'mystery_box') ? ['adsgram', 'monetag']
         : ['adsgram', 'monetag', 'gigapub', 'uslads'];
       const normalizedAdType = allowedAdTypes.includes(adType ?? '') ? (adType as string) : null;
       if (!normalizedAdType) {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
+      }
+      if (!hasTrustedRewardCallback(normalizedAdType)) {
+        return res.status(503).json({
+          message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
+          errorType: 'provider_verification_unavailable',
+        });
+      }
+
+      if (normalizedAdType === 'adsgram') {
+        const staleBefore = new Date(Date.now() - AD_SESSION_MAX_AGE_MS);
+        await db.update(adSessions)
+          .set({ status: 'failed', usedAt: new Date() })
+          .where(and(
+            eq(adSessions.userId, userId),
+            eq(adSessions.adType, 'adsgram'),
+            eq(adSessions.status, 'pending'),
+            lt(adSessions.registeredAt, staleBefore),
+          ));
+        const [activeAdsgramSession] = await db.select({ id: adSessions.id })
+          .from(adSessions)
+          .where(and(
+            eq(adSessions.userId, userId),
+            eq(adSessions.adType, 'adsgram'),
+            eq(adSessions.status, 'pending'),
+            gte(adSessions.registeredAt, staleBefore),
+          ))
+          .limit(1);
+        if (activeAdsgramSession) {
+          return res.status(409).json({ message: 'An AdsGram reward verification is already in progress.', errorType: 'ad_session_in_progress' });
+        }
       }
 
       try {
@@ -1696,6 +1742,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/ads/cancel-session', authenticateTelegram, adWatchRateLimit, async (req: any, res) => {
+    const sessionId = req.body?.sessionId;
+    if (typeof sessionId !== 'string' || sessionId.length < 10 || sessionId.length > 180) {
+      return res.status(400).json({ success: false, errorType: 'invalid_session' });
+    }
+    try {
+      const [verifiedCallback] = await db.select({ id: adRewardCallbacks.id })
+        .from(adRewardCallbacks)
+        .where(eq(adRewardCallbacks.sessionId, sessionId))
+        .limit(1);
+      if (verifiedCallback) return res.status(409).json({ success: false, errorType: 'session_already_verified' });
+      const [cancelled] = await db.update(adSessions)
+        .set({ status: 'failed', usedAt: new Date() })
+        .where(and(
+          eq(adSessions.id, sessionId),
+          eq(adSessions.userId, String(req.user.user.id)),
+          eq(adSessions.status, 'pending'),
+        ))
+        .returning({ id: adSessions.id });
+      return res.json({ success: true, cancelled: Boolean(cancelled) });
+    } catch (error) {
+      console.error('Failed to cancel ad session:', error);
+      return res.status(500).json({ success: false, errorType: 'internal_error' });
+    }
+  });
+
   // AdsGram server-side Reward URL callback.
   // Configure AdsGram with:
   // https://paidadz.xyz/api/adsgram/reward?userid=[userId]&token=YOUR_SECRET_KEY
@@ -1711,19 +1783,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
 
     const token = queryValue(req.query?.token);
-    const configuredToken = process.env.ADSGRAM_REWARD_SECRET?.trim();
-    const tokenMatches = Boolean(
-      configuredToken &&
-      token &&
-      token.length === configuredToken.length &&
-      crypto.timingSafeEqual(Buffer.from(token), Buffer.from(configuredToken)),
-    );
-    if (!tokenMatches) {
+    if (!matchesCallbackSecret(token, process.env.ADSGRAM_REWARD_SECRET)) {
       console.warn('⚠️ AdsGram reward callback rejected: invalid token');
       return res.status(403).send('Forbidden');
     }
 
-    const telegramId = queryValue(req.query?.userid);
+    const telegramId = queryValue(req.query?.userid)
+      || queryValue(req.query?.user_id)
+      || queryValue(req.query?.telegram_id)
+      || queryValue(req.query?.userId);
     if (!telegramId || !/^\d{5,20}$/.test(telegramId)) {
       console.warn('⚠️ AdsGram reward callback rejected: invalid userid');
       return res.status(400).send('Invalid userid');
@@ -1748,11 +1816,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         queryValue(req.query?.event_id) ||
         queryValue(req.query?.eventId) ||
         queryValue(req.query?.id);
-      const callbackKeyFromId = callbackId ? `id:${callbackId}` : undefined;
+      const safeCallbackId = callbackId && callbackId.length <= 180 ? callbackId : undefined;
+      const callbackKeyFromId = safeCallbackId ? `adsgram:${safeCallbackId}` : undefined;
 
       const [existingByCallback] = callbackKeyFromId
-        ? await db.select().from(adsgramRewardCallbacks)
-            .where(eq(adsgramRewardCallbacks.callbackKey, callbackKeyFromId))
+        ? await db.select().from(adRewardCallbacks)
+            .where(and(eq(adRewardCallbacks.provider, 'adsgram'), eq(adRewardCallbacks.eventKey, callbackKeyFromId)))
             .limit(1)
         : [];
       if (existingByCallback) {
@@ -1765,7 +1834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [recentSession] = await db.select().from(adSessions)
         .where(and(
           eq(adSessions.userId, user.id),
-          eq(adSessions.context, 'ads_watch'),
+          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box']),
           eq(adSessions.adType, 'adsgram'),
           gte(adSessions.registeredAt, recentCutoff),
         ))
@@ -1773,8 +1842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       const [recentCallbackForSession] = recentSession
-        ? await db.select().from(adsgramRewardCallbacks)
-            .where(eq(adsgramRewardCallbacks.sessionId, recentSession.id))
+        ? await db.select().from(adRewardCallbacks)
+            .where(and(eq(adRewardCallbacks.provider, 'adsgram'), eq(adRewardCallbacks.sessionId, recentSession.id)))
             .limit(1)
         : [];
       if (recentCallbackForSession) {
@@ -1798,13 +1867,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send('No active ad session');
       }
 
-      // Do not let the postback mint a second reward. The SDK completion claim
-      // is credited atomically by /api/ads/watch; this callback is confirmation
-      // only and may arrive before or after that client claim.
-      console.info(`ℹ️ AdsGram callback awaiting verified client claim for user ${telegramId}`);
+      if (recentSession.status !== 'pending') return res.status(200).send('OK');
+
+      // This only records provider confirmation. The authenticated claim route
+      // remains the sole place that credits a reward.
+      await db.insert(adRewardCallbacks).values({
+        provider: 'adsgram',
+        eventKey: callbackKeyFromId || `adsgram:session:${recentSession.id}`,
+        userId: user.id,
+        sessionId: recentSession.id,
+        eventType: 'reward',
+        rewardEventType: 'valued',
+      }).onConflictDoNothing();
+      console.info(`✅ AdsGram S2S callback confirmed session ${recentSession.id} for user ${telegramId}`);
       return res.status(200).send('OK');
     } catch (error) {
       console.error('❌ AdsGram reward callback processing failed:', error);
+      return res.status(500).send('Internal server error');
+    }
+  });
+
+  // Monetag S2S postback. Configure a Rewarded Interstitial/Popup postback
+  // with ymid, zone_id, event_type, reward_event_type, telegram_id and a
+  // server-only token query parameter. Only valued impressions confirm rewards.
+  app.get('/api/monetag/postback', async (req: any, res) => {
+    const queryValue = (value: unknown): string | undefined => {
+      if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
+      return typeof value === 'string' ? value : undefined;
+    };
+    if (!hasTrustedRewardCallback('monetag')) return res.status(503).send('Postback verification is not configured');
+    if (!matchesCallbackSecret(queryValue(req.query?.token), process.env.MONETAG_POSTBACK_SECRET)) {
+      return res.status(403).send('Forbidden');
+    }
+
+    const ymid = queryValue(req.query?.ymid);
+    const zoneId = queryValue(req.query?.zone_id) || queryValue(req.query?.zone);
+    const eventType = queryValue(req.query?.event_type) || queryValue(req.query?.event);
+    const rewardEventType = queryValue(req.query?.reward_event_type) || queryValue(req.query?.value);
+    const telegramId = queryValue(req.query?.telegram_id);
+    if (!ymid || ymid.length > 180 || !zoneId || zoneId !== String(config.ads.monetagZoneId)) {
+      return res.status(400).send('Invalid postback parameters');
+    }
+    // Clicks and non-valued impressions never grant an in-app reward.
+    if (eventType !== 'impression' || rewardEventType !== 'valued') return res.status(200).send('OK');
+
+    try {
+      const [session] = await db.select().from(adSessions)
+        .where(and(
+          eq(adSessions.id, ymid),
+          eq(adSessions.adType, 'monetag'),
+          eq(adSessions.status, 'pending'),
+          gte(adSessions.registeredAt, new Date(Date.now() - AD_SESSION_MAX_AGE_MS)),
+        ))
+        .limit(1);
+      if (!session) return res.status(404).send('No matching ad session');
+
+      if (telegramId) {
+        const owner = await storage.getUser(session.userId);
+        const ownerTelegramId = String((owner as any)?.telegramId ?? (owner as any)?.telegram_id ?? '');
+        if (!owner || (ownerTelegramId && ownerTelegramId !== telegramId)) {
+          return res.status(403).send('Session owner mismatch');
+        }
+      }
+
+      await db.insert(adRewardCallbacks).values({
+        provider: 'monetag',
+        eventKey: `monetag:${ymid}:impression`,
+        userId: session.userId,
+        sessionId: session.id,
+        eventType,
+        rewardEventType,
+      }).onConflictDoNothing();
+      return res.status(200).send('OK');
+    } catch (error) {
+      console.error('Monetag S2S postback processing failed:', error);
       return res.status(500).send('Internal server error');
     }
   });
@@ -1901,6 +2037,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // adType is authoritative from the server — ignore client-supplied value
       const serverAdType = sessionRow.adType;
+      if (!hasTrustedRewardCallback(serverAdType)) {
+        return res.status(503).json({
+          message: `${serverAdType} rewards are paused until trusted server-side ad verification is configured.`,
+          errorType: 'provider_verification_unavailable',
+        });
+      }
+      const [providerCallback] = await db.select({ id: adRewardCallbacks.id })
+        .from(adRewardCallbacks)
+        .where(and(
+          eq(adRewardCallbacks.provider, serverAdType),
+          eq(adRewardCallbacks.sessionId, sessionRow.id),
+        ))
+        .limit(1);
+      if (!providerCallback) {
+        return res.status(202).json({
+          success: false,
+          pending: true,
+          message: 'Waiting for ad network confirmation.',
+          errorType: 'provider_verification_pending',
+        });
+      }
 
       // 3. Cooldown between rewards
       const lastRewardAt       = adUserCooldowns.get(userKey) || 0;
@@ -1920,21 +2077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
-      const serverSessionAgeMs = Date.now() - new Date(sessionRow.registeredAt as any).getTime();
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
-
-      // TowerAds supplies its own rewarded completion callback. Unlike generic
-      // client-timed providers, a valid USL reward must not be rejected because
-      // the SDK callback arrives before the generic 3-second window expires.
-      if (serverAdType !== 'adsgram' && serverAdType !== 'uslads' && serverSessionAgeMs < MIN_PROVIDER_SESSION_MS) {
-        await db.update(adSessions)
-          .set({ status: 'failed', usedAt: new Date(), backgroundEntered: bgEntered, backgroundDurationMs: bgDuration })
-          .where(eq(adSessions.id, sessionId));
-        return res.status(400).json({
-          message: "The ad session finished too quickly. Please watch the full ad and try again.",
-          errorType: 'insufficient_session_duration',
-        });
-      }
 
       // 6. Per-user rate limit: max 10 ad reward requests per minute (prevents replay spam)
       if (checkRateLimit(`ad:${userId}`, 10)) {
@@ -2645,8 +2788,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // to plausibly contain an ad view. The caller only submits after its ad SDK
   // reports completion; background/minimize events are not a reward condition.
   const consumeRewardAdSession = async (
-    tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box',
-  ): Promise<boolean> => {
+    tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box' | 'promo_code',
+  ): Promise<boolean | 'pending'> => {
     const sessionId = body?.sessionId;
     if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 10) return false;
     const bgEntered = body?.backgroundEntered === true;
@@ -2664,13 +2807,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .limit(1);
 
     if (!session) return false;
+    if (!hasTrustedRewardCallback(session.adType)) return false;
 
-    // AdsGram's resolved rewarded-ad promise is its completion signal, so do
-    // not reject it for timing or WebView lifecycle events the SDK controls.
-    if (
-      session.adType !== 'adsgram' &&
-      Date.now() - new Date(session.registeredAt as any).getTime() < MIN_PROVIDER_SESSION_MS
-    ) return false;
+    const [providerCallback] = await tx
+      .select({ id: adRewardCallbacks.id })
+      .from(adRewardCallbacks)
+      .where(and(
+        eq(adRewardCallbacks.provider, session.adType),
+        eq(adRewardCallbacks.sessionId, sessionId),
+      ))
+      .limit(1);
+    if (!providerCallback) return 'pending';
 
     const consumed = await tx
       .update(adSessions)
@@ -2704,6 +2851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const outcome = await db.transaction(async (tx) => {
         const adVerified = await consumeRewardAdSession(tx, userId, req.body, 'daily_checkin');
+        if (adVerified === 'pending') return { error: 'provider_verification_pending' as const };
         if (!adVerified) return { error: 'ad_not_verified' as const };
 
         // Atomic claim + credit — only succeeds if not already claimed today
@@ -2735,6 +2883,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if ('error' in outcome) {
+        if (outcome.error === 'provider_verification_pending') {
+          return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending' });
+        }
         if (outcome.error === 'ad_not_verified') {
           return res.status(400).json({
             message: "Ad view could not be verified. Please watch the ad and try again.",
@@ -2775,6 +2926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const outcome = await db.transaction(async (tx) => {
         const adVerified = await consumeRewardAdSession(tx, userId, req.body, 'mystery_box');
+        if (adVerified === 'pending') return { error: 'provider_verification_pending' as const };
         if (!adVerified) return { error: 'ad_not_verified' as const };
 
         // Atomic counter + balance credit — guards against concurrent double-open.
@@ -2823,6 +2975,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if ('error' in outcome) {
+        if (outcome.error === 'provider_verification_pending') {
+          return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending' });
+        }
         if (outcome.error === 'ad_not_verified') {
           return res.status(400).json({
             message: "Ad view could not be verified. Please watch the ad and try again.",
@@ -5110,6 +5265,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['monetag', 'gigapub'].includes(platform ?? '')) {
         return res.status(400).json({ success: false, message: 'Invalid platform' });
       }
+      if (!hasTrustedRewardCallback(platform!)) {
+        return res.status(503).json({
+          success: false,
+          message: `${platform} rewards are paused until trusted server-side ad verification is configured.`,
+          errorType: 'provider_verification_unavailable',
+        });
+      }
 
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -5136,19 +5298,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (missionSessionAge > AD_SESSION_MAX_AGE_MS) {
         return res.status(400).json({ success: false, message: "Session expired. Please start a new ad session.", errorType: 'invalid_session' });
       }
+      const [missionProviderCallback] = await db.select({ id: adRewardCallbacks.id })
+        .from(adRewardCallbacks)
+        .where(and(
+          eq(adRewardCallbacks.provider, platform!),
+          eq(adRewardCallbacks.sessionId, sessionId),
+        ))
+        .limit(1);
+      if (!missionProviderCallback) {
+        return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending' });
+      }
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
-      const serverSessionAgeMs = Date.now() - new Date(missionSession.registeredAt as any).getTime();
-      if (serverSessionAgeMs < MIN_PROVIDER_SESSION_MS) {
-        await db.update(adSessions)
-          .set({ status: 'failed', usedAt: new Date(), backgroundEntered: bgEntered, backgroundDurationMs: bgDuration })
-          .where(eq(adSessions.id, sessionId));
-        return res.status(400).json({
-          success: false,
-          message: "The ad session finished too quickly. Please watch the full ad and try again.",
-          errorType: 'insufficient_session_duration',
-        });
-      }
       // Get per-platform reward from admin settings
       const settings = await db.select().from(adminSettings);
       const getSetting = (key: string, def: string) => settings.find(s => s.settingKey === key)?.settingValue || def;
@@ -10612,67 +10773,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Increment ads counter
-  app.post('/api/tasks/ads/increment', authenticateTelegram, async (req: any, res) => {
-    try {
-      const userId = req.user.user.id;
-      const currentDate = new Date().toISOString().split('T')[0];
-
-      // Get current user data
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      const currentAds = (user.adsWatchedToday || 0) + 1;
-
-      // Update user's ads watched count
-      await db.update(users)
-        .set({
-          adsWatchedToday: currentAds,
-          adsWatched: (user.adsWatched || 0) + 1,
-          lastAdWatch: new Date()
-        })
-        .where(eq(users.id, userId));
-
-      // Update all ads goal tasks progress
-      const adsGoals = ['ads_mini', 'ads_light', 'ads_medium', 'ads_hard'];
-      for (const goalType of adsGoals) {
-        const taskData = await db.select()
-          .from(dailyTasks)
-          .where(and(
-            eq(dailyTasks.userId, userId),
-            eq(dailyTasks.taskLevel, Number(goalType) || 0),
-            eq(dailyTasks.resetDate, currentDate)
-          ))
-          .limit(1);
-
-        if (taskData.length > 0) {
-          const task = taskData[0];
-          const completed = currentAds >= task.required;
-
-          await db.update(dailyTasks)
-            .set({
-              progress: currentAds,
-              completed: completed
-            })
-            .where(and(
-              eq(dailyTasks.userId, userId),
-              eq(dailyTasks.taskLevel, Number(goalType) || 0),
-              eq(dailyTasks.resetDate, currentDate)
-            ));
-        }
-      }
-
-      res.json({
-        success: true,
-        adsWatchedToday: currentAds,
-        message: `Ads watched today: ${currentAds}`
-      });
-    } catch (error) {
-      console.error("Error incrementing ads counter:", error);
-      res.status(500).json({ message: "Failed to increment ads counter" });
-    }
+  // Legacy direct counter endpoint intentionally disabled. Ad counters now
+  // advance only inside callback-confirmed reward transactions.
+  app.post('/api/tasks/ads/increment', authenticateTelegram, (_req: any, res) => {
+    return res.status(410).json({
+      success: false,
+      message: 'Ad progress is recorded automatically after provider verification.',
+      errorType: 'ad_claim_required',
+    });
   });
 
   // Complete invite friend task
@@ -10877,6 +10985,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorType: 'channel_required',
           channelLink: channelStatus.channelLink,
           channelName: channelStatus.channelName,
+        });
+      }
+
+      const adVerified = await db.transaction(async (tx) =>
+        consumeRewardAdSession(tx, userId, req.body?.proof, 'promo_code'));
+      if (adVerified === 'pending') {
+        return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending' });
+      }
+      if (!adVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Watch the rewarded ad before redeeming this promo code.',
+          errorType: 'ad_not_verified',
         });
       }
 
@@ -11994,6 +12115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const claimDescription = `Daily Check-in Day ${dayIndex + 1} Reward (streak ${streak + 1})`;
       const claim = await db.transaction(async (tx) => {
+        const adVerified = await consumeRewardAdSession(tx, userId, proof, 'daily_checkin');
+        if (adVerified === 'pending') return { verificationPending: true as const };
+        if (!adVerified) return { adNotVerified: true as const };
+
         // The conditional update is the single source of truth for duplicate
         // protection; it also makes two simultaneous taps safe.
         const updated = await tx.update(users).set({
@@ -12045,6 +12170,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return { alreadyClaimed: false as const, balance: updated[0].balance };
       });
+      if ('verificationPending' in claim) {
+        return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending' });
+      }
+      if ('adNotVerified' in claim) {
+        return res.status(400).json({ error: 'Ad view could not be verified. Please watch the ad and try again.', errorType: 'ad_not_verified' });
+      }
       if (claim.alreadyClaimed) {
         return res.status(400).json({ error: 'Already checked in for this period' });
       }

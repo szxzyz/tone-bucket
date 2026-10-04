@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import { showNotification } from "@/components/AppNotification";
 import PopupShell from "@/components/PopupShell";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import { useAdSession } from "@/hooks/useAdSession";
+import { apiRequest } from "@/lib/queryClient";
+import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
 
 // 7-day streak rewards (GEM) — mirrors server CHECKIN_REWARDS
 export const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
@@ -72,21 +75,17 @@ export default function DailyCheckinSheet({
   adsgramBlockId,
 }: DailyCheckinSheetProps) {
   const queryClient = useQueryClient();
+  const { startSession, endSession, cancelSession } = useAdSession();
   const { showMonetagAd } = useAdFlow();
   const [adShown, setAdShown] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
 
   const claimMutation = useMutation({
     mutationFn: async ({ doubleReward = false, proof = null }: { doubleReward?: boolean; proof?: any }) => {
-      const res = await fetch("/api/missions/daily-checkin/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doubleReward, proof }),
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to claim");
-      return data as { success: boolean; reward: number; newStreak: number; isDouble?: boolean };
+      return postWithAdVerification<{ success: boolean; reward: number; newStreak: number; isDouble?: boolean }>(
+        "/api/missions/daily-checkin/claim",
+        { doubleReward, proof },
+      );
     },
     onSuccess: (data) => {
       showNotification(`${data.reward} GEM claimed`, "success");
@@ -105,15 +104,35 @@ export default function DailyCheckinSheet({
   const handleClaim = async () => {
     if (claimMutation.isPending || adLoading || alreadyClaimedToday) return;
     setAdLoading(true);
+    const sessionId = startSession();
     try {
-      const adResult = await showMonetagAd();
+      const registration = await apiRequest("POST", "/api/ads/register-session", {
+        sessionId,
+        adType: "monetag",
+        context: "daily_checkin",
+      });
+      if (!registration.ok) throw new Error("Ad verification is not available right now");
+
+      const adResult = await showMonetagAd(sessionId, "daily_checkin");
       if (!adResult.success) {
+        await cancelRegisteredAdSession(sessionId);
+        cancelSession();
         showNotification(adResult.unavailable ? "Ad unavailable" : "Watch the ad to claim", "error");
         setAdLoading(false);
         return;
       }
-      claimMutation.mutate({ doubleReward: false });
+      const session = endSession();
+      claimMutation.mutate({
+        doubleReward: false,
+        proof: {
+          sessionId: session.sessionId,
+          backgroundEntered: session.backgroundEntered,
+          backgroundDuration: session.backgroundDuration,
+        },
+      });
     } catch {
+      await cancelRegisteredAdSession(sessionId);
+      cancelSession();
       setAdLoading(false);
       showNotification("Watch the ad to claim", "error");
     }

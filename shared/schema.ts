@@ -479,6 +479,22 @@ export const adsgramRewardCallbacks = pgTable("adsgram_reward_callbacks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Trusted ad-network server callbacks. A provider event can confirm only one
+// registered session, and each session can be confirmed only once.
+export const adRewardCallbacks = pgTable("ad_reward_callbacks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  provider: varchar("provider").notNull(),
+  eventKey: varchar("event_key").notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  sessionId: varchar("session_id").references(() => adSessions.id).notNull(),
+  eventType: varchar("event_type").notNull(),
+  rewardEventType: varchar("reward_event_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  unique("ad_reward_callbacks_provider_event_unique").on(table.provider, table.eventKey),
+  unique("ad_reward_callbacks_session_unique").on(table.sessionId),
+]);
+
 
 // Blocked countries for geo-restriction
 export const blockedCountries = pgTable("blocked_countries", {

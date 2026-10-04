@@ -18,6 +18,7 @@ import DailyMissionTasks from "@/components/DailyMissionTasks";
 import InviteFriendsSection from "@/components/InviteFriendsSection";
 import { showAdgramAd } from "@/lib/showAd";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
 
 
 
@@ -331,7 +332,7 @@ export default function Home() {
   // Server-verified AdsGram flow for daily rewards. The provider remains
   // available for these existing reward contexts; the main ad-watching card
   // now lives on the Mission page.
-  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
+  const { startSession, endSession, cancelSession } = useAdSession();
   const { showMonetagAd: showMonetagRewarded } = useAdFlow();
   const runVerifiedAdgramAd = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = startSession();
@@ -343,8 +344,12 @@ export default function Home() {
       const blockId = context === 'mystery_box'
         ? (appConfig?.adsgramMysteryBoxBlockId || '')
         : (appConfig?.adsgramCheckinBlockId || '');
-      await showAdgramAd(blockId);
-      await waitForForeground();
+      try {
+        await showAdgramAd(blockId);
+      } catch (error) {
+        await cancelRegisteredAdSession(sessionId);
+        throw error;
+      }
       const session = endSession();
       return {
         sessionId: session.sessionId,
@@ -364,8 +369,9 @@ export default function Home() {
         sessionId, adType: 'monetag', context,
       });
       if (!regRes.ok) throw new Error('Could not start ad session');
-      const adResult = await showMonetagRewarded();
+      const adResult = await showMonetagRewarded(sessionId, context);
       if (!adResult.success) {
+        await cancelRegisteredAdSession(sessionId);
         throw new Error(adResult.unavailable ? 'Monetag ad is unavailable' : 'Monetag ad was not completed');
       }
       const session = endSession();
@@ -382,10 +388,7 @@ export default function Home() {
   // Daily Check-In mutation (calls /api/daily-checkin — distinct from missions daily-checkin)
   const dailyCheckMutation = useMutation({
     mutationFn: async (proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number }) => {
-      const res = await apiRequest('POST', '/api/daily-checkin', proof);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
-      return data;
+      return postWithAdVerification('/api/daily-checkin', proof);
     },
     onSuccess: (data) => {
       setDailyChecked(true);
@@ -423,9 +426,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await apiRequest('POST', '/api/mystery-box', proof);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
+      const data = await postWithAdVerification('/api/mystery-box', proof);
       if (typeof data.claimsToday === 'number') setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       showNotification('Mystery Gift reward added to your GEM balance.', 'success');

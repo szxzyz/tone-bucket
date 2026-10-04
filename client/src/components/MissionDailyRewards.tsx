@@ -5,6 +5,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
 
 const MYSTERY_DAILY_LIMIT = 1;
@@ -58,8 +59,11 @@ export default function MissionDailyRewards() {
         context,
       });
       if (!response.ok) throw new Error("Could not start ad session");
-      const adResult = await showMonetagAd();
-      if (!adResult.success) throw new Error("Monetag ad was not completed");
+      const adResult = await showMonetagAd(sessionId, context);
+      if (!adResult.success) {
+        await cancelRegisteredAdSession(sessionId);
+        throw new Error("Monetag ad was not completed");
+      }
       const session = endSession();
       return {
         sessionId: session.sessionId,
@@ -67,6 +71,7 @@ export default function MissionDailyRewards() {
         backgroundDuration: session.backgroundDuration,
       };
     } catch (error) {
+      await cancelRegisteredAdSession(sessionId);
       cancelSession();
       throw error;
     }
@@ -84,9 +89,7 @@ export default function MissionDailyRewards() {
     }
 
     try {
-      const response = await apiRequest("POST", "/api/mystery-box", proof);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed");
+      const data = await postWithAdVerification("/api/mystery-box", proof);
       if (typeof data.claimsToday === "number") setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       showNotification("Mystery Box reward added to your GEM balance.", "success");

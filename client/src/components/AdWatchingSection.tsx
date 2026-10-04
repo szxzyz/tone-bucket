@@ -6,6 +6,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
 
 interface AdWatchingSectionProps {
   user: any;
@@ -24,7 +25,7 @@ const AD_CARDS = [
 
 function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const queryClient = useQueryClient();
-  const { startSession, endSession, cancelSession, waitForForeground, getSessionStart } = useAdSession();
+  const { startSession, endSession, cancelSession } = useAdSession();
   const { t } = useLanguage();
   const { showMonetagAd, showGigaPubAd, showUSLAd } = useAdFlow();
 
@@ -55,14 +56,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       adType: string; sessionId: string;
       backgroundDuration: number; backgroundEntered: boolean; sessionStart: number;
     }) => {
-      const r = await apiRequest("POST", "/api/ads/watch", payload);
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok || data?.success === false) {
-        const error: any = new Error(data?.message || "Failed to claim ad reward");
-        error.errorType = data?.errorType;
-        throw error;
-      }
-      return data;
+      return postWithAdVerification("/api/ads/watch", payload);
     },
     onSuccess: (data: any) => {
       const rewardGems = data?.rewardGems || 0;
@@ -177,6 +171,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     currentAdTypeRef.current = card.adType;
 
     const sessionId    = startSession();
+    let providerCompleted = false;
     try {
       setCurrentAdStep("loading");
       const regRes = await apiRequest("POST", "/api/ads/register-session", {
@@ -194,7 +189,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       if (card.adType === "adsgram") {
         result = await showAdsgramAd();
       } else if (card.adType === "monetag") {
-        const r = await showMonetagAd();
+        const r = await showMonetagAd(sessionId, "ads_watch");
         result  = { success: r.success, unavailable: r.unavailable };
       } else if (card.adType === "gigapub") {
         result = await showGigaPubAd();
@@ -204,25 +199,25 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         result = { success: false, unavailable: true };
       }
 
-      if (result.unavailable) { showNotification("Ads not available", "error"); return; }
+      if (result.unavailable) {
+        await cancelRegisteredAdSession(sessionId);
+        cancelSession();
+        showNotification("Ads not available", "error");
+        return;
+      }
       if (!result.success) {
+        await cancelRegisteredAdSession(sessionId);
+        cancelSession();
         showNotification(card.adType === "uslads"
           ? "USL Ads API key is missing. Add VITE_USL_ADS_API_KEY in deployment settings."
           : "Please watch the ad completely to claim your reward.", "error");
         return;
       }
+      providerCompleted = true;
 
-      // AdsGram and Gigapub can move the Mini App behind a native ad overlay.
-      // Wait for the user to return before claiming, then keep Gigapub sessions
-      // above the server's minimum 3-second provider window.
-      if (card.adType === "adsgram" || card.adType === "gigapub") {
-        setCurrentAdStep("verifying");
-        await waitForForeground();
-      }
-      if (card.adType === "monetag" || card.adType === "gigapub" || card.adType === "uslads") {
-        const remaining = 3_200 - (Date.now() - getSessionStart());
-        if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
-      }
+      // The provider's server callback is the verification gate. No UI state
+      // or user action about minimizing/backgrounding is required.
+      setCurrentAdStep("verifying");
 
       const session = endSession();
       if (!sessionRewardedRef.current) {
@@ -236,6 +231,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         });
       }
     } catch {
+      if (!providerCompleted) await cancelRegisteredAdSession(sessionId);
       cancelSession();
     } finally {
       setCurrentAdStep("idle");

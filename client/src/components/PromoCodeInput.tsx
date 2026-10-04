@@ -5,6 +5,8 @@ import { showNotification } from "@/components/AppNotification";
 import { FiExternalLink } from "react-icons/fi";
 import { Ticket } from "lucide-react";
 import { useAdFlow } from "@/hooks/useAdFlow";
+import { useAdSession } from "@/hooks/useAdSession";
+import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PromoCodeInput() {
@@ -13,20 +15,12 @@ export default function PromoCodeInput() {
   const [busy, setBusy] = useState(false);
   const [channelRequired, setChannelRequired] = useState<{ channelLink: string | null; channelName: string } | null>(null);
   const queryClient = useQueryClient();
+  const { startSession, endSession, cancelSession } = useAdSession();
   const { showMonetagAd } = useAdFlow();
 
   const redeemPromoMutation = useMutation({
-    mutationFn: async ({ code }: { code: string }) => {
-      const response = await apiRequest("POST", "/api/promo-codes/redeem", { code });
-      const data = await response.json();
-      if (!response.ok) {
-        const err: any = new Error(data.message || "Invalid promo code");
-        err.errorType = data.errorType;
-        err.channelLink = data.channelLink;
-        err.channelName = data.channelName;
-        throw err;
-      }
-      return data;
+    mutationFn: async ({ code, proof }: { code: string; proof: any }) => {
+      return postWithAdVerification("/api/promo-codes/redeem", { code, proof });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -61,6 +55,8 @@ export default function PromoCodeInput() {
     }
     setInlineError(null);
     setBusy(true);
+    let proof: any;
+    let sessionId: string | null = null;
 
     try {
       const checkResponse = await apiRequest("POST", "/api/promo-codes/check-channel", { code });
@@ -78,18 +74,39 @@ export default function PromoCodeInput() {
       }
 
       setChannelRequired(null);
-      const adResult = await showMonetagAd();
+      sessionId = startSession();
+      const registration = await apiRequest("POST", "/api/ads/register-session", {
+        sessionId,
+        adType: "monetag",
+        context: "promo_code",
+      });
+      if (!registration.ok) {
+        const details = await registration.json().catch(() => ({}));
+        throw new Error(details.message || "Ad verification is not available right now");
+      }
+
+      const adResult = await showMonetagAd(sessionId, "promo_code");
       if (!adResult.success) {
+        await cancelRegisteredAdSession(sessionId);
+        cancelSession();
         setInlineError(adResult.unavailable ? "Monetag ad is not available right now. Please try again." : "Please watch the Monetag ad to claim your reward.");
         return;
       }
+      const session = endSession();
+      proof = {
+        sessionId: session.sessionId,
+        backgroundEntered: session.backgroundEntered,
+        backgroundDuration: session.backgroundDuration,
+      };
     } catch (error: any) {
+      if (sessionId) await cancelRegisteredAdSession(sessionId);
+      cancelSession();
       setInlineError(error?.message || "Could not verify membership or complete the ad. Please try again.");
       return;
     } finally {
       setBusy(false);
     }
-    redeemPromoMutation.mutate({ code });
+    redeemPromoMutation.mutate({ code, proof });
   };
 
   const handleSubmit = () => { void runPromoClaimFlow(); };

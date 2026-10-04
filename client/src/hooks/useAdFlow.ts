@@ -116,7 +116,7 @@ export function useAdFlow() {
   const [isShowingAds, setIsShowingAds] = useState(false);
   const [adStep, setAdStep] = useState<'idle' | 'monetag' | 'complete'>('idle');
 
-  const showMonetagAd = useCallback((): Promise<{ success: boolean; watchedFully: boolean; unavailable: boolean }> => {
+  const showMonetagAd = useCallback((sessionId?: string, requestVar = 'ad_reward'): Promise<{ success: boolean; watchedFully: boolean; unavailable: boolean }> => {
     return new Promise(async (resolve) => {
       // Prefer the server-provided runtime zone id so a deployment does not
       // depend on the client bundle having the build-time env variable.
@@ -129,7 +129,6 @@ export function useAdFlow() {
       const ready = showFn ? await waitForFn(showFn) : false;
       if (!ready) { resolve({ success: false, watchedFully: false, unavailable: true }); return; }
 
-      const providerStartedAt = Date.now();
       let settled = false;
       const settle = (r: { success: boolean; watchedFully: boolean; unavailable: boolean }) => {
         if (settled) return; settled = true; clearTimeout(timer); resolve(r);
@@ -142,13 +141,10 @@ export function useAdFlow() {
       }, 30_000);
 
       try {
-        (window[showFn as keyof Window] as ((t?: string) => Promise<void>))()
-          .then(async () => {
-            // The backend requires a minimum provider session window. Some
-            // Monetag SDK builds resolve before the native overlay has fully
-            // settled, so keep the session alive long enough to claim safely.
-            const remaining = 3_200 - (Date.now() - providerStartedAt);
-            if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+        (window[showFn as keyof Window] as ((options?: { ymid?: string; requestVar?: string }) => Promise<void>))(
+          sessionId ? { ymid: sessionId, requestVar } : undefined,
+        )
+          .then(() => {
             settle({ success: true, watchedFully: true, unavailable: false });
           })
           .catch((error) => {
