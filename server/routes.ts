@@ -276,6 +276,11 @@ const adUserCooldowns   = new Map<string, number>();  // userId     → lastRewa
 const AD_REWARD_COOLDOWN_MS = 15_000;  // 15 s minimum between rewards (was 5 s — increased to prevent rapid replay)
 // How long a pending ad_sessions row is honored before it's considered stale/abandoned.
 const AD_SESSION_MAX_AGE_MS = 15 * 60_000; // 15 minutes
+// The SDK completion request and a provider postback are independent HTTP
+// requests. Give the postback a short chance to arrive before returning
+// `pending`; the existing client does not retry a pending claim.
+const PROVIDER_CALLBACK_WAIT_MS = 8_000;
+const PROVIDER_CALLBACK_POLL_MS = 250;
 // No hard cap on per-ad reward — the admin-configured value is always used as-is.
 
 // Rewards are available only for networks with an authenticated, session-bound
@@ -292,6 +297,23 @@ function matchesCallbackSecret(candidate: unknown, configured: string | undefine
   const received = candidate.trim();
   if (!expected || !received || Buffer.byteLength(expected) !== Buffer.byteLength(received)) return false;
   return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+}
+
+async function waitForProviderCallback(provider: string, sessionId: string): Promise<boolean> {
+  const deadline = Date.now() + PROVIDER_CALLBACK_WAIT_MS;
+  do {
+    const [callback] = await db.select({ id: adRewardCallbacks.id })
+      .from(adRewardCallbacks)
+      .where(and(
+        eq(adRewardCallbacks.provider, provider),
+        eq(adRewardCallbacks.sessionId, sessionId),
+      ))
+      .limit(1);
+    if (callback) return true;
+    if (Date.now() >= deadline) break;
+    await new Promise((resolve) => setTimeout(resolve, PROVIDER_CALLBACK_POLL_MS));
+  } while (true);
+  return false;
 }
 
 // Prune stale cooldown entries every 15 minutes to prevent unbounded memory growth.
@@ -1896,20 +1918,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return typeof value === 'string' ? value : undefined;
     };
     if (!hasTrustedRewardCallback('monetag')) return res.status(503).send('Postback verification is not configured');
-    if (!matchesCallbackSecret(queryValue(req.query?.token), process.env.MONETAG_POSTBACK_SECRET)) {
+    const callbackSecret = queryValue(req.query?.token)
+      || queryValue(req.query?.secret)
+      || queryValue(req.query?.key);
+    if (!matchesCallbackSecret(callbackSecret, process.env.MONETAG_POSTBACK_SECRET)) {
       return res.status(403).send('Forbidden');
     }
 
     const ymid = queryValue(req.query?.ymid);
     const zoneId = queryValue(req.query?.zone_id) || queryValue(req.query?.zone);
-    const eventType = queryValue(req.query?.event_type) || queryValue(req.query?.event);
-    const rewardEventType = queryValue(req.query?.reward_event_type) || queryValue(req.query?.value);
+    const eventType = (queryValue(req.query?.event_type) || queryValue(req.query?.event) || '').toLowerCase();
+    const rewardEventType = (queryValue(req.query?.reward_event_type) || queryValue(req.query?.value) || '').toLowerCase();
     const telegramId = queryValue(req.query?.telegram_id);
-    if (!ymid || ymid.length > 180 || !zoneId || zoneId !== String(config.ads.monetagZoneId)) {
+    if (!ymid || ymid.length > 180 || !zoneId || String(zoneId) !== String(config.ads.monetagZoneId)) {
       return res.status(400).send('Invalid postback parameters');
     }
-    // Clicks and non-valued impressions never grant an in-app reward.
-    if (eventType !== 'impression' || rewardEventType !== 'valued') return res.status(200).send('OK');
+    // Monetag sends valued impressions for rewarded views and valued clicks
+    // for rewarded-interstitial interaction. Both are valid confirmation
+    // signals; non-valued traffic is deliberately ignored.
+    if (!['impression', 'click'].includes(eventType) || rewardEventType !== 'valued') return res.status(200).send('OK');
 
     try {
       const [session] = await db.select().from(adSessions)
@@ -1932,7 +1959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db.insert(adRewardCallbacks).values({
         provider: 'monetag',
-        eventKey: `monetag:${ymid}:impression`,
+        eventKey: `monetag:${ymid}:${eventType}`,
         userId: session.userId,
         sessionId: session.id,
         eventType,
@@ -2043,13 +2070,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorType: 'provider_verification_unavailable',
         });
       }
-      const [providerCallback] = await db.select({ id: adRewardCallbacks.id })
-        .from(adRewardCallbacks)
-        .where(and(
-          eq(adRewardCallbacks.provider, serverAdType),
-          eq(adRewardCallbacks.sessionId, sessionRow.id),
-        ))
-        .limit(1);
+      const providerCallback = await waitForProviderCallback(serverAdType, sessionRow.id);
       if (!providerCallback) {
         return res.status(202).json({
           success: false,
