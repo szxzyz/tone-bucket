@@ -1929,7 +1929,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const zoneId = queryValue(req.query?.zone_id) || queryValue(req.query?.zone);
     const eventType = (queryValue(req.query?.event_type) || queryValue(req.query?.event) || '').toLowerCase();
     const rewardEventType = (queryValue(req.query?.reward_event_type) || queryValue(req.query?.value) || '').toLowerCase();
-    const telegramId = queryValue(req.query?.telegram_id);
+    const telegramId = queryValue(req.query?.telegram_id)
+      || queryValue(req.query?.telegramId)
+      || queryValue(req.query?.user_id)
+      || queryValue(req.query?.userid);
     if (!ymid || ymid.length > 180 || !zoneId || String(zoneId) !== String(config.ads.monetagZoneId)) {
       return res.status(400).send('Invalid postback parameters');
     }
@@ -1939,7 +1942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!['impression', 'click'].includes(eventType) || rewardEventType !== 'valued') return res.status(200).send('OK');
 
     try {
-      const [session] = await db.select().from(adSessions)
+      let [session] = await db.select().from(adSessions)
         .where(and(
           eq(adSessions.id, ymid),
           eq(adSessions.adType, 'monetag'),
@@ -1947,6 +1950,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gte(adSessions.registeredAt, new Date(Date.now() - AD_SESSION_MAX_AGE_MS)),
         ))
         .limit(1);
+      // Monetag documents ymid as pass-through, but some SDK/dashboard
+      // combinations omit or normalize it. If the optional Telegram ID is
+      // present, safely fall back to the user's newest pending Monetag
+      // session rather than dropping a valid valued callback.
+      if (!session && telegramId && /^\d{5,20}$/.test(telegramId)) {
+        const owner = await storage.getUserByTelegramId(telegramId);
+        if (owner) {
+          [session] = await db.select().from(adSessions)
+            .where(and(
+              eq(adSessions.userId, owner.id),
+              eq(adSessions.adType, 'monetag'),
+              eq(adSessions.status, 'pending'),
+              gte(adSessions.registeredAt, new Date(Date.now() - AD_SESSION_MAX_AGE_MS)),
+            ))
+            .orderBy(desc(adSessions.registeredAt))
+            .limit(1);
+          if (session) console.warn(`⚠️ Monetag callback ymid mismatch; correlated ${ymid} to latest session ${session.id}`);
+        }
+      }
       if (!session) return res.status(404).send('No matching ad session');
 
       if (telegramId) {
