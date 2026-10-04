@@ -829,8 +829,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mandatory app access verification. Telegram must be able to look up the
-  // configured official channel and community group; payout is not required.
+  // Mandatory app access verification. When configured, users must join the
+  // official channel, community group, and payout-proof channel.
 
   // Telegram can briefly omit initData while a Mini App is being restored after
   // the user returns from a channel/group. Reuse the already-authenticated
@@ -847,9 +847,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/telegram/join-status', authenticateTelegramOrSession, async (req: any, res) => {
     res.set('Cache-Control', 'no-store');
     const required = process.env.REQUIRE_CHANNEL_JOIN !== 'false';
+    const payoutChannelLink = config.telegram.payoutChannelUrl || config.paymentProof.link;
     const configuredResources = [
       { key: 'channel' as const, title: config.telegram.channelName || 'Official Channel', link: config.telegram.channelUrl, id: config.telegram.channelId },
       { key: 'group' as const, title: config.telegram.groupName || 'Community group', link: config.telegram.groupUrl, id: config.telegram.groupId },
+      { key: 'payout' as const, title: config.telegram.payoutChannelName || 'Payout Proof Channel', link: payoutChannelLink, id: config.telegram.payoutChannelId },
     ].map((resource) => {
       // Some deployments configure only TELEGRAM_*_LINK. Convert public t.me
       // links into a Telegram username so membership verification still works.

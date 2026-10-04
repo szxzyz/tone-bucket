@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 
 type TelegramResource = {
-  key: 'channel' | 'group';
+  key: 'channel' | 'group' | 'payout';
   title: string;
   link: string;
   joined: boolean;
@@ -136,7 +136,7 @@ export default function TelegramJoinGate() {
   const hasUnjoinedResource = resources.some((resource) => !resource.joined);
   const handleVerify = () => {
     if (hasUnjoinedResource) {
-      setVerificationMessage('Please join the channel and group first, then tap Verify.');
+      setVerificationMessage('Please join all required channels and groups first, then tap Verify.');
       return;
     }
     setVerificationMessage('');
