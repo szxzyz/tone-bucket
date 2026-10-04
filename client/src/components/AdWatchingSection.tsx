@@ -96,10 +96,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     },
     onError: (error: any) => {
       sessionRewardedRef.current = false;
-      if (error.errorType === "insufficient_background") {
-        showNotification("Watch the full ad to earn your reward.", "error");
-      }
-      else showNotification(error.message || "Failed to claim reward", "error");
+      showNotification(error.message || "Failed to claim reward", "error");
     },
   });
 
@@ -118,7 +115,13 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         if (window.Adsgram) {
           window.Adsgram.init({ blockId })
             .show()
-            .then(() => resolve({ success: true, unavailable: false }))
+            .then((result: any) => resolve({
+              // A resolved AdsGram rewarded promise means the ad was completed.
+              // Keep an explicit guard for SDK versions that resolve with an
+              // unfinished or error payload instead of rejecting.
+              success: result?.done !== false && result?.error !== true,
+              unavailable: false,
+            }))
             .catch(() => resolve({ success: false, unavailable: false }));
           return;
         }

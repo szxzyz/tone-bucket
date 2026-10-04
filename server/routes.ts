@@ -1798,11 +1798,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send('No active ad session');
       }
 
-      // Do not let the server callback bypass the client-side lifecycle proof.
-      // The client claim records backgroundEntered only after the Mini App has
-      // returned from at least one minimize/background event. The callback can
-      // arrive before that claim, so acknowledge it and let the verified client
-      // claim perform the actual credit.
+      // Do not let the postback mint a second reward. The SDK completion claim
+      // is credited atomically by /api/ads/watch; this callback is confirmation
+      // only and may arrive before or after that client claim.
       console.info(`ℹ️ AdsGram callback awaiting verified client claim for user ${telegramId}`);
       return res.status(200).send('OK');
     } catch (error) {
@@ -1915,23 +1913,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // AdsGram requires one background/minimize event, but has no minimum
-      // duration. Other providers use only the server-measured session window.
+      // Background lifecycle data is retained as diagnostics only. AdsGram's
+      // SDK resolves show() only after the rewarded ad is completed; requiring
+      // a WebView minimize event here rejects valid views on clients that do
+      // not emit visibility/activation events consistently.
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       const serverSessionAgeMs = Date.now() - new Date(sessionRow.registeredAt as any).getTime();
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
-
-      if (serverAdType === 'adsgram' && !bgEntered) {
-        await db.update(adSessions)
-          .set({ status: 'failed', usedAt: new Date(), backgroundEntered: false, backgroundDurationMs: bgDuration })
-          .where(eq(adSessions.id, sessionId));
-        return res.status(400).json({
-          message: "Please minimize the Mini App once during the AdsGram ad and return to claim the reward.",
-          errorType: 'insufficient_background',
-        });
-      }
 
       // TowerAds supplies its own rewarded completion callback. Unlike generic
       // client-timed providers, a valid USL reward must not be rejected because
@@ -2652,9 +2642,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Atomically consume a pre-registered ad session for a reward claim (inside
   // the caller's transaction). The session must be registered before the ad,
   // belong to this user + context, remain pending, be fresh, and be old enough
-  // to plausibly contain an ad view. AdsGram additionally requires the
-  // background/minimize lifecycle proof; Monetag is accepted through the
-  // server-measured session duration and does not require a background event.
+  // to plausibly contain an ad view. The caller only submits after its ad SDK
+  // reports completion; background/minimize events are not a reward condition.
   const consumeRewardAdSession = async (
     tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box',
   ): Promise<boolean> => {
@@ -2664,7 +2653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const bgDuration = typeof body?.backgroundDuration === 'number' ? Math.max(0, body.backgroundDuration) : 0;
 
     const [session] = await tx
-      .select({ adType: adSessions.adType })
+      .select({ adType: adSessions.adType, registeredAt: adSessions.registeredAt })
       .from(adSessions)
       .where(and(
         eq(adSessions.id, sessionId),
@@ -2676,31 +2665,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     if (!session) return false;
 
-    if (session.adType === 'adsgram' && !bgEntered) {
-      // AdsGram must genuinely minimize the Mini App. Burn the session so an
-      // unverified claim cannot be retried or replayed.
-      await tx
-        .update(adSessions)
-        .set({ status: 'failed', usedAt: new Date(), backgroundEntered: false, backgroundDurationMs: bgDuration })
-        .where(and(
-          eq(adSessions.id, sessionId),
-          eq(adSessions.userId, userId),
-          eq(adSessions.context, context),
-          eq(adSessions.status, 'pending'),
-        ));
-      return false;
-    }
+    // AdsGram's resolved rewarded-ad promise is its completion signal, so do
+    // not reject it for timing or WebView lifecycle events the SDK controls.
+    if (
+      session.adType !== 'adsgram' &&
+      Date.now() - new Date(session.registeredAt as any).getTime() < MIN_PROVIDER_SESSION_MS
+    ) return false;
 
     const consumed = await tx
       .update(adSessions)
-      .set({ status: 'used', usedAt: new Date(), backgroundEntered: true, backgroundDurationMs: bgDuration })
+      .set({ status: 'used', usedAt: new Date(), backgroundEntered: bgEntered, backgroundDurationMs: bgDuration })
       .where(and(
         eq(adSessions.id, sessionId),
         eq(adSessions.userId, userId),
         eq(adSessions.context, context),
         eq(adSessions.status, 'pending'),
         sql`registered_at >= NOW() - make_interval(secs => ${AD_SESSION_MAX_AGE_MS / 1000})`,
-        sql`registered_at <= NOW() - make_interval(secs => ${MIN_PROVIDER_SESSION_MS / 1000})`,
       ))
       .returning({ id: adSessions.id });
     return consumed.length > 0;
