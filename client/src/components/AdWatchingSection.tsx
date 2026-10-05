@@ -420,7 +420,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
           <div className="w-full max-w-[340px] rounded-2xl border border-white/10 bg-[#111114] px-5 py-4 shadow-2xl">
             <h3 id="adsgram-popup-title" className="mb-2 text-center text-base font-black text-white">Reward credited</h3>
             <p className="mb-2 text-center text-[13px] font-semibold leading-relaxed text-white">Ad Watch Successful — Earned {adsgramPopup.rewardGems} GEM</p>
-            <p className="mb-4 text-center text-xs leading-relaxed text-white/60">You did not minimize the app for 2 seconds, so only 25% of this ad’s reward was credited.</p>
+            <p className="mb-4 text-center text-xs leading-relaxed text-white/60">No ad click detected — only 25% of the reward was credited.</p>
             <button type="button" onClick={acknowledgeAdsgramPopup} className="h-10 w-full rounded-xl bg-blue-600 text-sm font-black uppercase tracking-wider text-white active:scale-[.98]">
               Got it
             </button>
