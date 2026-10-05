@@ -357,7 +357,7 @@ export default function TaskSection() {
                 <span className="text-white">{icon}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-white font-semibold text-sm truncate">{title}</h3>
+                <h3 data-task-name="true" className="text-white font-semibold text-sm truncate">{title}</h3>
                 <div className="flex items-center gap-1">
                   <Zap className={`w-3 h-3 ${rewardColor}`} />
                   <p className={`text-xs font-bold ${rewardColor}`}>{reward}</p>

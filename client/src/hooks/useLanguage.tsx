@@ -4772,6 +4772,31 @@ const LanguageContext = createContext<LanguageContextType>({
   isRTL: false,
 });
 
+const domTranslationCache = new Map<string, string>();
+const domTranslationPending = new Set<string>();
+const domOriginalText = new WeakMap<Text, string>();
+
+function shouldSkipDomTranslation(node: Text): boolean {
+  const parent = node.parentElement;
+  if (!parent) return true;
+  if (parent.closest('script, style, input, textarea, select, option, a, code, pre, [contenteditable="true"], [data-no-translate], [data-user-content], [data-task-name], [data-dynamic-content]')) return true;
+  const text = node.nodeValue?.trim() || '';
+  if (!text || text.length > 180 || text.length < 2) return true;
+  // Never send identifiers, links, usernames, wallet addresses or codes to Google.
+  if (/https?:\/\/|t\.me\/|^[@#][\w.]+|0x[a-f0-9]{12,}|^[A-Z0-9_-]{8,}$|^\d[\d\s.,:/-]*$/.test(text)) return true;
+  return false;
+}
+
+function collectStaticTextNodes(root: ParentNode): Text[] {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  let current: Node | null;
+  while ((current = walker.nextNode())) {
+    if (current instanceof Text && !shouldSkipDomTranslation(current)) nodes.push(current);
+  }
+  return nodes;
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
   const [dynamicTranslations, setDynamicTranslations] = useState<Record<string, string>>({});
@@ -4802,6 +4827,64 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const isRTL = language === 'ar' || language === 'fa';
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
+  }, [language]);
+
+  // Existing pages contain legacy static JSX labels that do not call t().
+  // Translate only their visible text nodes; protected/dynamic nodes are
+  // excluded above so usernames, balances, links, codes and task data stay exact.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const nodes = collectStaticTextNodes(document.body);
+    nodes.forEach((node) => { if (!domOriginalText.has(node)) domOriginalText.set(node, node.nodeValue || ''); });
+    if (language === 'en') {
+      nodes.forEach((node) => { node.nodeValue = domOriginalText.get(node) || node.nodeValue; });
+      return;
+    }
+
+    let cancelled = false;
+    const translateBatch = async (batch: Text[]) => {
+      const sourceTexts = batch.map((node) => domOriginalText.get(node) || node.nodeValue || '');
+      const missing = sourceTexts.filter((text) => !domTranslationCache.has(`${language}:${text}`));
+      const requestTexts = [...new Set(missing)].filter((text) => {
+        const key = `${language}:${text}`;
+        if (domTranslationPending.has(key)) return false;
+        domTranslationPending.add(key);
+        return true;
+      }).slice(0, 40);
+      if (requestTexts.length) {
+        try {
+          const response = await fetch('/api/translations', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+            body: JSON.stringify({ texts: requestTexts, target: language }),
+          });
+          const data = response.ok ? await response.json() : null;
+          requestTexts.forEach((text, index) => {
+            const translated = data?.translations?.[index];
+            if (typeof translated === 'string' && translated && translated !== text) {
+              domTranslationCache.set(`${language}:${text}`, translated);
+            }
+            domTranslationPending.delete(`${language}:${text}`);
+          });
+        } catch {
+          requestTexts.forEach((text) => domTranslationPending.delete(`${language}:${text}`));
+        }
+      }
+      if (cancelled) return;
+      batch.forEach((node) => {
+        const source = domOriginalText.get(node) || node.nodeValue || '';
+        const translated = domTranslationCache.get(`${language}:${source}`);
+        if (translated) node.nodeValue = translated;
+      });
+    };
+
+    for (let index = 0; index < nodes.length; index += 40) void translateBatch(nodes.slice(index, index + 40));
+    const observer = new MutationObserver(() => {
+      const fresh = collectStaticTextNodes(document.body).filter((node) => !domOriginalText.has(node));
+      fresh.forEach((node) => domOriginalText.set(node, node.nodeValue || ''));
+      for (let index = 0; index < fresh.length; index += 40) void translateBatch(fresh.slice(index, index + 40));
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => { cancelled = true; observer.disconnect(); };
   }, [language]);
 
   const setLanguage = (lang: Language) => {
