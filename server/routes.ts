@@ -286,9 +286,9 @@ const PROVIDER_CALLBACK_WAIT_MS = 3_000;
 const PROVIDER_CALLBACK_POLL_MS = 250;
 // No hard cap on per-ad reward — the admin-configured value is always used as-is.
 
-// AdsGram still uses its configured server callback. Monetag follows the
-// simple GrabPenny-style client completion flow and must not be blocked when
-// its optional postback is absent or delayed.
+// AdsGram reward placements use their configured server callback. The promo
+// placement is an interstitial and is confirmed through the authenticated SDK
+// completion route; Monetag uses its client completion flow.
 function hasTrustedRewardCallback(provider: string): boolean {
   if (provider === 'adsgram') return Boolean(process.env.ADSGRAM_REWARD_SECRET?.trim());
   if (provider === 'monetag') return true;
@@ -1724,7 +1724,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!normalizedAdType) {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
       }
-      if (!hasTrustedRewardCallback(normalizedAdType)) {
+      const promoAdsgramUsesSdkCompletion = normalizedContext === 'promo_code' && normalizedAdType === 'adsgram';
+      if (!hasTrustedRewardCallback(normalizedAdType) && !promoAdsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
           errorType: 'provider_verification_unavailable',
@@ -1801,17 +1802,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GigaPub and USL/TowerAds report completion through their browser SDKs
-  // rather than a server-to-server postback. Record that completion against
-  // the authenticated, pre-registered session so /api/ads/watch can use the
-  // same idempotent verification path as the other providers.
+  // GigaPub and USL/TowerAds report completion through their browser SDKs.
+  // AdsGram promo codes use an interstitial block whose SDK completion promise
+  // is the completion signal; it does not guarantee an S2S Reward URL postback.
+  // Record SDK completion only for the authenticated, pre-registered promo
+  // session. AdsGram rewards elsewhere continue to require the S2S callback.
   app.post('/api/ads/provider-complete', authenticateTelegram, adWatchRateLimit, async (req: any, res) => {
     const sessionId = req.body?.sessionId;
     const provider = req.body?.provider;
     if (typeof sessionId !== 'string' || sessionId.length < 10 || sessionId.length > 180) {
       return res.status(400).json({ success: false, errorType: 'invalid_session' });
     }
-    if (provider !== 'gigapub' && provider !== 'uslads') {
+    if (provider !== 'gigapub' && provider !== 'uslads' && provider !== 'adsgram') {
       return res.status(400).json({ success: false, errorType: 'invalid_provider' });
     }
     try {
@@ -1826,7 +1828,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session || session.userId !== String(req.user.user.id)) {
         return res.status(404).json({ success: false, errorType: 'invalid_session' });
       }
-      if (session.adType !== provider || session.context !== 'ads_watch') {
+      const allowedContext = provider === 'adsgram' ? 'promo_code' : 'ads_watch';
+      if (session.adType !== provider || session.context !== allowedContext) {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
       }
       if (session.status !== 'pending') {
@@ -2921,7 +2924,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .limit(1);
 
     if (!session) return false;
-    if (!hasTrustedRewardCallback(session.adType)) return false;
+    const promoAdsgramUsesSdkCompletion = session.adType === 'adsgram' && context === 'promo_code';
+    if (!hasTrustedRewardCallback(session.adType) && !promoAdsgramUsesSdkCompletion) return false;
     if (session.adType === 'adsgram' && context !== 'promo_code' && !bgEntered) return false;
 
     const [providerCallback] = await tx

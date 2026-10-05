@@ -5,7 +5,7 @@ import { showNotification } from "@/components/AppNotification";
 import { FiExternalLink } from "react-icons/fi";
 import { Ticket } from "lucide-react";
 import { useAdSession } from "@/hooks/useAdSession";
-import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
+import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
 import { showAdgramAd } from "@/lib/showAd";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -74,7 +74,8 @@ export default function PromoCodeInput() {
       }
 
       setChannelRequired(null);
-      sessionId = startSession();
+      const activeSessionId = startSession();
+      sessionId = activeSessionId;
       const blockId = appConfig?.adsgramPromoBlockId || import.meta.env.VITE_ADSGRAM_PROMO_BLOCK_ID || '';
       if (!blockId) throw new Error('Promo AdsGram block is not configured. Please try again later.');
       const registration = await apiRequest("POST", "/api/ads/register-session", {
@@ -88,6 +89,7 @@ export default function PromoCodeInput() {
       }
 
       await showAdgramAd(blockId);
+      await confirmProviderCompletion(activeSessionId, 'adsgram');
       await waitForForeground();
       const session = endSession();
       proof = {
