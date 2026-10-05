@@ -81,8 +81,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         setAdsgramPopup({ kind: 'partial', rewardGems });
       } else {
         showNotification(
-          <div className="flex items-center gap-2 text-white">
-            <img src="/assets/gems-icon.svg" alt="GEM" className="w-4 h-4 object-contain" />
+          <div className="text-white">
             <span className="font-semibold text-white">Ad Watch Successful — Earned {rewardGems} GEM</span>
           </div> as any,
           "success"
