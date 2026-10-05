@@ -4782,8 +4782,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem('app_language') as Language;
       if (saved && SUPPORTED_LANGUAGES.some((item) => item.code === saved)) {
         setLanguageState(saved);
+        return;
       }
     } catch {}
+    fetch('/api/auth/user', { credentials: 'include' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((user) => {
+        const accountLanguage = user?.language as Language | undefined;
+        if (accountLanguage && SUPPORTED_LANGUAGES.some((item) => item.code === accountLanguage)) {
+          setLanguageState(accountLanguage);
+          try { localStorage.setItem('app_language', accountLanguage); } catch {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Apply RTL direction to <html> tag whenever language changes
