@@ -3414,20 +3414,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Check and perform daily reset (called every 5 minutes)
+  // Check and perform daily reset (called on startup and every 5 minutes).
+  // performDailyResetV2 is idempotent because it only updates users whose
+  // last_reset_period differs from the current period. Running it on every
+  // check lets a restarted server catch up after missing the exact 06:30/18:30
+  // UTC window while keeping the twice-daily reset behavior unchanged.
   async checkAndPerformDailyResetV2(): Promise<void> {
     try {
-      const now = new Date();
-      const currentHour = now.getUTCHours();
-      const currentMinute = now.getUTCMinutes();
-      
-      // Run reset at 06:30-06:35 UTC and 18:30-18:35 UTC
-      const isAMReset = currentHour === 6 && currentMinute >= 30 && currentMinute < 35;
-      const isPMReset = currentHour === 18 && currentMinute >= 30 && currentMinute < 35;
-      
-      if (isAMReset || isPMReset) {
-        await this.performDailyResetV2();
-      }
+      await this.performDailyResetV2();
     } catch (error) {
       console.error('❌ Error checking daily reset:', error);
       // Don't throw to avoid disrupting the interval

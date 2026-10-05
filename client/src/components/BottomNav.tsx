@@ -70,9 +70,10 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {labels.map((tab) => {
-        // The root route renders Ads, so it must not activate Mission.
-        // Keep the legacy game/machine aliases mapped to Mission only.
-        const active = location === tab.path
+        // The root route renders Ads, so highlight Ads immediately without
+        // requiring a second tap. Keep legacy game/machine aliases on Mission.
+        const active = (tab.id === "ads" && ["/", "/ads"].includes(location))
+          || location === tab.path
           || (tab.id === "mission" && ["/game", "/machine"].includes(location));
         const color = active ? ACTIVE : DIM;
 
