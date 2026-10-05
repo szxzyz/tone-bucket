@@ -279,7 +279,10 @@ const AD_SESSION_MAX_AGE_MS = 15 * 60_000; // 15 minutes
 // The SDK completion request and a provider postback are independent HTTP
 // requests. Give the postback a short chance to arrive before returning
 // `pending`; the existing client does not retry a pending claim.
-const PROVIDER_CALLBACK_WAIT_MS = 8_000;
+// Keep each claim attempt short because the client may retry a pending claim.
+// The combined client/server flow is bounded instead of multiplying into a
+// minute-long loading state when Monetag never delivers a postback.
+const PROVIDER_CALLBACK_WAIT_MS = 3_000;
 const PROVIDER_CALLBACK_POLL_MS = 250;
 // No hard cap on per-ad reward — the admin-configured value is always used as-is.
 
