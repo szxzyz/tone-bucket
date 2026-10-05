@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 
@@ -11,20 +12,21 @@ function TaskIcon({ type }: { type: string }) {
   </div>;
 }
 
-function TaskCard({ type, color, title, subtitle, buttonLabel, goldReward = 0, isCompleted, isClaimed, onAction, onClaim }: any) {
+function TaskCard({ type, color, title, subtitle, buttonLabel, goldReward = 0, isCompleted, isClaimed, isBusy = false, onAction, onClaim }: any) {
   return <div style={{ width: "100%", boxSizing: "border-box", padding: "16px", background: "transparent", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
       <TaskIcon type={type} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: "#fff", fontSize: 14, fontWeight: 800, lineHeight: 1.25 }}>{title}</div>
       </div>
-      <button type="button" onClick={e => { e.stopPropagation(); isCompleted ? onClaim() : onAction(); }} disabled={isClaimed} style={{ background: isClaimed ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #2563eb, #3b82f6)", color: isClaimed ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 92, height: 38, padding: 0, borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: isClaimed ? "not-allowed" : "pointer", flexShrink: 0, letterSpacing: "0.03em", whiteSpace: "nowrap", boxShadow: isClaimed ? "none" : "0 2px 12px rgba(37,99,235,0.4)" }}>{isClaimed ? "DONE" : isCompleted ? "CLAIM" : buttonLabel}</button>
+      <button type="button" onClick={e => { e.stopPropagation(); isCompleted ? onClaim() : onAction(); }} disabled={isClaimed || isBusy} style={{ background: isClaimed || isBusy ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #2563eb, #3b82f6)", color: isClaimed || isBusy ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 92, height: 38, padding: 0, borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: isClaimed || isBusy ? "not-allowed" : "pointer", flexShrink: 0, letterSpacing: "0.03em", whiteSpace: "nowrap", boxShadow: isClaimed || isBusy ? "none" : "0 2px 12px rgba(37,99,235,0.4)" }}>{isClaimed ? "DONE" : isBusy ? "..." : isCompleted ? "CLAIM" : buttonLabel}</button>
     </div>
   </div>;
 }
 
 export default function DailyMissionTasks() {
   const queryClient = useQueryClient();
+  const [sharing, setSharing] = useState(false);
   const { data: appConfig } = useQuery<any>({ queryKey: ["/api/config/app"], staleTime: 300000, retry: false });
   const { data: user } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false });
   const { data: missionStatus } = useQuery<any>({ queryKey: ["/api/missions/status"], retry: false });
@@ -33,10 +35,28 @@ export default function DailyMissionTasks() {
   const copyBioLink = async () => { if (!referralLink) return showNotification("Referral link is not available yet", "error"); await navigator.clipboard.writeText(referralLink); showNotification("Referral link copied. Paste it in Telegram bio, save, then tap CLAIM.", "success"); };
   const openAds = () => { const el = document.querySelector("[data-ad-watching-section]"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); else showNotification("Open Watch Ads and watch 10 video ads.", "info"); };
   const openUpdates = () => { const url = appConfig?.updateUrl || appConfig?.channelUrl; if (!url) return showNotification("Update link is not configured yet", "error"); if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url); else window.open(url, "_blank"); setTimeout(() => claimMutation.mutate({ type: "check_for_updates" }), 2000); };
-  const shareFriends = async () => { try { const r = await fetch("/api/share/prepare-message", { method: "POST", credentials: "include" }); const d = await r.json(); if (d.success && window.Telegram?.WebApp?.shareMessage) window.Telegram.WebApp.shareMessage(d.messageId, (sent: boolean) => { if (sent) claimMutation.mutate({ type: "share_referral" }); }); else { const link = d.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(d.referralLink)}`; if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(link); else window.open(link, "_blank"); setTimeout(() => claimMutation.mutate({ type: "share_referral" }), 3000); } } catch { showNotification("Unable to prepare sharing", "error"); } };
+  const shareFriends = async () => {
+    if (sharing || claimMutation.isPending) return;
+    setSharing(true);
+    const finishClaim = () => claimMutation.mutate({ type: "share_referral" }, { onSettled: () => setSharing(false) });
+    try {
+      const r = await fetch("/api/share/prepare-message", { method: "POST", credentials: "include" });
+      const d = await r.json();
+      if (d.success && window.Telegram?.WebApp?.shareMessage) {
+        window.Telegram.WebApp.shareMessage(d.messageId, (sent: boolean) => sent ? finishClaim() : setSharing(false));
+      } else {
+        const link = d.fallbackUrl || `https://t.me/share/url?url=${encodeURIComponent(d.referralLink)}`;
+        if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(link); else window.open(link, "_blank");
+        setTimeout(finishClaim, 3000);
+      }
+    } catch {
+      setSharing(false);
+      showNotification("Unable to prepare sharing", "error");
+    }
+  };
   return <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "8px 0 4px" }}>
     <TaskCard type="check" color="#38bdf8" title="Check for updates" buttonLabel="GO" goldReward={100} isCompleted={!!missionStatus?.checkForUpdates?.completed} isClaimed={!!missionStatus?.checkForUpdates?.claimed} onAction={openUpdates} onClaim={() => claimMutation.mutate({ type: "check_for_updates" })} />
-    <TaskCard type="share" color="#a78bfa" title="Share With Friends" buttonLabel="SHARE" goldReward={100} isCompleted={!!missionStatus?.shareReferral?.completed} isClaimed={!!missionStatus?.shareReferral?.claimed} onAction={shareFriends} onClaim={() => claimMutation.mutate({ type: "share_referral" })} />
+    <TaskCard type="share" color="#a78bfa" title="Share With Friends" buttonLabel="SHARE" goldReward={100} isCompleted={!!missionStatus?.shareReferral?.completed} isClaimed={!!missionStatus?.shareReferral?.claimed} isBusy={sharing || claimMutation.isPending} onAction={shareFriends} onClaim={() => claimMutation.mutate({ type: "share_referral" })} />
 
   </div>;
 }

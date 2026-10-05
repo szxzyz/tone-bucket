@@ -1718,14 +1718,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allowedAdTypes =
         normalizedContext === 'mission_ad' ? ['monetag', 'gigapub']
         : normalizedContext === 'promo_code' ? ['adsgram']
-        : (normalizedContext === 'daily_checkin' || normalizedContext === 'mystery_box') ? ['adsgram', 'monetag']
+        : (normalizedContext === 'daily_checkin' || normalizedContext === 'mystery_box') ? ['adsgram']
         : ['adsgram', 'monetag', 'gigapub', 'uslads'];
       const normalizedAdType = allowedAdTypes.includes(adType ?? '') ? (adType as string) : null;
       if (!normalizedAdType) {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
       }
       const adsgramUsesSdkCompletion = normalizedAdType === 'adsgram'
-        && (normalizedContext === 'ads_watch' || normalizedContext === 'promo_code');
+        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(normalizedContext);
       if (!hasTrustedRewardCallback(normalizedAdType) && !adsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
@@ -1868,7 +1868,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session || session.userId !== String(req.user.user.id)) {
         return res.status(404).json({ success: false, errorType: 'invalid_session' });
       }
-      const allowedContexts = provider === 'adsgram' ? ['ads_watch', 'promo_code'] : ['ads_watch'];
+      const allowedContexts = provider === 'adsgram'
+        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box']
+        : ['ads_watch'];
       if (session.adType !== provider || !allowedContexts.includes(session.context)) {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
       }
@@ -2959,9 +2961,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .limit(1);
 
     if (!session) return false;
-    const promoAdsgramUsesSdkCompletion = session.adType === 'adsgram' && context === 'promo_code';
-    if (!hasTrustedRewardCallback(session.adType) && !promoAdsgramUsesSdkCompletion) return false;
-    if (session.adType === 'adsgram' && context !== 'promo_code' && !bgEntered) return false;
+    const adsgramUsesSdkCompletion = session.adType === 'adsgram'
+      && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(context);
+    if (!hasTrustedRewardCallback(session.adType) && !adsgramUsesSdkCompletion) return false;
 
     const [providerCallback] = await tx
       .select({ id: adRewardCallbacks.id })

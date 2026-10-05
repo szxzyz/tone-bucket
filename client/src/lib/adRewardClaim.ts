@@ -20,7 +20,7 @@ export async function postWithAdVerification<T = any>(path: string, payload: unk
         await new Promise((resolve) => window.setTimeout(resolve, POSTBACK_RETRY_DELAY_MS));
         continue;
       }
-      throw new Error("Ad confirmation is taking longer than usual. Please try again shortly.");
+      throw new Error("Ad could not be verified. Please try again.");
     }
 
     if (!response.ok || data?.success === false) {
@@ -33,7 +33,7 @@ export async function postWithAdVerification<T = any>(path: string, payload: unk
     return data as T;
   }
 
-  throw new Error("Ad confirmation is taking longer than usual. Please try again shortly.");
+  throw new Error("Ad could not be verified. Please try again.");
 }
 
 /** Record completion reported by a GigaPub, USL/TowerAds, or promo AdsGram SDK. */

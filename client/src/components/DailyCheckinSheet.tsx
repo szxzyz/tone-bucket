@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { showNotification } from "@/components/AppNotification";
 import PopupShell from "@/components/PopupShell";
-import { useAdFlow } from "@/hooks/useAdFlow";
 import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
-import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
+import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
+import { showAdgramAd } from "@/lib/showAd";
 
 // 7-day streak rewards (GEM) — mirrors server CHECKIN_REWARDS
 export const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
@@ -75,8 +75,7 @@ export default function DailyCheckinSheet({
   adsgramBlockId,
 }: DailyCheckinSheetProps) {
   const queryClient = useQueryClient();
-  const { startSession, endSession, cancelSession } = useAdSession();
-  const { showMonetagAd } = useAdFlow();
+  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
   const [adShown, setAdShown] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
 
@@ -108,19 +107,14 @@ export default function DailyCheckinSheet({
     try {
       const registration = await apiRequest("POST", "/api/ads/register-session", {
         sessionId,
-        adType: "monetag",
+        adType: "adsgram",
         context: "daily_checkin",
       });
       if (!registration.ok) throw new Error("Ad verification is not available right now");
-
-      const adResult = await showMonetagAd(sessionId, "daily_checkin");
-      if (!adResult.success) {
-        await cancelRegisteredAdSession(sessionId);
-        cancelSession();
-        showNotification(adResult.unavailable ? "Ad unavailable" : "Watch the ad to claim", "error");
-        setAdLoading(false);
-        return;
-      }
+      const blockId = adsgramBlockId || import.meta.env.VITE_ADSGRAM_CHECKIN_BLOCK_ID || import.meta.env.VITE_ADSGRAM_BLOCK_ID || "";
+      await showAdgramAd(blockId);
+      await confirmProviderCompletion(sessionId, "adsgram");
+      await waitForForeground();
       const session = endSession();
       claimMutation.mutate({
         doubleReward: false,

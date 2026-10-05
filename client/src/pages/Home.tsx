@@ -17,8 +17,7 @@ import PromoCodeInput from "@/components/PromoCodeInput";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
 import InviteFriendsSection from "@/components/InviteFriendsSection";
 import { showAdgramAd } from "@/lib/showAd";
-import { useAdFlow } from "@/hooks/useAdFlow";
-import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
+import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
 
 
 
@@ -332,8 +331,7 @@ export default function Home() {
   // Server-verified AdsGram flow for daily rewards. The provider remains
   // available for these existing reward contexts; the main ad-watching card
   // now lives on the Mission page.
-  const { startSession, endSession, cancelSession } = useAdSession();
-  const { showMonetagAd: showMonetagRewarded } = useAdFlow();
+  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
   const runVerifiedAdgramAd = async (context: 'daily_checkin' | 'mystery_box') => {
     const sessionId = startSession();
     try {
@@ -350,6 +348,8 @@ export default function Home() {
         await cancelRegisteredAdSession(sessionId);
         throw error;
       }
+      await confirmProviderCompletion(sessionId, 'adsgram');
+      await waitForForeground();
       const session = endSession();
       return {
         sessionId: session.sessionId,
@@ -357,34 +357,12 @@ export default function Home() {
         backgroundDuration: session.backgroundDuration,
       };
     } catch (err) {
+      await cancelRegisteredAdSession(sessionId);
       cancelSession();
       throw err;
     }
   };
 
-  const runVerifiedMonetagAd = async (context: 'mystery_box') => {
-    const sessionId = startSession();
-    try {
-      const regRes = await apiRequest('POST', '/api/ads/register-session', {
-        sessionId, adType: 'monetag', context,
-      });
-      if (!regRes.ok) throw new Error('Could not start ad session');
-      const adResult = await showMonetagRewarded(sessionId, context);
-      if (!adResult.success) {
-        await cancelRegisteredAdSession(sessionId);
-        throw new Error(adResult.unavailable ? 'Monetag ad is unavailable' : 'Monetag ad was not completed');
-      }
-      const session = endSession();
-      return {
-        sessionId: session.sessionId,
-        backgroundEntered: session.backgroundEntered,
-        backgroundDuration: session.backgroundDuration,
-      };
-    } catch (err) {
-      cancelSession();
-      throw err;
-    }
-  };
   // Daily Check-In mutation (calls /api/daily-checkin — distinct from missions daily-checkin)
   const dailyCheckMutation = useMutation({
     mutationFn: async (proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number }) => {
@@ -419,7 +397,7 @@ export default function Home() {
     setMysteryAdLoading(true);
     let proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number };
     try {
-      proof = await runVerifiedMonetagAd('mystery_box');
+      proof = await runVerifiedAdgramAd('mystery_box');
     } catch {
       setMysteryAdLoading(false);
       showNotification('Ad was not completed. No Mystery Gift reward was granted.', 'error');
