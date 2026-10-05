@@ -53,7 +53,7 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Mission} />
+        <Route path="/" component={Ads} />
         <Route path="/mission" component={Mission} />
         <Route path="/ads" component={Ads} />
         <Route path="/game" component={Mission} />

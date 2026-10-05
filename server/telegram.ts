@@ -970,6 +970,9 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
     const replyMarkup = {
       inline_keyboard: [
         [{ text: '💸 Start Earning', url: botLink }],
+        ...(config.support.link && /^https?:\/\//i.test(config.support.link)
+          ? [[{ text: '🆘 support', url: config.support.link }]]
+          : []),
       ]
     };
 
