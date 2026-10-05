@@ -14,6 +14,8 @@ export function useAdSession() {
   const backgroundStartRef  = useRef<number | null>(null);
   const backgroundDurRef    = useRef<number>(0);
   const backgroundEnteredRef = useRef<boolean>(false);
+  const verifiedHiddenStartRef = useRef<number | null>(null);
+  const verifiedHiddenDurationRef = useRef<number>(0);
   const isHiddenRef         = useRef<boolean>(false);
   const listenersRef        = useRef<Array<{ target: Document | Window; type: string; fn: EventListener }>>([]);
   // Telegram WebApp events are registered/removed through a separate API,
@@ -32,6 +34,8 @@ export function useAdSession() {
     backgroundStartRef.current   = null;
     backgroundDurRef.current     = 0;
     backgroundEnteredRef.current = false;
+    verifiedHiddenStartRef.current = null;
+    verifiedHiddenDurationRef.current = 0;
     isHiddenRef.current          = false;
 
     // Tear down any DOM + Telegram listeners from a previous session
@@ -42,11 +46,11 @@ export function useAdSession() {
     for (const off of tgTeardownRef.current) off();
     tgTeardownRef.current = [];
 
-    const enterBackground = () => {
+    const enterBackground = (qualifyingVisibility = false) => {
+      if (qualifyingVisibility) backgroundEnteredRef.current = true;
       if (isHiddenRef.current) return; // already counted
       isHiddenRef.current = true;
       backgroundStartRef.current   = Date.now();
-      backgroundEnteredRef.current = true;
     };
 
     const exitBackground = () => {
@@ -62,7 +66,23 @@ export function useAdSession() {
     // inconsistent about which of these fire when the user minimizes the app
     // or switches to another window — listen to all of them so a genuine
     // minimize is reliably detected regardless of platform.
-    const onVisibilityChange = () => { document.hidden ? enterBackground() : exitBackground(); };
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        // Blur/deactivation also fire for native ad overlays. Only a real
+        // hidden document is accepted as the user's explicit Mini App minimize.
+        enterBackground(true);
+        if (verifiedHiddenStartRef.current === null) verifiedHiddenStartRef.current = Date.now();
+      } else {
+        if (verifiedHiddenStartRef.current !== null) {
+          verifiedHiddenDurationRef.current = Math.max(
+            verifiedHiddenDurationRef.current,
+            Date.now() - verifiedHiddenStartRef.current,
+          );
+          verifiedHiddenStartRef.current = null;
+        }
+        exitBackground();
+      }
+    };
     const onBlur   = () => enterBackground();
     // Telegram's native ad overlay can briefly emit focus while the overlay
     // is still open. Only treat focus as a real return when the document is
@@ -161,6 +181,13 @@ export function useAdSession() {
   const getSessionStart = useCallback(() => sessionStartRef.current, []);
 
   const endSession = useCallback((): AdSessionResult => {
+    if (verifiedHiddenStartRef.current !== null) {
+      verifiedHiddenDurationRef.current = Math.max(
+        verifiedHiddenDurationRef.current,
+        Date.now() - verifiedHiddenStartRef.current,
+      );
+      verifiedHiddenStartRef.current = null;
+    }
     if (backgroundStartRef.current !== null) {
       backgroundDurRef.current += Date.now() - backgroundStartRef.current;
       backgroundStartRef.current = null;
@@ -168,7 +195,7 @@ export function useAdSession() {
     teardownListeners();
     return {
       sessionId:          sessionIdRef.current,
-      backgroundDuration: backgroundDurRef.current,
+      backgroundDuration: verifiedHiddenDurationRef.current,
       backgroundEntered:  backgroundEnteredRef.current,
       sessionStart:       sessionStartRef.current,
       totalDuration:      Date.now() - sessionStartRef.current,

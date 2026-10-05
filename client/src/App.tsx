@@ -404,7 +404,6 @@ function App() {
       actionsConfiguration={{
         // In Telegram Mini App, tell wallets to return to the actual Mini App URL.
         returnStrategy: (isTelegramEnv ? 'tgback' : 'back') as any,
-        twaReturnUrl: 'https://t.me/GrabPennyAppBot/MyWAdz',
       }}
       uiPreferences={{
         theme: 'DARK' as any,

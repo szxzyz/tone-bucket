@@ -37,6 +37,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const [activeIndex,    setActiveIndex]    = useState(0);
   const [isShowingAds,   setIsShowingAds]   = useState(false);
   const [currentAdStep,  setCurrentAdStep]  = useState<"idle" | "loading" | "verifying">("idle");
+  const [adsgramPopup, setAdsgramPopup] = useState<null | { kind: 'instruction'; cardId: number } | { kind: 'partial'; rewardGems: number }>(null);
 
   const sessionRewardedRef = useRef(false);
   const currentAdTypeRef   = useRef<string>("adsgram");
@@ -76,7 +77,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       });
 
       if (adType === "adsgram" && rewardPercent === 25) {
-        showNotification(`Ad click/interaction was not detected. You received 25% of the reward (${rewardGems} GEM). On every 3rd AdsGram ad, close or minimize the app once to unlock 100%.`, "info");
+        setAdsgramPopup({ kind: 'partial', rewardGems });
       } else {
         showNotification(
           <div className="flex items-center gap-2">
@@ -195,10 +196,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       let result: { success: boolean; unavailable: boolean };
 
       if (card.adType === "adsgram") {
-        const nextAdsgramNumber = (user?.adsWatchedToday || 0) + 1;
-        if (nextAdsgramNumber % 3 === 0) {
-          showNotification("AdsGram notice: this is every 3rd ad. Close or minimize the app once after the ad to unlock 100%; without that interaction, the reward is 25%.", "info");
-        }
         result = await showAdsgramAd();
       } else if (card.adType === "monetag") {
         const r = await showMonetagAd(sessionId, "ads_watch");
@@ -270,7 +267,17 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     const cardIndex = visibleCards.indexOf(card);
     if (isShowingAds || isCardLimitReached(card.adType)) return;
     if (cardIndex !== activeIndex) { setActiveIndex(cardIndex); return; }
+    if (card.adType === 'adsgram' && ((Number(user?.adsWatchedToday) || 0) + 1) % 3 === 0) {
+      setAdsgramPopup({ kind: 'instruction', cardId });
+      return;
+    }
     runAdFlowForCard(cardId);
+  };
+
+  const acknowledgeAdsgramPopup = () => {
+    const popup = adsgramPopup;
+    setAdsgramPopup(null);
+    if (popup?.kind === 'instruction') void runAdFlowForCard(popup.cardId);
   };
 
   const getCardWatched = (adType: string): number => {
@@ -411,6 +418,25 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
           )}
         </div>
       </div>
+
+      {adsgramPopup && (
+        <div role="dialog" aria-modal="true" aria-labelledby="adsgram-popup-title" className="fixed inset-0 z-[2200] flex items-center justify-center px-5" style={{ background: 'rgba(0,0,0,.78)', backdropFilter: 'blur(7px)' }}>
+          <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#111114] p-5 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-300"><FiShield size={23} /></div>
+            <h3 id="adsgram-popup-title" className="mb-2 text-center text-lg font-black text-white">
+              {adsgramPopup.kind === 'instruction' ? 'AdsGram reward notice' : 'Reward credited'}
+            </h3>
+            <p className="mb-5 text-center text-sm leading-relaxed text-white/65">
+              {adsgramPopup.kind === 'instruction'
+                ? 'This is your third AdsGram ad in this cycle. To receive 100% of its reward, minimize the Mini App for at least 2 seconds while the ad is running, then return. If the app stays visible, only 25% is credited.'
+                : `The Mini App was not hidden for 2 seconds, so ${adsgramPopup.rewardGems} GEM (25%) was credited. On the next third-ad prompt, minimize the Mini App for at least 2 seconds to receive the full reward.`}
+            </p>
+            <button type="button" onClick={acknowledgeAdsgramPopup} className="h-11 w-full rounded-xl bg-blue-600 text-sm font-black uppercase tracking-wider text-white active:scale-[.98]">
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
     </>
   );

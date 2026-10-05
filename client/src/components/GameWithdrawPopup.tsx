@@ -15,12 +15,17 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const [tonConnectUI] = useTonConnectUI();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], enabled: open, retry: false });
   const { data: settings } = useQuery<any>({ queryKey: ['/api/app-settings'], enabled: open, retry: false, staleTime: 60000 });
+  const { data: eligibility, isLoading: eligibilityLoading } = useQuery<any>({
+    queryKey: ['/api/withdrawal-eligibility'],
+    enabled: open,
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
 
   const savedAddress = user?.payoutWalletAddress || '';
   const address = connectedAddress || savedAddress;
-  const saved = Boolean(savedAddress);
   const minimum = Math.max(1, Number(settings?.minimumCashoutGold || 1000));
-  const feePercent = 9;
+  const feePercent = Math.max(0, Math.min(100, Number(settings?.withdrawalFeeTON ?? 9)));
   const secondaryAccountBlocked = Boolean(user?.secondaryAccountBlocked);
 
   const saveWallet = useMutation({
@@ -28,6 +33,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
     onSuccess: (data) => {
       if (!data.success) throw new Error(data.message);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/withdrawal-eligibility'] });
       showNotification('TON address saved successfully', 'success');
     },
     onError: (error: any) => showNotification(error.message || 'Could not save TON address', 'error'),
@@ -36,7 +42,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const withdrawal = useMutation({
     mutationFn: async () => {
       // Persist a newly connected wallet before submitting the Swag Bux GEM payout.
-      if (connectedAddress && !saved) {
+      if (connectedAddress && connectedAddress !== savedAddress) {
         const response = await apiRequest('PATCH', '/api/wallet/payout', {
           currency: 'TON',
           address: connectedAddress.trim(),
@@ -50,6 +56,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
       if (!data.success) throw new Error(data.message);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/withdrawal-eligibility'] });
       showNotification('GEM withdrawal request sent to admin', 'success');
       onClose();
     },
@@ -60,10 +67,11 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const netUsd = (value / 100000) * (1 - feePercent / 100);
   // The server obtains the authoritative TON market quote during submission.
   // A failed UI-only quote request must not leave this button permanently disabled.
-  const canSubmit = !secondaryAccountBlocked && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && !withdrawal.isPending;
+  const canSubmit = !secondaryAccountBlocked && eligibility?.canWithdraw === true && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && !withdrawal.isPending;
   const handleMax = () => setAmount(String(Math.floor(userBalance)));
   const openWallet = async () => {
     try {
+      if (connectedAddress) await tonConnectUI.disconnect();
       await tonConnectUI.openModal();
     } catch (error: any) {
       showNotification(error?.message || 'Could not open TON wallet connection', 'error');
@@ -107,11 +115,11 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 </div>
                 <div className="flex justify-center">
                   <button type="button" onClick={openWallet} className="h-9 px-4 rounded-lg border border-[#0098ea]/55 bg-[#0098ea] text-white text-sm font-bold shadow-[0_2px_8px_rgba(0,152,234,0.22)]">
-                    {connectedAddress ? 'CHANGE' : 'Connect TON Wallet'}
+                    {connectedAddress || savedAddress ? 'CHANGE WALLET' : 'Connect TON Wallet'}
                   </button>
                 </div>
                 {address && <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>}
-                {connectedAddress && !savedAddress && (
+                {connectedAddress && connectedAddress !== savedAddress && (
                   <button onClick={() => saveWallet.mutate()} disabled={saveWallet.isPending} className="w-full h-10 bg-[#007AFF]/15 hover:bg-[#007AFF]/25 text-[#60a5fa] rounded-xl text-xs font-black uppercase tracking-wider">
                     {saveWallet.isPending ? 'Saving…' : 'Use Connected Wallet'}
                   </button>
@@ -131,6 +139,20 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} GEM</span></div>
                 <div className="h-px bg-white/5" />
                 <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{value > 0 ? `$${netUsd.toFixed(3)} USD` : '—'}</span></div>
+              </div>
+              <div className="bg-white/5 rounded-xl px-4 py-3 space-y-2 text-[11px]">
+                <p className="text-white/70 font-black uppercase tracking-wider">Withdrawal requirements</p>
+                {eligibilityLoading && <p className="text-white/45">Checking your progress…</p>}
+                {!eligibilityLoading && eligibility && (
+                  <>
+                    {eligibility.adRequirementEnabled && <p className={Number(eligibility.adsWatchedSinceLastWithdrawal) >= Number(eligibility.requiredAds) ? 'text-green-400' : 'text-white/55'}>Ads since last withdrawal: {eligibility.adsWatchedSinceLastWithdrawal}/{eligibility.requiredAds}</p>}
+                    {eligibility.taskRequirementEnabled && <p className={Number(eligibility.tasksCompleted) >= Number(eligibility.requiredTasks) ? 'text-green-400' : 'text-white/55'}>Tasks completed: {eligibility.tasksCompleted}/{eligibility.requiredTasks}</p>}
+                    {eligibility.inviteRequirementEnabled && <p className={Number(eligibility.friendsInvited) >= Number(eligibility.requiredInvites) ? 'text-green-400' : 'text-white/55'}>Valid friends invited: {eligibility.friendsInvited}/{eligibility.requiredInvites}</p>}
+                    <p className={Number(eligibility.todayWithdrawalCount) < Number(eligibility.maxWithdrawalsPerDay) ? 'text-green-400' : 'text-white/55'}>Withdrawals today: {eligibility.todayWithdrawalCount}/{eligibility.maxWithdrawalsPerDay}</p>
+                    {eligibility.pendingWithdrawal && <p className="text-amber-300">A withdrawal is already awaiting admin processing.</p>}
+                  </>
+                )}
+                {!eligibilityLoading && !eligibility && <p className="text-red-300">Could not check withdrawal requirements. Reopen this window to retry.</p>}
               </div>
               <button onClick={() => withdrawal.mutate()} disabled={!canSubmit} className="w-full h-11 bg-[#007AFF] hover:bg-[#0066D6] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center justify-center gap-2">
                 {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw GEM'}

@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { showNotification } from "@/components/AppNotification";
 import { FiExternalLink } from "react-icons/fi";
 import { Ticket } from "lucide-react";
-import { useAdFlow } from "@/hooks/useAdFlow";
 import { useAdSession } from "@/hooks/useAdSession";
 import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
+import { showAdgramAd } from "@/lib/showAd";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PromoCodeInput() {
@@ -15,8 +15,8 @@ export default function PromoCodeInput() {
   const [busy, setBusy] = useState(false);
   const [channelRequired, setChannelRequired] = useState<{ channelLink: string | null; channelName: string } | null>(null);
   const queryClient = useQueryClient();
-  const { startSession, endSession, cancelSession } = useAdSession();
-  const { showMonetagAd } = useAdFlow();
+  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], staleTime: 300000 });
+  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
 
   const redeemPromoMutation = useMutation({
     mutationFn: async ({ code, proof }: { code: string; proof: any }) => {
@@ -75,9 +75,11 @@ export default function PromoCodeInput() {
 
       setChannelRequired(null);
       sessionId = startSession();
+      const blockId = appConfig?.adsgramPromoBlockId || import.meta.env.VITE_ADSGRAM_PROMO_BLOCK_ID || '';
+      if (!blockId) throw new Error('Promo AdsGram block is not configured. Please try again later.');
       const registration = await apiRequest("POST", "/api/ads/register-session", {
         sessionId,
-        adType: "monetag",
+        adType: "adsgram",
         context: "promo_code",
       });
       if (!registration.ok) {
@@ -85,13 +87,8 @@ export default function PromoCodeInput() {
         throw new Error(details.message || "Ad verification is not available right now");
       }
 
-      const adResult = await showMonetagAd(sessionId, "promo_code");
-      if (!adResult.success) {
-        await cancelRegisteredAdSession(sessionId);
-        cancelSession();
-        setInlineError(adResult.unavailable ? "Monetag ad is not available right now. Please try again." : "Please watch the Monetag ad to claim your reward.");
-        return;
-      }
+      await showAdgramAd(blockId);
+      await waitForForeground();
       const session = endSession();
       proof = {
         sessionId: session.sessionId,

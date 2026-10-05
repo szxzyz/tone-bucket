@@ -2517,12 +2517,9 @@ function SettingsSection() {
     hourlyAdLimit: '63',
     rewardPerAd: '2',
     l1CommissionPercent: '5',
-    minimumWithdrawAmount: '0.20',
     minimumCashoutGold: '1000',
-    maximumWithdrawAmount: '0.50',
     maxWithdrawalsPerDay: '1',
-    withdrawalFeeTON: '5',
-    withdrawalFeeUSD: '3',
+    withdrawalFeeTON: '9',
     withdrawalGroupChatId: '-1002480439556',
     channelTaskCost: '0.003',
     botTaskCost: '0.003',
@@ -2555,12 +2552,6 @@ function SettingsSection() {
     firstActiveReferralReward: '2500',
     referralBioReward: '500',
     ads10Reward: '100',
-    monetagMissionReward: '50',
-    monetagMissionLimit: '10',
-    adexiumMissionReward: '50',
-    adexiumMissionLimit: '10',
-    gigaPubMissionReward: '50',
-    gigaPubMissionLimit: '10',
     // Per-provider ad card settings
     adsgramAdLimit: '40',
     adsgramRewardPerAd: '50',
@@ -2583,12 +2574,9 @@ function SettingsSection() {
         hourlyAdLimit: settingsData.hourlyAdLimit?.toString() || '63',
         rewardPerAd: settingsData.rewardPerAd?.toString() || '2',
         l1CommissionPercent: settingsData.l1CommissionPercent?.toString() ?? '5',
-        minimumWithdrawAmount: settingsData.minimumWithdrawAmount?.toString() || '0.20',
         minimumCashoutGold: settingsData.minimumCashoutGold?.toString() || '1000',
-        maximumWithdrawAmount: settingsData.maximumWithdrawAmount?.toString() || '0.50',
         maxWithdrawalsPerDay: settingsData.maxWithdrawalsPerDay?.toString() || '1',
-        withdrawalFeeTON: settingsData.withdrawalFeeTON?.toString() || '5',
-        withdrawalFeeUSD: settingsData.withdrawalFeeUSD?.toString() || '3',
+        withdrawalFeeTON: settingsData.withdrawalFeeTON?.toString() || '9',
         withdrawalGroupChatId: settingsData.withdrawalGroupChatId?.toString() || '-1002480439556',
         channelTaskCost: settingsData.channelTaskCost?.toString() || '0.003',
         botTaskCost: settingsData.botTaskCost?.toString() || '0.003',
@@ -2606,11 +2594,11 @@ function SettingsSection() {
         referralAdsRequired: settingsData.referralAdsRequired?.toString() ?? '15',
         // Withdrawal requirements
         withdrawalAdRequirementEnabled: settingsData.withdrawalAdRequirementEnabled !== false,
-        minimumAdsForWithdrawal: settingsData.minimumAdsForWithdrawal?.toString() || '100',
+        minimumAdsForWithdrawal: settingsData.minimumAdsForWithdrawal?.toString() ?? '100',
         withdrawalInviteRequirementEnabled: settingsData.withdrawalInviteRequirementEnabled !== false,
-        minimumInvitesForWithdrawal: settingsData.minimumInvitesForWithdrawal?.toString() || '3',
+        minimumInvitesForWithdrawal: settingsData.minimumInvitesForWithdrawal?.toString() ?? '3',
         withdrawalTaskRequirementEnabled: settingsData.withdrawalTaskRequirementEnabled !== false,
-        minimumTasksForWithdrawal: settingsData.minimumTasksForWithdrawal?.toString() || '10',
+        minimumTasksForWithdrawal: settingsData.minimumTasksForWithdrawal?.toString() ?? '10',
         // Daily task rewards
         streakReward: settingsData.streakReward?.toString() || '100',
         shareTaskReward: settingsData.shareTaskReward?.toString() || '100',
@@ -2621,12 +2609,6 @@ function SettingsSection() {
         firstActiveReferralReward: settingsData.firstActiveReferralReward?.toString() || '2500',
         referralBioReward: settingsData.referralBioReward?.toString() || '500',
         ads10Reward: settingsData.ads10Reward?.toString() || '100',
-        monetagMissionReward: settingsData.monetagMissionReward?.toString() || '50',
-        monetagMissionLimit: settingsData.monetagMissionLimit?.toString() || '10',
-        adexiumMissionReward: settingsData.adexiumMissionReward?.toString() || '50',
-        adexiumMissionLimit: settingsData.adexiumMissionLimit?.toString() || '10',
-        gigaPubMissionReward: settingsData.gigaPubMissionReward?.toString() || '50',
-        gigaPubMissionLimit: settingsData.gigaPubMissionLimit?.toString() || '10',
         // Per-provider ad card settings
         adsgramAdLimit: settingsData.adsgramAdLimit?.toString() || '40',
         adsgramRewardPerAd: settingsData.adsgramRewardPerAd?.toString() || '50',
@@ -2649,7 +2631,7 @@ function SettingsSection() {
     { id: 'affiliates' as const, label: 'Affiliates', icon: 'users' },
     { id: 'withdrawals' as const, label: 'Withdrawals', icon: 'wallet' },
     { id: 'tasks' as const, label: 'Tasks', icon: 'tasks' },
-    { id: 'missions' as const, label: 'Missions / ADS', icon: 'tv' },
+    { id: 'missions' as const, label: 'Daily Missions', icon: 'tv' },
     { id: 'other' as const, label: 'Other', icon: 'cog' },
     { id: 'bug' as const, label: 'Bug Reports', icon: 'bug' },
   ];
@@ -2698,11 +2680,12 @@ function SettingsSection() {
   const handleSaveSettings = async () => {
     const adLimit = parseInt(settings.dailyAdLimit);
     const reward = parseInt(settings.rewardPerAd);
-    const minWithdrawAmount = parseFloat(settings.minimumWithdrawAmount);
-    const maxWithdrawAmount = parseFloat(settings.maximumWithdrawAmount);
     const maxWithdrawalsPerDay = parseInt(settings.maxWithdrawalsPerDay) || 1;
     const withdrawalFeeTON = parseFloat(settings.withdrawalFeeTON);
-    const withdrawalFeeUSD = parseFloat(settings.withdrawalFeeUSD);
+    if (!Number.isFinite(withdrawalFeeTON) || withdrawalFeeTON < 0 || withdrawalFeeTON > 100) {
+      showNotification("Withdrawal fee must be between 0 and 100%", "error");
+      return;
+    }
     const channelCost = parseFloat(settings.channelTaskCost);
     const botCost = parseFloat(settings.botTaskCost);
     const channelReward = parseInt(settings.channelTaskReward);
@@ -2715,6 +2698,10 @@ function SettingsSection() {
     const referralAdsRequired = Number.parseInt(settings.referralAdsRequired, 10);
     const mysteryBoxMinReward = Math.max(10, parseInt((settings as any).mysteryBoxMinReward) || 10);
     const mysteryBoxMaxReward = Math.min(100, Math.max(mysteryBoxMinReward, parseInt((settings as any).mysteryBoxMaxReward) || 100));
+    const nonNegativeSetting = (raw: string, fallback: number) => {
+      const value = Number.parseInt(raw, 10);
+      return Number.isFinite(value) ? Math.max(0, value) : fallback;
+    };
 
     if (isNaN(adLimit) || adLimit <= 0) {
       showNotification("Daily ad limit must be a positive number", "error");
@@ -2746,12 +2733,9 @@ function SettingsSection() {
         hourlyAdLimit: parseInt(settings.hourlyAdLimit) || 63,
         rewardPerAd: reward,
         l1CommissionPercent,
-        minimumWithdrawAmount: minWithdrawAmount,
         minimumCashoutGold: Math.max(1, parseInt((settings as any).minimumCashoutGold) || 1000),
-        maximumWithdrawAmount: maxWithdrawAmount,
         maxWithdrawalsPerDay: maxWithdrawalsPerDay,
         withdrawalFeeTON: withdrawalFeeTON,
-        withdrawalFeeUSD: withdrawalFeeUSD,
         withdrawalGroupChatId: settings.withdrawalGroupChatId,
         channelTaskCost: channelCost,
         botTaskCost: botCost,
@@ -2768,20 +2752,14 @@ function SettingsSection() {
         referral_reward_pad: referralActiveRewardGold,
         referralAdsRequired,
         withdrawalAdRequirementEnabled: settings.withdrawalAdRequirementEnabled,
-        minimumAdsForWithdrawal: parseInt(settings.minimumAdsForWithdrawal) || 100,
+        minimumAdsForWithdrawal: nonNegativeSetting(settings.minimumAdsForWithdrawal, 100),
         withdrawalInviteRequirementEnabled: settings.withdrawalInviteRequirementEnabled,
-        minimumInvitesForWithdrawal: parseInt(settings.minimumInvitesForWithdrawal) || 3,
+        minimumInvitesForWithdrawal: nonNegativeSetting(settings.minimumInvitesForWithdrawal, 3),
         withdrawalTaskRequirementEnabled: settings.withdrawalTaskRequirementEnabled,
-        minimumTasksForWithdrawal: parseInt(settings.minimumTasksForWithdrawal) || 10,
+        minimumTasksForWithdrawal: nonNegativeSetting(settings.minimumTasksForWithdrawal, 10),
         streakReward: parseInt(settings.streakReward) || 100,
         shareTaskReward: parseInt(settings.shareTaskReward) || 100,
         communityTaskReward: parseInt(settings.communityTaskReward) || 1000,
-        monetagMissionReward: parseInt(settings.monetagMissionReward) || 50,
-        monetagMissionLimit: parseInt(settings.monetagMissionLimit) || 10,
-        adexiumMissionReward: parseInt(settings.adexiumMissionReward) || 50,
-        adexiumMissionLimit: parseInt(settings.adexiumMissionLimit) || 10,
-        gigaPubMissionReward: parseInt(settings.gigaPubMissionReward) || 50,
-        gigaPubMissionLimit: parseInt(settings.gigaPubMissionLimit) || 10,
         shareReferralReward: parseInt((settings as any).shareReferralReward) || 1000,
         checkAnnouncementReward: parseInt((settings as any).checkAnnouncementReward) || 1000,
         adsgramCheckinReward: parseInt((settings as any).adsgramCheckinReward) || 1000,
@@ -3043,7 +3021,7 @@ function SettingsSection() {
                 type="number"
                 value={settings.l1CommissionPercent}
                 onChange={(e) => setSettings({ ...settings, l1CommissionPercent: e.target.value })}
-                placeholder="5"
+                placeholder="9"
                 min="0"
                 max="100"
                 step="0.1"
@@ -3136,44 +3114,6 @@ function SettingsSection() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="minimum-withdraw-amount" className="text-sm font-semibold">
-                <i className="fas fa-arrow-down mr-2 text-green-500"></i>
-                Minimum Withdrawal Amount (USD)
-              </Label>
-              <Input
-                id="minimum-withdraw-amount"
-                type="number"
-                value={settings.minimumWithdrawAmount}
-                onChange={(e) => setSettings({ ...settings, minimumWithdrawAmount: e.target.value })}
-                placeholder="0.20"
-                min="0"
-                step="0.01"
-              />
-              <p className="text-xs text-muted-foreground">
-                Current: ${settingsData?.minimumWithdrawAmount || 0.20}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maximum-withdraw-amount" className="text-sm font-semibold">
-                <i className="fas fa-arrow-up mr-2 text-orange-500"></i>
-                Maximum Withdrawal Amount (USD)
-              </Label>
-              <Input
-                id="maximum-withdraw-amount"
-                type="number"
-                value={settings.maximumWithdrawAmount}
-                onChange={(e) => setSettings({ ...settings, maximumWithdrawAmount: e.target.value })}
-                placeholder="0.50"
-                min="0"
-                step="0.01"
-              />
-              <p className="text-xs text-muted-foreground">
-                Current: ${settingsData?.maximumWithdrawAmount || 0.50}
-              </p>
-            </div>
-
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="minimum-cashout-gold" className="text-sm font-semibold">
                 <i className="fas fa-coins mr-2 text-yellow-400"></i>
@@ -3215,42 +3155,24 @@ function SettingsSection() {
             <div className="space-y-2">
               <Label htmlFor="withdrawal-fee-ton" className="text-sm font-semibold">
                 <i className="fas fa-percent mr-2 text-blue-500"></i>
-                Withdrawal Fee (%)
+                Withdrawal Fee (TON GEM payouts, %)
               </Label>
               <Input
                 id="withdrawal-fee-ton"
                 type="number"
                 value={settings.withdrawalFeeTON}
                 onChange={(e) => setSettings({ ...settings, withdrawalFeeTON: e.target.value })}
-                placeholder="5"
+                placeholder="9"
                 min="0"
                 max="100"
                 step="0.1"
               />
               <p className="text-xs text-muted-foreground">
-                Current Fee: {settingsData?.withdrawalFeeTON || 5}%
+                Current Fee: {settingsData?.withdrawalFeeTON ?? 9}%
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="withdrawal-fee-ton" className="text-sm font-semibold">
-                <i className="fas fa-percent mr-2 text-blue-600"></i>
-                TON Fee (%)
-              </Label>
-              <Input
-                id="withdrawal-fee-ton"
-                type="number"
-                value={settings.withdrawalFeeTON}
-                onChange={(e) => setSettings({ ...settings, withdrawalFeeTON: e.target.value })}
-                placeholder="5"
-                min="0"
-                max="100"
-                step="0.1"
-              />
-              <p className="text-xs text-muted-foreground">
-                Current: {settingsData?.withdrawalFeeTON || 5}%
-              </p>
-            </div>
+
 
             <div className="space-y-2 p-3 border rounded-lg bg-emerald-50/5 border-emerald-500/20 md:col-span-2">
               <div className="flex items-center justify-between">
@@ -3289,7 +3211,7 @@ function SettingsSection() {
                   className={`h-8 mt-1 ${!settings.withdrawalAdRequirementEnabled ? 'opacity-50' : ''}`}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Current: {settingsData?.minimumAdsForWithdrawal || 100} ads (resets after each withdrawal)
+                  Current: {settingsData?.minimumAdsForWithdrawal ?? 100} ads (resets after each withdrawal)
                 </p>
               </div>
             </div>
@@ -3331,7 +3253,7 @@ function SettingsSection() {
                   className={`h-8 mt-1 ${!settings.withdrawalInviteRequirementEnabled ? 'opacity-50' : ''}`}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Current: {settingsData?.minimumInvitesForWithdrawal || 3} valid invites (friends who watched 1+ ads)
+                  Current: {settingsData?.minimumInvitesForWithdrawal ?? 3} valid invites (friends who watched 1+ ads)
                 </p>
               </div>
             </div>
@@ -3373,7 +3295,7 @@ function SettingsSection() {
                   className={`h-8 mt-1 ${!settings.withdrawalTaskRequirementEnabled ? 'opacity-50' : ''}`}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Current: {settingsData?.minimumTasksForWithdrawal || 10} tasks (lifetime total, does not reset)
+                  Current: {settingsData?.minimumTasksForWithdrawal ?? 10} tasks (lifetime total, does not reset)
                 </p>
               </div>
             </div>
@@ -3526,70 +3448,6 @@ function SettingsSection() {
               >
                 <i className="fas fa-plus mr-1"></i> Add Task
               </Button>
-            </div>
-
-            {/* Monetag */}
-            <div className="space-y-2 p-3 border rounded-lg border-orange-500/20 bg-orange-500/5">
-              <Label className="text-sm font-semibold text-orange-400">
-                <i className="fas fa-bolt mr-2"></i>Monetag
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Reward (GEM/ad)</Label>
-                  <Input
-                    type="number"
-                    value={settings.monetagMissionReward}
-                    onChange={(e) => setSettings({ ...settings, monetagMissionReward: e.target.value })}
-                    placeholder="50"
-                    min="1"
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Daily Limit</Label>
-                  <Input
-                    type="number"
-                    value={settings.monetagMissionLimit}
-                    onChange={(e) => setSettings({ ...settings, monetagMissionLimit: e.target.value })}
-                    placeholder="10"
-                    min="1"
-                    className="h-8"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagMissionReward || 50} GEM · {settingsData?.monetagMissionLimit || 10} ads/day</p>
-            </div>
-
-            {/* GiGaPub */}
-            <div className="space-y-2 p-3 border rounded-lg border-purple-500/20 bg-purple-500/5">
-              <Label className="text-sm font-semibold text-purple-400">
-                <i className="fas fa-globe mr-2"></i>GiGaPub
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Reward (GEM/ad)</Label>
-                  <Input
-                    type="number"
-                    value={settings.gigaPubMissionReward}
-                    onChange={(e) => setSettings({ ...settings, gigaPubMissionReward: e.target.value })}
-                    placeholder="50"
-                    min="1"
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Daily Limit</Label>
-                  <Input
-                    type="number"
-                    value={settings.gigaPubMissionLimit}
-                    onChange={(e) => setSettings({ ...settings, gigaPubMissionLimit: e.target.value })}
-                    placeholder="10"
-                    min="1"
-                    className="h-8"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Current: {settingsData?.gigaPubMissionReward || 50} GEM · {settingsData?.gigaPubMissionLimit || 10} ads/day</p>
             </div>
 
             {/* Daily Missions Divider */}

@@ -15,8 +15,6 @@ function parseError(error: any, fallback: string) {
 }
 
 export default function DepositPopup({ open = true, onClose }: Props) {
-  if (!open) return null;
-
   const [tonConnectUI] = useTonConnectUI();
   const connectedAddress = useTonAddress();
   const queryClient = useQueryClient();
@@ -106,12 +104,15 @@ export default function DepositPopup({ open = true, onClose }: Props) {
   const busy = status === "sending" || status === "verifying";
   const openWallet = async () => {
     try {
+      if (connectedAddress) await tonConnectUI.disconnect();
       await tonConnectUI.openModal();
     } catch (error: any) {
       setStatus("error");
       setMessage(parseError(error, "Could not open TON wallet connection."));
     }
   };
+
+  if (!open) return null;
 
   return (
     <PopupShell onClose={onClose} maxWidth={390} closeOnBackdrop={!busy}>
