@@ -108,7 +108,7 @@ function AppContent() {
     if (isDevMode) return;
     if (adsgramOpenShown.current) return;
     adsgramOpenShown.current = true;
-    const blockId = appConfig?.adsgramPopupBlockId;
+    const blockId = appConfig?.adsgramPopupBlockId || import.meta.env.VITE_ADSGRAM_POPUP_BLOCK_ID || '';
     if (!blockId) return;
 
     const t = setTimeout(() => {

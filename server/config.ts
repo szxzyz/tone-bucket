@@ -64,7 +64,7 @@ export const config = {
   // Ads setting is injected from environment variables. Nothing is hardcoded.
   ads: {
     // AdsGram — popup ad shown once at first app open (env: ADSGRAM_POPUP_BLOCK_ID)
-    popupBlockId: process.env.ADSGRAM_POPUP_BLOCK_ID || '',
+    popupBlockId: process.env.ADSGRAM_POPUP_BLOCK_ID || process.env.VITE_ADSGRAM_POPUP_BLOCK_ID || '',
     // AdsGram — reward ad used in the Ad Watch section (env: ADSGRAM_REWARD_BLOCK_ID)
     rewardBlockId: process.env.ADSGRAM_REWARD_BLOCK_ID || '',
     // AdsGram — hamburger menu / extra reward ad (env: ADSGRAM_HAMBURGER_BLOCK_ID)
@@ -72,7 +72,7 @@ export const config = {
     // AdsGram — promo code claim ad (env: ADSGRAM_PROMO_BLOCK_ID)
     promoBlockId: process.env.ADSGRAM_PROMO_BLOCK_ID || '',
     // AdsGram — daily check-in ad (env: ADSGRAM_CHECKIN_BLOCK_ID)
-    checkinBlockId: process.env.ADSGRAM_CHECKIN_BLOCK_ID || '',
+    checkinBlockId: process.env.ADSGRAM_CHECKIN_BLOCK_ID || process.env.VITE_ADSGRAM_CHECKIN_BLOCK_ID || '',
     // AdsGram — mystery box ad (env: ADSGRAM_MYSTERY_BLOCK_ID)
     mysteryBoxBlockId: process.env.ADSGRAM_MYSTERY_BLOCK_ID || '',
 
