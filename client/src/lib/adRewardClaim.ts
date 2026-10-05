@@ -1,7 +1,10 @@
 import { apiRequest } from "@/lib/queryClient";
 
-const POSTBACK_RETRY_COUNT = 20;
-const POSTBACK_RETRY_DELAY_MS = 1_500;
+// The backend waits up to 8 seconds for the provider callback. A few short
+// retries cover delivery jitter, but do not leave the Watch button spinning
+// for half a minute when Monetag does not send a postback.
+const POSTBACK_RETRY_COUNT = 8;
+const POSTBACK_RETRY_DELAY_MS = 1_000;
 
 /**
  * Retry only the retryable S2S-pending response. The ad session remains

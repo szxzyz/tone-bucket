@@ -81,7 +81,7 @@ export const config = {
     monetagZoneId: process.env.VITE_MONETAG_ZONE_ID || process.env.MONETAG_ZONE_ID || '11670091',
 
     // GigaPub ad network script id (env: GIGAPUB_SCRIPT_ID)
-    gigapubScriptId: process.env.VITE_GIGAPUB_SCRIPT_ID || process.env.GIGAPUB_SCRIPT_ID || '',
+    gigapubScriptId: process.env.VITE_GIGAPUB_SCRIPT_ID || process.env.GIGAPUB_SCRIPT_ID || '5883',
 
     // USL Ads / TowerAds SDK URL (env: USLADS_SDK_URL; default kept for convenience)
     uslAdsSdkUrl: process.env.USLADS_SDK_URL || 'https://uslads.com/sdk/tower-ads-v4.js',

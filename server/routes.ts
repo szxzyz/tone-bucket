@@ -288,6 +288,12 @@ const PROVIDER_CALLBACK_POLL_MS = 250;
 function hasTrustedRewardCallback(provider: string): boolean {
   if (provider === 'adsgram') return Boolean(process.env.ADSGRAM_REWARD_SECRET?.trim());
   if (provider === 'monetag') return Boolean(process.env.MONETAG_POSTBACK_SECRET?.trim());
+  // GigaPub/TowerAds expose completion through their SDK callbacks rather
+  // than the Monetag/AdsGram S2S postback contract. Their availability is
+  // therefore gated by the provider credential/configuration instead of being
+  // hard-disabled for every deployment.
+  if (provider === 'gigapub') return Boolean(config.ads.gigapubScriptId);
+  if (provider === 'uslads') return Boolean(config.ads.uslAdsApiKey);
   return false;
 }
 
@@ -1564,10 +1570,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const monetagEnabled        = getSetting('monetag_enabled', 'true') === 'true' && hasTrustedRewardCallback('monetag');
       const gigapubAdLimit        = parseInt(getSetting('gigapub_ad_limit',         '30'));
       const gigapubRewardPerAd    = parseInt(getSetting('gigapub_reward_per_ad',    '30'));
-      const gigapubEnabled        = false;
+      const gigapubEnabled        = getSetting('gigapub_enabled', 'true') === 'true' && hasTrustedRewardCallback('gigapub');
       const usladsAdLimit         = parseInt(getSetting('uslads_ad_limit',          '20'));
       const usladsRewardPerAd     = parseInt(getSetting('uslads_reward_per_ad',     '30'));
-      const usladsEnabled         = false;
+      const usladsEnabled         = getSetting('uslads_enabled', 'true') === 'true' && hasTrustedRewardCallback('uslads');
 
       // Legacy compatibility - keep old values for backwards compatibility
       const taskCostPerClick = channelTaskCostUSD; // Use channel cost as default
