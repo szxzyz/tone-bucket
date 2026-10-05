@@ -38,7 +38,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const [isShowingAds,   setIsShowingAds]   = useState(false);
   const [loadingAdType, setLoadingAdType] = useState<string | null>(null);
   const [currentAdStep,  setCurrentAdStep]  = useState<"idle" | "loading" | "verifying">("idle");
-  const [adsgramPopup, setAdsgramPopup] = useState<null | { kind: 'instruction'; cardId: number } | { kind: 'partial'; rewardGems: number }>(null);
+  const [adsgramPopup, setAdsgramPopup] = useState<null | { kind: 'partial'; rewardGems: number }>(null);
 
   const sessionRewardedRef = useRef(false);
   const currentAdTypeRef   = useRef<string>("adsgram");
@@ -188,8 +188,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         context: "ads_watch",
       });
       if (!regRes.ok) {
+        const details = await regRes.json().catch(() => ({}));
         cancelSession();
-        showNotification("Something went wrong", "error");
+        showNotification(details?.message || "Could not start the ad. Please try again.", "error");
         return;
       }
       let result: { success: boolean; unavailable: boolean };
@@ -221,7 +222,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
           : "Please watch the ad completely to claim your reward.", "error");
         return;
       }
-      if (card.adType === "gigapub" || card.adType === "uslads") {
+      if (card.adType === "adsgram" || card.adType === "gigapub" || card.adType === "uslads") {
         await confirmProviderCompletion(sessionId, card.adType);
       }
       providerCompleted = true;
@@ -251,9 +252,12 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
           sessionStart:       session.sessionStart,
         });
       }
-    } catch {
+    } catch (error: any) {
       if (!providerCompleted && sessionId) await cancelRegisteredAdSession(sessionId);
       cancelSession();
+      if (!providerCompleted) {
+        showNotification(error?.message || "Could not verify the ad completion. Please try again.", "error");
+      }
     } finally {
       setCurrentAdStep("idle");
       setLoadingAdType(null);
@@ -267,18 +271,10 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     const cardIndex = visibleCards.indexOf(card);
     if (isShowingAds || isCardLimitReached(card.adType)) return;
     if (cardIndex !== activeIndex) { setActiveIndex(cardIndex); return; }
-    if (card.adType === 'adsgram' && ((Number(user?.adsWatchedToday) || 0) + 1) % 3 === 0) {
-      setAdsgramPopup({ kind: 'instruction', cardId });
-      return;
-    }
     runAdFlowForCard(cardId);
   };
 
-  const acknowledgeAdsgramPopup = () => {
-    const popup = adsgramPopup;
-    setAdsgramPopup(null);
-    if (popup?.kind === 'instruction') void runAdFlowForCard(popup.cardId);
-  };
+  const acknowledgeAdsgramPopup = () => setAdsgramPopup(null);
 
   const getCardWatched = (adType: string): number => {
     if (adType === "adsgram") return user?.adsWatchedToday || 0;
@@ -422,20 +418,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       {adsgramPopup && (
         <div role="dialog" aria-modal="true" aria-labelledby="adsgram-popup-title" className="fixed inset-0 z-[2200] flex items-center justify-center px-5" style={{ background: 'rgba(0,0,0,.78)', backdropFilter: 'blur(7px)' }}>
           <div className="w-full max-w-[340px] rounded-2xl border border-white/10 bg-[#111114] px-5 py-4 shadow-2xl">
-            <h3 id="adsgram-popup-title" className="mb-2 text-center text-base font-black text-white">
-              {adsgramPopup.kind === 'instruction' ? 'AdsGram Reward Notice' : 'Reward credited'}
-            </h3>
-            {adsgramPopup.kind === 'instruction' ? (
-              <>
-                <p className="mb-2 text-center text-xs font-semibold leading-relaxed text-white/75">This is your third AdsGram ad in this cycle.</p>
-                <p className="mb-4 text-center text-[13px] leading-relaxed text-white/60">To receive 100% of its reward, click on the ad, then return. If the app stays visible, only 25% is credited.</p>
-              </>
-            ) : (
-              <>
-                <p className="mb-2 text-center text-[13px] font-semibold leading-relaxed text-white">Ad Watch Successful — Earned {adsgramPopup.rewardGems} GEM</p>
-                <p className="mb-4 text-center text-xs leading-relaxed text-white/60">The app stayed visible, so 25% of this ad reward was credited.</p>
-              </>
-            )}
+            <h3 id="adsgram-popup-title" className="mb-2 text-center text-base font-black text-white">Reward credited</h3>
+            <p className="mb-2 text-center text-[13px] font-semibold leading-relaxed text-white">Ad Watch Successful — Earned {adsgramPopup.rewardGems} GEM</p>
+            <p className="mb-4 text-center text-xs leading-relaxed text-white/60">You did not minimize the app for 2 seconds, so only 25% of this ad’s reward was credited.</p>
             <button type="button" onClick={acknowledgeAdsgramPopup} className="h-10 w-full rounded-xl bg-blue-600 text-sm font-black uppercase tracking-wider text-white active:scale-[.98]">
               Got it
             </button>

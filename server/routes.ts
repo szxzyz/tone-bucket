@@ -1569,7 +1569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Per-provider ad limits and rewards
       const adsgramAdLimit        = parseInt(getSetting('adsgram_ad_limit',        '40'));
       const adsgramRewardPerAd    = parseInt(getSetting('adsgram_reward_per_ad',    '50'));
-      const adsgramEnabled        = getSetting('adsgram_enabled', 'true') === 'true' && hasTrustedRewardCallback('adsgram');
+      const adsgramEnabled        = getSetting('adsgram_enabled', 'true') === 'true';
       const monetagAdLimit        = parseInt(getSetting('monetag_ad_limit',         '30'));
       const monetagRewardPerAd    = parseInt(getSetting('monetag_reward_per_ad',    '30'));
       const monetagEnabled        = getSetting('monetag_enabled', 'true') === 'true' && hasTrustedRewardCallback('monetag');
@@ -1724,8 +1724,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!normalizedAdType) {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
       }
-      const promoAdsgramUsesSdkCompletion = normalizedContext === 'promo_code' && normalizedAdType === 'adsgram';
-      if (!hasTrustedRewardCallback(normalizedAdType) && !promoAdsgramUsesSdkCompletion) {
+      const adsgramUsesSdkCompletion = normalizedAdType === 'adsgram'
+        && (normalizedContext === 'ads_watch' || normalizedContext === 'promo_code');
+      if (!hasTrustedRewardCallback(normalizedAdType) && !adsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
           errorType: 'provider_verification_unavailable',
@@ -1742,17 +1743,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
             eq(adSessions.status, 'pending'),
             lt(adSessions.registeredAt, staleBefore),
           ));
-        const [activeAdsgramSession] = await db.select({ id: adSessions.id })
+        // Earlier builds could leave a pending AdsGram row behind when an
+        // interstitial had no S2S Reward URL callback. Retire those abandoned
+        // sessions after a short grace period so one failed claim cannot block
+        // the user's next ad watch. Keep any session with provider proof intact.
+        const abandonedBefore = new Date(Date.now() - 2 * 60_000);
+        const abandonedSessions = await db.select({ id: adSessions.id })
+          .from(adSessions)
+          .where(and(
+            eq(adSessions.userId, userId),
+            eq(adSessions.adType, 'adsgram'),
+            eq(adSessions.status, 'pending'),
+            lt(adSessions.registeredAt, abandonedBefore),
+            gte(adSessions.registeredAt, staleBefore),
+          ));
+        for (const abandoned of abandonedSessions) {
+          const [callback] = await db.select({ id: adRewardCallbacks.id })
+            .from(adRewardCallbacks)
+            .where(and(
+              eq(adRewardCallbacks.provider, 'adsgram'),
+              eq(adRewardCallbacks.sessionId, abandoned.id),
+            ))
+            .limit(1);
+          if (!callback) {
+            await db.update(adSessions)
+              .set({ status: 'failed', usedAt: new Date() })
+              .where(and(
+                eq(adSessions.id, abandoned.id),
+                eq(adSessions.userId, userId),
+                eq(adSessions.status, 'pending'),
+              ));
+          }
+        }
+        const activeAdsgramSessions = await db.select({ id: adSessions.id })
           .from(adSessions)
           .where(and(
             eq(adSessions.userId, userId),
             eq(adSessions.adType, 'adsgram'),
             eq(adSessions.status, 'pending'),
             gte(adSessions.registeredAt, staleBefore),
-          ))
-          .limit(1);
-        if (activeAdsgramSession) {
-          return res.status(409).json({ message: 'An AdsGram reward verification is already in progress.', errorType: 'ad_session_in_progress' });
+          ));
+        for (const activeSession of activeAdsgramSessions) {
+          const [completion] = await db.select({ id: adRewardCallbacks.id })
+            .from(adRewardCallbacks)
+            .where(and(
+              eq(adRewardCallbacks.provider, 'adsgram'),
+              eq(adRewardCallbacks.sessionId, activeSession.id),
+            ))
+            .limit(1);
+          if (!completion) {
+            return res.status(409).json({ message: 'An AdsGram ad is already in progress. Finish it and try again.', errorType: 'ad_session_in_progress' });
+          }
         }
       }
 
@@ -1802,11 +1843,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GigaPub and USL/TowerAds report completion through their browser SDKs.
-  // AdsGram promo codes use an interstitial block whose SDK completion promise
-  // is the completion signal; it does not guarantee an S2S Reward URL postback.
-  // Record SDK completion only for the authenticated, pre-registered promo
-  // session. AdsGram rewards elsewhere continue to require the S2S callback.
+  // GigaPub, USL/TowerAds, and AdsGram report SDK completion from the client.
+  // AdsGram's watch/promo placements may be interstitials without an S2S Reward
+  // URL callback, so accept completion only for an authenticated, pre-registered
+  // session with the matching provider and context.
   app.post('/api/ads/provider-complete', authenticateTelegram, adWatchRateLimit, async (req: any, res) => {
     const sessionId = req.body?.sessionId;
     const provider = req.body?.provider;
@@ -1828,8 +1868,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session || session.userId !== String(req.user.user.id)) {
         return res.status(404).json({ success: false, errorType: 'invalid_session' });
       }
-      const allowedContext = provider === 'adsgram' ? 'promo_code' : 'ads_watch';
-      if (session.adType !== provider || session.context !== allowedContext) {
+      const allowedContexts = provider === 'adsgram' ? ['ads_watch', 'promo_code'] : ['ads_watch'];
+      if (session.adType !== provider || !allowedContexts.includes(session.context)) {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
       }
       if (session.status !== 'pending') {
@@ -2149,7 +2189,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // adType is authoritative from the server — ignore client-supplied value
       const serverAdType = sessionRow.adType;
-      if (!hasTrustedRewardCallback(serverAdType)) {
+      const adsgramUsesSdkCompletion = serverAdType === 'adsgram' && sessionRow.context === 'ads_watch';
+      if (!hasTrustedRewardCallback(serverAdType) && !adsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${serverAdType} rewards are paused until trusted server-side ad verification is configured.`,
           errorType: 'provider_verification_unavailable',
@@ -2176,21 +2217,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // AdsGram requires the Mini App to leave the foreground once on every
-      // third completed AdsGram watch (3rd, 6th, 9th, ...). The first two ads
-      // in each cycle keep the existing reward flow without this extra gate.
+      // Every AdsGram watch requires one continuous, genuine hidden interval
+      // of at least two seconds for the full reward. Otherwise grant 25%.
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
 
-      const adsgramWatchCount = Number(user.adsWatchedToday || 0);
-      const requiresAdsgramBackground = serverAdType === 'adsgram' && (adsgramWatchCount + 1) % 3 === 0;
-      // Every third AdsGram watch unlocks the full configured reward when the
-      // app leaves the foreground. Without that interaction signal, credit a
-      // partial reward rather than rejecting an otherwise completed ad.
       const hasMeaningfulMinimize = bgEntered && bgDuration >= 2_000;
-      const adsgramRewardPercent = requiresAdsgramBackground && !hasMeaningfulMinimize ? 25 : 100;
+      const adsgramRewardPercent = serverAdType === 'adsgram' && !hasMeaningfulMinimize ? 25 : 100;
 
       // 6. Per-user rate limit: max 10 ad reward requests per minute (prevents replay spam)
       if (checkRateLimit(`ad:${userId}`, 10)) {
@@ -2304,8 +2339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Gems reward amount — use the configured base reward, or 25% on the
-      // third AdsGram ad when the user did not interact/leave the app.
+      // Gems reward amount — use the configured base reward, or 25% for any
+      // AdsGram ad where the app was not genuinely minimized for two seconds.
       adRewardGems = adsgramRewardPercent === 25
         ? Math.max(1, Math.floor(rewardPerAdGems * 0.25))
         : rewardPerAdGems;
