@@ -6,7 +6,7 @@ import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAdFlow } from "@/hooks/useAdFlow";
-import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
+import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
 
 interface AdWatchingSectionProps {
   user: any;
@@ -215,6 +215,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
           ? "USL Ads API key is missing. Add VITE_USL_ADS_API_KEY in deployment settings."
           : "Please watch the ad completely to claim your reward.", "error");
         return;
+      }
+      if (card.adType === "gigapub" || card.adType === "uslads") {
+        await confirmProviderCompletion(sessionId, card.adType);
       }
       providerCompleted = true;
 

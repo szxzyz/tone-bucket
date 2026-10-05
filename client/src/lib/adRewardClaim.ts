@@ -36,6 +36,15 @@ export async function postWithAdVerification<T = any>(path: string, payload: unk
   throw new Error("Ad confirmation is taking longer than usual. Please try again shortly.");
 }
 
+/** Record completion reported by a GigaPub or USL/TowerAds browser SDK. */
+export async function confirmProviderCompletion(sessionId: string, provider: "gigapub" | "uslads"): Promise<void> {
+  const response = await apiRequest("POST", "/api/ads/provider-complete", { sessionId, provider });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.success !== true) {
+    throw new Error(data?.message || "Ad completion could not be verified");
+  }
+}
+
 /** Best-effort cleanup for an ad SDK failure before any provider completion. */
 export async function cancelRegisteredAdSession(sessionId: string): Promise<void> {
   try {

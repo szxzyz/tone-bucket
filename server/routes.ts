@@ -1799,6 +1799,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GigaPub and USL/TowerAds report completion through their browser SDKs
+  // rather than a server-to-server postback. Record that completion against
+  // the authenticated, pre-registered session so /api/ads/watch can use the
+  // same idempotent verification path as the other providers.
+  app.post('/api/ads/provider-complete', authenticateTelegram, adWatchRateLimit, async (req: any, res) => {
+    const sessionId = req.body?.sessionId;
+    const provider = req.body?.provider;
+    if (typeof sessionId !== 'string' || sessionId.length < 10 || sessionId.length > 180) {
+      return res.status(400).json({ success: false, errorType: 'invalid_session' });
+    }
+    if (provider !== 'gigapub' && provider !== 'uslads') {
+      return res.status(400).json({ success: false, errorType: 'invalid_provider' });
+    }
+    try {
+      const [session] = await db.select({
+        id: adSessions.id,
+        userId: adSessions.userId,
+        adType: adSessions.adType,
+        context: adSessions.context,
+        status: adSessions.status,
+        registeredAt: adSessions.registeredAt,
+      }).from(adSessions).where(eq(adSessions.id, sessionId)).limit(1);
+      if (!session || session.userId !== String(req.user.user.id)) {
+        return res.status(404).json({ success: false, errorType: 'invalid_session' });
+      }
+      if (session.adType !== provider || session.context !== 'ads_watch') {
+        return res.status(400).json({ success: false, errorType: 'invalid_provider' });
+      }
+      if (session.status !== 'pending') {
+        return res.status(409).json({ success: false, errorType: 'session_not_pending' });
+      }
+      if (Date.now() - new Date(session.registeredAt as any).getTime() > AD_SESSION_MAX_AGE_MS) {
+        return res.status(400).json({ success: false, errorType: 'invalid_session' });
+      }
+      await db.insert(adRewardCallbacks).values({
+        provider,
+        eventKey: `${provider}:session:${sessionId}`,
+        userId: session.userId,
+        sessionId,
+        eventType: 'reward',
+        rewardEventType: 'valued',
+      }).onConflictDoNothing();
+      return res.json({ success: true });
+    } catch (error) {
+      console.error(`Failed to record ${provider} provider completion:`, error);
+      return res.status(500).json({ success: false, errorType: 'internal_error' });
+    }
+  });
+
   // AdsGram server-side Reward URL callback.
   // Configure AdsGram with:
   // https://paidadz.xyz/api/adsgram/reward?userid=[userId]&token=YOUR_SECRET_KEY

@@ -69,6 +69,35 @@ async function getUslAdsConfig(): Promise<{ apiKey: string; placementId: string 
   const placementId = cfg?.uslAdsPlacementId || import.meta.env.VITE_USL_ADS_PLACEMENT_ID || 'plc_992db36dbed33f7c';
   return { apiKey, placementId };
 }
+let _uslAdsScriptPromise: Promise<boolean> | null = null;
+async function ensureUslAdsScript(): Promise<boolean> {
+  if (typeof window.TowerAds === 'function') return true;
+  if (_uslAdsScriptPromise) return _uslAdsScriptPromise;
+  _uslAdsScriptPromise = (async () => {
+    const cfg = await getAppConfig();
+    const sdkUrl = cfg?.uslAdsSdkUrl || 'https://uslads.com/sdk/tower-ads-v4.js';
+    const existing = Array.from(document.scripts).find((script) => script.src === sdkUrl) as HTMLScriptElement | undefined;
+    if (existing) {
+      if (typeof window.TowerAds === 'function') return true;
+      return new Promise<boolean>((resolve) => {
+        existing.addEventListener('load', () => resolve(typeof window.TowerAds === 'function'), { once: true });
+        existing.addEventListener('error', () => resolve(false), { once: true });
+        window.setTimeout(() => resolve(typeof window.TowerAds === 'function'), 10_000);
+      });
+    }
+    return new Promise<boolean>((resolve) => {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = sdkUrl;
+      script.onload = () => resolve(typeof window.TowerAds === 'function');
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+  })();
+  const ready = await _uslAdsScriptPromise;
+  if (!ready) _uslAdsScriptPromise = null;
+  return ready;
+}
 
 // GiGaPub dynamic loader
 let _gigaPubScriptLoaded = false;
@@ -234,6 +263,8 @@ export function useAdFlow() {
         resolve({ success: false, unavailable: false });
         return;
       }
+      const scriptReady = await ensureUslAdsScript();
+      if (!scriptReady) { resolve({ success: false, unavailable: true }); return; }
       const ready = await waitForFn('TowerAds', 10_000);
       if (!ready) { resolve({ success: false, unavailable: true }); return; }
 
