@@ -2127,7 +2127,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .set({ status: 'failed', usedAt: new Date(), backgroundEntered: false, backgroundDurationMs: bgDuration })
           .where(and(eq(adSessions.id, sessionId), eq(adSessions.status, 'pending')));
         return res.status(400).json({
-          message: 'Please minimize the Mini App once during the AdsGram ad and return to claim the reward.',
+          // Keep the reason server-side; do not expose the background check in
+          // the UI response or instruct the user to perform a lifecycle action.
+          message: 'Ad verification failed. Please try again.',
           errorType: 'insufficient_background',
         });
       }
