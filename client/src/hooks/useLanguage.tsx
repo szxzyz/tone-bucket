@@ -1,27 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Language = 'en' | 'hi' | 'bn' | 'ru' | 'pt' | 'es' | 'tr' | 'de' | 'fr' | 'it' | 'id' | 'pl' | 'nl' | 'zh' | 'ja' | 'ko' | 'vi' | 'ar' | 'fa';
-
+export type Language = 'en' | 'ru';
 export const SUPPORTED_LANGUAGES: Array<{ code: Language; label: string; flag: string }> = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'pt', label: 'Português', flag: '🇧🇷' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
-  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'ko', label: '한국어', flag: '🇰🇷' },
-  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-  { code: 'fa', label: 'فارسی', flag: '🇮🇷' },
 ];
 
 interface LanguageContextType {
@@ -550,7 +532,7 @@ const baseTranslations: Record<string, string> = {
   legal_acceptable_enforcement: "Suspected abuse may result in review, reward reversal, withdrawal restrictions, or account suspension under the app rules.",
 };
 
-const translations: Partial<Record<Language, Record<string, string>>> = {
+const translations: Record<string, Record<string, string>> = {
   en: baseTranslations,
 
   ru: {
@@ -4795,7 +4777,7 @@ const LanguageContext = createContext<LanguageContextType>({
   isRTL: false,
 });
 
-const localStaticTranslations: Partial<Record<Language, Record<string, string>>> = {
+const localStaticTranslations: Record<string, Record<string, string>> = {
   hi: { Mission: 'मिशन', Ads: 'विज्ञापन', Rank: 'रैंक', Friends: 'दोस्त', Account: 'खाता', 'Watch Ads': 'विज्ञापन देखें', 'Invite Friends': 'दोस्तों को आमंत्रित करें', Withdraw: 'निकासी', 'Daily Check-In': 'दैनिक चेक-इन', 'Mystery Gift': 'रहस्यमय उपहार', 'Promo Code': 'प्रोमो कोड', 'Daily Task': 'दैनिक कार्य', Claim: 'क्लेम', DONE: 'हो गया', OPEN: 'खोलें', Profile: 'प्रोफ़ाइल', Balance: 'बैलेंस' },
   bn: { Mission: 'মিশন', Ads: 'বিজ্ঞাপন', Rank: 'র‍্যাঙ্ক', Friends: 'বন্ধুরা', Account: 'অ্যাকাউন্ট', 'Watch Ads': 'বিজ্ঞাপন দেখুন', 'Invite Friends': 'বন্ধুদের আমন্ত্রণ করুন', Withdraw: 'উত্তোলন', 'Daily Check-In': 'দৈনিক চেক-ইন', 'Mystery Gift': 'রহস্য উপহার', 'Promo Code': 'প্রোমো কোড', 'Daily Task': 'দৈনিক কাজ', Claim: 'ক্লেম', DONE: 'সম্পন্ন', OPEN: 'খুলুন', Profile: 'প্রোফাইল', Balance: 'ব্যালেন্স' },
   id: { Mission: 'Misi', Ads: 'Iklan', Rank: 'Peringkat', Friends: 'Teman', Account: 'Akun', 'Watch Ads': 'Tonton Iklan', 'Invite Friends': 'Undang Teman', Withdraw: 'Tarik Dana', 'Daily Check-In': 'Check-In Harian', 'Mystery Gift': 'Hadiah Misteri', 'Promo Code': 'Kode Promo', 'Daily Task': 'Tugas Harian', Claim: 'Klaim', DONE: 'SELESAI', OPEN: 'BUKA', Profile: 'Profil', Balance: 'Saldo' },
@@ -4838,7 +4820,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   // Apply RTL direction to <html> tag whenever language changes
   useEffect(() => {
-    const isRTL = language === 'ar' || language === 'fa';
+    const isRTL = false;
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
   }, [language]);
@@ -4856,7 +4838,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return vars?.bot ? raw.replaceAll('{{bot}}', vars.bot) : raw;
   };
 
-  const isRTL = language === 'ar' || language === 'fa';
+  const isRTL = false;
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t, isRTL }}>

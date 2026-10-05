@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { SUPPORTED_LANGUAGES, useLanguage } from '@/hooks/useLanguage';
+import { useLanguage } from '@/hooks/useLanguage';
 import { showNotification } from '@/components/AppNotification';
 import { useSupportLink } from '@/hooks/useSupportLink';
 
@@ -207,7 +207,7 @@ const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode,
 
 export const LanguagePreferenceControl: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
-  const chooseLanguage = async (next: (typeof SUPPORTED_LANGUAGES)[number]['code']) => {
+  const chooseLanguage = async (next: 'en' | 'ru') => {
     setLanguage(next);
     try {
       await fetch('/api/user/language', {
@@ -223,24 +223,19 @@ export const LanguagePreferenceControl: React.FC = () => {
 
   return (
     <div className="space-y-2" aria-label={t('language')}>
-      {SUPPORTED_LANGUAGES.map((item) => {
-        const selected = language === item.code;
-        return (
-          <button
-            key={item.code}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => void chooseLanguage(item.code)}
-            className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors ${selected ? 'bg-[#0066D6]/20 text-white' : 'bg-white/[0.05] text-white/75 hover:bg-white/[0.09]'}`}
-          >
-            <span className="flex items-center gap-3">
-              <span className="text-base leading-none">{item.flag}</span>
-              <span className="truncate">{item.label}</span>
-            </span>
-            {selected && <Check className="w-4 h-4 text-[#60a5fa]" />}
-          </button>
-        );
-      })}
+      <button
+        type="button"
+        aria-label={language === 'en' ? 'Switch to Russian' : 'Переключить на английский'}
+        aria-pressed={language === 'ru'}
+        onClick={() => void chooseLanguage(language === 'en' ? 'ru' : 'en')}
+        className="w-full flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold bg-white/[0.05] text-white hover:bg-white/[0.09] transition-colors"
+      >
+        <span className="flex items-center gap-3">
+          <span className="text-base leading-none">{language === 'en' ? '🇷🇺' : '🇬🇧'}</span>
+          <span className="truncate">{language === 'en' ? 'Русский' : 'English'}</span>
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-white/45">{t('swap')}</span>
+      </button>
     </div>
   );
 };

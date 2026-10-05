@@ -998,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/user/language', authenticateTelegram, async (req: any, res) => {
     try {
       const { language } = req.body;
-      const validLanguages = ['en', 'hi', 'bn', 'ru', 'pt', 'es', 'tr', 'de', 'fr', 'it', 'id', 'pl', 'nl', 'zh', 'ja', 'ko', 'vi', 'ar', 'fa'];
+      const validLanguages = ['en', 'ru'];
       if (!language || !validLanguages.includes(language)) {
         return res.status(400).json({ success: false, message: 'Invalid language' });
       }
