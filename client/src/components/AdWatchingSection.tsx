@@ -25,7 +25,7 @@ const AD_CARDS = [
 
 function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const queryClient = useQueryClient();
-  const { startSession, endSession, cancelSession } = useAdSession();
+  const { startSession, endSession, cancelSession, waitForForeground, getSessionStart } = useAdSession();
   const { t } = useLanguage();
   const { showMonetagAd, showGigaPubAd, showUSLAd } = useAdFlow();
 
@@ -215,9 +215,19 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       }
       providerCompleted = true;
 
-      // The provider's server callback is the verification gate. No UI state
-      // or user action about minimizing/backgrounding is required.
+      // Match GrabPenny: AdsGram/GigaPub can move the Mini App behind a native
+      // overlay, so wait until Telegram returns before ending the lifecycle
+      // session. This keeps the one-time background event in the claim payload.
       setCurrentAdStep("verifying");
+      if (card.adType === "adsgram" || card.adType === "gigapub") {
+        await waitForForeground();
+      }
+      // Give Monetag's native overlay/postback enough time to settle before
+      // claiming, without exposing any extra UI instruction to the user.
+      if (card.adType === "monetag" || card.adType === "gigapub" || card.adType === "uslads") {
+        const remaining = 3_200 - (Date.now() - getSessionStart());
+        if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+      }
 
       const session = endSession();
       if (!sessionRewardedRef.current) {
