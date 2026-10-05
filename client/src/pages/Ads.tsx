@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import AdWatchingSection from '@/components/AdWatchingSection';
 import { apiRequest } from '@/lib/queryClient';
+import { useLanguage } from '@/hooks/useLanguage';
 
 type ProviderId = 'adsgram' | 'monetag' | 'gigapub' | 'uslads';
 type ProviderSpec = {
@@ -23,6 +24,7 @@ function formatGold(value: number) {
 }
 
 function AdsRewardSummary() {
+  const { t } = useLanguage();
   const { data: user, isLoading: userLoading } = useQuery<any>({
     queryKey: ['/api/auth/user'],
     retry: false,
@@ -99,7 +101,7 @@ function AdsRewardSummary() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, marginBottom: 12 }}>
           <div>
             <p style={{ margin: 0, color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Today reward
+              {t('today')} reward
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <span style={{ color: '#facc15', fontSize: 24, lineHeight: 1, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
@@ -112,15 +114,15 @@ function AdsRewardSummary() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 7 }}>
-          <SummaryMetric label="Watched" value={summaryLoading ? '—' : formatGold(watched)} />
-          <SummaryMetric label="Remaining" value={summaryLoading ? '—' : formatGold(remaining)} />
-          <SummaryMetric label="Daily limit" value={summaryLoading ? '—' : `${formatGold(watched)} / ${formatGold(limit)}`} />
+          <SummaryMetric label={t('watching')} value={summaryLoading ? '—' : formatGold(watched)} />
+          <SummaryMetric label={t('available')} value={summaryLoading ? '—' : formatGold(remaining)} />
+          <SummaryMetric label={t('daily_limit')} value={summaryLoading ? '—' : `${formatGold(watched)} / ${formatGold(limit)}`} />
         </div>
 
         <div style={{ marginTop: 11, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div>
             <p style={{ margin: 0, color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              Potential earning
+              {t('earn_pow')}
             </p>
             <p style={{ margin: '3px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 9 }}>
               From remaining ads this reset period
@@ -149,6 +151,7 @@ function SummaryMetric({ label, value }: { label: string; value: string }) {
 }
 
 export default function Ads() {
+  const { t } = useLanguage();
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
 
   return (
@@ -156,10 +159,10 @@ export default function Ads() {
       <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white">
         <section aria-labelledby="viewing-ads-title" style={{ marginBottom: 12 }}>
           <h1 id="viewing-ads-title" style={{ margin: 0, color: '#fff', fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>
-            Viewing Ads
+            {t('viewing_ads')}
           </h1>
           <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.4 }}>
-            Get paid for watching short ads on Telegram.
+            {t('get_paid_watching')}
           </p>
         </section>
 

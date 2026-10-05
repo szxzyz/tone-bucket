@@ -62,7 +62,6 @@ import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
 import { CONTEST_PRIZE_AMOUNTS } from "../shared/constants";
-import { isSupportedTranslationLanguage, translateTexts } from "./translationService";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -999,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/user/language', authenticateTelegram, async (req: any, res) => {
     try {
       const { language } = req.body;
-      const validLanguages = ['en', 'hi', 'bn', 'ru', 'pt', 'es', 'tr', 'de', 'fr', 'it', 'id', 'pl', 'nl', 'zh', 'ja', 'ko', 'ar', 'fa'];
+      const validLanguages = ['en', 'hi', 'bn', 'ru', 'pt', 'es', 'tr', 'de', 'fr', 'it', 'id', 'pl', 'nl', 'zh', 'ja', 'ko', 'vi', 'ar', 'fa'];
       if (!language || !validLanguages.includes(language)) {
         return res.status(400).json({ success: false, message: 'Invalid language' });
       }
@@ -1016,22 +1015,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Runtime translation for static UI copy. User-generated values must never
-  // be sent here; callers submit only English interface strings.
-  app.post('/api/translations', authenticateTelegram, async (req: any, res) => {
-    try {
-      const { texts, target } = req.body || {};
-      if (!Array.isArray(texts) || texts.length > 40 || typeof target !== 'string' || !isSupportedTranslationLanguage(target)) {
-        return res.status(400).json({ success: false, message: 'Invalid translation request' });
-      }
-      const safeTexts = texts.filter((value: unknown): value is string => typeof value === 'string' && value.length <= 500);
-      const translations = await translateTexts(safeTexts, target);
-      res.json({ success: true, target, translations });
-    } catch (error) {
-      console.error('Translation service error:', error);
-      res.json({ success: true, target: req.body?.target || 'en', translations: req.body?.texts || [] });
-    }
-  });
 
   // Debug route to check database columns
   app.get('/api/debug/db-schema', authenticateAdmin, async (req: any, res) => {

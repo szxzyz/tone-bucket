@@ -551,10 +551,10 @@ export default function Home() {
         {/* Promo Code */}
         <section style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            Promo Code
+            {t('promo_code')}
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
-            Enter promo code and get rewards.
+            {t('promo_code_hint')}
           </div>
           <PromoCodeInput />
         </section>
@@ -564,10 +564,10 @@ export default function Home() {
 
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            Daily Task
+            {t('daily_task')}
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
-            Complete daily task and get rewards
+            {t('daily_task_hint')}
           </div>
 
           <div style={{ background: '#252525', borderRadius: 14, overflow: 'hidden' }}>
@@ -575,11 +575,11 @@ export default function Home() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
               <img
                 src="/assets/check-in.png"
-                alt="Daily Check-In"
+                alt={t('daily_checkin')}
                 style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
+                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('daily_checkin')}</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
                   <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
@@ -602,7 +602,7 @@ export default function Home() {
                 }}
                 className="active:scale-95 transition-transform"
               >
-                {checkinStatus?.alreadyClaimedToday ? 'DONE' : 'CLAIM'}
+                {checkinStatus?.alreadyClaimedToday ? t('done') : t('claim')}
               </button>
             </div>
 
@@ -612,11 +612,11 @@ export default function Home() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
               <img
                 src="/assets/mystery-box.png"
-                alt="Mystery Gift"
+                alt={t('mystery_gift')}
                 style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>Mystery Gift</div>
+                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('mystery_gift')}</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
                   <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
@@ -640,7 +640,7 @@ export default function Home() {
               >
                 {mysteryAdLoading ? (
                   <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin-hdc 0.7s linear infinite' }} />
-                ) : mysteryOpened ? 'DONE' : 'OPEN'}
+                ) : mysteryOpened ? t('done') : t('open')}
               </button>
             </div>
 

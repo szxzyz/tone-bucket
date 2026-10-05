@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Language = 'en' | 'hi' | 'bn' | 'ru' | 'pt' | 'es' | 'tr' | 'de' | 'fr' | 'it' | 'id' | 'pl' | 'nl' | 'zh' | 'ja' | 'ko' | 'ar' | 'fa';
+export type Language = 'en' | 'hi' | 'bn' | 'ru' | 'pt' | 'es' | 'tr' | 'de' | 'fr' | 'it' | 'id' | 'pl' | 'nl' | 'zh' | 'ja' | 'ko' | 'vi' | 'ar' | 'fa';
 
 export const SUPPORTED_LANGUAGES: Array<{ code: Language; label: string; flag: string }> = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -19,6 +19,7 @@ export const SUPPORTED_LANGUAGES: Array<{ code: Language; label: string; flag: s
   { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
   { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
   { code: 'ar', label: 'العربية', flag: '🇸🇦' },
   { code: 'fa', label: 'فارسی', flag: '🇮🇷' },
 ];
@@ -31,6 +32,36 @@ interface LanguageContextType {
 }
 
 const baseTranslations: Record<string, string> = {
+  nav_mission: 'Mission',
+  nav_ads: 'Ads',
+  nav_rank: 'Rank',
+  nav_friends: 'Friends',
+  nav_account: 'Account',
+  promo_code: 'Promo Code',
+  promo_code_hint: 'Enter promo code and get rewards.',
+  daily_task: 'Daily Task',
+  daily_task_hint: 'Complete daily task and get rewards',
+  daily_checkin: 'Daily Check-In',
+  mystery_gift: 'Mystery Gift',
+  done: 'DONE',
+  open: 'OPEN',
+  invite_friends: 'Invite Friends',
+  invite_friends_hint: 'Invite friends and earn from your direct referrals.',
+  income_from_friends: 'Income from friends',
+  income_credited: 'Income credited',
+  friends: 'Friends',
+  profile: 'Profile',
+  account_info: 'Account Info',
+  withdraw: 'Withdraw',
+  change_language: 'Change language',
+  proof_of_payment: 'Proof of Payment',
+  transactions: 'Transactions',
+  project_statistics: 'Project Statistics',
+  faqs: 'FAQs',
+  support: 'Support',
+  legal_info_short: 'Legal & Info',
+  viewing_ads: 'Viewing Ads',
+  viewing_ads_hint: 'Get paid for watching short ads on Telegram.',
   settings: 'Settings',
   my_uid: 'My UID',
   language: 'Language',
@@ -72,7 +103,6 @@ const baseTranslations: Record<string, string> = {
   watching: 'Watching...',
   claim: 'Claim',
   claimed: 'Claimed',
-  viewing_ads: 'Viewing Ads',
   get_paid_watching: 'Get paid for watching short Ads on Telegram.',
   get_paid_viewing_ads: 'GET PAID FOR VIEWING ADS ON TELEGRAM',
   start_earning: 'Start Earning',
@@ -110,9 +140,7 @@ const baseTranslations: Record<string, string> = {
   copy_link: 'Copy Link',
   friends_invited: 'Friends Invited',
   total_earned: 'Total Earned',
-  invite_friends: 'Invite Friends',
   how_it_works: 'How It Works',
-  withdraw: 'Withdraw',
   withdrawal: 'Withdrawal',
   amount: 'Amount',
   wallet_address: 'Wallet Address',
@@ -139,7 +167,6 @@ const baseTranslations: Record<string, string> = {
   insufficient_balance: 'Insufficient Balance',
   requirements_not_met: 'Requirements Not Met',
   withdrawal_request_sent: 'You have sent a withdrawal request.',
-  friends: 'friends',
   friend: 'friend',
   ads_count: 'ads',
   ad_count: 'ad',
@@ -174,7 +201,6 @@ const baseTranslations: Record<string, string> = {
   claim_label: 'CLAIM',
   loading_ellipsis: 'Loading…',
   share_with_friends: 'Share with Friends',
-  daily_checkin: 'Daily Check-in',
   check_for_updates: 'Check for Updates',
   reward: 'Reward',
   go: 'Go',
@@ -208,9 +234,6 @@ const baseTranslations: Record<string, string> = {
   language_changed: 'Language changed!',
 
   // ── Navigation ──────────────────────────────────────────────────────────────
-  nav_friends: 'Friends',
-  nav_rank: 'Rank',
-
   // ── Ad watching section ─────────────────────────────────────────────────────
   daily_adz: 'Daily Adz',
   premium_adz: 'Premium Adz',
@@ -4757,7 +4780,7 @@ export function getTranslation(key: string, vars?: { bot?: string }): string {
   try {
     const saved = localStorage.getItem('app_language') as Language;
     const lang = saved && SUPPORTED_LANGUAGES.some((item) => item.code === saved) ? saved : 'en';
-    const raw = translations[lang]?.[key] ?? translations['en']?.[key] ?? key;
+    const raw = translations[lang]?.[key] ?? translateStaticText(translations['en']?.[key] ?? key, lang);
     return vars?.bot ? raw.replaceAll('{{bot}}', vars.bot) : raw;
   } catch {
     const raw = translations['en']?.[key] ?? key;
@@ -4772,35 +4795,26 @@ const LanguageContext = createContext<LanguageContextType>({
   isRTL: false,
 });
 
-const domTranslationCache = new Map<string, string>();
-const domTranslationPending = new Set<string>();
-const domOriginalText = new WeakMap<Text, string>();
+const localStaticTranslations: Partial<Record<Language, Record<string, string>>> = {
+  hi: { Mission: 'मिशन', Ads: 'विज्ञापन', Rank: 'रैंक', Friends: 'दोस्त', Account: 'खाता', 'Watch Ads': 'विज्ञापन देखें', 'Invite Friends': 'दोस्तों को आमंत्रित करें', Withdraw: 'निकासी', 'Daily Check-In': 'दैनिक चेक-इन', 'Mystery Gift': 'रहस्यमय उपहार', 'Promo Code': 'प्रोमो कोड', 'Daily Task': 'दैनिक कार्य', Claim: 'क्लेम', DONE: 'हो गया', OPEN: 'खोलें', Profile: 'प्रोफ़ाइल', Balance: 'बैलेंस' },
+  bn: { Mission: 'মিশন', Ads: 'বিজ্ঞাপন', Rank: 'র‍্যাঙ্ক', Friends: 'বন্ধুরা', Account: 'অ্যাকাউন্ট', 'Watch Ads': 'বিজ্ঞাপন দেখুন', 'Invite Friends': 'বন্ধুদের আমন্ত্রণ করুন', Withdraw: 'উত্তোলন', 'Daily Check-In': 'দৈনিক চেক-ইন', 'Mystery Gift': 'রহস্য উপহার', 'Promo Code': 'প্রোমো কোড', 'Daily Task': 'দৈনিক কাজ', Claim: 'ক্লেম', DONE: 'সম্পন্ন', OPEN: 'খুলুন', Profile: 'প্রোফাইল', Balance: 'ব্যালেন্স' },
+  id: { Mission: 'Misi', Ads: 'Iklan', Rank: 'Peringkat', Friends: 'Teman', Account: 'Akun', 'Watch Ads': 'Tonton Iklan', 'Invite Friends': 'Undang Teman', Withdraw: 'Tarik Dana', 'Daily Check-In': 'Check-In Harian', 'Mystery Gift': 'Hadiah Misteri', 'Promo Code': 'Kode Promo', 'Daily Task': 'Tugas Harian', Claim: 'Klaim', DONE: 'SELESAI', OPEN: 'BUKA', Profile: 'Profil', Balance: 'Saldo' },
+  es: { Mission: 'Misión', Ads: 'Anuncios', Rank: 'Rango', Friends: 'Amigos', Account: 'Cuenta', 'Watch Ads': 'Ver anuncios', 'Invite Friends': 'Invitar amigos', Withdraw: 'Retirar', 'Daily Check-In': 'Check-in diario', 'Mystery Gift': 'Regalo misterioso', 'Promo Code': 'Código promocional', 'Daily Task': 'Tarea diaria', Claim: 'Reclamar', DONE: 'LISTO', OPEN: 'ABRIR', Profile: 'Perfil', Balance: 'Saldo' },
+  fr: { Mission: 'Mission', Ads: 'Annonces', Rank: 'Classement', Friends: 'Amis', Account: 'Compte', 'Watch Ads': 'Voir les annonces', 'Invite Friends': 'Inviter des amis', Withdraw: 'Retirer', 'Daily Check-In': 'Check-in quotidien', 'Mystery Gift': 'Cadeau mystère', 'Promo Code': 'Code promo', 'Daily Task': 'Tâche quotidienne', Claim: 'Réclamer', DONE: 'TERMINÉ', OPEN: 'OUVRIR', Profile: 'Profil', Balance: 'Solde' },
+  pt: { Mission: 'Missão', Ads: 'Anúncios', Rank: 'Classificação', Friends: 'Amigos', Account: 'Conta', 'Watch Ads': 'Ver anúncios', 'Invite Friends': 'Convidar amigos', Withdraw: 'Sacar', 'Daily Check-In': 'Check-in diário', 'Mystery Gift': 'Presente misterioso', 'Promo Code': 'Código promocional', 'Daily Task': 'Tarefa diária', Claim: 'Resgatar', DONE: 'CONCLUÍDO', OPEN: 'ABRIR', Profile: 'Perfil', Balance: 'Saldo' },
+  ru: { Mission: 'Миссия', Ads: 'Реклама', Rank: 'Рейтинг', Friends: 'Друзья', Account: 'Аккаунт', 'Watch Ads': 'Смотреть рекламу', 'Invite Friends': 'Пригласить друзей', Withdraw: 'Вывести', 'Daily Check-In': 'Ежедневная отметка', 'Mystery Gift': 'Таинственный подарок', 'Promo Code': 'Промокод', 'Daily Task': 'Ежедневное задание', Claim: 'Получить', DONE: 'ГОТОВО', OPEN: 'ОТКРЫТЬ', Profile: 'Профиль', Balance: 'Баланс' },
+  tr: { Mission: 'Görev', Ads: 'Reklamlar', Rank: 'Sıralama', Friends: 'Arkadaşlar', Account: 'Hesap', 'Watch Ads': 'Reklamları İzle', 'Invite Friends': 'Arkadaşlarını Davet Et', Withdraw: 'Çekim', 'Daily Check-In': 'Günlük Giriş', 'Mystery Gift': 'Gizemli Hediye', 'Promo Code': 'Promosyon Kodu', 'Daily Task': 'Günlük Görev', Claim: 'Al', DONE: 'TAMAM', OPEN: 'AÇ', Profile: 'Profil', Balance: 'Bakiye' },
+  ar: { Mission: 'المهمة', Ads: 'الإعلانات', Rank: 'الترتيب', Friends: 'الأصدقاء', Account: 'الحساب', 'Watch Ads': 'شاهد الإعلانات', 'Invite Friends': 'دعوة الأصدقاء', Withdraw: 'سحب', 'Daily Check-In': 'تسجيل يومي', 'Mystery Gift': 'هدية غامضة', 'Promo Code': 'رمز ترويجي', 'Daily Task': 'المهمة اليومية', Claim: 'استلام', DONE: 'تم', OPEN: 'فتح', Profile: 'الملف الشخصي', Balance: 'الرصيد' },
+  vi: { Mission: 'Nhiệm vụ', Ads: 'Quảng cáo', Rank: 'Xếp hạng', Friends: 'Bạn bè', Account: 'Tài khoản', 'Watch Ads': 'Xem quảng cáo', 'Invite Friends': 'Mời bạn bè', Withdraw: 'Rút tiền', 'Daily Check-In': 'Điểm danh hàng ngày', 'Mystery Gift': 'Quà bí ẩn', 'Promo Code': 'Mã khuyến mãi', 'Daily Task': 'Nhiệm vụ hàng ngày', Claim: 'Nhận', DONE: 'XONG', OPEN: 'MỞ', Profile: 'Hồ sơ', Balance: 'Số dư' },
+};
 
-function shouldSkipDomTranslation(node: Text): boolean {
-  const parent = node.parentElement;
-  if (!parent) return true;
-  if (parent.closest('script, style, input, textarea, select, option, a, code, pre, [contenteditable="true"], [data-no-translate], [data-user-content], [data-task-name], [data-dynamic-content]')) return true;
-  const text = node.nodeValue?.trim() || '';
-  if (!text || text.length > 180 || text.length < 2) return true;
-  // Never send identifiers, links, usernames, wallet addresses or codes to Google.
-  if (/https?:\/\/|t\.me\/|^[@#][\w.]+|0x[a-f0-9]{12,}|^[A-Z0-9_-]{8,}$|^\d[\d\s.,:/-]*$/.test(text)) return true;
-  return false;
-}
-
-function collectStaticTextNodes(root: ParentNode): Text[] {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  let current: Node | null;
-  while ((current = walker.nextNode())) {
-    if (current instanceof Text && !shouldSkipDomTranslation(current)) nodes.push(current);
-  }
-  return nodes;
+export function translateStaticText(source: string, language: Language): string {
+  if (language === 'en') return source;
+  return localStaticTranslations[language]?.[source] || source;
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
-  const [dynamicTranslations, setDynamicTranslations] = useState<Record<string, string>>({});
-  const pendingTranslations = React.useRef(new Set<string>());
 
   useEffect(() => {
     try {
@@ -4829,64 +4843,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
-  // Existing pages contain legacy static JSX labels that do not call t().
-  // Translate only their visible text nodes; protected/dynamic nodes are
-  // excluded above so usernames, balances, links, codes and task data stay exact.
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const nodes = collectStaticTextNodes(document.body);
-    nodes.forEach((node) => { if (!domOriginalText.has(node)) domOriginalText.set(node, node.nodeValue || ''); });
-    if (language === 'en') {
-      nodes.forEach((node) => { node.nodeValue = domOriginalText.get(node) || node.nodeValue; });
-      return;
-    }
-
-    let cancelled = false;
-    const translateBatch = async (batch: Text[]) => {
-      const sourceTexts = batch.map((node) => domOriginalText.get(node) || node.nodeValue || '');
-      const missing = sourceTexts.filter((text) => !domTranslationCache.has(`${language}:${text}`));
-      const requestTexts = [...new Set(missing)].filter((text) => {
-        const key = `${language}:${text}`;
-        if (domTranslationPending.has(key)) return false;
-        domTranslationPending.add(key);
-        return true;
-      }).slice(0, 40);
-      if (requestTexts.length) {
-        try {
-          const response = await fetch('/api/translations', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-            body: JSON.stringify({ texts: requestTexts, target: language }),
-          });
-          const data = response.ok ? await response.json() : null;
-          requestTexts.forEach((text, index) => {
-            const translated = data?.translations?.[index];
-            if (typeof translated === 'string' && translated && translated !== text) {
-              domTranslationCache.set(`${language}:${text}`, translated);
-            }
-            domTranslationPending.delete(`${language}:${text}`);
-          });
-        } catch {
-          requestTexts.forEach((text) => domTranslationPending.delete(`${language}:${text}`));
-        }
-      }
-      if (cancelled) return;
-      batch.forEach((node) => {
-        const source = domOriginalText.get(node) || node.nodeValue || '';
-        const translated = domTranslationCache.get(`${language}:${source}`);
-        if (translated) node.nodeValue = translated;
-      });
-    };
-
-    for (let index = 0; index < nodes.length; index += 40) void translateBatch(nodes.slice(index, index + 40));
-    const observer = new MutationObserver(() => {
-      const fresh = collectStaticTextNodes(document.body).filter((node) => !domOriginalText.has(node));
-      fresh.forEach((node) => domOriginalText.set(node, node.nodeValue || ''));
-      for (let index = 0; index < fresh.length; index += 40) void translateBatch(fresh.slice(index, index + 40));
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => { cancelled = true; observer.disconnect(); };
-  }, [language]);
-
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     try {
@@ -4894,35 +4850,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  const requestDynamicTranslation = (source: string, target: Language) => {
-    if (!source || target === 'en') return;
-    const cacheKey = `${target}:${source}`;
-    if (dynamicTranslations[cacheKey] || pendingTranslations.current.has(cacheKey)) return;
-    pendingTranslations.current.add(cacheKey);
-    fetch('/api/translations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ texts: [source], target }),
-    })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        const translated = data?.translations?.[0];
-        if (typeof translated === 'string' && translated && translated !== source) {
-          setDynamicTranslations((current) => ({ ...current, [cacheKey]: translated }));
-        }
-      })
-      .catch(() => {})
-      .finally(() => pendingTranslations.current.delete(cacheKey));
-  };
-
   const t = (key: string, vars?: { bot?: string }): string => {
     const english = translations['en']?.[key] ?? key;
-    const cacheKey = `${language}:${english}`;
-    const raw = translations[language]?.[key] ?? dynamicTranslations[cacheKey] ?? english;
-    if (!translations[language]?.[key] && language !== 'en' && english !== key) {
-      requestDynamicTranslation(english, language);
-    }
+    const raw = translations[language]?.[key] ?? translateStaticText(english, language);
     return vars?.bot ? raw.replaceAll('{{bot}}', vars.bot) : raw;
   };
 

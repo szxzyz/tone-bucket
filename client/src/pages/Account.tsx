@@ -11,6 +11,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
 import { useLocation } from 'wouter';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
+import { useLanguage } from '@/hooks/useLanguage';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal' | 'language';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
@@ -21,6 +22,7 @@ export default function Account() {
   const [, setLocation] = useLocation();
   const [menuView, setMenuView] = useState<AccountMenuView | null>(null);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const { t } = useLanguage();
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], retry: false, staleTime: 300000 });
@@ -64,24 +66,24 @@ export default function Account() {
   };
 
   const menuActions = [
-    { label: 'Change language', icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setMenuView('language') },
-    { label: 'Proof of Payment', icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
-    { label: 'Transactions', icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
-    { label: 'Project Statistics', icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
-    { label: 'FAQs', icon: <BsQuestionCircleFill className="w-5 h-5 text-sky-400" />, action: () => setMenuView('faq') },
-    { label: 'Support', icon: <MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />, action: openSupport },
-    { label: 'Legal & Info', icon: <Shield className="w-5 h-5 text-purple-400" />, action: () => setMenuView('legal') },
+    { label: t('change_language'), icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setMenuView('language') },
+    { label: t('proof_of_payment'), icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
+    { label: t('transactions'), icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
+    { label: t('project_statistics'), icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
+    { label: t('faqs'), icon: <BsQuestionCircleFill className="w-5 h-5 text-sky-400" />, action: () => setMenuView('faq') },
+    { label: t('support'), icon: <MdOutlineSupportAgent className="w-5 h-5 text-pink-400" />, action: openSupport },
+    { label: t('legal_info_short'), icon: <Shield className="w-5 h-5 text-purple-400" />, action: () => setMenuView('legal') },
   ];
 
   return (
     <Layout>
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-[88px]">
         <div className="px-1 mb-3">
-          <h1 className="m-0 text-xl font-black text-white">Profile</h1>
+          <h1 className="m-0 text-xl font-black text-white">{t('profile')}</h1>
           <p className="m-0 mt-1 text-xs text-white/45">Manage your language settings and TON wallet payouts</p>
         </div>
         <section className="rounded-2xl p-4 mb-3" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
-          <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">Account Info</p>
+          <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">{t('account_info')}</p>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -103,14 +105,14 @@ export default function Account() {
         <section className="rounded-2xl px-3 py-3 mb-3 flex items-center gap-3" aria-label="GEM balance" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <img src="/assets/gems-icon.svg" alt="GEM" className="w-9 h-9 object-contain shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">Balance</p>
+            <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">{t('balance')}</p>
             <div className="flex items-baseline gap-1.5 min-w-0">
               <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? gemBalance.toLocaleString() : '—'}</span>
               <span className="text-white/55 text-[11px] font-extrabold">GEM</span>
             </div>
             <p className="text-white/40 text-[10px] font-semibold tabular-nums">~${balanceLoaded ? usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—'} USD</p>
           </div>
-          <button type="button" onClick={() => setWithdrawOpen(true)} disabled={!balanceLoaded} className="h-9 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>Withdraw</button>
+          <button type="button" onClick={() => setWithdrawOpen(true)} disabled={!balanceLoaded} className="h-9 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>{t('withdraw')}</button>
         </section>
 
         <section className="space-y-2 mb-3" aria-label="Account actions">
