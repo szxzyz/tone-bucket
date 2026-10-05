@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, Check } from 'lucide-react';
+import { X, Copy, Globe, MessageSquare, ShieldCheck, FileText, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { SUPPORTED_LANGUAGES, useLanguage } from '@/hooks/useLanguage';
@@ -207,6 +207,7 @@ const LegalItem = ({ icon, label, onClick, rightIcon }: { icon: React.ReactNode,
 
 export const LanguagePreferenceControl: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
+  const [query, setQuery] = React.useState('');
   const chooseLanguage = async (next: (typeof SUPPORTED_LANGUAGES)[number]['code']) => {
     setLanguage(next);
     try {
@@ -221,9 +222,33 @@ export const LanguagePreferenceControl: React.FC = () => {
     }
   };
 
+  const filteredLanguages = SUPPORTED_LANGUAGES.filter((item) =>
+    item.label.toLowerCase().includes(query.trim().toLowerCase()) || item.code.includes(query.trim().toLowerCase()),
+  );
+
   return (
-    <div className="space-y-2" aria-label={t('language')}>
-      {SUPPORTED_LANGUAGES.map((item) => {
+    <div className="space-y-4" aria-label={t('language')}>
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#10233e] to-[#0d1422] p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2563eb]/20 text-2xl">🌐</div>
+          <div>
+            <h3 className="text-base font-extrabold text-white">{t('select_language')}</h3>
+            <p className="mt-1 text-[11px] text-white/45">Choose the language for the whole app</p>
+          </div>
+        </div>
+        <div className="relative mt-4">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search language"
+            aria-label="Search language"
+            className="h-10 w-full rounded-xl border border-white/10 bg-black/20 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[#60a5fa]"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+      {filteredLanguages.map((item) => {
         const selected = language === item.code;
         return (
           <button
@@ -231,16 +256,18 @@ export const LanguagePreferenceControl: React.FC = () => {
             type="button"
             aria-pressed={selected}
             onClick={() => void chooseLanguage(item.code)}
-            className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors ${selected ? 'bg-[#0066D6]/20 text-white' : 'bg-white/[0.05] text-white/75 hover:bg-white/[0.09]'}`}
+            className={`flex min-h-[58px] w-full items-center justify-between rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition-all ${selected ? 'border-[#60a5fa]/60 bg-[#2563eb]/20 text-white shadow-[0_0_18px_rgba(37,99,235,0.18)]' : 'border-white/[0.06] bg-white/[0.04] text-white/75 hover:border-white/20 hover:bg-white/[0.08]'}`}
           >
             <span className="flex items-center gap-3">
-              <Globe className={`w-4 h-4 ${selected ? 'text-[#60a5fa]' : 'text-white/45'}`} />
-              <span>{item.label}</span>
+              <span className="text-xl leading-none">{item.flag}</span>
+              <span className="truncate">{item.label}</span>
             </span>
             {selected && <Check className="w-4 h-4 text-[#60a5fa]" />}
           </button>
         );
       })}
+      </div>
+      {!filteredLanguages.length && <p className="py-6 text-center text-xs text-white/40">No languages found</p>}
     </div>
   );
 };

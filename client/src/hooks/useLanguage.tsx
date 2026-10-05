@@ -1,19 +1,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Language = 'en' | 'ar' | 'fa' | 'ru' | 'id' | 'hi' | 'zh' | 'fr' | 'es' | 'de' | 'bn';
+export type Language = 'en' | 'hi' | 'bn' | 'ru' | 'pt' | 'es' | 'tr' | 'de' | 'fr' | 'it' | 'id' | 'pl' | 'nl' | 'zh' | 'ja' | 'ko' | 'ar' | 'fa';
 
-export const SUPPORTED_LANGUAGES: Array<{ code: Language; label: string }> = [
-  { code: 'en', label: 'English' },
-  { code: 'ar', label: 'العربية' },
-  { code: 'fa', label: 'فارسی' },
-  { code: 'ru', label: 'Русский' },
-  { code: 'id', label: 'Bahasa Indonesia' },
-  { code: 'hi', label: 'हिन्दी' },
-  { code: 'zh', label: '中文' },
-  { code: 'fr', label: 'Français' },
-  { code: 'es', label: 'Español' },
-  { code: 'de', label: 'Deutsch' },
-  { code: 'bn', label: 'বাংলা' },
+export const SUPPORTED_LANGUAGES: Array<{ code: Language; label: string; flag: string }> = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'pt', label: 'Português', flag: '🇧🇷' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
+  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
+  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
+  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { code: 'fa', label: 'فارسی', flag: '🇮🇷' },
 ];
 
 interface LanguageContextType {
@@ -520,7 +527,7 @@ const baseTranslations: Record<string, string> = {
   legal_acceptable_enforcement: "Suspected abuse may result in review, reward reversal, withdrawal restrictions, or account suspension under the app rules.",
 };
 
-const translations: Record<Language, Record<string, string>> = {
+const translations: Partial<Record<Language, Record<string, string>>> = {
   en: baseTranslations,
 
   ru: {
@@ -4749,7 +4756,7 @@ const translations: Record<Language, Record<string, string>> = {
 export function getTranslation(key: string, vars?: { bot?: string }): string {
   try {
     const saved = localStorage.getItem('app_language') as Language;
-    const lang = saved && Object.keys(translations).includes(saved) ? saved : 'en';
+    const lang = saved && SUPPORTED_LANGUAGES.some((item) => item.code === saved) ? saved : 'en';
     const raw = translations[lang]?.[key] ?? translations['en']?.[key] ?? key;
     return vars?.bot ? raw.replaceAll('{{bot}}', vars.bot) : raw;
   } catch {
@@ -4767,11 +4774,13 @@ const LanguageContext = createContext<LanguageContextType>({
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
+  const [dynamicTranslations, setDynamicTranslations] = useState<Record<string, string>>({});
+  const pendingTranslations = React.useRef(new Set<string>());
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('app_language') as Language;
-      if (saved && Object.keys(translations).includes(saved)) {
+      if (saved && SUPPORTED_LANGUAGES.some((item) => item.code === saved)) {
         setLanguageState(saved);
       }
     } catch {}
@@ -4791,8 +4800,35 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
+  const requestDynamicTranslation = (source: string, target: Language) => {
+    if (!source || target === 'en') return;
+    const cacheKey = `${target}:${source}`;
+    if (dynamicTranslations[cacheKey] || pendingTranslations.current.has(cacheKey)) return;
+    pendingTranslations.current.add(cacheKey);
+    fetch('/api/translations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ texts: [source], target }),
+    })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        const translated = data?.translations?.[0];
+        if (typeof translated === 'string' && translated && translated !== source) {
+          setDynamicTranslations((current) => ({ ...current, [cacheKey]: translated }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => pendingTranslations.current.delete(cacheKey));
+  };
+
   const t = (key: string, vars?: { bot?: string }): string => {
-    const raw = translations[language]?.[key] ?? translations['en']?.[key] ?? key;
+    const english = translations['en']?.[key] ?? key;
+    const cacheKey = `${language}:${english}`;
+    const raw = translations[language]?.[key] ?? dynamicTranslations[cacheKey] ?? english;
+    if (!translations[language]?.[key] && language !== 'en' && english !== key) {
+      requestDynamicTranslation(english, language);
+    }
     return vars?.bot ? raw.replaceAll('{{bot}}', vars.bot) : raw;
   };
 
