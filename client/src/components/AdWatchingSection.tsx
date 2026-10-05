@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { FiShield, FiZap } from "react-icons/fi";
+import { FiZap } from "react-icons/fi";
 import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -36,6 +36,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
   const [activeIndex,    setActiveIndex]    = useState(0);
   const [isShowingAds,   setIsShowingAds]   = useState(false);
+  const [loadingAdType, setLoadingAdType] = useState<string | null>(null);
   const [currentAdStep,  setCurrentAdStep]  = useState<"idle" | "loading" | "verifying">("idle");
   const [adsgramPopup, setAdsgramPopup] = useState<null | { kind: 'instruction'; cardId: number } | { kind: 'partial'; rewardGems: number }>(null);
 
@@ -80,12 +81,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         setAdsgramPopup({ kind: 'partial', rewardGems });
       } else {
         showNotification(
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <img src="/assets/gems-icon.svg" alt="GEM" className="w-4 h-4 object-contain" />
-              <span className="font-bold text-yellow-500">{rewardGems}</span>
-            </div>
-            {adType === "adsgram" && <span className="text-xs text-white/70">100% reward</span>}
+          <div className="flex items-center gap-2 text-white">
+            <img src="/assets/gems-icon.svg" alt="GEM" className="w-4 h-4 object-contain" />
+            <span className="font-semibold text-white">Ad Watch Successful — Earned {rewardGems} GEM</span>
           </div> as any,
           "success"
         );
@@ -176,12 +174,14 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       return;
     }
     setIsShowingAds(true);
+    setLoadingAdType(card.adType);
     sessionRewardedRef.current = false;
     currentAdTypeRef.current = card.adType;
 
-    const sessionId    = startSession();
+    let sessionId: string | null = null;
     let providerCompleted = false;
     try {
+      sessionId = startSession();
       setCurrentAdStep("loading");
       const regRes = await apiRequest("POST", "/api/ads/register-session", {
         sessionId,
@@ -253,10 +253,11 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         });
       }
     } catch {
-      if (!providerCompleted) await cancelRegisteredAdSession(sessionId);
+      if (!providerCompleted && sessionId) await cancelRegisteredAdSession(sessionId);
       cancelSession();
     } finally {
       setCurrentAdStep("idle");
+      setLoadingAdType(null);
       setIsShowingAds(false);
     }
   };
@@ -323,14 +324,14 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
             const watched      = getCardWatched(card.adType);
             const limit        = getCardLimit(card.adType);
 	            const reward       = getCardReward(card.adType);
-		            const limitReached = isCardLimitReached(card.adType);
-            const isActive     = index === activeIndex;
-            const isLoading    = isShowingAds || watchAdMutation.isPending;
+	            const limitReached = isCardLimitReached(card.adType);
+            const isLoading    = loadingAdType === card.adType;
 
             return (
               <div key={card.id}
                 style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", cursor: "pointer", boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}
                 onClick={() => {
+                  if (isShowingAds) return;
                   if (!isProviderConfigured(card.adType)) return;
                   if (index !== activeIndex) { setActiveIndex(index); return; }
                   handleStartEarning(card.id);
@@ -388,18 +389,18 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (isShowingAds) return;
                       if (!isProviderConfigured(card.adType)) return;
                       if (index !== activeIndex) { setActiveIndex(index); return; }
                       handleStartEarning(card.id);
                     }}
-                    disabled={isShowingAds || watchAdMutation.isPending || limitReached || !isProviderConfigured(card.adType)}
+                    disabled={isLoading || limitReached || !isProviderConfigured(card.adType)}
                     style={{
                       height: 38, boxSizing: "border-box", padding: "0 16px", borderRadius: 12, minWidth: 92,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
                       letterSpacing: "0.02em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center",
                       background: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #2563eb, #3b82f6)",
                       color:      limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.3)"  : "#fff",
-                      opacity: isShowingAds && !isActive ? 0.5 : 1,
                       transition: "opacity 0.2s",
                     }}
                   >
@@ -421,17 +422,22 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
       {adsgramPopup && (
         <div role="dialog" aria-modal="true" aria-labelledby="adsgram-popup-title" className="fixed inset-0 z-[2200] flex items-center justify-center px-5" style={{ background: 'rgba(0,0,0,.78)', backdropFilter: 'blur(7px)' }}>
-          <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#111114] p-5 shadow-2xl">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-300"><FiShield size={23} /></div>
-            <h3 id="adsgram-popup-title" className="mb-2 text-center text-lg font-black text-white">
-              {adsgramPopup.kind === 'instruction' ? 'AdsGram reward notice' : 'Reward credited'}
+          <div className="w-full max-w-[340px] rounded-2xl border border-white/10 bg-[#111114] px-5 py-4 shadow-2xl">
+            <h3 id="adsgram-popup-title" className="mb-2 text-center text-base font-black text-white">
+              {adsgramPopup.kind === 'instruction' ? 'AdsGram Reward Notice' : 'Reward credited'}
             </h3>
-            <p className="mb-5 text-center text-sm leading-relaxed text-white/65">
-              {adsgramPopup.kind === 'instruction'
-                ? 'This is your third AdsGram ad in this cycle. To receive 100% of its reward, minimize the Mini App for at least 2 seconds while the ad is running, then return. If the app stays visible, only 25% is credited.'
-                : `The Mini App was not hidden for 2 seconds, so ${adsgramPopup.rewardGems} GEM (25%) was credited. On the next third-ad prompt, minimize the Mini App for at least 2 seconds to receive the full reward.`}
-            </p>
-            <button type="button" onClick={acknowledgeAdsgramPopup} className="h-11 w-full rounded-xl bg-blue-600 text-sm font-black uppercase tracking-wider text-white active:scale-[.98]">
+            {adsgramPopup.kind === 'instruction' ? (
+              <>
+                <p className="mb-2 text-center text-xs font-semibold leading-relaxed text-white/75">This is your third AdsGram ad in this cycle.</p>
+                <p className="mb-4 text-center text-[13px] leading-relaxed text-white/60">To receive 100% of its reward, click on the ad, then return. If the app stays visible, only 25% is credited.</p>
+              </>
+            ) : (
+              <>
+                <p className="mb-2 text-center text-[13px] font-semibold leading-relaxed text-white">Ad Watch Successful — Earned {adsgramPopup.rewardGems} GEM</p>
+                <p className="mb-4 text-center text-xs leading-relaxed text-white/60">The app stayed visible, so 25% of this ad reward was credited.</p>
+              </>
+            )}
+            <button type="button" onClick={acknowledgeAdsgramPopup} className="h-10 w-full rounded-xl bg-blue-600 text-sm font-black uppercase tracking-wider text-white active:scale-[.98]">
               Got it
             </button>
           </div>
