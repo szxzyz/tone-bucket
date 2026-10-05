@@ -340,7 +340,7 @@ export default function Home() {
       });
       if (!regRes.ok) throw new Error('Could not start ad session');
       const blockId = context === 'mystery_box'
-        ? (appConfig?.adsgramMysteryBoxBlockId || '')
+        ? (appConfig?.adsgramMysteryBoxBlockId || import.meta.env.VITE_ADSGRAM_MYSTERY_BLOCK_ID || '')
         : (appConfig?.adsgramCheckinBlockId || '');
       try {
         await showAdgramAd(blockId);

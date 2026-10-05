@@ -74,7 +74,7 @@ export const config = {
     // AdsGram — daily check-in ad (env: ADSGRAM_CHECKIN_BLOCK_ID)
     checkinBlockId: process.env.ADSGRAM_CHECKIN_BLOCK_ID || process.env.VITE_ADSGRAM_CHECKIN_BLOCK_ID || '',
     // AdsGram — mystery box ad (env: ADSGRAM_MYSTERY_BLOCK_ID)
-    mysteryBoxBlockId: process.env.ADSGRAM_MYSTERY_BLOCK_ID || '',
+    mysteryBoxBlockId: process.env.ADSGRAM_MYSTERY_BLOCK_ID || process.env.VITE_ADSGRAM_MYSTERY_BLOCK_ID || '',
 
     // Monetag rewarded interstitial (env: MONETAG_ZONE_ID)
     // The id is also injected into index.html at build time via VITE_MONETAG_ZONE_ID.

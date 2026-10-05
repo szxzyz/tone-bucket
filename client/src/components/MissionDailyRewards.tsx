@@ -4,8 +4,8 @@ import DailyCheckinSheet from "@/components/DailyCheckinSheet";
 import { showNotification } from "@/components/AppNotification";
 import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
-import { useAdFlow } from "@/hooks/useAdFlow";
-import { cancelRegisteredAdSession, postWithAdVerification } from "@/lib/adRewardClaim";
+import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
+import { showAdgramAd } from "@/lib/showAd";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
 
 const MYSTERY_DAILY_LIMIT = 1;
@@ -18,8 +18,7 @@ function getTodayKey() {
 
 export default function MissionDailyRewards() {
   const queryClient = useQueryClient();
-  const { startSession, endSession, cancelSession } = useAdSession();
-  const { showMonetagAd } = useAdFlow();
+  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [mysteryClaimsToday, setMysteryClaimsToday] = useState(0);
   const [mysteryAdLoading, setMysteryAdLoading] = useState(false);
@@ -50,20 +49,19 @@ export default function MissionDailyRewards() {
     }
   }, [user]);
 
-  const runVerifiedMonetagAd = async (context: "mystery_box"): Promise<AdProof> => {
+  const runVerifiedAdsgramAd = async (context: "mystery_box"): Promise<AdProof> => {
     const sessionId = startSession();
     try {
       const response = await apiRequest("POST", "/api/ads/register-session", {
         sessionId,
-        adType: "monetag",
+        adType: "adsgram",
         context,
       });
       if (!response.ok) throw new Error("Could not start ad session");
-      const adResult = await showMonetagAd(sessionId, context);
-      if (!adResult.success) {
-        await cancelRegisteredAdSession(sessionId);
-        throw new Error("Monetag ad was not completed");
-      }
+      const blockId = appConfig?.adsgramMysteryBoxBlockId || import.meta.env.VITE_ADSGRAM_MYSTERY_BLOCK_ID || "";
+      await showAdgramAd(blockId);
+      await confirmProviderCompletion(sessionId, "adsgram");
+      await waitForForeground();
       const session = endSession();
       return {
         sessionId: session.sessionId,
@@ -81,7 +79,7 @@ export default function MissionDailyRewards() {
     setMysteryAdLoading(true);
     let proof: AdProof;
     try {
-      proof = await runVerifiedMonetagAd("mystery_box");
+      proof = await runVerifiedAdsgramAd("mystery_box");
     } catch {
       setMysteryAdLoading(false);
       showNotification("Ad was not completed. No Mystery Box reward was granted.", "error");
