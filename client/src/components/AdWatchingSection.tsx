@@ -91,7 +91,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     onError: (error: any) => {
       sessionRewardedRef.current = false;
       const message = error?.message === "Ad verification failed. Please try again."
-        ? "Please complete the ad until it finishes and try again."
+        ? "Please interact with the ad naturally and watch it until it finishes, then try again."
         : (error?.message || "Failed to claim reward");
       showNotification(message, "error");
     },
