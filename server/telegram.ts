@@ -1345,9 +1345,14 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('Ready to start? 👇', { bold: true });
 
   const botUsername = await getBotUsername();
+  // Keep the welcome button available even when a deployment only defines
+  // WEBAPP_URL/RENDER_EXTERNAL_URL instead of TELEGRAM_APP_URL. Telegram
+  // rejects an inline button with an empty URL, so resolve all safe aliases
+  // before deciding whether to add the row.
+  const configuredAppUrl = config.bot.appUrl || process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL || '';
   const botAppUrl = botUsername
     ? `https://t.me/${botUsername}/MyWAdz`
-    : config.bot.appUrl;
+    : configuredAppUrl;
   const appUrl = referralCode && botAppUrl
     ? `${botAppUrl}${botAppUrl.includes('?') ? '&' : '?'}startapp=${encodeURIComponent(referralCode)}`
     : botAppUrl;
