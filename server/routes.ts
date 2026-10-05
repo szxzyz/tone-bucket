@@ -286,11 +286,12 @@ const PROVIDER_CALLBACK_WAIT_MS = 3_000;
 const PROVIDER_CALLBACK_POLL_MS = 250;
 // No hard cap on per-ad reward — the admin-configured value is always used as-is.
 
-// Rewards are available only for networks with an authenticated, session-bound
-// server callback. GigaPub/TowerAds stay disabled until that verification exists.
+// AdsGram still uses its configured server callback. Monetag follows the
+// simple GrabPenny-style client completion flow and must not be blocked when
+// its optional postback is absent or delayed.
 function hasTrustedRewardCallback(provider: string): boolean {
   if (provider === 'adsgram') return Boolean(process.env.ADSGRAM_REWARD_SECRET?.trim());
-  if (provider === 'monetag') return Boolean(process.env.MONETAG_POSTBACK_SECRET?.trim());
+  if (provider === 'monetag') return true;
   // GigaPub/TowerAds expose completion through their SDK callbacks rather
   // than the Monetag/AdsGram S2S postback contract. Their availability is
   // therefore gated by the provider credential/configuration instead of being
@@ -309,6 +310,7 @@ function matchesCallbackSecret(candidate: unknown, configured: string | undefine
 }
 
 async function waitForProviderCallback(provider: string, sessionId: string): Promise<boolean> {
+  if (provider === 'monetag') return true;
   const deadline = Date.now() + PROVIDER_CALLBACK_WAIT_MS;
   do {
     const [callback] = await db.select({ id: adRewardCallbacks.id })
@@ -2189,17 +2191,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : [{ count: 0 }];
       const adsgramWatchCount = Number(adsgramWatchCountRow?.count || 0);
       const requiresAdsgramBackground = serverAdType === 'adsgram' && (adsgramWatchCount + 1) % 3 === 0;
-      if (requiresAdsgramBackground && !bgEntered) {
-        await db.update(adSessions)
-          .set({ status: 'failed', usedAt: new Date(), backgroundEntered: false, backgroundDurationMs: bgDuration })
-          .where(and(eq(adSessions.id, sessionId), eq(adSessions.status, 'pending')));
-        return res.status(400).json({
-          // Keep the reason server-side; do not expose the background check in
-          // the UI response or instruct the user to perform a lifecycle action.
-          message: 'Ad verification failed. Please try again.',
-          errorType: 'insufficient_background',
-        });
-      }
+      // Every third AdsGram watch unlocks the full configured reward when the
+      // app leaves the foreground. Without that interaction signal, credit a
+      // partial reward rather than rejecting an otherwise completed ad.
+      const adsgramRewardPercent = requiresAdsgramBackground && !bgEntered ? 25 : 100;
 
       // 6. Per-user rate limit: max 10 ad reward requests per minute (prevents replay spam)
       if (checkRateLimit(`ad:${userId}`, 10)) {
@@ -2313,8 +2308,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Gems reward amount — use the configured base reward for every eligible ad.
-      adRewardGems = rewardPerAdGems;
+      // Gems reward amount — use the configured base reward, or 25% on the
+      // third AdsGram ad when the user did not interact/leave the app.
+      adRewardGems = adsgramRewardPercent === 25
+        ? Math.max(1, Math.floor(rewardPerAdGems * 0.25))
+        : rewardPerAdGems;
 
       try {
         // Process reward with error handling to ensure success response
@@ -2536,6 +2534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         rewardGems: adRewardGems,
+        rewardPercent: normalizedAdType === 'adsgram' ? adsgramRewardPercent : 100,
         newBalance: finalUpdatedUser.balance,
         adsWatchedToday: finalUpdatedUser.adsWatchedToday,
         adType: normalizedAdType,

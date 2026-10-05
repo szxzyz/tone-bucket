@@ -60,10 +60,11 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     },
     onSuccess: (data: any) => {
       const rewardGems = data?.rewardGems || 0;
+      const adType = currentAdTypeRef.current;
+      const rewardPercent = data?.rewardPercent ?? 100;
 
       queryClient.setQueryData(["/api/auth/user"], (old: any) => {
         if (!old) return old;
-        const adType = currentAdTypeRef.current;
         const updates: any = {
           balance: data?.newBalance !== undefined ? String(data.newBalance) : old.balance,
         };
@@ -74,16 +75,20 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         return { ...old, ...updates };
       });
 
-      // Show rich notification with icons
-      showNotification(
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <img src="/assets/gems-icon.svg" alt="GEM" className="w-4 h-4 object-contain" />
-            <span className="font-bold text-yellow-500">{rewardGems}</span>
-          </div>
-        </div> as any,
-        "success"
-      );
+      if (adType === "adsgram" && rewardPercent === 25) {
+        showNotification(`Ad click/interaction was not detected. You received 25% of the reward (${rewardGems} GEM). On every 3rd AdsGram ad, close or minimize the app once to unlock 100%.`, "info");
+      } else {
+        showNotification(
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <img src="/assets/gems-icon.svg" alt="GEM" className="w-4 h-4 object-contain" />
+              <span className="font-bold text-yellow-500">{rewardGems}</span>
+            </div>
+            {adType === "adsgram" && <span className="text-xs text-white/70">100% reward</span>}
+          </div> as any,
+          "success"
+        );
+      }
 
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
@@ -190,6 +195,10 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       let result: { success: boolean; unavailable: boolean };
 
       if (card.adType === "adsgram") {
+        const nextAdsgramNumber = (user?.adsWatchedToday || 0) + 1;
+        if (nextAdsgramNumber % 3 === 0) {
+          showNotification("AdsGram notice: this is every 3rd ad. Close or minimize the app once after the ad to unlock 100%; without that interaction, the reward is 25%.", "info");
+        }
         result = await showAdsgramAd();
       } else if (card.adType === "monetag") {
         const r = await showMonetagAd(sessionId, "ads_watch");
