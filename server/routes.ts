@@ -2171,16 +2171,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // AdsGram requires the Mini App to leave the foreground at least once
-      // during the ad. One event is enough; no minimum background duration is
-      // required. This is a server-side gate and cannot be faked by the claim
-      // request after the session has been registered.
+      // AdsGram requires the Mini App to leave the foreground once on every
+      // third completed AdsGram watch (3rd, 6th, 9th, ...). The first two ads
+      // in each cycle keep the existing reward flow without this extra gate.
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
 
-      if (serverAdType === 'adsgram' && !bgEntered) {
+      const [adsgramWatchCountRow] = serverAdType === 'adsgram'
+        ? await db.select({ count: sql<number>`count(*)` })
+            .from(earnings)
+            .where(and(
+              eq(earnings.userId, userId),
+              eq(earnings.description, ADSGRAM_AD_EARNING_DESCRIPTION),
+            ))
+        : [{ count: 0 }];
+      const adsgramWatchCount = Number(adsgramWatchCountRow?.count || 0);
+      const requiresAdsgramBackground = serverAdType === 'adsgram' && (adsgramWatchCount + 1) % 3 === 0;
+      if (requiresAdsgramBackground && !bgEntered) {
         await db.update(adSessions)
           .set({ status: 'failed', usedAt: new Date(), backgroundEntered: false, backgroundDurationMs: bgDuration })
           .where(and(eq(adSessions.id, sessionId), eq(adSessions.status, 'pending')));

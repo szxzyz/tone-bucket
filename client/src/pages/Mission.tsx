@@ -1,20 +1,15 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
-import DailyContestBanner from '@/components/DailyContestBanner';
 import MissionDailyRewards from '@/components/MissionDailyRewards';
 import { StarterTasksSection } from '@/components/DailyMissionTasks';
 import PromoCodeInput from '@/components/PromoCodeInput';
 import { useState } from 'react';
-import { useLocation } from 'wouter';
 import CreatePanel from '@/components/CreatePanel';
-import { Plus } from 'lucide-react';
 export default function Mission() {
-  const [, setLocation] = useLocation();
   const [createTaskOpen, setCreateTaskOpen] = useState(() => new URLSearchParams(window.location.search).get('open') === 'create');
   return (
     <Layout onAddTask={() => setCreateTaskOpen(true)}>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
-        <DailyContestBanner onClick={() => setLocation('/leaderboard?contest=ref')} />
         <section style={{ marginBottom: 14 }} aria-label="Promo code">
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', paddingLeft: 4 }}>
             Promo Code
