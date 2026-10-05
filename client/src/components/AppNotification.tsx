@@ -21,6 +21,7 @@ let _setType: ((t: NotificationType) => void) | null = null;
 let _setIsVisible: ((v: boolean) => void) | null = null;
 
 const DUPLICATE_PREVENTION_WINDOW = 2000; // 2 seconds
+const MIN_NOTIFICATION_DURATION = 3000; // Keep notifications readable for at least 3 seconds
 
 function showNextNotification() {
   if (notificationQueue.length === 0 || isDisplaying) return;
@@ -37,7 +38,7 @@ function showNextNotification() {
   _setType?.(notification.type || "success");
   _setIsVisible?.(true);
 
-  const displayDuration = notification.duration || 1500;
+  const displayDuration = Math.max(notification.duration ?? MIN_NOTIFICATION_DURATION, MIN_NOTIFICATION_DURATION);
 
   setTimeout(() => {
     _setIsVisible?.(false);
