@@ -2220,15 +2220,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Every AdsGram watch requires one continuous, genuine hidden interval
-      // of at least two seconds for the full reward. Otherwise grant 25%.
+      // Ad clicks/minimize interaction are not required. A successfully
+      // completed provider ad receives the configured full reward.
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
 
-      const hasMeaningfulMinimize = bgEntered && bgDuration >= 2_000;
-      const adsgramRewardPercent = serverAdType === 'adsgram' && !hasMeaningfulMinimize ? 25 : 100;
+      const adsgramRewardPercent = 100;
 
       // 6. Per-user rate limit: max 10 ad reward requests per minute (prevents replay spam)
       if (checkRateLimit(`ad:${userId}`, 10)) {
@@ -2344,9 +2343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Gems reward amount — use the configured base reward, or 25% for any
       // AdsGram ad where the app was not genuinely minimized for two seconds.
-      adRewardGems = adsgramRewardPercent === 25
-        ? Math.max(1, Math.floor(rewardPerAdGems * 0.25))
-        : rewardPerAdGems;
+      adRewardGems = rewardPerAdGems;
 
       try {
         // Process reward with error handling to ensure success response

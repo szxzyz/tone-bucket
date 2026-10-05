@@ -38,7 +38,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
   const [isShowingAds,   setIsShowingAds]   = useState(false);
   const [loadingAdType, setLoadingAdType] = useState<string | null>(null);
   const [currentAdStep,  setCurrentAdStep]  = useState<"idle" | "loading" | "verifying">("idle");
-  const [adsgramPopup, setAdsgramPopup] = useState<null | { kind: 'partial'; rewardGems: number }>(null);
 
   const sessionRewardedRef = useRef(false);
   const currentAdTypeRef   = useRef<string>("adsgram");
@@ -63,7 +62,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     onSuccess: (data: any) => {
       const rewardGems = data?.rewardGems || 0;
       const adType = currentAdTypeRef.current;
-      const rewardPercent = data?.rewardPercent ?? 100;
 
       queryClient.setQueryData(["/api/auth/user"], (old: any) => {
         if (!old) return old;
@@ -77,25 +75,19 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         return { ...old, ...updates };
       });
 
-      if (adType === "adsgram" && rewardPercent === 25) {
-        setAdsgramPopup({ kind: 'partial', rewardGems });
-      } else {
-        showNotification(
-          <div className="text-white">
-            <span className="font-semibold text-white">Ad Watch Successful — Earned {rewardGems} GEM</span>
-          </div> as any,
-          "success"
-        );
-      }
+      showNotification(
+        <div className="text-white">
+          <span className="font-semibold text-white">Ad Watch Successful — Earned {rewardGems} GEM</span>
+        </div> as any,
+        "success"
+      );
 
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
     },
     onError: (error: any) => {
       sessionRewardedRef.current = false;
-      const message = error?.message === "Ad verification failed. Please try again."
-        ? "Please interact with the ad naturally and watch it until it finishes, then try again."
-        : (error?.message || "Failed to claim reward");
+      const message = error?.message || "Failed to claim reward";
       showNotification(message, "error");
     },
   });
@@ -274,7 +266,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     runAdFlowForCard(cardId);
   };
 
-  const acknowledgeAdsgramPopup = () => setAdsgramPopup(null);
 
   const getCardWatched = (adType: string): number => {
     if (adType === "adsgram") return user?.adsWatchedToday || 0;
@@ -415,18 +406,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
         </div>
       </div>
 
-      {adsgramPopup && (
-        <div role="dialog" aria-modal="true" aria-labelledby="adsgram-popup-title" className="fixed inset-0 z-[2200] flex items-center justify-center px-5" style={{ background: 'rgba(0,0,0,.78)', backdropFilter: 'blur(7px)' }}>
-          <div className="w-full max-w-[340px] rounded-2xl border border-white/10 bg-[#111114] px-5 py-4 shadow-2xl">
-            <h3 id="adsgram-popup-title" className="mb-2 text-center text-base font-black text-white">Reward credited</h3>
-            <p className="mb-2 text-center text-[13px] font-semibold leading-relaxed text-white">Ad Watch Successful — Earned {adsgramPopup.rewardGems} GEM</p>
-            <p className="mb-4 text-center text-xs leading-relaxed text-white/60">No ad click detected — only 25% of the reward was credited.</p>
-            <button type="button" onClick={acknowledgeAdsgramPopup} className="h-10 w-full rounded-xl bg-blue-600 text-sm font-black uppercase tracking-wider text-white active:scale-[.98]">
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
 
     </>
   );
