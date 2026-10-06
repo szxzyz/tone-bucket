@@ -121,7 +121,7 @@ function DeepLinkRedirector() {
 function AppContent() {
   const [showSeasonEnd, setShowSeasonEnd] = useState(false);
   const [seasonLockActive, setSeasonLockActive] = useState(false);
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   const adsgramOpenShown = useRef(false);
   const isDevMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
@@ -174,7 +174,10 @@ function AppContent() {
     }
   };
 
-  const shouldShowSeasonEnd = showSeasonEnd && !isAdmin;
+  // Wait for the admin check before mounting the maintenance overlay. This
+  // prevents an admin from seeing a maintenance flash after reopening or a
+  // fresh deployment while /api/admin/check is still resolving.
+  const shouldShowSeasonEnd = showSeasonEnd && !isAdminLoading && !isAdmin;
 
   return (
     <SeasonEndContext.Provider value={{ showSeasonEnd: shouldShowSeasonEnd }}>
