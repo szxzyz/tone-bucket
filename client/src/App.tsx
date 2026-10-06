@@ -13,9 +13,7 @@ import SeasonEndOverlay from "@/components/SeasonEndOverlay";
 import { SeasonEndContext } from "@/lib/SeasonEndContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import BottomNav from "@/components/BottomNav";
-
 import { LanguageProvider } from "@/hooks/useLanguage";
-import { Loader2 } from "lucide-react";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Mission from "@/pages/Mission";
@@ -29,7 +27,8 @@ import Ads from "@/pages/Ads";
 const Admin = lazy(() => import("@/pages/Admin"));
 const CountryControls = lazy(() => import("@/pages/CountryControls"));
 const NotFound = lazy(() => import("@/pages/not-found"));
-const LOGO_SRC = '/paid-adz-logo.png';
+const LOGO_SRC = '/axionet-logo-new.webp';
+const MIN_SPLASH_MS = 2200;
 function LoadingFallback() {
   return (
     <div className="fixed inset-0 overflow-hidden" style={{
@@ -37,13 +36,43 @@ function LoadingFallback() {
       pointerEvents: 'auto',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     }}>
-      <img src={LOGO_SRC} alt="Paid Adz" style={{
-        width: 92, height: 92, borderRadius: '50%', objectFit: 'cover',
-        display: 'block', border: '2px solid rgba(255,255,255,0.12)',
+      <style>{`
+        @keyframes axn-dot-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+          40% { transform: translateY(-9px); opacity: 1; }
+        }
+        @keyframes axn-text-shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes axn-logo-glow {
+          0%, 100% { filter: drop-shadow(0 0 12px rgba(59,130,246,0.5)); }
+          50% { filter: drop-shadow(0 0 28px rgba(96,165,250,0.9)); }
+        }
+      `}</style>
+      <img src={LOGO_SRC} alt="Axionet Digital Token" style={{
+        width: 180, height: 'auto', display: 'block',
+        animation: 'axn-logo-glow 2.4s ease-in-out infinite',
       }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 18, color: '#ffffff' }}>
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        <span style={{ fontSize: 14, fontWeight: 700 }}>Connecting to Paid Adz…</span>
+      <div style={{ display: 'flex', gap: 8, marginTop: 40 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: 'rgba(59,130,246,0.85)',
+            animation: 'axn-dot-bounce 1.2s ease-in-out infinite',
+            animationDelay: `${i * 0.2}s`,
+          }} />
+        ))}
+      </div>
+      <div style={{
+        marginTop: 20, fontSize: 13, fontWeight: 800,
+        letterSpacing: '0.22em', textTransform: 'uppercase',
+        background: 'linear-gradient(90deg, rgba(255,255,255,0.25) 0%, rgba(96,165,250,1) 40%, rgba(147,197,253,1) 50%, rgba(96,165,250,1) 60%, rgba(255,255,255,0.25) 100%)',
+        backgroundSize: '200% auto', WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+        animation: 'axn-text-shimmer 2.8s linear infinite',
+      }}>
+        AXIONET DIGITAL TOKEN
       </div>
     </div>
   );
@@ -167,8 +196,14 @@ function App() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [isCheckingCountry, setIsCheckingCountry] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const splashStartedAt = useRef(Date.now());
 
   const isDevMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+  const finishAuthentication = useCallback(() => {
+    const remaining = Math.max(0, MIN_SPLASH_MS - (Date.now() - splashStartedAt.current));
+    window.setTimeout(() => setIsAuthenticating(false), remaining);
+  }, []);
 
   const checkCountry = useCallback(async () => {
     try {
@@ -262,14 +297,14 @@ function App() {
     if (isCountryBlocked) {
       // Let the country-blocked screen render instead of leaving the loading
       // fallback mounted indefinitely.
-      setIsAuthenticating(false);
+      finishAuthentication();
       return;
     }
 
     if (isDevMode) {
       console.log('Development mode: Skipping Telegram authentication');
       setTelegramId('dev-user-123');
-      setIsAuthenticating(false);
+      finishAuthentication();
       // Still check ban status in dev mode
       checkBanStatus();
       return;
@@ -338,28 +373,28 @@ function App() {
           if (data.banned) {
             setIsBanned(true);
             setBanReason(data.reason);
-            setIsAuthenticating(false);
+            finishAuthentication();
           } else if (userTelegramId) {
             setTelegramId(userTelegramId);
-            setIsAuthenticating(false);
+            finishAuthentication();
             // Now check ban status
             checkBanStatus();
           } else {
-            setIsAuthenticating(false);
+            finishAuthentication();
           }
         })
         .catch((error) => {
           console.error("Telegram authentication request failed:", error);
-          setIsAuthenticating(false);
+          finishAuthentication();
         });
       return () => {
         window.clearTimeout(authTimeout);
         authController.abort();
       };
     } else {
-      setIsAuthenticating(false);
+      finishAuthentication();
     }
-  }, [isDevMode, isCountryBlocked, checkBanStatus]);
+  }, [isDevMode, isCountryBlocked, checkBanStatus, finishAuthentication]);
 
   if (isBanned) {
     return <BanScreen reason={banReason} />;
