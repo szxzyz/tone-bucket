@@ -28,17 +28,7 @@ const AccountIcon = ({ active, c }: { active: boolean; c: string }) => (
   </svg>
 );
 
-const AdsIcon = ({ active, c }: { active: boolean; c: string }) => (
-  <svg width="29" height="29" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <rect x="2.8" y="5" width="16.2" height="14" rx="4" fill={active ? c : "none"} opacity={active ? 0.14 : 1} stroke={c} strokeWidth="1.7" />
-    <path d="M9.2 9.1 14 12l-4.8 2.9V9.1Z" fill={c} stroke={c} strokeWidth="1.1" strokeLinejoin="round" />
-    <path d="m19 9 2.2-1.5v9L19 15" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M7 2.7v2.2M5.9 3.8h2.2" stroke={c} strokeWidth="1.4" strokeLinecap="round" />
-  </svg>
-);
-
 const TABS = [
-  { id: "ads", key: "nav_ads", path: "/ads" },
   { id: "mission", key: "nav_mission", path: "/mission" },
   { id: "friends", key: "nav_friends", path: "/affiliates" },
   { id: "account", key: "nav_account", path: "/account" },
@@ -66,11 +56,9 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {labels.map((tab) => {
-        // The root route renders Ads, so highlight Ads immediately without
-        // requiring a second tap. Keep legacy game/machine aliases on Mission.
-        const active = (tab.id === "ads" && ["/", "/ads"].includes(location))
-          || location === tab.path
-          || (tab.id === "mission" && ["/game", "/machine"].includes(location));
+        // Keep the root and legacy game/machine aliases highlighted on Mission.
+        const active = (tab.id === "mission" && ["/", "/game", "/machine"].includes(location))
+          || location === tab.path;
         const color = active ? ACTIVE : DIM;
 
         return (
@@ -111,8 +99,7 @@ export default function BottomNav() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34 }}>
               {tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
-                : tab.id === "account" ? <AccountIcon active={active} c={color} />
-                : <AdsIcon active={active} c={color} />}
+                : <AccountIcon active={active} c={color} />}
             </div>
             <span style={{ fontSize: "clamp(10px, 2.7vw, 11px)", fontWeight: active ? 700 : 500, letterSpacing: 0, color, lineHeight: 1, whiteSpace: "nowrap" }}>
               {tab.label}

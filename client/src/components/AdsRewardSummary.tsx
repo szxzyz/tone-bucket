@@ -1,6 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import Layout from '@/components/Layout';
-import AdWatchingSection from '@/components/AdWatchingSection';
 import { apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/hooks/useLanguage';
 
@@ -23,7 +21,7 @@ function formatGold(value: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function AdsRewardSummary() {
+export default function AdsRewardSummary() {
   const { t } = useLanguage();
   const { data: user, isLoading: userLoading } = useQuery<any>({
     queryKey: ['/api/auth/user'],
@@ -147,31 +145,5 @@ function SummaryMetric({ label, value }: { label: string; value: string }) {
         {value}
       </p>
     </div>
-  );
-}
-
-export default function Ads() {
-  const { t } = useLanguage();
-  const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
-
-  return (
-    <Layout>
-      <main className="max-w-md mx-auto px-4 pt-4 pb-24 text-white">
-        <section aria-labelledby="viewing-ads-title" style={{ marginBottom: 12 }}>
-          <h1 id="viewing-ads-title" style={{ margin: 0, color: '#fff', fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>
-            {t('viewing_ads')}
-          </h1>
-          <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.4 }}>
-            {t('get_paid_watching')}
-          </p>
-        </section>
-
-        <AdsRewardSummary />
-        <AdWatchingSection user={user} hideTitle />
-        <p style={{ margin: '16px 8px 0', color: 'rgba(255,255,255,0.4)', fontSize: 10, lineHeight: 1.5, textAlign: 'center' }}>
-          Rewards credit only after the full duration is verified server-side
-        </p>
-      </main>
-    </Layout>
   );
 }

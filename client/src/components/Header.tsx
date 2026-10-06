@@ -113,7 +113,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           boxShadow: "0 4px 18px rgba(0,0,0,0.45)",
         }}
       >
-        {(location === '/mission' || location === '/ads') && <ResetCountdownBanner />}
+        {location === '/mission' && <ResetCountdownBanner />}
         <div style={{
           display: "flex",
           alignItems: "center",

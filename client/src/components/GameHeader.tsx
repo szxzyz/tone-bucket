@@ -74,7 +74,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
         </div>
           {<button type="button" onClick={() => onAddTask ? onAddTask() : setLocation("/mission?open=create")} aria-label="Add Task" className="active:scale-95 transition-transform" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "7px 10px", minWidth: 86, height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", border: "none", borderRadius: 10, cursor: "pointer", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 900 }}><Plus size={15} strokeWidth={3} />Add Task</button>}
       </div>
-      {(location === "/mission" || location === "/ads") && <ResetCountdownBanner />}
+      {location === "/mission" && <ResetCountdownBanner />}
       <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );

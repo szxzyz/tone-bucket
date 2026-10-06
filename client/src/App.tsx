@@ -21,7 +21,6 @@ import Leaderboard from "@/pages/Leaderboard";
 import CreateTask from "@/pages/CreateTask";
 import Affiliates from "@/pages/Affiliates";
 import Account from "@/pages/Account";
-import Ads from "@/pages/Ads";
 
 // Lazy-load heavy/rare pages only
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -82,9 +81,8 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Ads} />
+        <Route path="/" component={Mission} />
         <Route path="/mission" component={Mission} />
-        <Route path="/ads" component={Ads} />
         <Route path="/game" component={Mission} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
@@ -107,7 +105,7 @@ function DeepLinkRedirector() {
     if (!param) return;
     if (param === "page_withdraw") {
       localStorage.removeItem("tg_start_param");
-      setLocation("/ads");
+      setLocation("/account");
     } else if (param === "page_referral") {
       localStorage.removeItem("tg_start_param");
       setLocation("/affiliates");
