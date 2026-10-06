@@ -209,7 +209,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       if (!result.success) {
         await cancelRegisteredAdSession(sessionId);
         cancelSession();
-        showNotification(card.adType === "uslads"
+        showNotification(card.adType === "adsgram"
+          ? "Please interact with ads."
+          : card.adType === "uslads"
           ? "USL Ads API key is missing. Add VITE_USL_ADS_API_KEY in deployment settings."
           : "Please watch the ad completely to claim your reward.", "error");
         return;

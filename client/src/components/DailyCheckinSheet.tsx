@@ -128,7 +128,7 @@ export default function DailyCheckinSheet({
       await cancelRegisteredAdSession(sessionId);
       cancelSession();
       setAdLoading(false);
-      showNotification("Watch the ad to claim", "error");
+      showNotification("Please interact with ads.", "error");
     }
   };
 

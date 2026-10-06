@@ -67,6 +67,11 @@ function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// AdsGram interaction is enforced only on the server. The client reports the
+// lifecycle facts it observes, but never instructs the user to minimize the
+// app or displays a dedicated interaction/minimize UI.
+const ADSGRAM_MIN_BACKGROUND_MS = 1_000;
+
 // Idempotent settlement for the Ad Watch Contest. A database setting acts as
 // the once-only period lock, so concurrent requests/scheduler ticks cannot pay
 // the same rank twice.
@@ -2218,12 +2223,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Ad clicks/minimize interaction are not required. A successfully
-      // completed provider ad receives the configured full reward.
       const bgDuration = typeof backgroundDuration === 'number' ? backgroundDuration : 0;
       const bgEntered = backgroundEntered === true;
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
+
+      if (serverAdType === 'adsgram' && (!bgEntered || bgDuration < ADSGRAM_MIN_BACKGROUND_MS)) {
+        return res.status(400).json({
+          message: 'Please interact with ads.',
+          errorType: 'adsgram_interaction_required',
+        });
+      }
 
       const adsgramRewardPercent = 100;
 
@@ -2960,6 +2970,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const adsgramUsesSdkCompletion = session.adType === 'adsgram'
       && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(context);
     if (!hasTrustedRewardCallback(session.adType) && !adsgramUsesSdkCompletion) return false;
+    if (session.adType === 'adsgram' && (!bgEntered || bgDuration < ADSGRAM_MIN_BACKGROUND_MS)) {
+      return false;
+    }
 
     const [providerCallback] = await tx
       .select({ id: adRewardCallbacks.id })
@@ -3040,7 +3053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         if (outcome.error === 'ad_not_verified') {
           return res.status(400).json({
-            message: "Ad view could not be verified. Please watch the ad and try again.",
+            message: "Please interact with ads.",
             errorType: 'ad_not_verified',
           });
         }
@@ -3132,7 +3145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         if (outcome.error === 'ad_not_verified') {
           return res.status(400).json({
-            message: "Ad view could not be verified. Please watch the ad and try again.",
+            message: "Please interact with ads.",
             errorType: 'ad_not_verified',
           });
         }
@@ -12494,7 +12507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending' });
       }
       if ('adNotVerified' in claim) {
-        return res.status(400).json({ error: 'Ad view could not be verified. Please watch the ad and try again.', errorType: 'ad_not_verified' });
+        return res.status(400).json({ error: 'Please interact with ads.', errorType: 'ad_not_verified' });
       }
       if (claim.alreadyClaimed) {
         return res.status(400).json({ error: 'Already checked in for this period' });
