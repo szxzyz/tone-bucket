@@ -1331,18 +1331,26 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
     text += seg;
   };
 
-  addSegment('👋 Welcome to Paid Adz!\n\n', { bold: true });
-  addSegment('💎 Turn your time into ');
-  addSegment('GRAM rewards!', { bold: true });
+  // Premium custom emoji are represented by their visible Unicode glyph in the
+  // message text and upgraded via Telegram entities. Do not use ordinary emoji.
+  addSegment('🤝', { emojiId: '5001410247059833785' });
+  addSegment(' Welcome to Axionet Mining', { bold: true });
   addSegment('\n\n');
-  addSegment('Earn GRAM by', { bold: true });
-  addSegment(':\n\n');
-  addSegment('🎯 Completing simple Tasks\n');
-  addSegment('📺 Watching Ads\n');
-  addSegment('👥 Inviting Friends\n');
-  addSegment('🏆 Joining exciting Contests\n\n');
-  addSegment('😀 Complete activities, collect GRAM, and keep growing your rewards!\n\n');
-  addSegment('Ready to start? 👇', { bold: true });
+  addSegment('💰', { emojiId: '6314085005861593285' });
+  addSegment(' Earn by:', { bold: true });
+  addSegment('\n\n');
+  addSegment('⛏️', { emojiId: '5197371802136892976' });
+  addSegment(' Mining Gold daily\n');
+  addSegment('📋', { emojiId: '5197269100878907942' });
+  addSegment(' Completing tasks\n');
+  addSegment('📺', { emojiId: '5337068143175041033' });
+  addSegment(' Watching ads\n');
+  addSegment('👥', { emojiId: '5388738824538959063' });
+  addSegment(' Inviting friends\n');
+  addSegment('💸', { emojiId: '5409048419211682843' });
+  addSegment(' Withdrawing your $AXN\n\n');
+  addSegment('🤑', { emojiId: '5249049926679147776' });
+  addSegment(' Be part of the Axionet Mining journey and start earning today.', { bold: true });
 
   const botUsername = await getBotUsername();
   // Keep the welcome button available even when a deployment only defines
@@ -1361,19 +1369,13 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   // Telegram rejects inline buttons whose URL is empty, so only include
   // buttons backed by configured, valid HTTPS links.
   if (/^https?:\/\//i.test(appUrl)) {
-    buttonRows.push([{ text: '💎 Start Earning Gram', url: appUrl }]);
+    buttonRows.push([{ text: 'Start Mining', url: appUrl }]);
   }
   const discussUpdateRow = [
-    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: '🆕 UPDATE', url: config.bot.updateUrl }] : [] ),
-    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: '💬 DISCUSS', url: config.bot.discussUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', url: config.bot.updateUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', url: config.bot.discussUrl }] : [] ),
   ];
   if (discussUpdateRow.length > 0) buttonRows.push(discussUpdateRow);
-
-  // Show PAYOUTS only when the payout-channel URL is configured. Telegram
-  // rejects inline buttons with empty URLs, so never add a placeholder link.
-  if (/^https?:\/\//i.test(config.telegram.payoutChannelUrl)) {
-    buttonRows.push([{ text: '💸 PAYOUTS', url: config.telegram.payoutChannelUrl }]);
-  }
 
   const inlineKeyboard = { inline_keyboard: buttonRows };
 
