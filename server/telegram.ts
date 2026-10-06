@@ -1371,11 +1371,11 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   // Telegram rejects inline buttons whose URL is empty, so only include
   // buttons backed by configured, valid HTTPS links.
   if (/^https?:\/\//i.test(appUrl)) {
-    buttonRows.push([{ text: 'Start Mining', url: appUrl }]);
+    buttonRows.push([{ text: 'Start Mining', icon_custom_emoji_id: '5197371802136892976', url: appUrl }]);
   }
   const discussUpdateRow = [
-    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', url: config.bot.updateUrl }] : [] ),
-    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', url: config.bot.discussUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', icon_custom_emoji_id: '5197269100878907942', url: config.bot.updateUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', icon_custom_emoji_id: '5001410247059833785', url: config.bot.discussUrl }] : [] ),
   ];
   if (discussUpdateRow.length > 0) buttonRows.push(discussUpdateRow);
 
