@@ -100,11 +100,11 @@ export default function GameFarmingSection() {
           : "Start";
 
   return (
-    <section style={{ position: "relative", width: "100%", padding: "12px 0 20px" }} aria-labelledby="farming-title">
+    <section style={{ position: "relative", width: "100%", padding: "28px 0 20px" }} aria-labelledby="farming-title">
       <style>{`@keyframes axionet-float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-7px) scale(1.025); } } @keyframes axionet-glow { 0%,100% { filter: drop-shadow(0 0 8px rgba(0,122,255,.2)); } 50% { filter: drop-shadow(0 0 28px rgba(0,122,255,.85)); } }`}</style>
 
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "min(44vh, 340px)" }}>
-        <img src="/assets/axionet-mining.webp" alt="AXIONET" style={{ width: "min(68vw, 260px)", height: "min(68vw, 260px)", objectFit: "contain", animation: isRunning ? "axionet-float 2.4s ease-in-out infinite, axionet-glow 1.8s ease-in-out infinite" : "axionet-float 4s ease-in-out infinite", transition: "filter .3s ease" }} />
+        <img src="/assets/axionet-mining.webp" alt="AXIONET" style={{ width: "min(60vw, 230px)", height: "min(60vw, 230px)", objectFit: "contain", animation: isRunning ? "axionet-float 2.4s ease-in-out infinite, axionet-glow 1.8s ease-in-out infinite" : "axionet-float 4s ease-in-out infinite", transition: "filter .3s ease" }} />
       </div>
 
       <div style={{ textAlign: "center", marginTop: -8 }}>
