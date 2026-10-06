@@ -6,7 +6,7 @@ import AdvertiserTaskSheet from "@/components/AdvertiserTaskSheet";
 import { apiRequest } from "@/lib/queryClient";
 import { showNotification } from "@/components/AppNotification";
 
-export type AdvertiserTaskKind = "community";
+export type AdvertiserTaskKind = "game" | "social";
 
 interface UnifiedTask {
   id: string;
@@ -32,6 +32,7 @@ interface AdvertiserTaskFeedProps {
   title: string;
   subtitle?: string;
   allowCreate?: boolean;
+  hideWhenEmpty?: boolean;
 }
 
 function openTaskLink(link: string | null) {
@@ -148,7 +149,7 @@ function TaskCard({
   );
 }
 
-export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate = false }: AdvertiserTaskFeedProps) {
+export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate = false, hideWhenEmpty = false }: AdvertiserTaskFeedProps) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = React.useState<UnifiedTask | null>(null);
@@ -156,9 +157,8 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
   const [directClaimReady, setDirectClaimReady] = React.useState(false);
   const [claimedTaskIds, setClaimedTaskIds] = React.useState<Set<string>>(new Set());
   const directTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Community is the user-facing Social + Game feed. Older tasks are stored
-  // as channel/bot, while newer records may use social/game explicitly.
-  const taskTypes = ["channel", "social", "bot", "game"];
+  // Older records use channel/bot; newer records may use social/game.
+  const taskTypes = kind === "game" ? ["bot", "game"] : ["channel", "social"];
 
   const { data, isLoading } = useQuery<{ success: boolean; tasks: UnifiedTask[] }>({
     queryKey: ["/api/tasks/home/unified"],
@@ -208,6 +208,8 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     if (directTimerRef.current) clearTimeout(directTimerRef.current);
   }, []);
 
+  if (!isLoading && hideWhenEmpty && tasks.length === 0) return null;
+
   const handleTaskSelect = (task: UnifiedTask) => {
     // All mission links open directly. Verification-required tasks use the
     // same inline claim flow as regular tasks; no instruction sheet/popup is
@@ -248,7 +250,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
         <div style={{ display: "flex", justifyContent: "center", padding: "30px 0" }}><Loader2 className="animate-spin text-white/20" /></div>
       ) : tasks.length === 0 ? (
         <div style={{ textAlign: "center", padding: "24px 20px", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", borderRadius: 16 }}>
-          <p style={{ color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>No social or game tasks are available right now.</p>
+          <p style={{ color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>No {kind} tasks are available right now.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

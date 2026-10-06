@@ -48,7 +48,12 @@ export default function Mission() {
             </section>
           </>
         )}
-        {activeTab === 'community' && <AdvertiserTaskFeed kind="community" title="Social & Game Tasks" />}
+        {activeTab === 'community' && (
+          <>
+            <AdvertiserTaskFeed kind="game" title="Game Tasks" hideWhenEmpty />
+            <AdvertiserTaskFeed kind="social" title="Social Tasks" hideWhenEmpty />
+          </>
+        )}
 
         <CreatePanel open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
       </main>
