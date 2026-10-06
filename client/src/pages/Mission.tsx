@@ -2,7 +2,6 @@ import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import AdWatchingSection from '@/components/AdWatchingSection';
 import DailyCheckinSheet from '@/components/DailyCheckinSheet';
-import PromoCodeInput from '@/components/PromoCodeInput';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import CreatePanel from '@/components/CreatePanel';
@@ -55,14 +54,6 @@ export default function Mission() {
   return (
     <Layout onAddTask={() => setCreateTaskOpen(true)}>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
-        <section aria-label="Promo code">
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', paddingLeft: 4, marginBottom: 8 }}>
-            Promo Code
-          </div>
-          <div style={{ padding: 12, borderRadius: 16, background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
-            <PromoCodeInput />
-          </div>
-        </section>
         <section aria-label="Mission tabs" role="tablist" style={tabsStyle}>
           <button type="button" style={tabStyle('daily')} onClick={() => setActiveTab('daily')}>Daily</button>
           <button type="button" style={tabStyle('community')} onClick={() => setActiveTab('community')}>Community</button>
