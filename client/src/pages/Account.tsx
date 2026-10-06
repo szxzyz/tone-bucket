@@ -11,6 +11,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { useSupportLink } from '@/hooks/useSupportLink';
 import { useLocation } from 'wouter';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
+import PromoCodeInput from '@/components/PromoCodeInput';
 import { useLanguage } from '@/hooks/useLanguage';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal' | 'language';
@@ -113,6 +114,11 @@ export default function Account() {
             <p className="text-white/40 text-[10px] font-semibold tabular-nums">~${balanceLoaded ? usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—'} USD</p>
           </div>
           <button type="button" onClick={() => setWithdrawOpen(true)} disabled={!balanceLoaded} className="h-9 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>{t('withdraw')}</button>
+        </section>
+
+        <section className="rounded-2xl p-3 mb-3" aria-label="Promo code" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
+          <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">Promo Code</p>
+          <PromoCodeInput />
         </section>
 
         <section className="space-y-2 mb-3" aria-label="Account actions">

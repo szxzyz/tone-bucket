@@ -4,14 +4,13 @@ import { Activity, ArrowDownToLine, CheckCircle2, ClipboardList, Coins, Users } 
 import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
-import PromoCodeInput from "@/components/PromoCodeInput";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import { useAdSession } from "@/hooks/useAdSession";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
 import { showAdgramAd } from "@/lib/showAd";
+import { TonIcon } from "@/components/TonIcon";
 
-const SURFACE = "linear-gradient(145deg, #1a1c20 0%, #121317 100%)";
 const ACTION_BACKGROUND = "linear-gradient(135deg, #1e40af, #3b82f6)";
 const MYSTERY_DAILY_LIMIT = 1;
 
@@ -72,7 +71,6 @@ function ActionButton({ label, onClick, children }: { label: string; onClick: ()
 export default function Home() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const [promoOpen, setPromoOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [checkinShown, setCheckinShown] = useState(false);
   const [mysteryLoading, setMysteryLoading] = useState(false);
@@ -161,25 +159,33 @@ export default function Home() {
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: "clamp(14px, 5vw, 24px)" }}>
             <ActionButton label="Withdraw" onClick={() => setLocation("/account")}><ArrowDownToLine size={24} strokeWidth={2.5} /></ActionButton>
-            <ActionButton label="Promo" onClick={() => setPromoOpen(true)}><span style={{ fontSize: 25, lineHeight: 1 }}>%</span></ActionButton>
-            <ActionButton label="Staking" onClick={() => showNotification("Staking is coming soon.", "info")}><span style={{ fontSize: 23, lineHeight: 1 }}>◆</span></ActionButton>
+            <ActionButton label="Claim" onClick={() => setCheckinOpen(true)}><span style={{ fontSize: 23, lineHeight: 1 }}>◆</span></ActionButton>
+            <ActionButton label="Mission" onClick={() => setLocation("/mission")}><ClipboardList size={23} strokeWidth={2.3} /></ActionButton>
           </div>
         </section>
 
-        <section aria-label="Daily rewards" style={{ marginTop: 4, marginBottom: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 10px 4px" }}>Daily Rewards</div>
-          <div style={{ background: "#252525", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
-              <img src="/assets/check-in.png" alt="Daily Check-In" style={{ width: 28, height: 28, objectFit: "contain" }} />
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Daily Check-In</div></div>
-              <button type="button" onClick={() => setCheckinOpen(true)} disabled={Boolean(checkinStatus?.alreadyClaimedToday)} style={{ background: checkinStatus?.alreadyClaimedToday ? "rgba(255,255,255,0.06)" : ACTION_BACKGROUND, color: checkinStatus?.alreadyClaimedToday ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 92, height: 38, borderRadius: 12, fontSize: 12, fontWeight: 800 }}>{checkinStatus?.alreadyClaimedToday ? "DONE" : "CHECK"}</button>
+        <section aria-label="TON faucet" style={{ margin: "2px 0 16px", padding: 18, borderRadius: 20, background: "linear-gradient(145deg, #111c3a 0%, #10131d 68%, #17121f 100%)", border: "1px solid rgba(96,165,250,0.2)", boxShadow: "0 12px 30px rgba(15,23,42,0.45)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(96,165,250,0.14)" }}><TonIcon size={25} /></div>
+            <div>
+              <div style={{ color: "#fff", fontSize: 17, fontWeight: 900 }}>TON Faucet</div>
+              <div style={{ color: "rgba(255,255,255,0.48)", fontSize: 11, marginTop: 2 }}>Claim your daily reward</div>
             </div>
-            <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
-              <img src="/assets/mystery-box.png" alt="Mystery Gift" style={{ width: 28, height: 28, objectFit: "contain" }} />
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Mystery Gift</div></div>
-              <button type="button" onClick={openMysteryBox} disabled={mysteryOpened || mysteryLoading} style={{ background: mysteryOpened || mysteryLoading ? "rgba(255,255,255,0.06)" : ACTION_BACKGROUND, color: mysteryOpened || mysteryLoading ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 92, height: 38, borderRadius: 12, fontSize: 12, fontWeight: 800 }}>{mysteryLoading ? "..." : mysteryOpened ? "DONE" : "OPEN"}</button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ color: "rgba(255,255,255,0.58)", fontSize: 12, lineHeight: 1.45 }}>
+              {checkinStatus?.alreadyClaimedToday ? "Today's faucet reward is claimed." : "Complete one quick check-in to claim today's reward."}
             </div>
+            <button type="button" onClick={() => setCheckinOpen(true)} disabled={Boolean(checkinStatus?.alreadyClaimedToday)} className="active:scale-95 transition-transform" style={{ flexShrink: 0, height: 42, padding: "0 16px", border: "none", borderRadius: 13, background: checkinStatus?.alreadyClaimedToday ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg, #38bdf8, #2563eb)", color: checkinStatus?.alreadyClaimedToday ? "rgba(255,255,255,0.35)" : "#fff", fontSize: 12, fontWeight: 900 }}>{checkinStatus?.alreadyClaimedToday ? "CLAIMED" : "CLAIM NOW"}</button>
+          </div>
+        </section>
+
+        <section aria-label="Quick rewards" style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 10px 4px" }}>Quick Rewards</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "15px 16px", background: "#252525", borderRadius: 14 }}>
+            <img src="/assets/mystery-box.png" alt="Mystery Gift" style={{ width: 28, height: 28, objectFit: "contain" }} />
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Mystery Gift</div><div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 3 }}>One reward available daily</div></div>
+            <button type="button" onClick={openMysteryBox} disabled={mysteryOpened || mysteryLoading} style={{ background: mysteryOpened || mysteryLoading ? "rgba(255,255,255,0.06)" : ACTION_BACKGROUND, color: mysteryOpened || mysteryLoading ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 84, height: 36, borderRadius: 11, fontSize: 11, fontWeight: 800 }}>{mysteryLoading ? "..." : mysteryOpened ? "DONE" : "OPEN"}</button>
           </div>
         </section>
 
@@ -200,16 +206,6 @@ export default function Home() {
         }}
       />
 
-      {promoOpen && (
-        <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 1200, display: "flex", alignItems: "flex-end" }} onClick={() => setPromoOpen(false)}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)" }} />
-          <div onClick={event => event.stopPropagation()} style={{ position: "relative", width: "100%", background: "#0a0a0a", borderRadius: "28px 28px 0 0", padding: "24px 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))", boxSizing: "border-box" }}>
-            <div style={{ width: 40, height: 4, borderRadius: 3, background: "rgba(255,255,255,.1)", margin: "0 auto 20px" }} />
-            <div style={{ textAlign: "center", color: "#fff", fontSize: 18, fontWeight: 900, marginBottom: 16 }}>Promo Code</div>
-            <PromoCodeInput />
-          </div>
-        </div>
-      )}
     </Layout>
   );
 }
