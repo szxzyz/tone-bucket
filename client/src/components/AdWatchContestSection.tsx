@@ -87,7 +87,7 @@ function AdParticipant({ rank, entry, prize, currentUserId }: {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 12px 11px' }}>
         <span style={{ color: 'rgba(255,255,255,0.48)', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rank {rankLabel(rank)}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 18, height: 18, objectFit: 'contain' }} /><span style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{entry ? prize : '—'}</span></span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 18, height: 18, objectFit: 'contain' }} /><span style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{entry ? prize : '—'}</span></span>
       </div>
     </article>
   );
@@ -119,7 +119,7 @@ export default function AdWatchContestSection({ highlighted = false }: { highlig
   const topN = Math.max(1, Math.min(50, Number(data?.topN ?? appSettings?.monthlyContestTopUsers) || 10));
   const entriesByRank = new Map((data?.leaderboard || []).map((entry) => [entry.rank, entry]));
   const userRank = data?.userRank && data.contestActive ? data.userRank : null;
-  const prizeAt = (rank: number) => data?.prizes?.[rank - 1] || `${(CONTEST_PRIZE_AMOUNTS[rank - 1] || 0).toLocaleString()} GEM`;
+  const prizeAt = (rank: number) => data?.prizes?.[rank - 1] || `${(CONTEST_PRIZE_AMOUNTS[rank - 1] || 0).toLocaleString()} AXN`;
   const showPlayerList = !isLoading && !isError && !!data?.contestActive;
 
   return (

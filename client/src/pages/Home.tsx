@@ -282,7 +282,7 @@ export default function Home() {
       const rewardAmount = parseFloat(data.rewardEarned || '0');
       if (rewardAmount > 0) {
         const earnedGold = Math.round(rewardAmount);
-        showNotification(`You've claimed +${earnedGold} GEM!`, "success");
+        showNotification(`You've claimed +${earnedGold} AXN!`, "success");
       } else {
         showNotification("You've claimed your streak bonus!", "success");
       }
@@ -407,7 +407,7 @@ export default function Home() {
       const data = await postWithAdVerification('/api/mystery-box', proof);
       if (typeof data.claimsToday === 'number') setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification('Mystery Gift reward added to your GEM balance.', 'success');
+      showNotification('Mystery Gift reward added to your AXN balance.', 'success');
     } catch (err: any) {
       showNotification(err?.message || 'Failed to open mystery box. Try again.', 'error');
     } finally {
@@ -581,7 +581,7 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('daily_checkin')}</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
                     {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
                   </span>
@@ -618,7 +618,7 @@ export default function Home() {
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('mystery_gift')}</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: 'contain' }} />
                   <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
                     10–100
                   </span>

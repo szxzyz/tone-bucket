@@ -38,7 +38,7 @@ export async function getTONPrice(): Promise<number> {
 }
 
 export function calculateConversions(tonPriceUSD: number) {
-  // GEM to USDT is fixed: 100,000 GEM = 1 USD
+  // AXN to USDT is fixed: 100,000 AXN = 1 USD
   // USDT to TON depends on market price (tonPriceUSD)
   const GEMS_PER_DOLLAR = 100_000;
   const gemsPerTon = GEMS_PER_DOLLAR * tonPriceUSD;
@@ -53,8 +53,8 @@ export function calculateConversions(tonPriceUSD: number) {
   };
 }
 
-// GEM -> TON conversion based on market price
-// Calculation: (GEM / 100,000) / tonPriceUSD
+// AXN -> TON conversion based on market price
+// Calculation: (AXN / 100,000) / tonPriceUSD
 export function gemsToTon(gems: number, tonPriceUSD: number): number {
   const usdValue = (Number(gems) || 0) / 100_000;
   return usdValue / tonPriceUSD;

@@ -56,7 +56,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
         <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", flex: "0 1 auto", minWidth: 82, maxWidth: "calc(100% - 88px)", height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-              <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
             <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{goldBalance.toLocaleString()}</span>
           </div>

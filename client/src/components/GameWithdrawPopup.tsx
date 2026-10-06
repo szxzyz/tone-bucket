@@ -41,7 +41,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
 
   const withdrawal = useMutation({
     mutationFn: async () => {
-      // Persist a newly connected wallet before submitting the Swag Bux GEM payout.
+      // Persist a newly connected wallet before submitting the AXN Bux AXN payout.
       if (connectedAddress && connectedAddress !== savedAddress) {
         const response = await apiRequest('PATCH', '/api/wallet/payout', {
           currency: 'TON',
@@ -57,7 +57,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
       queryClient.invalidateQueries({ queryKey: ['/api/withdrawal-eligibility'] });
-      showNotification('GEM withdrawal request sent to admin', 'success');
+      showNotification('AXN withdrawal request sent to admin', 'success');
       onClose();
     },
     onError: (error: any) => showNotification(error.message || 'Could not create withdrawal request', 'error'),
@@ -94,7 +94,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
           >
             <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center px-5 py-3 border-b border-white/5">
-              <h2 className="text-white font-bold text-base">GEM Withdrawal</h2>
+              <h2 className="text-white font-bold text-base">AXN Withdrawal</h2>
             </div>
             <div className="px-5 py-4 space-y-4">
               {secondaryAccountBlocked && (
@@ -105,8 +105,8 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
               <div className="bg-white/5 rounded-xl px-4 py-3 flex justify-between items-center">
                 <span className="text-white text-xs font-semibold">Available Balance</span>
                 <span className="text-white text-sm font-black tabular-nums inline-flex items-center gap-1.5">
-                  <img src="/assets/gems-icon.svg" alt="GEM" className="w-5 h-5 object-contain" />
-                  {Math.floor(userBalance).toLocaleString()} GEM
+                  <img src="/assets/gems-icon.svg" alt="AXN" className="w-5 h-5 object-contain" />
+                  {Math.floor(userBalance).toLocaleString()} AXN
                 </span>
               </div>
               <div className="space-y-1.5">
@@ -126,17 +126,17 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">GEM amount</label>
+                <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">AXN amount</label>
                 <div className="relative">
                   <input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} placeholder={minimum.toLocaleString()} className="w-full bg-white/5 border border-white/10 text-white h-11 rounded-xl font-bold text-sm px-3.5 pr-16 placeholder:text-white/20 focus:outline-none focus:border-[#0066D6]/40" />
                   <button onClick={handleMax} className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white hover:bg-gray-200 text-gray-700 text-[10px] font-black rounded-lg uppercase">Max</button>
                 </div>
-                {value > 0 && value < minimum && <p className="text-red-400 text-[11px]">Minimum {minimum.toLocaleString()} GEM required</p>}
+                {value > 0 && value < minimum && <p className="text-red-400 text-[11px]">Minimum {minimum.toLocaleString()} AXN required</p>}
               </div>
               <div className="bg-white/5 rounded-xl p-4 space-y-2.5">
                 <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Withdraw Fee</span><span className="text-white text-xs font-bold">{feePercent}%</span></div>
                 <div className="h-px bg-white/5" />
-                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} GEM</span></div>
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} AXN</span></div>
                 <div className="h-px bg-white/5" />
                 <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{value > 0 ? `$${netUsd.toFixed(3)} USD` : '—'}</span></div>
               </div>
@@ -155,7 +155,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 {!eligibilityLoading && !eligibility && <p className="text-red-300">Could not check withdrawal requirements. Reopen this window to retry.</p>}
               </div>
               <button onClick={() => withdrawal.mutate()} disabled={!canSubmit} className="w-full h-11 bg-[#007AFF] hover:bg-[#0066D6] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center justify-center gap-2">
-                {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw GEM'}
+                {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw AXN'}
               </button>
               <button onClick={onClose} className="w-full text-white/40 text-xs font-bold uppercase tracking-wider py-2 hover:text-white/60 transition-colors">Close</button>
             </div>

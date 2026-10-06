@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
 import { showAdgramAd } from "@/lib/showAd";
 
-// 7-day streak rewards (GEM) — mirrors server CHECKIN_REWARDS
+// 7-day streak rewards (AXN) — mirrors server CHECKIN_REWARDS
 export const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
 
 interface DailyCheckinSheetProps {
@@ -45,11 +45,11 @@ function CalendarIcon({ color = "#2563eb", size = 22 }: { color?: string; size?:
 }
 
 function GemCoin({ size = 20, circle = false }: { size?: number; circle?: boolean }) {
-  // Same circular style as the GEM balance icon in the app header
+  // Same circular style as the AXN balance icon in the app header
   return (
     <img
       src="/assets/gems-icon.svg"
-      alt="GEM"
+      alt="AXN"
       draggable={false}
       style={{
         width: size,
@@ -87,7 +87,7 @@ export default function DailyCheckinSheet({
       );
     },
     onSuccess: (data) => {
-      showNotification(`${data.reward} GEM claimed`, "success");
+      showNotification(`${data.reward} AXN claimed`, "success");
       playClaimSuccessEffects();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/daily-checkin/status"] });
@@ -315,7 +315,7 @@ export default function DailyCheckinSheet({
                     marginTop: 1,
                   }}
                 >
-                  GEM
+                  AXN
                 </div>
               </div>
             );

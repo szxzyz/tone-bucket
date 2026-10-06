@@ -49,7 +49,7 @@ export default function SwapSheet({
   const parsedAmount = Math.max(0, parseFloat(inputValue.replace(/,/g, "")) || 0);
   const clampedAmount = Math.min(parsedAmount, balanceGold);
 
-  // GEM to USDT is fixed: 100,000 GEM = 1 USD
+  // AXN to USDT is fixed: 100,000 AXN = 1 USD
   const receiveUSDT = clampedAmount / GEMS_PER_USD;
   // USDT to TON depends on market price
   const receiveTON = tonPrice ? receiveUSDT / tonPrice : 0;
@@ -62,11 +62,11 @@ export default function SwapSheet({
 
   const handleContinue = () => {
     if (clampedAmount <= 0) {
-      showNotification("Enter a GEM amount to swap.", "error");
+      showNotification("Enter a AXN amount to swap.", "error");
       return;
     }
     if (clampedAmount < minimumGold) {
-      showNotification(`Minimum ${minimumGold.toLocaleString()} GEM required.`, "error");
+      showNotification(`Minimum ${minimumGold.toLocaleString()} AXN required.`, "error");
       return;
     }
     if (clampedAmount > balanceGold) {
@@ -130,7 +130,7 @@ export default function SwapSheet({
 
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: textPrimary }}>Swap GEM</span>
+              <span style={{ fontSize: 18, fontWeight: 800, color: textPrimary }}>Swap AXN</span>
             </div>
 
             {/* FROM */}
@@ -165,10 +165,10 @@ export default function SwapSheet({
                   >
                     MAX
                   </button>
-                  {/* GEM chip */}
+                  {/* AXN chip */}
                   <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.07)", borderRadius: 20, padding: "5px 10px 5px 8px" }}>
                     <img src="/assets/gems-icon.svg" style={{ width: 16, height: 16 }} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>GEM</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>AXN</span>
                   </div>
                 </div>
                 <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -263,7 +263,7 @@ export default function SwapSheet({
                   </div>
                   <h2 style={{ fontSize: 17, fontWeight: 800, color: textPrimary, textAlign: "center", marginBottom: 6 }}>Confirm Swap</h2>
                   <p style={{ fontSize: 13, color: textMuted, textAlign: "center", marginBottom: 3, lineHeight: 1.5 }}>
-                    Swap your GEM to {receiveCurrency}?
+                    Swap your AXN to {receiveCurrency}?
                   </p>
 
                   {/* TON-specific warning */}

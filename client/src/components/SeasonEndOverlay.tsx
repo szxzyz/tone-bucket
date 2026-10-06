@@ -58,7 +58,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
                 margin: '0 auto 20px',
                 animation: 'iconPulse 2.4s ease-in-out infinite',
               }}>
-                <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 48, height: 48, objectFit: 'contain' }} />
+                <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 48, height: 48, objectFit: 'contain' }} />
               </div>
 
               <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.3px' }}>
@@ -80,7 +80,7 @@ export default function SeasonEndOverlay({ onClose, isLocked = false }: SeasonEn
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
               <Row icon="⏱️" title="How long?" text="Estimated 24–48 hours. Your balance and account are fully safe." />
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-              <Row icon="🔒" title="Your earnings?" text="All GEM, Stars, and referrals are preserved. Nothing is lost." />
+              <Row icon="🔒" title="Your earnings?" text="All AXN, Stars, and referrals are preserved. Nothing is lost." />
             </div>
 
             <div style={{

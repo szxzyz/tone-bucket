@@ -18,8 +18,8 @@ const categories: Array<{ id: Category; label: string }> = [
 const missionSources = new Set(['mission_ad', 'task_completion', 'daily_task_completion', 'task_share', 'task_channel', 'task_community', 'task_claim', 'gigapub_short_link', 'mission_daily_checkin', 'mission_share_story', 'mission_share_referral', 'mission_check_for_updates']);
 
 function currencyName(value?: string | null) {
-  const currency = String(value || 'GEM').toUpperCase();
-  return currency === 'GOLD' || currency === 'GEMS' ? 'GEM' : currency;
+  const currency = String(value || 'AXN').toUpperCase();
+  return currency === 'GOLD' || currency === 'GEMS' ? 'AXN' : currency;
 }
 
 export default function AdminUserEarnings({ userId }: { userId: string }) {

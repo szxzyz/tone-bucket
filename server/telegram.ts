@@ -1348,7 +1348,9 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('👥', { emojiId: '5388738824538959063' });
   addSegment(' Inviting friends\n');
   addSegment('💵', { emojiId: '5409048419211682843' });
-  addSegment(' Withdrawing your $AXN\n\n');
+  addSegment(' Withdrawing your ');
+  addSegment('$AXN', { bold: true });
+  addSegment('\n\n');
   addSegment('🤑', { emojiId: '5249049926679147776' });
   addSegment(' Be part of the ');
   addSegment('Axionet Mining journey', { bold: true });

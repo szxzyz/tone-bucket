@@ -389,7 +389,7 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
                   <div className="flex items-start gap-2 p-3 bg-[#6b21a8]/10 rounded-lg border border-[#6b21a8]/30">
                     <Info className="w-4 h-4 text-[#6b21a8] mt-0.5 flex-shrink-0" />
                     <div className="text-xs text-[#c0c0c0]">
-                      Fee: <span className="text-[#6b21a8] font-semibold">{walletChangeFee} GEM</span> will be deducted
+                      Fee: <span className="text-[#6b21a8] font-semibold">{walletChangeFee} AXN</span> will be deducted
                     </div>
                   </div>
                 </>
@@ -472,7 +472,7 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
                   <div className="flex items-start gap-2 p-3 bg-[#6b21a8]/10 rounded-lg border border-[#6b21a8]/30">
                     <Info className="w-4 h-4 text-[#6b21a8] mt-0.5 flex-shrink-0" />
                     <div className="text-xs text-[#c0c0c0]">
-                      Fee: <span className="text-[#6b21a8] font-semibold">{walletChangeFee} GEM</span> will be deducted
+                      Fee: <span className="text-[#6b21a8] font-semibold">{walletChangeFee} AXN</span> will be deducted
                     </div>
                   </div>
                 </>
@@ -555,7 +555,7 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
                   <div className="flex items-start gap-2 p-3 bg-[#6b21a8]/10 rounded-lg border border-[#6b21a8]/30">
                     <Info className="w-4 h-4 text-[#6b21a8] mt-0.5 flex-shrink-0" />
                     <div className="text-xs text-[#c0c0c0]">
-                      Fee: <span className="text-[#6b21a8] font-semibold">{walletChangeFee} GEM</span> will be deducted
+                      Fee: <span className="text-[#6b21a8] font-semibold">{walletChangeFee} AXN</span> will be deducted
                     </div>
                   </div>
                 </>
@@ -618,7 +618,7 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
                 disabled={changeTonWalletMutation.isPending}
                 className="flex-1 bg-[#6b21a8] hover:bg-[#6ddeff] text-black font-semibold"
               >
-                {changeTonWalletMutation.isPending ? "Processing..." : `Pay ${walletChangeFee} GEM & Confirm`}
+                {changeTonWalletMutation.isPending ? "Processing..." : `Pay ${walletChangeFee} AXN & Confirm`}
               </Button>
             </>
           ) : selectedWalletType === 'TON' && !isTonWalletSet ? (

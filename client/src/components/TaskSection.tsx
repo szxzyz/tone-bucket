@@ -93,8 +93,8 @@ export default function TaskSection() {
       if (rewardAmount > 0) {
         const rewardGold = Math.round(rewardAmount);
         const message = data.isBonusDay
-          ? `5-day streak bonus! +${rewardGold.toLocaleString()} GEM`
-          : `Streak claimed! +${rewardGold.toLocaleString()} GEM`;
+          ? `5-day streak bonus! +${rewardGold.toLocaleString()} AXN`
+          : `Streak claimed! +${rewardGold.toLocaleString()} AXN`;
         showNotification(message, 'success');
       } else {
         showNotification("Streak claimed!", 'success');
@@ -125,7 +125,7 @@ export default function TaskSection() {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/daily/status'] });
       setShareStep('completed');
       const rewardAmount = Number(data.reward ?? shareTaskRewardGold);
-      showNotification(`+${rewardAmount.toLocaleString()} GEM earned!`, 'success');
+      showNotification(`+${rewardAmount.toLocaleString()} AXN earned!`, 'success');
     },
     onError: (error: any) => {
       showNotification(error.message || 'Failed to complete task', 'error');
@@ -150,7 +150,7 @@ export default function TaskSection() {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/daily/status'] });
       setChannelStep('completed');
       const rewardAmount = Number(data.reward ?? channelTaskRewardGold);
-      showNotification(`+${rewardAmount.toLocaleString()} GEM earned!`, 'success');
+      showNotification(`+${rewardAmount.toLocaleString()} AXN earned!`, 'success');
     },
     onError: (error: any) => {
       showNotification(error.message || 'Failed to complete task', 'error');
@@ -175,7 +175,7 @@ export default function TaskSection() {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/daily/status'] });
       setCommunityStep('completed');
       const rewardAmount = Number(data.reward ?? communityTaskRewardGold);
-      showNotification(`+${rewardAmount.toLocaleString()} GEM earned!`, 'success');
+      showNotification(`+${rewardAmount.toLocaleString()} AXN earned!`, 'success');
     },
     onError: (error: any) => {
       showNotification(error.message || 'Failed to complete task', 'error');
@@ -201,7 +201,7 @@ export default function TaskSection() {
       return;
     }
 
-    const shareText = `Earn GEM in Telegram!`;
+    const shareText = `Earn AXN in Telegram!`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
 
     if (window.Telegram?.WebApp?.openTelegramLink) {
@@ -403,7 +403,7 @@ export default function TaskSection() {
                     <h3 className="text-white font-semibold text-sm truncate">Claim Streak</h3>
                     <div className="flex items-center gap-1">
                       <Zap className="w-3 h-3 text-orange-400" />
-                      <p className="text-xs font-bold text-orange-400">+{streakRewardGold.toLocaleString()} GEM</p>
+                      <p className="text-xs font-bold text-orange-400">+{streakRewardGold.toLocaleString()} AXN</p>
                     </div>
                   </div>
                 </div>
@@ -435,7 +435,7 @@ export default function TaskSection() {
             <Gift className="w-5 h-5" />,
             'bg-gradient-to-br from-pink-500 to-rose-500',
             'Share with Friends',
-            `+${shareTaskRewardGold.toLocaleString()} GEM`,
+            `+${shareTaskRewardGold.toLocaleString()} AXN`,
             'text-pink-400',
             shareStep,
             shareCountdown,
@@ -448,7 +448,7 @@ export default function TaskSection() {
             <Send className="w-5 h-5" />,
             'bg-gradient-to-br from-[#3d1580] to-[#6b21a8]',
             'Check for Updates',
-            `+${channelTaskRewardGold.toLocaleString()} GEM`,
+            `+${channelTaskRewardGold.toLocaleString()} AXN`,
             'text-cyan-400',
             channelStep,
             channelCountdown,
@@ -461,7 +461,7 @@ export default function TaskSection() {
             <Users className="w-5 h-5" />,
             'bg-gradient-to-br from-purple-500 to-violet-500',
             'Join community',
-            `+${communityTaskRewardGold.toLocaleString()} GEM`,
+            `+${communityTaskRewardGold.toLocaleString()} AXN`,
             'text-purple-400',
             communityStep,
             communityCountdown,

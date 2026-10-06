@@ -90,7 +90,7 @@ export default function MissionDailyRewards() {
       const data = await postWithAdVerification("/api/mystery-box", proof);
       if (typeof data.claimsToday === "number") setMysteryClaimsToday(data.claimsToday);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      showNotification("Mystery Box reward added to your GEM balance.", "success");
+      showNotification("Mystery Box reward added to your AXN balance.", "success");
     } catch (error: any) {
       showNotification(error?.message || "Failed to open Mystery Box. Try again.", "error");
     } finally {

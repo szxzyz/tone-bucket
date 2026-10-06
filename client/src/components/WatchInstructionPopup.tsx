@@ -78,7 +78,7 @@ export default function WatchInstructionPopup({ onContinue }: WatchInstructionPo
         </svg>
       ),
       title: "Reward Credited",
-      desc: "GEM will be added to your wallet automatically.",
+      desc: "AXN will be added to your wallet automatically.",
     },
   ];
 

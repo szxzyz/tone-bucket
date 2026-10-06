@@ -107,8 +107,8 @@ function AdsRewardSummary() {
               <span style={{ color: '#facc15', fontSize: 24, lineHeight: 1, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
                 +{displayed(todayReward)}
               </span>
-              <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 21, height: 21, objectFit: 'contain' }} />
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: 800 }}>GEM</span>
+              <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 21, height: 21, objectFit: 'contain' }} />
+              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: 800 }}>AXN</span>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ function AdsRewardSummary() {
             </p>
           </div>
           <p style={{ margin: 0, flexShrink: 0, color: '#c4b5fd', fontSize: 16, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-            +{displayed(potentialEarning)} <span style={{ fontSize: 9, letterSpacing: '0.04em' }}>GEM</span>
+            +{displayed(potentialEarning)} <span style={{ fontSize: 9, letterSpacing: '0.04em' }}>AXN</span>
           </p>
         </div>
       </div>

@@ -53,7 +53,7 @@ export default function GameFarmingSection() {
       return data;
     },
     onSuccess: () => {
-      showNotification("Farming started. Come back after the cycle to claim GEM.", "success");
+      showNotification("Farming started. Come back after the cycle to claim AXN.", "success");
       queryClient.invalidateQueries({ queryKey: ["/api/farming/state"] });
     },
     onError: (error: any) => showNotification(error?.message || "Could not start Farming", "error"),
@@ -67,7 +67,7 @@ export default function GameFarmingSection() {
       return data;
     },
     onSuccess: (data) => {
-      showNotification(`${Number(data.amount || 0).toFixed(2)} GEM claimed from Farming`, "success");
+      showNotification(`${Number(data.amount || 0).toFixed(2)} AXN claimed from Farming`, "success");
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/farming/state"] });
     },
@@ -98,7 +98,7 @@ export default function GameFarmingSection() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <span style={{ color: "#8e8e93", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            {ratePerHour.toFixed(4)} GEM / hour
+            {ratePerHour.toFixed(4)} AXN / hour
           </span>
           <span style={{ color: "#8e8e93", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
             {isActive ? <><Clock size={11} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />{formatCountdown(remainingSeconds)}</> : "1-hour cycle"}

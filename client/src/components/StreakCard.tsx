@@ -46,7 +46,7 @@ export default function StreakCard({ user }: StreakCardProps) {
       const rewardAmount = parseFloat(data.rewardEarned || '0');
       if (rewardAmount > 0) {
         const earnedGold = Math.round(rewardAmount);
-        showNotification(`You've claimed +${earnedGold} GEM!`, "success");
+        showNotification(`You've claimed +${earnedGold} AXN!`, "success");
       } else {
         showNotification("You've claimed your streak bonus!", "success");
       }

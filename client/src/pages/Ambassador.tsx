@@ -440,7 +440,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                   { label: t("todays_claims"), value: stats?.todayClaims ?? 0, color: "#2563eb" },
                   { label: t("total_promo_claims"), value: stats?.lifetimeClaims ?? 0, color: "#fff" },
                   { label: "Active Codes", value: dashboard?.activePromos?.length ?? 0, color: "#fff" },
-                  { label: "Total Commission", value: `${Math.round(Math.max(0, totalEarnings) * 100000).toLocaleString()} GEM`, color: "#22c55e" },
+                  { label: "Total Commission", value: `${Math.round(Math.max(0, totalEarnings) * 100000).toLocaleString()} AXN`, color: "#22c55e" },
                 ].map((stat, i) => (
                   <div key={i} className="rounded-[16px] p-3" style={{ background: SECTION_BG, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
                     <p className="text-[#666] text-[10px] font-semibold uppercase tracking-wider mb-1">{stat.label}</p>
@@ -736,7 +736,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                         <div className="px-3 py-2 grid grid-cols-3 gap-x-2 gap-y-1.5">
                           <div>
                             <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Reward</p>
-                            <p className="text-white text-xs font-bold mt-0.5 truncate">{rewardPow.toLocaleString()} GEM</p>
+                            <p className="text-white text-xs font-bold mt-0.5 truncate">{rewardPow.toLocaleString()} AXN</p>
                           </div>
                           <div>
                             <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Limit</p>
@@ -754,7 +754,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                           </div>
                           <div>
                             <p className="text-[#555] text-[9px] font-semibold uppercase tracking-wider truncate">Paid</p>
-                            <p className="text-[#2563eb] text-xs font-bold mt-0.5 truncate">{totalRewarded.toLocaleString()} GEM</p>
+                            <p className="text-[#2563eb] text-xs font-bold mt-0.5 truncate">{totalRewarded.toLocaleString()} AXN</p>
                           </div>
                           {pc.expiresAt && (
                             <div>
@@ -849,7 +849,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                             <div className="py-2 border-b border-white/5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px]">
                               <div className="flex items-center justify-between">
                                 <span className="text-[#888]">{t("reward_per_claim")}</span>
-                                <span className="text-white font-semibold">{parseInt(item.rewardAmount || "0").toLocaleString()} GEM</span>
+                                <span className="text-white font-semibold">{parseInt(item.rewardAmount || "0").toLocaleString()} AXN</span>
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-[#888]">Max Claims</span>
@@ -867,7 +867,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                               </div>
                               <div className="flex items-center justify-between col-span-2">
                                 <span className="text-[#888]">Total Distributed</span>
-                                <span className="text-blue-400 font-semibold">{Math.round(parseFloat(item.totalRewardsDistributed || "0")).toLocaleString()} GEM</span>
+                                <span className="text-blue-400 font-semibold">{Math.round(parseFloat(item.totalRewardsDistributed || "0")).toLocaleString()} AXN</span>
                               </div>
                             </div>
                             {item.claims.length === 0 ? (
@@ -890,7 +890,7 @@ export default function Ambassador({ embedded = false }: { embedded?: boolean; [
                                         {new Date(claim.claimedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                                       </p>
                                       <p className="text-green-400 text-[10px] font-bold text-right">
-                                        {parseInt(claim.rewardGranted || "10000").toLocaleString()} GEM
+                                        {parseInt(claim.rewardGranted || "10000").toLocaleString()} AXN
                                       </p>
                                     </div>
                                   ))}

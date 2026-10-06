@@ -77,7 +77,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
 
       showNotification(
         <div className="text-white">
-          <span className="font-semibold text-white">Ad Watch Successful — Earned {rewardGems} GEM</span>
+          <span className="font-semibold text-white">Ad Watch Successful — Earned {rewardGems} AXN</span>
         </div> as any,
         "success"
       );
@@ -368,7 +368,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 20, height: 20, objectFit: "contain" }} />
+                        <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain" }} />
                         <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
                       </span>
                     </div>
@@ -394,7 +394,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                   >
                     {isLoading ? (
                       <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "spin 0.8s linear infinite" }} aria-label="Loading" />
-                    ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET GEM"}
+                    ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET AXN"}
                   </button>
                 </div>
               </div>

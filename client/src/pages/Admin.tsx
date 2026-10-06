@@ -365,7 +365,7 @@ export default function AdminPage() {
                   />
                   <StatCard
                     icon="gem"
-                    label="GEM Earned"
+                    label="AXN Earned"
                     value={formatLargeNumber(parseFloat(stats?.totalEarnings || '0'))}
                     iconColor="text-[#6b21a8]"
                   />
@@ -837,7 +837,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           <div className="bg-white/5 border border-white/10 p-3 rounded">
             <p className="text-xs text-muted-foreground mb-2">Balances</p>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div><p className="text-xs text-muted-foreground">SWAG</p><p className="font-bold text-[#6b21a8]">{formatSWAG(user.balance)}</p></div>
+              <div><p className="text-xs text-muted-foreground">AXN</p><p className="font-bold text-[#6b21a8]">{formatSWAG(user.balance)}</p></div>
               <div><p className="text-xs text-muted-foreground">TON</p><p className="font-bold text-purple-400">{parseFloat(user.tonBalance || '0').toFixed(4)}</p></div>
               <div><p className="text-xs text-muted-foreground">USD</p><p className="font-bold text-green-400">${parseFloat(user.usdBalance || '0').toFixed(2)}</p></div>
             </div>
@@ -846,7 +846,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           <div className="bg-white/5 border border-white/10 p-3 rounded">
             <p className="text-xs text-muted-foreground mb-2">Earnings</p>
             <div className="grid grid-cols-2 gap-2">
-              <div><p className="text-xs text-muted-foreground">Total Earned</p><p className="font-bold text-emerald-400">{formatSWAG(user.totalEarned)} SWAG</p></div>
+              <div><p className="text-xs text-muted-foreground">Total Earned</p><p className="font-bold text-emerald-400">{formatSWAG(user.totalEarned)} AXN</p></div>
               <div><p className="text-xs text-muted-foreground">Total Withdrawn</p><p className="font-bold text-amber-400">${parseFloat(analyticsData?.analytics?.totalWithdrawn || '0').toFixed(2)}</p></div>
             </div>
           </div>
@@ -876,7 +876,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
               </div>
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Referral Income</p>
-                <p className="font-bold text-xl text-emerald-400">{formatSWAG(analyticsData?.analytics?.referralIncome)} SWAG</p>
+                <p className="font-bold text-xl text-emerald-400">{formatSWAG(analyticsData?.analytics?.referralIncome)} AXN</p>
               </div>
               <div className="bg-white/5 p-2 rounded">
                 <p className="text-xs text-muted-foreground">Referral Count</p>
@@ -886,10 +886,10 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           </div>
 
           <div className="bg-white/5 border border-white/10 p-3 rounded">
-            <p className="text-xs text-muted-foreground mb-2">SWAG Earned By Source</p>
+            <p className="text-xs text-muted-foreground mb-2">AXN Earned By Source</p>
             <div className="grid grid-cols-2 gap-2 text-center">
-              <div><p className="text-xs text-muted-foreground">From Tasks</p><p className="font-bold text-blue-400">{formatSWAG(analyticsData?.analytics?.powFromTasks)} SWAG</p></div>
-              <div><p className="text-xs text-muted-foreground">From Ads</p><p className="font-bold text-green-400">{formatSWAG(analyticsData?.analytics?.powFromAds)} SWAG</p></div>
+              <div><p className="text-xs text-muted-foreground">From Tasks</p><p className="font-bold text-blue-400">{formatSWAG(analyticsData?.analytics?.powFromTasks)} AXN</p></div>
+              <div><p className="text-xs text-muted-foreground">From Ads</p><p className="font-bold text-green-400">{formatSWAG(analyticsData?.analytics?.powFromAds)} AXN</p></div>
             </div>
           </div>
 
@@ -897,7 +897,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
             <p className="text-xs text-muted-foreground mb-2">Promo Codes</p>
             <div className="grid grid-cols-2 gap-2 text-center">
               <div><p className="text-xs text-muted-foreground">Claimed</p><p className="font-bold">{analyticsData?.analytics?.promoCodesClaimed ?? 0}</p></div>
-              <div><p className="text-xs text-muted-foreground">SWAG From Promo Codes</p><p className="font-bold text-purple-400">{formatSWAG(analyticsData?.analytics?.powFromPromoCodes)} SWAG</p></div>
+              <div><p className="text-xs text-muted-foreground">AXN From Promo Codes</p><p className="font-bold text-purple-400">{formatSWAG(analyticsData?.analytics?.powFromPromoCodes)} AXN</p></div>
             </div>
           </div>
 
@@ -962,7 +962,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                 <div key={task.id} className="bg-white/5 p-2 rounded border border-white/10">
                   <p className="text-sm font-medium">{task.title || 'Task'}</p>
                   <p className="text-xs text-muted-foreground">Completed: {task.completedAt ? new Date(task.completedAt).toLocaleDateString() : 'N/A'}</p>
-                  <p className="text-xs text-green-400">Reward: {formatSWAG(task.reward)} SWAG</p>
+                  <p className="text-xs text-green-400">Reward: {formatSWAG(task.reward)} AXN</p>
                 </div>
               ))}
             </div>
@@ -1011,7 +1011,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                 <p className="text-xs text-muted-foreground">Total Earned</p>
                 <p className="font-bold text-lg text-emerald-400">
                   {Math.round(parseFloat(userReferrals?.summary?.totalIncome || '0')).toLocaleString()}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">SWAG</span>
+                  <span className="text-xs font-normal text-muted-foreground ml-1">AXN</span>
                 </p>
               </div>
               <div className="bg-white/5 p-2 rounded">
@@ -1043,7 +1043,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                   <div className="flex justify-between items-start">
                     <p className="text-sm font-mono text-[#6b21a8]">{ref.refereeName || ref.refereeCode || ref.refereeId?.slice(0, 8) || 'N/A'}</p>
                     {ref.rewardAmount && parseFloat(ref.rewardAmount) > 0 && (
-                      <p className="text-xs font-bold text-green-400">+{Math.round(parseFloat(ref.rewardAmount)).toLocaleString()} SWAG</p>
+                      <p className="text-xs font-bold text-green-400">+{Math.round(parseFloat(ref.rewardAmount)).toLocaleString()} AXN</p>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground font-mono">{ref.refereeCode || 'N/A'}</p>
@@ -1168,7 +1168,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                 return (
                   <div key={s.id} className="bg-white/5 p-2 rounded border border-white/10">
                     <div className="flex justify-between items-center">
-                      <p className="font-bold text-red-400">-{Math.round(amount).toLocaleString()} SWAG</p>
+                      <p className="font-bold text-red-400">-{Math.round(amount).toLocaleString()} AXN</p>
                       <Badge className={isTon ? 'bg-purple-600' : 'bg-green-600'}>{isTon ? 'TON' : 'USD'}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{desc}</p>
@@ -1261,7 +1261,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
           <div className="bg-white/5 border border-white/10 p-3 rounded">
             <p className="text-xs text-muted-foreground mb-2 font-semibold">Current Balances</p>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div><p className="text-xs text-muted-foreground">SWAG</p><p className="font-bold text-[#6b21a8]">{Math.round(parseFloat(user.balance || '0')).toLocaleString()}</p></div>
+              <div><p className="text-xs text-muted-foreground">AXN</p><p className="font-bold text-[#6b21a8]">{Math.round(parseFloat(user.balance || '0')).toLocaleString()}</p></div>
               <div><p className="text-xs text-muted-foreground">USD</p><p className="font-bold text-green-400">${parseFloat(user.usdBalance || '0').toFixed(2)}</p></div>
               <div><p className="text-xs text-muted-foreground">TON</p><p className="font-bold text-purple-400">{parseFloat(user.tonBalance || '0').toFixed(4)}</p></div>
             </div>
@@ -1283,7 +1283,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
                 <Button key={c} size="sm" variant={balanceForm.currency === c ? 'default' : 'outline'}
                   onClick={() => setBalanceForm(f => ({ ...f, currency: c }))}
                   className="h-7 text-xs">
-                  {c.toUpperCase()}
+                  {c === 'swag' ? 'AXN' : c.toUpperCase()}
                 </Button>
               ))}
             </div>
@@ -1293,7 +1293,7 @@ function UserProfileTabs({ user, onClose, onSelectUser }: { user: any; onClose: 
             <Input placeholder="Reason (optional)" value={balanceForm.reason}
               onChange={e => setBalanceForm(f => ({ ...f, reason: e.target.value }))} className="h-8 text-sm" />
             <Button onClick={handleAdjustBalance} disabled={isAdjusting || !balanceForm.amount} className="w-full h-8 text-sm">
-              {isAdjusting ? 'Processing...' : <span className="flex items-center gap-1 justify-center">{balanceForm.action === 'add' ? <Plus size={12}/> : balanceForm.action === 'deduct' ? <Minus size={12}/> : <Wrench size={12}/>}{balanceForm.action === 'add' ? 'Add' : balanceForm.action === 'deduct' ? 'Deduct' : 'Set'} {balanceForm.amount || '0'} {balanceForm.currency.toUpperCase()}</span>}
+              {isAdjusting ? 'Processing...' : <span className="flex items-center gap-1 justify-center">{balanceForm.action === 'add' ? <Plus size={12}/> : balanceForm.action === 'deduct' ? <Minus size={12}/> : <Wrench size={12}/>}{balanceForm.action === 'add' ? 'Add' : balanceForm.action === 'deduct' ? 'Deduct' : 'Set'} {balanceForm.amount || '0'} {balanceForm.currency === 'swag' ? 'AXN' : balanceForm.currency.toUpperCase()}</span>}
             </Button>
           </div>
 
@@ -1485,7 +1485,7 @@ function UserManagementSection({ usersData: _unused }: { usersData: any }) {
                         <div className="text-xs font-medium">{[user.firstName, user.lastName].filter(Boolean).join(' ') || 'User'}</div>
                       </TableCell>
                       <TableCell className="text-right py-2">
-                        <div className="text-xs font-semibold">{parseInt(user.balance || '0').toLocaleString()} SWAG</div>
+                        <div className="text-xs font-semibold">{parseInt(user.balance || '0').toLocaleString()} AXN</div>
                         {parseFloat(user.usdBalance || '0') > 0 && (
                           <div className="text-[10px] text-green-400">${parseFloat(user.usdBalance).toFixed(4)}</div>
                         )}
@@ -1758,7 +1758,7 @@ function PromoCreatorSection() {
             </DialogHeader>
             <div className="space-y-3 pt-1">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Reward Amount ({editingPromo?.rewardType || 'SWAG'})</label>
+                <label className="text-xs text-muted-foreground block mb-1">Reward Amount ({editingPromo?.rewardType || 'AXN'})</label>
                 <Input
                   type="number"
                   value={editForm.rewardAmount}
@@ -1826,7 +1826,7 @@ function PromoCreatorSection() {
           ) : (
             promoCodes.map((promo: any) => {
               const status = getPromoStatus(promo);
-              const rewardDisplay = `${Math.round(parseFloat(promo.rewardAmount)).toLocaleString()} ${promo.rewardType === 'GEMS' ? 'GEM' : promo.rewardType}`;
+              const rewardDisplay = `${Math.round(parseFloat(promo.rewardAmount)).toLocaleString()} ${promo.rewardType === 'GEMS' ? 'AXN' : promo.rewardType}`;
               const totalDistributed = parseFloat(promo.rewardAmount || '0') * (promo.usageCount || 0);
               return (
                 <div key={promo.id} className="border border-white/10 rounded p-2 hover:bg-white/5">
@@ -2109,7 +2109,7 @@ function PayoutLogsSection({ data }: { data: any }) {
                   <div className="font-bold text-green-400">{analyticsData.activeFriends}</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-2 space-y-0.5">
-                  <div className="text-muted-foreground">SWAG Balance</div>
+                  <div className="text-muted-foreground">AXN Balance</div>
                   <div className="font-bold text-yellow-400">{parseInt(analyticsData.balance || '0').toLocaleString()}</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-2 space-y-0.5">
@@ -2130,7 +2130,7 @@ function PayoutLogsSection({ data }: { data: any }) {
                       <div key={tx.id} className="flex items-center justify-between text-[10px] bg-white/5 rounded px-2 py-1">
                         <span className="text-muted-foreground truncate max-w-[120px]">{tx.type || tx.transactionType}</span>
                         <span className={tx.direction === 'credit' || tx.amount > 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>
-                          {tx.direction === 'credit' ? '+' : ''}{tx.amountUsd ? `$${parseFloat(tx.amountUsd).toFixed(4)}` : `${parseInt(tx.amount || '0').toLocaleString()} SWAG`}
+                          {tx.direction === 'credit' ? '+' : ''}{tx.amountUsd ? `$${parseFloat(tx.amountUsd).toFixed(4)}` : `${parseInt(tx.amount || '0').toLocaleString()} AXN`}
                         </span>
                       </div>
                     ))}
@@ -2718,7 +2718,7 @@ function SettingsSection() {
       return;
     }
     if (!Number.isInteger(referralJoinRewardGold) || referralJoinRewardGold < 0 || !Number.isInteger(referralActiveRewardGold) || referralActiveRewardGold < 0) {
-      showNotification("Referral GEM rewards must be whole numbers of 0 or more", "error");
+      showNotification("Referral AXN rewards must be whole numbers of 0 or more", "error");
       return;
     }
     if (!Number.isInteger(referralAdsRequired) || referralAdsRequired < 0) {
@@ -2845,12 +2845,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (AXN)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).adsgramRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, adsgramRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramRewardPerAd ?? 50} GEM</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.adsgramRewardPerAd ?? 50} AXN</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2886,12 +2886,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (AXN)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).monetagRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, monetagRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 30} GEM</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.monetagRewardPerAd ?? 30} AXN</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2927,12 +2927,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (AXN)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).gigapubRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, gigapubRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubRewardPerAd ?? 30} GEM</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.gigapubRewardPerAd ?? 30} AXN</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -2968,12 +2968,12 @@ function SettingsSection() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
-                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (GEM)
+                    <i className="fas fa-gem mr-1 text-purple-500"></i> Reward Per Ad (AXN)
                   </Label>
                   <Input type="number" min="1" placeholder="125"
                     value={(settings as any).usladsRewardPerAd}
                     onChange={(e) => setSettings({ ...settings, usladsRewardPerAd: e.target.value } as any)} />
-                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 30} GEM</p>
+                  <p className="text-xs text-muted-foreground">Current: {settingsData?.usladsRewardPerAd ?? 30} AXN</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">
@@ -3032,7 +3032,7 @@ function SettingsSection() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="referral-join-gold" className="text-sm font-semibold">GEM reward when a friend joins</Label>
+              <Label htmlFor="referral-join-gold" className="text-sm font-semibold">AXN reward when a friend joins</Label>
               <Input
                 id="referral-join-gold"
                 type="number"
@@ -3041,11 +3041,11 @@ function SettingsSection() {
                 min="0"
                 step="1"
               />
-              <p className="text-xs text-muted-foreground">Added to the referrer’s pending GEM balance once the referral is linked. Set to 0 to disable.</p>
+              <p className="text-xs text-muted-foreground">Added to the referrer’s pending AXN balance once the referral is linked. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="referral-active-gold" className="text-sm font-semibold">GEM reward when a friend becomes active</Label>
+              <Label htmlFor="referral-active-gold" className="text-sm font-semibold">AXN reward when a friend becomes active</Label>
               <Input
                 id="referral-active-gold"
                 type="number"
@@ -3054,7 +3054,7 @@ function SettingsSection() {
                 min="0"
                 step="1"
               />
-              <p className="text-xs text-muted-foreground">Added to pending GEM after the friend watches the required number of AdsGram ads. Set to 0 to disable.</p>
+              <p className="text-xs text-muted-foreground">Added to pending AXN after the friend watches the required number of AdsGram ads. Set to 0 to disable.</p>
             </div>
 
             <div className="space-y-2">
@@ -3117,7 +3117,7 @@ function SettingsSection() {
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="minimum-cashout-gold" className="text-sm font-semibold">
                 <i className="fas fa-coins mr-2 text-yellow-400"></i>
-                Minimum Cash Out (GEM)
+                Minimum Cash Out (AXN)
               </Label>
               <Input
                 id="minimum-cashout-gold"
@@ -3129,7 +3129,7 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Users must have at least this many GEM. 1,000 GEM = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} GEM
+                Users must have at least this many AXN. 1,000 AXN = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} AXN
               </p>
             </div>
 
@@ -3155,7 +3155,7 @@ function SettingsSection() {
             <div className="space-y-2">
               <Label htmlFor="withdrawal-fee-ton" className="text-sm font-semibold">
                 <i className="fas fa-percent mr-2 text-blue-500"></i>
-                Withdrawal Fee (TON GEM payouts, %)
+                Withdrawal Fee (TON AXN payouts, %)
               </Label>
               <Input
                 id="withdrawal-fee-ton"
@@ -3312,7 +3312,7 @@ function SettingsSection() {
             {/* Reward tiers info */}
             <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <p className="text-xs text-blue-400 font-semibold mb-1">🎯 Task Reward Tiers</p>
-              <p className="text-xs text-muted-foreground">Configure independent GEM rewards for each task type. Partner tasks always pay more than user tasks.</p>
+              <p className="text-xs text-muted-foreground">Configure independent AXN rewards for each task type. Partner tasks always pay more than user tasks.</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-gray-500/20">
@@ -3328,7 +3328,7 @@ function SettingsSection() {
                 min="1"
                 className="h-8"
               />
-              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardNoVerify || settingsData?.channelTaskReward || 100} GEM</p>
+              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardNoVerify || settingsData?.channelTaskReward || 100} AXN</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-yellow-500/20 bg-yellow-500/5">
@@ -3344,7 +3344,7 @@ function SettingsSection() {
                 min="1"
                 className="h-8"
               />
-              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 500} GEM · Requires channel join verification</p>
+              <p className="text-xs text-muted-foreground">Current: {(settingsData as any)?.taskRewardWithVerify || 500} AXN · Requires channel join verification</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-[#6b21a8]/20 bg-[#6b21a8]/5">
@@ -3353,7 +3353,7 @@ function SettingsSection() {
                 <Input type="number" min="10" max="100" value={(settings as any).mysteryBoxMinReward ?? '10'} onChange={(e) => setSettings({ ...settings, mysteryBoxMinReward: e.target.value } as any)} placeholder="10" className="h-8" />
                 <Input type="number" min="10" max="100" value={(settings as any).mysteryBoxMaxReward ?? '100'} onChange={(e) => setSettings({ ...settings, mysteryBoxMaxReward: e.target.value } as any)} placeholder="100" className="h-8" />
               </div>
-              <p className="text-xs text-muted-foreground">GEM range: 10–100. A random reward is selected for each Mystery Box.</p>
+              <p className="text-xs text-muted-foreground">AXN range: 10–100. A random reward is selected for each Mystery Box.</p>
             </div>
 
             <div className="space-y-2 p-3 border rounded-lg border-pink-500/20 bg-pink-500/5">
@@ -3371,7 +3371,7 @@ function SettingsSection() {
                 className="h-8"
               />
               <p className="text-xs text-muted-foreground">
-                Current: {settingsData?.partnerTaskReward || 5000} GEM · Admin-created verified tasks
+                Current: {settingsData?.partnerTaskReward || 5000} AXN · Admin-created verified tasks
               </p>
             </div>
 
@@ -3438,7 +3438,7 @@ function SettingsSection() {
             <div className="md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-[#6b21a8] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
-                <p className="text-xs text-muted-foreground">Set reward (GEM per ad) and daily ad limit for each platform shown on the Missions page.</p>
+                <p className="text-xs text-muted-foreground">Set reward (AXN per ad) and daily ad limit for each platform shown on the Missions page.</p>
               </div>
               <Button
                 type="button"
@@ -4577,7 +4577,7 @@ function SecuritySection() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                     <div><span className="text-muted-foreground">Telegram ID: </span><span className="text-gray-300">{user.telegramId || '—'}</span></div>
                     <div><span className="text-muted-foreground">Referral: </span><span className="text-gray-300">{user.referralCode || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Balance: </span><span className="text-gray-300">{user.balance ?? 0} GEM</span></div>
+                    <div><span className="text-muted-foreground">Balance: </span><span className="text-gray-300">{user.balance ?? 0} AXN</span></div>
                     <div><span className="text-muted-foreground">Joined: </span><span className="text-gray-300">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</span></div>
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -4863,11 +4863,11 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
               </div>
               <div className="bg-white/5 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Commission</p>
-                <p className="text-sm font-bold text-green-400 mt-0.5">{Math.round(parseFloat(totals.totalEarningsUsd || '0') * 100000).toLocaleString()} GEM</p>
+                <p className="text-sm font-bold text-green-400 mt-0.5">{Math.round(parseFloat(totals.totalEarningsUsd || '0') * 100000).toLocaleString()} AXN</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Rewarded</p>
-                <p className="text-sm font-bold text-[#6b21a8] mt-0.5">{Math.round(parseFloat(totals.totalRewardGiven || '0')).toLocaleString()} <span className="text-[9px] text-gray-500">GEM</span></p>
+                <p className="text-sm font-bold text-[#6b21a8] mt-0.5">{Math.round(parseFloat(totals.totalRewardGiven || '0')).toLocaleString()} <span className="text-[9px] text-gray-500">AXN</span></p>
               </div>
             </div>
           )}
@@ -4891,7 +4891,7 @@ function AmbassadorClaimHistory({ ambassadorId, promoCodeName }: { ambassadorId:
                   ? `${entry.claimUserName}${entry.claimUserUsername ? ` @${entry.claimUserUsername}` : ''}`
                   : entry.claimUserCode || entry.claimUserId?.slice(0, 8) || 'Unknown';
                 const reward = entry.userRewardAmount != null
-                  ? `${Math.round(parseFloat(entry.userRewardAmount)).toLocaleString()} GEM`
+                  ? `${Math.round(parseFloat(entry.userRewardAmount)).toLocaleString()} AXN`
                   : '—';
                 return (
                   <div key={entry.id} className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 px-2 py-1.5 rounded-lg bg-white/3 hover:bg-white/5 transition-colors items-center">
@@ -5333,7 +5333,7 @@ function AmbassadorAdminSection() {
             <div className="px-4 py-3 space-y-4">
 
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-400 font-medium">Default GEM Reward</label>
+                <label className="text-xs text-gray-400 font-medium">Default AXN Reward</label>
                 <Input
                   type="number"
                   min="1"
@@ -5342,7 +5342,7 @@ function AmbassadorAdminSection() {
                   placeholder="10000"
                   className="bg-[#1a1a1a] border-white/10 text-white h-9 text-sm focus:border-white/25"
                 />
-                <p className="text-[10px] text-gray-600">GEM given to each user who claims a promo code</p>
+                <p className="text-[10px] text-gray-600">AXN given to each user who claims a promo code</p>
               </div>
 
               <div className="space-y-1.5">
@@ -5420,7 +5420,7 @@ function AmbassadorAdminSection() {
             </div>
             <div className="px-4 py-3 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-400 font-medium">Commission per Claim (GEM)</label>
+                <label className="text-xs text-gray-400 font-medium">Commission per Claim (AXN)</label>
                 <Input
                   type="number"
                   step="1"
@@ -5430,7 +5430,7 @@ function AmbassadorAdminSection() {
                   placeholder="50"
                   className="bg-[#1a1a1a] border-white/10 text-white h-9 text-sm focus:border-white/25"
                 />
-                <p className="text-[10px] text-gray-600">GEM credited to the ambassador for each successful promo-code claim</p>
+                <p className="text-[10px] text-gray-600">AXN credited to the ambassador for each successful promo-code claim</p>
               </div>
             </div>
           </div>
@@ -5459,17 +5459,17 @@ function StarterTasksSection() {
   const remove = async (id: string) => { try { await apiRequest('DELETE', `/api/admin/starter-tasks/${id}`); queryClient.invalidateQueries({ queryKey: ['/api/admin/starter-tasks'] }); showNotification('Starter task deleted', 'success'); } catch (e: any) { showNotification(e.message || 'Failed to delete task', 'error'); } };
   const updateReward = async (id: string) => { const reward = Math.max(0, Math.floor(Number(editingReward))); if (!Number.isFinite(reward)) return showNotification('Enter a valid reward', 'error'); try { await apiRequest('PATCH', `/api/admin/starter-tasks/${id}`, { rewardAmount: reward }); setEditingId(null); queryClient.invalidateQueries({ queryKey: ['/api/admin/starter-tasks'] }); showNotification('Starter task reward updated', 'success'); } catch (e: any) { showNotification(e.message || 'Failed to update reward', 'error'); } };
   return <div className="space-y-4">
-    <div><h2 className="text-lg font-semibold text-white">Starter Tasks</h2><p className="text-xs text-gray-500 mt-1">Official app tasks shown separately from advertiser and partner tasks. Each task has its own GEM reward and can be claimed once per user.</p></div>
+    <div><h2 className="text-lg font-semibold text-white">Starter Tasks</h2><p className="text-xs text-gray-500 mt-1">Official app tasks shown separately from advertiser and partner tasks. Each task has its own AXN reward and can be claimed once per user.</p></div>
     <div className="bg-[#121212] border border-white/10 rounded-xl p-4 space-y-3">
       <h3 className="text-sm font-semibold text-white">Add official task</h3>
       <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" className="bg-[#1a1a1a] border-white/10 text-white" />
       <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Subtitle / instructions" className="bg-[#1a1a1a] border-white/10 text-white" />
       <Input value={link} onChange={e => setLink(e.target.value)} placeholder="Optional Telegram or website link" className="bg-[#1a1a1a] border-white/10 text-white" />
-      <div className="flex gap-2"><Input type="number" min="0" value={rewardAmount} onChange={e => setRewardAmount(e.target.value)} placeholder="Reward GEM" className="bg-[#1a1a1a] border-white/10 text-white" /><Button onClick={save} className="bg-[#6b21a8] text-white"><Plus size={14} className="mr-1"/>Add</Button></div>
+      <div className="flex gap-2"><Input type="number" min="0" value={rewardAmount} onChange={e => setRewardAmount(e.target.value)} placeholder="Reward AXN" className="bg-[#1a1a1a] border-white/10 text-white" /><Button onClick={save} className="bg-[#6b21a8] text-white"><Plus size={14} className="mr-1"/>Add</Button></div>
     </div>
     <div className="bg-[#121212] border border-white/10 rounded-xl divide-y divide-white/5">
       <div className="px-4 py-3 text-sm font-semibold text-white">Published starter tasks</div>
-      {isLoading ? <div className="p-4 text-xs text-gray-400">Loading…</div> : (data?.tasks || []).length === 0 ? <div className="p-4 text-xs text-gray-500">No starter tasks yet.</div> : (data?.tasks || []).map((task: any) => <div key={task.id} className="p-4 flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-semibold text-white">{task.title}</p><p className="text-xs text-gray-400 mt-1">{task.subtitle || 'No subtitle'}</p>{editingId === task.id ? <div className="flex items-center gap-2 mt-2"><Input type="number" min="0" value={editingReward} onChange={e => setEditingReward(e.target.value)} className="h-7 w-24 bg-[#1a1a1a] border-white/10 text-white text-xs" /><Button size="sm" onClick={() => updateReward(task.id)} className="h-7 text-[10px] bg-green-700">Save</Button><Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="h-7 text-[10px]">Cancel</Button></div> : <p className="text-xs text-[#c084fc] mt-2">{task.rewardAmount} GEM · <button type="button" onClick={() => { setEditingId(task.id); setEditingReward(String(task.rewardAmount)); }} className="underline">Edit reward</button> {task.link ? `· ${task.link}` : ''}</p>}</div><Button size="sm" variant="outline" onClick={() => remove(task.id)} className="h-7 text-[10px] border-red-500/30 text-red-400"><Trash2 size={12}/></Button></div>)}
+      {isLoading ? <div className="p-4 text-xs text-gray-400">Loading…</div> : (data?.tasks || []).length === 0 ? <div className="p-4 text-xs text-gray-500">No starter tasks yet.</div> : (data?.tasks || []).map((task: any) => <div key={task.id} className="p-4 flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-semibold text-white">{task.title}</p><p className="text-xs text-gray-400 mt-1">{task.subtitle || 'No subtitle'}</p>{editingId === task.id ? <div className="flex items-center gap-2 mt-2"><Input type="number" min="0" value={editingReward} onChange={e => setEditingReward(e.target.value)} className="h-7 w-24 bg-[#1a1a1a] border-white/10 text-white text-xs" /><Button size="sm" onClick={() => updateReward(task.id)} className="h-7 text-[10px] bg-green-700">Save</Button><Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="h-7 text-[10px]">Cancel</Button></div> : <p className="text-xs text-[#c084fc] mt-2">{task.rewardAmount} AXN · <button type="button" onClick={() => { setEditingId(task.id); setEditingReward(String(task.rewardAmount)); }} className="underline">Edit reward</button> {task.link ? `· ${task.link}` : ''}</p>}</div><Button size="sm" variant="outline" onClick={() => remove(task.id)} className="h-7 text-[10px] border-red-500/30 text-red-400"><Trash2 size={12}/></Button></div>)}
     </div>
   </div>;
 }

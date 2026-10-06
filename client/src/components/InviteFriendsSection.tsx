@@ -53,7 +53,7 @@ export default function InviteFriendsSection() {
           <div style={{ minWidth: 0 }}><div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('income_credited')}</div><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 4 }}>{commissionPercent}% forever from direct friends</div></div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}><div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('friends')}</div><div style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{stats?.totalInvites ?? 0}</div></div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 12px' }}><div style={{ flex: 1, display: 'inline-flex', alignItems: 'center', gap: 5, color: '#fff', fontSize: 16, fontWeight: 900 }}><img src="/assets/gems-icon.svg" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{income.toLocaleString()} GEM</div></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 12px' }}><div style={{ flex: 1, display: 'inline-flex', alignItems: 'center', gap: 5, color: '#fff', fontSize: 16, fontWeight: 900 }}><img src="/assets/gems-icon.svg" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />{income.toLocaleString()} AXN</div></div>
       </div>
     </section>
   );

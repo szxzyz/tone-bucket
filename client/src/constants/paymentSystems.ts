@@ -38,4 +38,4 @@ export function getPaymentSystems(appSettings?: any): PaymentSystem[] {
 
 export const PAYMENT_SYSTEMS = DEFAULT_PAYMENT_SYSTEMS;
 
-export const GEMS_TO_USD_RATE = 100000; // 100,000 GEM = $1 USDT
+export const GEMS_TO_USD_RATE = 100000; // 100,000 AXN = $1 USDT

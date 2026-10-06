@@ -63,7 +63,7 @@ export default function HistoryDialog({ open, onOpenChange }: HistoryDialogProps
                 <div key={withdrawal.id} className="border border-white/10 rounded-lg p-3 space-y-2 bg-[#0d0d0d]">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-white">
-                      {Math.round(parseFloat(withdrawal.amount) * 100000).toLocaleString()} GEM
+                      {Math.round(parseFloat(withdrawal.amount) * 100000).toLocaleString()} AXN
                     </span>
                     {getStatusBadge(withdrawal.status)}
                   </div>

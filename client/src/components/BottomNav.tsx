@@ -37,13 +37,9 @@ const AdsIcon = ({ active, c }: { active: boolean; c: string }) => (
   </svg>
 );
 
-const LeaderboardIcon = ({ active }: { active: boolean; c: string }) => (
-  <img src="/assets/gems-icon.svg" alt="" aria-hidden="true" style={{ width: 29, height: 29, objectFit: "contain", opacity: active ? 1 : 0.48, filter: active ? "none" : "grayscale(0.35)" }} />
-);
 const TABS = [
   { id: "ads", key: "nav_ads", path: "/ads" },
   { id: "mission", key: "nav_mission", path: "/mission" },
-  { id: "leaderboard", key: "nav_rank", path: "/leaderboard" },
   { id: "friends", key: "nav_friends", path: "/affiliates" },
   { id: "account", key: "nav_account", path: "/account" },
 ] as const;
@@ -116,7 +112,6 @@ export default function BottomNav() {
               {tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : tab.id === "account" ? <AccountIcon active={active} c={color} />
-                : tab.id === "leaderboard" ? <LeaderboardIcon active={active} c={color} />
                 : <AdsIcon active={active} c={color} />}
             </div>
             <span style={{ fontSize: "clamp(10px, 2.7vw, 11px)", fontWeight: active ? 700 : 500, letterSpacing: 0, color, lineHeight: 1, whiteSpace: "nowrap" }}>

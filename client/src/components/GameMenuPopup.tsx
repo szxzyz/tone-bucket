@@ -30,14 +30,14 @@ type View = "main" | "transactions" | "stats" | "faq" | "legal" | "contest" | "l
 type LegalDocument = "terms" | "privacy" | "acceptable";
 
 const VIEW_RANGES = [
-  { label: "100 – 999 Views", value: "100-999", reward: "100 GEM" },
-  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 GEM" },
-  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 GEM" },
-  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K GEM" },
-  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K GEM" },
-  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K GEM" },
-  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K GEM" },
-  { label: "1M+ Views", value: "1m+", reward: "100K GEM" },
+  { label: "100 – 999 Views", value: "100-999", reward: "100 AXN" },
+  { label: "1K – 4.9K Views", value: "1k-4.9k", reward: "250 AXN" },
+  { label: "5K – 9.9K Views", value: "5k-9.9k", reward: "500 AXN" },
+  { label: "10K – 49.9K Views", value: "10k-49.9k", reward: "1K AXN" },
+  { label: "50K – 99.9K Views", value: "50k-99.9k", reward: "5K AXN" },
+  { label: "100K – 499.9K Views", value: "100k-499.9k", reward: "10K AXN" },
+  { label: "500K – 999.9K Views", value: "500k-999.9k", reward: "25K AXN" },
+  { label: "1M+ Views", value: "1m+", reward: "100K AXN" },
 ];
 
 export default function MenuPopup({ onClose, initialView = "main", fullScreen = false }: MenuPopupProps) {
@@ -300,7 +300,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                       const date = w.createdAt ? new Date(w.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
                       return <div key={w.id} style={{ padding: "13px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/gems-icon.svg" alt="GEM" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{grm.toLocaleString()} GEM</span></div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{grm.toLocaleString()} AXN</span></div>
                           <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{Number.isFinite(ton) && ton > 0 ? ton.toFixed(6) : "—"} TON</span></div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7, color: "rgba(255,255,255,.35)", fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: "3px 9px", borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: "uppercase", letterSpacing: ".04em" }}>{w.status || "pending"}</span></div>
@@ -330,7 +330,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                 {[
                   { label: "Total users", value: appStatistics ? Number(appStatistics.totalUsers ?? 0).toLocaleString() : "—", icon: Users },
                   { label: "Active today", value: appStatistics ? Number(appStatistics.activeToday ?? 0).toLocaleString() : "—", icon: Activity },
-                  { label: "GEM earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
+                  { label: "AXN earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
                   { label: "Total withdrawal", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} TON` : "—", icon: Coins },
                   { label: "Tasks created", value: appStatistics ? Number(appStatistics.taskCreated ?? 0).toLocaleString() : "—", icon: ClipboardList },
                   { label: "Tasks completed", value: appStatistics ? Number(appStatistics.taskCompleted ?? 0).toLocaleString() : "—", icon: CheckCircle2 },
@@ -451,8 +451,8 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                     <Trophy className="w-5 h-5 text-[#F5C542]" />
                   </div>
                   <p className="text-white font-black text-sm leading-snug">
-                    Tell others about Lightning GEM, and get up to{" "}
-                    <span className="text-[#F5C542]">10,000,000 GEM</span> for each video.
+                    Tell others about Lightning AXN, and get up to{" "}
+                    <span className="text-[#F5C542]">10,000,000 AXN</span> for each video.
                   </p>
                 </div>
               </div>
@@ -466,7 +466,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                     <span className="w-5 h-5 rounded-full bg-[#F5C542]/20 flex items-center justify-center text-[#F5C542] font-black text-[10px] flex-shrink-0">1</span>
                     <p className="text-white font-bold text-xs">Create Content</p>
                   </div>
-                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning GEM and post it on:</p>
+                  <p className="text-white/50 text-[11px] leading-relaxed pl-7">Make a fun video about Lightning AXN and post it on:</p>
                   <div className="flex gap-1.5 flex-wrap pl-7">
                     <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-1">
                       <Youtube className="w-3 h-3 text-red-400" />
@@ -514,7 +514,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                       <p className="text-white font-bold text-xs">Earn Rewards</p>
                       <p className="text-white/50 text-[11px] leading-relaxed mt-1">
                         The more views your video gets, the bigger the reward. Up to{" "}
-                        <span className="text-[#F5C542] font-bold">10,000,000 GEM</span> per video.
+                        <span className="text-[#F5C542] font-bold">10,000,000 AXN</span> per video.
                       </p>
                     </div>
                   </div>
