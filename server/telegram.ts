@@ -1341,16 +1341,18 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment('\n\n');
   addSegment('⛏️', { emojiId: '5197371802136892976' });
   addSegment(' Mining Gold daily\n');
-  addSegment('📋', { emojiId: '5197269100878907942' });
+  addSegment('✍️', { emojiId: '5197269100878907942' });
   addSegment(' Completing tasks\n');
   addSegment('📺', { emojiId: '5337068143175041033' });
   addSegment(' Watching ads\n');
   addSegment('👥', { emojiId: '5388738824538959063' });
   addSegment(' Inviting friends\n');
-  addSegment('💸', { emojiId: '5409048419211682843' });
+  addSegment('💵', { emojiId: '5409048419211682843' });
   addSegment(' Withdrawing your $AXN\n\n');
   addSegment('🤑', { emojiId: '5249049926679147776' });
-  addSegment(' Be part of the Axionet Mining journey and start earning today.', { bold: true });
+  addSegment(' Be part of the ');
+  addSegment('Axionet Mining journey', { bold: true });
+  addSegment(' and start earning today.');
 
   const botUsername = await getBotUsername();
   // Keep the welcome button available even when a deployment only defines
