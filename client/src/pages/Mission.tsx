@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import CreatePanel from '@/components/CreatePanel';
 
-type MissionTab = 'daily' | 'community' | 'partner';
+type MissionTab = 'daily' | 'community';
 
 export default function Mission() {
   const [createTaskOpen, setCreateTaskOpen] = useState(() => new URLSearchParams(window.location.search).get('open') === 'create');
@@ -29,7 +29,7 @@ export default function Mission() {
     borderRadius: 14,
     background: 'rgba(255,255,255,0.06)',
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: 4,
   } as const;
 
@@ -39,7 +39,6 @@ export default function Mission() {
         <section aria-label="Mission tabs" role="tablist" style={tabsStyle}>
           <button type="button" style={tabStyle('daily')} onClick={() => setActiveTab('daily')}>Daily</button>
           <button type="button" style={tabStyle('community')} onClick={() => setActiveTab('community')}>Community</button>
-          <button type="button" style={tabStyle('partner')} onClick={() => setActiveTab('partner')}>Partner</button>
         </section>
         {activeTab === 'daily' && (
           <>
@@ -49,8 +48,7 @@ export default function Mission() {
             </section>
           </>
         )}
-        {activeTab === 'community' && <AdvertiserTaskFeed kind="community" title="Community Tasks" />}
-        {activeTab === 'partner' && <AdvertiserTaskFeed kind="partner" title="Partner Tasks" />}
+        {activeTab === 'community' && <AdvertiserTaskFeed kind="community" title="Social & Game Tasks" />}
 
         <CreatePanel open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
       </main>

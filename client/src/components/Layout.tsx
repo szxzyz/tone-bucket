@@ -26,12 +26,12 @@ export default function Layout({ children, onAddTask }: LayoutProps) {
     return <BanScreen reason={user.bannedReason} />;
   }
   return (
-    <div className="h-[100dvh] w-full flex flex-col bg-[#0f0f0f] overflow-hidden">
+    <div className="h-[100dvh] w-full flex flex-col bg-black overflow-hidden">
       {/* Fixed header — always visible on all pages */}
       <GameHeader onAddTask={onAddTask} />
 
       <div
-        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-black"
         style={{
           paddingBottom: "env(safe-area-inset-bottom, 0px)", // Keep the shared layout unchanged for all pages
           paddingTop: "var(--header-height, 56px)",
@@ -48,7 +48,7 @@ export default function Layout({ children, onAddTask }: LayoutProps) {
               duration: 0.22,
               ease: [0.25, 0.46, 0.45, 0.94],
             }}
-            className="min-h-full"
+            className="min-h-full bg-black"
           >
             {children}
           </motion.div>

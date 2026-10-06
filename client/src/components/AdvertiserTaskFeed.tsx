@@ -6,7 +6,7 @@ import AdvertiserTaskSheet from "@/components/AdvertiserTaskSheet";
 import { apiRequest } from "@/lib/queryClient";
 import { showNotification } from "@/components/AppNotification";
 
-export type AdvertiserTaskKind = "community" | "partner";
+export type AdvertiserTaskKind = "community";
 
 interface UnifiedTask {
   id: string;
@@ -156,7 +156,9 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
   const [directClaimReady, setDirectClaimReady] = React.useState(false);
   const [claimedTaskIds, setClaimedTaskIds] = React.useState<Set<string>>(new Set());
   const directTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const taskType = kind === "community" ? "channel" : "partner";
+  // Community is the user-facing Social + Game feed. Older tasks are stored
+  // as channel/bot, while newer records may use social/game explicitly.
+  const taskTypes = ["channel", "social", "bot", "game"];
 
   const { data, isLoading } = useQuery<{ success: boolean; tasks: UnifiedTask[] }>({
     queryKey: ["/api/tasks/home/unified"],
@@ -200,7 +202,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     },
   });
 
-  const tasks = (data?.tasks || []).filter((task) => task.taskType === taskType && !claimedTaskIds.has(task.id));
+  const tasks = (data?.tasks || []).filter((task) => taskTypes.includes(task.taskType.toLowerCase()) && !claimedTaskIds.has(task.id));
 
   React.useEffect(() => () => {
     if (directTimerRef.current) clearTimeout(directTimerRef.current);
@@ -246,7 +248,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
         <div style={{ display: "flex", justifyContent: "center", padding: "30px 0" }}><Loader2 className="animate-spin text-white/20" /></div>
       ) : tasks.length === 0 ? (
         <div style={{ textAlign: "center", padding: "24px 20px", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", borderRadius: 16 }}>
-          <p style={{ color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>{kind === "community" ? "No community tasks are available right now." : "No partner tasks are available right now."}</p>
+          <p style={{ color: "rgba(255,255,255,0.52)", fontSize: 13, fontWeight: 600 }}>No social or game tasks are available right now.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
