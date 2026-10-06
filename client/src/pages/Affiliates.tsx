@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Send, Users, CheckCircle2, Clock3 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import Ambassador from '@/pages/Ambassador';
 import { formatLargeSWAG } from '@/lib/utils';
 import { showNotification } from '@/components/AppNotification';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -14,7 +13,6 @@ const formatWorthUsd = (value: number) => `$${value.toFixed(value > 0 && value <
 
 type FriendStatus = 'active' | 'pending';
 type FriendTab = 'all' | FriendStatus;
-type FriendsTab = 'affiliates' | 'ambassador';
 interface ReferralFriend {
   id: string;
   username: string | null;
@@ -72,11 +70,6 @@ function FriendCard({ friend }: { friend: ReferralFriend }) {
 export default function Affiliates() {
   const { t } = useLanguage();
   const [isSharing, setIsSharing] = useState(false);
-  const [activeTab, setActiveTab] = useState<FriendsTab>(() => (
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'ambassador'
-      ? 'ambassador'
-      : 'affiliates'
-  ));
   const [friendTab, setFriendTab] = useState<FriendTab>('all');
   const preparedShareRef = useRef<Promise<any> | null>(null);
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
@@ -141,15 +134,7 @@ export default function Affiliates() {
           <p className="m-0 mt-1 text-xs text-white/45">Invite your network to grow your AXN earnings.</p>
         </div>
 
-        <div style={{ margin: '0 0 12px', padding: 4, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }} role="tablist" aria-label="Friends sections">
-          <button type="button" role="tab" aria-selected={activeTab === 'affiliates'} onClick={() => setActiveTab('affiliates')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'affiliates' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'affiliates' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Affiliates</button>
-          <button type="button" role="tab" aria-selected={activeTab === 'ambassador'} onClick={() => setActiveTab('ambassador')} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: activeTab === 'ambassador' ? INVITE_BUTTON_BACKGROUND : 'transparent', color: activeTab === 'ambassador' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Ambassador</button>
-        </div>
-
-        {activeTab === 'ambassador' ? (
-          <Ambassador embedded />
-        ) : (
-          <>
+        <>
             <section className="rounded-[16px] p-3 mb-3 overflow-hidden" style={{ background: FRIENDS_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
               <div className="text-white text-[15px] font-black mb-3">Per friend you invite</div>
               <div className="rounded-xl p-3 overflow-hidden" style={{ background: 'rgba(255,255,255,0.045)' }}><div className="flex items-center justify-between gap-3 min-w-0"><div className="flex items-center gap-2 min-w-0"><img src="/assets/gems-icon.svg" alt="AXN" className="w-7 h-7 object-contain shrink-0" /><div className="flex items-baseline gap-2 min-w-0"><span className="text-white text-xl font-black tabular-nums truncate">{settingsLoaded ? formatReward(totalReward) : '…'}</span><span className="text-white text-xs font-extrabold uppercase tracking-wider shrink-0">AXN</span></div></div><div className="text-right shrink-0"><div className="text-white/45 text-[10px] font-bold uppercase tracking-wider">Worth</div><div className="text-white text-sm font-black whitespace-nowrap">{settingsLoaded ? formatWorthUsd(worthUsd) : '…'}</div></div></div><div className="grid grid-cols-3 gap-1 mt-3">{[['On join', settingsLoaded ? `+${formatReward(joinReward)} AXN` : '…'], ['When active', settingsLoaded ? `+${formatReward(activeReward)} AXN` : '…'], ['Forever', settingsLoaded ? `${commissionPercent}% Commission` : '…']].map(([label, value]) => <div key={label} className="rounded-xl px-1.5 py-2 min-w-0" style={{ background: 'rgba(0,0,0,0.28)' }}><div className="text-white/45 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">{label}</div><div className="text-white text-xs font-black mt-1 whitespace-nowrap tabular-nums">{value}</div></div>)}</div></div>
@@ -162,8 +147,7 @@ export default function Affiliates() {
               {([['all', 'All'], ['active', 'Active'], ['pending', 'Pending']] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={friendTab === id} onClick={() => setFriendTab(id)} style={{ border: 0, borderRadius: 11, padding: '10px 8px', background: friendTab === id ? INVITE_BUTTON_BACKGROUND : 'transparent', color: friendTab === id ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>{label}</button>)}
             </div>
             {referralsLoading ? <div className="py-8 text-center text-xs text-white/40">Loading friends…</div> : visibleFriends.length === 0 ? <div className="py-8 text-center"><Users className="mx-auto mb-2 text-white/20" size={25} /><p className="m-0 text-xs text-white/40">No {friendTab === 'all' ? '' : friendTab} friends yet.</p></div> : <div className="flex flex-col gap-2">{visibleFriends.map((friend) => <FriendCard key={friend.id} friend={friend} />)}</div>}
-          </>
-        )}
+        </>
       </main>
     </Layout>
   );
