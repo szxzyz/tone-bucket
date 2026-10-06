@@ -1,676 +1,215 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import Layout from "@/components/Layout";
-import IncomeStatistics from "@/components/IncomeStatistics";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import React from "react";
-import { useAdmin } from "@/hooks/useAdmin";
-import { useAdSession } from "@/hooks/useAdSession";
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Activity, ArrowDownToLine, CheckCircle2, ClipboardList, Coins, Users } from "lucide-react";
 import { useLocation } from "wouter";
-import { Clock, Loader2, Send, ExternalLink, Shield, Play, Repeat, Layers, Share2 } from "lucide-react";
+import Layout from "@/components/Layout";
 import DailyCheckinSheet from "@/components/DailyCheckinSheet";
-import { CHECKIN_REWARDS } from "@/components/DailyCheckinSheet";
+import PromoCodeInput from "@/components/PromoCodeInput";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
-import { useLanguage } from "@/hooks/useLanguage";
-import PromoCodeInput from "@/components/PromoCodeInput";
-import DailyMissionTasks from "@/components/DailyMissionTasks";
-import InviteFriendsSection from "@/components/InviteFriendsSection";
-import { showAdgramAd } from "@/lib/showAd";
+import { useAdSession } from "@/hooks/useAdSession";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
+import { showAdgramAd } from "@/lib/showAd";
 
+const SURFACE = "linear-gradient(145deg, #1a1c20 0%, #121317 100%)";
+const ACTION_BACKGROUND = "linear-gradient(135deg, #1e40af, #3b82f6)";
+const MYSTERY_DAILY_LIMIT = 1;
 
-
-
-interface User {
-  id?: string;
-  telegramId?: string;
-  balance?: string;
-  usdBalance?: string;
-  bugBalance?: string;
-  lastStreakDate?: string;
-  username?: string;
-  firstName?: string;
-  telegramUsername?: string;
-  referralCode?: string;
-  [key: string]: any;
+function formatNumber(value: unknown) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "0";
 }
 
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+function HomeStatistics() {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/public/statistics"],
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+
+  const cards = [
+    ["Total users", data?.totalUsers, Users],
+    ["Active today", data?.activeToday, Activity],
+    ["Gold earned", data?.goldEarned, Coins],
+    ["Total withdrawal", data ? `${formatNumber(data.totalWithdrawal)} TON` : "—", ArrowDownToLine],
+    ["Tasks created", data?.taskCreated, ClipboardList],
+    ["Tasks completed", data?.taskCompleted, CheckCircle2],
+  ] as const;
+
+  return (
+    <section aria-label="App statistics">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>App Statistics</span>
+        {isLoading && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Updating…</span>}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7 }}>
+        {cards.map(([label, value, Icon]) => (
+          <div key={label} style={{ background: "#252525", borderRadius: 12, padding: "10px 11px", minWidth: 0, border: "1px solid rgba(255,255,255,0.04)" }}>
+            <Icon size={16} strokeWidth={2.1} color="rgba(255,255,255,0.58)" style={{ marginBottom: 6 }} />
+            <div style={{ color: "#fff", fontSize: "clamp(16px, 4.5vw, 21px)", fontWeight: 900, lineHeight: 1.05, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {typeof value === "string" ? value : data ? formatNumber(value) : "—"}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
-// ─── ResetCountdownBanner ────────────────────────────────────────────────────
-// Previously the reset-countdown state lived in Home, causing the entire
-// 1100-line component to re-render every second (two 1s intervals × 60/min).
-// Isolating it here means only this tiny component re-renders on each tick.
-const CARD = 'rgba(255,255,255,0.07)';
-const TEXT = '#fff';
-const TEXT_DIM = 'rgba(255,255,255,0.35)';
-const BLUE = '#2563eb';
-
-
-
-// ─────────────────────────────────────────────────────────────────────────────
+function ActionButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
+      <button type="button" onClick={onClick} className="active:scale-90 transition-transform" style={{ width: 52, height: 52, borderRadius: "50%", background: ACTION_BACKGROUND, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(37,99,235,0.4)", color: "#fff" }}>
+        {children}
+      </button>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.48)" }}>{label}</span>
+    </div>
+  );
+}
 
 export default function Home() {
-  const { user, isLoading, isFetching, dataUpdatedAt } = useAuth();
-  const { isAdmin } = useAdmin();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const { language, t } = useLanguage();
-
-  const [isConverting, setIsConverting] = useState(false);
-  const [isClaimingStreak, setIsClaimingStreak] = useState(false);
-  const [promoCode, setPromoCode] = useState("");
-  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const [hasClaimed, setHasClaimed] = useState(false);
-  const [timeUntilNextClaim, setTimeUntilNextClaim] = useState<string>("");
-
-  const [promoPopupOpen, setPromoPopupOpen] = useState(false);
-  const [boosterPopupOpen, setBoosterPopupOpen] = useState(false);
-
-
-
-  // Daily Check-In & Mystery Gift state
-  const [dailyChecked, setDailyChecked] = useState(() => localStorage.getItem('daily_check_date') === getTodayKey());
-  const [dailyAdLoading, setDailyAdLoading] = useState(false);
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const [checkinShown, setCheckinShown] = useState(false);
+  const [mysteryLoading, setMysteryLoading] = useState(false);
   const [mysteryClaimsToday, setMysteryClaimsToday] = useState(0);
-  const MYSTERY_DAILY_LIMIT = 1;
-  const mysteryOpened = mysteryClaimsToday >= MYSTERY_DAILY_LIMIT;
-  const [mysteryAdLoading, setMysteryAdLoading] = useState(false);
+  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
 
-  // Legacy daily missions removed from state
-
-  // 7-day check-in streak bottom sheet
-  const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
-  const checkinSheetShownRef = React.useRef(false);
-  const { data: checkinStatus, isSuccess: checkinStatusReady } = useQuery<any>({
-    queryKey: ['/api/daily-checkin/status'],
+  const { data: user, isLoading: userLoading } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false });
+  const { data: appConfig } = useQuery<any>({ queryKey: ["/api/config/app"], staleTime: 300_000, retry: false });
+  const { data: checkinStatus } = useQuery<any>({
+    queryKey: ["/api/daily-checkin/status"],
     queryFn: async () => {
-      const res = await fetch('/api/daily-checkin/status', { credentials: 'include' });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    retry: false,
-  });
-
-  // Auto-show the check-in sheet on app open — only when today is not yet claimed.
-  // Uses a small polling fallback so the sheet still opens in Telegram (where
-  // the query may stay in a loading/paused state while the webview warms up).
-  React.useEffect(() => {
-    if (checkinSheetShownRef.current) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const tryShow = () => {
-      if (cancelled || checkinSheetShownRef.current) return;
-      if (!checkinStatus) return;
-      checkinSheetShownRef.current = true;
-      if (!checkinStatus.alreadyClaimedToday) {
-        setCheckinSheetOpen(true);
-      }
-    };
-    if (checkinStatusReady && checkinStatus) {
-      tryShow();
-    } else {
-      // Fallback: keep checking every 700ms for up to 8s until status arrives
-      timer = setInterval(() => {
-        if (checkinStatus) tryShow();
-      }, 700);
-    }
-    return () => {
-      cancelled = true;
-      if (timer) clearInterval(timer);
-    };
-  }, [checkinStatusReady, checkinStatus]);
-
-
-
-
-  // Env-based AdsGram and approved rewarded-ad provider configuration.
-  const { data: appConfig } = useQuery<any>({
-    queryKey: ['/api/config/app'],
-    staleTime: 5 * 60_000,
-    retry: false,
-  });
-
-  const { data: userData } = useQuery<{ referralCode?: string }>({
-    queryKey: ['/api/auth/user'],
-    retry: false,
-  });
-
-
-
-  // Sync daily check-in & mystery gift state from server user data
-  useEffect(() => {
-    const typedUser = user as User;
-    if (!typedUser) return;
-    const todayKey = getTodayKey();
-    if (typedUser.dailyCheckinClaimed && typedUser.dailyTasksDate) {
-      const serverDate = new Date(typedUser.dailyTasksDate).toISOString().slice(0, 10);
-      if (serverDate === todayKey) {
-        setDailyChecked(true);
-        localStorage.setItem('daily_check_date', todayKey);
-      } else {
-        setDailyChecked(false);
-        localStorage.removeItem('daily_check_date');
-      }
-    } else if (typedUser.dailyCheckinClaimed === false) {
-      setDailyChecked(false);
-      localStorage.removeItem('daily_check_date');
-    }
-    if (typedUser.mysteryBoxDate) {
-      const serverDate = new Date(typedUser.mysteryBoxDate).toISOString().slice(0, 10);
-      setMysteryClaimsToday(serverDate === todayKey ? (typedUser.mysteryBoxCount ?? 0) : 0);
-    } else {
-      setMysteryClaimsToday(0);
-    }
-  }, [user]);
-
-
-
-  React.useEffect(() => {
-    const updateTimer = () => {
-      const now = new Date();
-      const typedUser = user as User;
-
-      if (typedUser?.id) {
-        const claimedTimestamp = localStorage.getItem(`streak_claimed_${typedUser.id}`);
-        if (claimedTimestamp) {
-          const claimedDate = new Date(claimedTimestamp);
-          const nextClaimTime = new Date(claimedDate.getTime() + 5 * 60 * 1000);
-
-          if (now.getTime() < nextClaimTime.getTime()) {
-            setHasClaimed(true);
-            const diff = nextClaimTime.getTime() - now.getTime();
-            const minutes = Math.floor(diff / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-            setTimeUntilNextClaim(`${minutes}:${seconds.toString().padStart(2, '0')}`);
-            return;
-          } else {
-            setHasClaimed(false);
-            localStorage.removeItem(`streak_claimed_${typedUser.id}`);
-          }
-        }
-      }
-
-      if ((user as User)?.lastStreakDate) {
-        const lastClaim = new Date((user as User).lastStreakDate!);
-        const minutesSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60);
-
-        if (minutesSinceLastClaim < 5) {
-          setHasClaimed(true);
-          const nextClaimTime = new Date(lastClaim.getTime() + 5 * 60 * 1000);
-          const diff = nextClaimTime.getTime() - now.getTime();
-          const minutes = Math.floor(diff / (1000 * 60));
-          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-          setTimeUntilNextClaim(`${minutes}:${seconds.toString().padStart(2, '0')}`);
-          return;
-        }
-      }
-
-      setHasClaimed(false);
-      setTimeUntilNextClaim("Available now");
-    };
-
-    updateTimer();
-    // Root cause of Issue 1: 1-second interval caused the entire 1100-line Home
-    // component to re-render 60x per minute. Claim availability only needs
-    // ~5-second precision — the button transitions idle→available, not a clock.
-    const interval = setInterval(updateTimer, 5000);
-    return () => clearInterval(interval);
-  }, [(user as User)?.lastStreakDate, (user as User)?.id]);
-
-  const convertMutation = useMutation({
-    mutationFn: async ({ amount, convertTo }: { amount: number; convertTo: string }) => {
-      const res = await fetch("/api/convert-to-usd", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ powAmount: amount, convertTo }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to convert");
-      }
-      return data;
-    },
-    onSuccess: async (data) => {
-      showNotification("Convert successful.", "success");
-
-      // Instantly update cache with new balance values from server response
-      if (data.newPowBalance !== undefined || data.newUsdBalance !== undefined) {
-        queryClient.setQueryData(["/api/auth/user"], (old: any) => {
-          if (!old) return old;
-          return {
-            ...old,
-            ...(data.newPowBalance !== undefined && { balance: String(Math.round(data.newPowBalance)) }),
-            ...(data.newUsdBalance !== undefined && { usdBalance: data.newUsdBalance }),
-            ...(data.newTonBalance !== undefined && { tonBalance: data.newTonBalance }),
-            ...(data.newStarBalance !== undefined && { starBalance: data.newStarBalance }),
-          };
-        });
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
-    },
-    onError: (error: Error) => {
-      showNotification(error.message, "error");
-    },
-  });
-
-  const claimStreakMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/streak/claim");
-      if (!response.ok) {
-        const error = await response.json();
-        const errorObj = new Error(error.message || 'Failed to claim streak');
-        (errorObj as any).isAlreadyClaimed = error.message === "Please wait 5 minutes before claiming again!";
-        throw errorObj;
-      }
+      const response = await fetch("/api/daily-checkin/status", { credentials: "include" });
+      if (!response.ok) return null;
       return response.json();
     },
-    onSuccess: (data) => {
-      setHasClaimed(true);
-      const typedUser = user as User;
-      if (typedUser?.id) {
-        localStorage.setItem(`streak_claimed_${typedUser.id}`, new Date().toISOString());
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
-      const rewardAmount = parseFloat(data.rewardEarned || '0');
-      if (rewardAmount > 0) {
-        const earnedGold = Math.round(rewardAmount);
-        showNotification(`You've claimed +${earnedGold} AXN!`, "success");
-      } else {
-        showNotification("You've claimed your streak bonus!", "success");
-      }
-    },
-    onError: (error: any) => {
-      const notificationType = error.isAlreadyClaimed ? "info" : "error";
-      showNotification(error.message || "Failed to claim streak", notificationType);
-      if (error.isAlreadyClaimed) {
-        setHasClaimed(true);
-        const typedUser = user as User;
-        if (typedUser?.id) {
-          localStorage.setItem(`streak_claimed_${typedUser.id}`, new Date().toISOString());
-        }
-      }
-    },
-    onSettled: () => {
-      setIsClaimingStreak(false);
-    },
+    retry: false,
   });
 
-  const redeemPromoMutation = useMutation({
-    mutationFn: async (code: string) => {
-      const response = await apiRequest("POST", "/api/promo-codes/redeem", { code });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Invalid promo code");
-      }
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/earnings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
-      setPromoCode("");
-      setPromoPopupOpen(false);
-      setIsApplyingPromo(false);
-      showNotification(data.message || "Promo applied successfully!", "success");
-    },
-    onError: (error: any) => {
-      const message = error.message || "Invalid promo code";
-      showNotification(message, "error");
-      setIsApplyingPromo(false);
-    },
-  });
+  useEffect(() => {
+    if (!checkinStatus || checkinShown) return;
+    setCheckinShown(true);
+    if (!checkinStatus.alreadyClaimedToday) setCheckinOpen(true);
+  }, [checkinStatus, checkinShown]);
 
-  // Server-verified AdsGram flow for daily rewards. The provider remains
-  // available for these existing reward contexts; the main ad-watching card
-  // now lives on the Mission page.
-  const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
-  const runVerifiedAdgramAd = async (context: 'daily_checkin' | 'mystery_box') => {
+  useEffect(() => {
+    if (!user?.mysteryBoxDate) {
+      setMysteryClaimsToday(0);
+      return;
+    }
+    const isToday = new Date(user.mysteryBoxDate).toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
+    setMysteryClaimsToday(isToday ? Number(user.mysteryBoxCount ?? 0) : 0);
+  }, [user]);
+
+  const rawBalance = Number(user?.balance ?? 0);
+  const balance = rawBalance < 1 ? Math.round(rawBalance * 10_000_000) : Math.round(rawBalance);
+  const usdBalance = Number(user?.usdBalance ?? 0);
+  const tonBalance = Number(user?.tonBalance ?? 0);
+  const balanceLabel = balance.toLocaleString();
+  const mysteryOpened = mysteryClaimsToday >= MYSTERY_DAILY_LIMIT;
+
+  const openMysteryBox = async () => {
+    if (mysteryOpened || mysteryLoading) return;
+    setMysteryLoading(true);
     const sessionId = startSession();
     try {
-      const regRes = await apiRequest('POST', '/api/ads/register-session', {
-        sessionId, adType: 'adsgram', context,
-      });
-      if (!regRes.ok) throw new Error('Could not start ad session');
-      const blockId = context === 'mystery_box'
-        ? (appConfig?.adsgramMysteryBoxBlockId || import.meta.env.VITE_ADSGRAM_MYSTERY_BLOCK_ID || '')
-        : (appConfig?.adsgramCheckinBlockId || '');
-      try {
-        await showAdgramAd(blockId);
-      } catch (error) {
-        await cancelRegisteredAdSession(sessionId);
-        throw error;
-      }
-      await confirmProviderCompletion(sessionId, 'adsgram');
+      const registration = await apiRequest("POST", "/api/ads/register-session", { sessionId, adType: "adsgram", context: "mystery_box" });
+      if (!registration.ok) throw new Error("Ad verification is not available right now");
+      await showAdgramAd(appConfig?.adsgramMysteryBoxBlockId || import.meta.env.VITE_ADSGRAM_MYSTERY_BLOCK_ID || "");
+      await confirmProviderCompletion(sessionId, "adsgram");
       await waitForForeground();
       const session = endSession();
-      return {
+      const data = await postWithAdVerification<any>("/api/mystery-box", {
         sessionId: session.sessionId,
         backgroundEntered: session.backgroundEntered,
         backgroundDuration: session.backgroundDuration,
-      };
-    } catch (err) {
+      });
+      setMysteryClaimsToday(Number(data.claimsToday ?? 1));
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      showNotification("Mystery Gift reward added to your AXN balance.", "success");
+    } catch (error: any) {
       await cancelRegisteredAdSession(sessionId);
       cancelSession();
-      throw err;
-    }
-  };
-
-  // Daily Check-In mutation (calls /api/daily-checkin — distinct from missions daily-checkin)
-  const dailyCheckMutation = useMutation({
-    mutationFn: async (proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number }) => {
-      return postWithAdVerification('/api/daily-checkin', proof);
-    },
-    onSuccess: (data) => {
-      setDailyChecked(true);
-      localStorage.setItem('daily_check_date', getTodayKey());
-      showNotification(`Daily check-in done! +${data.reward ?? 0.001} GRAM added`, 'success');
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    },
-    onError: (err: any) => {
-      showNotification(err?.message || 'Daily check-in failed. Try again.', 'error');
-    },
-  });
-
-  const handleDailyCheck = async () => {
-    if (dailyChecked || dailyAdLoading || dailyCheckMutation.isPending) return;
-    setDailyAdLoading(true);
-    try {
-      const proof = await runVerifiedAdgramAd('daily_checkin');
-      await dailyCheckMutation.mutateAsync(proof);
-    } catch {
-      showNotification('Ad was not completed. Daily check-in reward was not granted.', 'error');
+      showNotification(error?.message || "Ad was not completed. Try again.", "error");
     } finally {
-      setDailyAdLoading(false);
+      setMysteryLoading(false);
     }
   };
 
-  const handleMysteryOpen = async () => {
-    if (mysteryOpened || mysteryAdLoading) return;
-    setMysteryAdLoading(true);
-    let proof: { sessionId: string; backgroundEntered: boolean; backgroundDuration: number };
-    try {
-      proof = await runVerifiedAdgramAd('mystery_box');
-    } catch {
-      setMysteryAdLoading(false);
-      showNotification('Ad was not completed. No Mystery Gift reward was granted.', 'error');
-      return;
-    }
-    try {
-      const data = await postWithAdVerification('/api/mystery-box', proof);
-      if (typeof data.claimsToday === 'number') setMysteryClaimsToday(data.claimsToday);
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      showNotification('Mystery Gift reward added to your AXN balance.', 'success');
-    } catch (err: any) {
-      showNotification(err?.message || 'Failed to open mystery box. Try again.', 'error');
-    } finally {
-      setMysteryAdLoading(false);
-    }
-  };
-
-
-
-  // Monetag show fn resolved from the env-based zone id (MONETAG_ZONE_ID)
-  const showMonetagAd = (): Promise<{ success: boolean; unavailable: boolean }> => {
-    return new Promise((resolve) => {
-      const showFn = (window as any)[`show_${appConfig?.monetagZoneId || ''}`];
-      if (typeof showFn === 'function') {
-        showFn()
-          .then(() => {
-            resolve({ success: true, unavailable: false });
-          })
-          .catch((error: any) => {
-            console.error('Monetag ad error:', error);
-            resolve({ success: false, unavailable: false });
-          });
-      } else {
-        resolve({ success: false, unavailable: true });
-      }
-    });
-  };
-
-  const showMonetagRewardedAd = (): Promise<{ success: boolean; unavailable: boolean }> => {
-    return new Promise((resolve) => {
-      console.log('🎬 Attempting to show Monetag rewarded ad...');
-      const showFn = (window as any)[`show_${appConfig?.monetagZoneId || ''}`];
-      if (typeof showFn === 'function') {
-        console.log('✅ Monetag SDK found, calling rewarded ad...');
-        showFn()
-          .then(() => {
-            console.log('✅ Monetag rewarded ad completed successfully');
-            resolve({ success: true, unavailable: false });
-          })
-          .catch((error: any) => {
-            console.error('❌ Monetag rewarded ad error:', error);
-            resolve({ success: false, unavailable: false });
-          });
-      } else {
-        console.log('⚠️ Monetag SDK not available, skipping ad');
-        resolve({ success: false, unavailable: true });
-      }
-    });
-  };
-
-
-
-  const handleClaimStreak = async () => {
-    if (isClaimingStreak || hasClaimed) return;
-
-    setIsClaimingStreak(true);
-
-    try {
-      const monetagResult = await showMonetagRewardedAd();
-
-      if (monetagResult.unavailable || !monetagResult.success) {
-        showNotification(monetagResult.unavailable ? "Rewarded ads are not available right now. Please try again later." : "Please watch the ad completely to claim your bonus.", "error");
-        setIsClaimingStreak(false);
-        return;
-      }
-
-      claimStreakMutation.mutate();
-    } catch (error) {
-      console.error('Streak claim failed:', error);
-      showNotification("Failed to claim streak. Please try again.", "error");
-      setIsClaimingStreak(false);
-    }
-  };
-
-  // Legacy mission countdown effect removed
-
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) {
-      showNotification("Please enter a promo code", "error");
-      return;
-    }
-
-    if (isApplyingPromo || redeemPromoMutation.isPending) return;
-
-    setIsApplyingPromo(true);
-
-    try {
-      const monetagResult = await showMonetagRewardedAd();
-
-      if (monetagResult.unavailable || !monetagResult.success) {
-        showNotification(monetagResult.unavailable ? "Rewarded ads are not available right now. Please try again later." : "Please watch the ad to claim your promo code.", "error");
-        setIsApplyingPromo(false);
-        return;
-      }
-
-      redeemPromoMutation.mutate(promoCode.trim().toUpperCase());
-    } catch (error) {
-      console.error('Promo claim error:', error);
-      showNotification("Something went wrong. Please try again.", "error");
-      setIsApplyingPromo(false);
-    }
-  };
-
-  const handleBoosterClick = () => {
-    setBoosterPopupOpen(true);
-  };
-
-
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="flex gap-1 justify-center mb-4">
-            <div className="w-2 h-2 rounded-full bg-[#2563eb] animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-[#2563eb] animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-[#2563eb] animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          </div>
-          <div className="text-foreground font-medium">{t('loading')}</div>
-        </div>
-      </div>
-    );
+  if (userLoading) {
+    return <div className="min-h-screen bg-[#090909] flex items-center justify-center text-white/50 text-sm">Loading…</div>;
   }
-
-
-
-
-
-  // Mutation handlers for Daily Tasks
-  // Legacy daily mission handlers removed
-
-
-
-
 
   return (
     <Layout>
-
-      <main className="max-w-md mx-auto px-4 text-white flex flex-col" style={{ paddingTop: 8, background: '#090909' }}>
-
-        {/* Promo Code */}
-        <section style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            {t('promo_code')}
+      <main className="max-w-md mx-auto px-3 text-white pb-[100px]" style={{ background: "#090909", minHeight: "100%" }}>
+        <section aria-label="Wallet balance" style={{ padding: "18px 9px 14px", textAlign: "center", overflow: "hidden" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Wallet Balance</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+            <span style={{ fontSize: balanceLabel.length > 14 ? 26 : balanceLabel.length > 10 ? 34 : 42, fontWeight: 700, color: "#fff", fontFamily: "Roboto Mono, monospace", letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", lineHeight: 1, wordBreak: "break-all" }}>{balanceLabel}</span>
+            <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 18, height: 18 }} />
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
-            {t('promo_code_hint')}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 16 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>≈ {tonBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} TON</span>
+            <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>≈ ${usdBalance.toFixed(4)}</span>
           </div>
-          <PromoCodeInput />
+          <div style={{ display: "flex", justifyContent: "center", gap: "clamp(14px, 5vw, 24px)" }}>
+            <ActionButton label="Withdraw" onClick={() => setLocation("/account")}><ArrowDownToLine size={24} strokeWidth={2.5} /></ActionButton>
+            <ActionButton label="Promo" onClick={() => setPromoOpen(true)}><span style={{ fontSize: 25, lineHeight: 1 }}>%</span></ActionButton>
+            <ActionButton label="Staking" onClick={() => showNotification("Staking is coming soon.", "info")}><span style={{ fontSize: 23, lineHeight: 1 }}>◆</span></ActionButton>
+          </div>
         </section>
 
-        {/* Daily Task: Check-In, Mystery Gift, and daily missions */}
-        <style>{`@keyframes spin-hdc { to { transform: rotate(360deg); } }`}</style>
-
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 0, paddingLeft: 4 }}>
-            {t('daily_task')}
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 0, marginBottom: 8, paddingLeft: 4 }}>
-            {t('daily_task_hint')}
-          </div>
-
-          <div style={{ background: '#252525', borderRadius: 14, overflow: 'hidden' }}>
-            {/* Daily Check-In */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-              <img
-                src="/assets/check-in.png"
-                alt={t('daily_checkin')}
-                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('daily_checkin')}</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    {Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setCheckinSheetOpen(true)}
-                disabled={checkinStatus?.alreadyClaimedToday}
-                style={{
-                  background: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-                  color: checkinStatus?.alreadyClaimedToday ? 'rgba(255,255,255,0.3)' : '#fff',
-                  border: 'none',
-                  width: 92, height: 38, boxSizing: 'border-box' as const, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
-                  cursor: checkinStatus?.alreadyClaimedToday ? 'not-allowed' : 'pointer',
-                  flexShrink: 0, letterSpacing: '0.03em', whiteSpace: 'nowrap',
-                  boxShadow: checkinStatus?.alreadyClaimedToday ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                }}
-                className="active:scale-95 transition-transform"
-              >
-                {checkinStatus?.alreadyClaimedToday ? t('done') : t('claim')}
-              </button>
+        <section aria-label="Daily rewards" style={{ marginTop: 4, marginBottom: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 10px 4px" }}>Daily Rewards</div>
+          <div style={{ background: "#252525", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
+              <img src="/assets/check-in.png" alt="Daily Check-In" style={{ width: 28, height: 28, objectFit: "contain" }} />
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Daily Check-In</div></div>
+              <button type="button" onClick={() => setCheckinOpen(true)} disabled={Boolean(checkinStatus?.alreadyClaimedToday)} style={{ background: checkinStatus?.alreadyClaimedToday ? "rgba(255,255,255,0.06)" : ACTION_BACKGROUND, color: checkinStatus?.alreadyClaimedToday ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 92, height: 38, borderRadius: 12, fontSize: 12, fontWeight: 800 }}>{checkinStatus?.alreadyClaimedToday ? "DONE" : "CHECK"}</button>
             </div>
-
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />
-
-            {/* Mystery Gift */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 16px' }}>
-              <img
-                src="/assets/mystery-box.png"
-                alt={t('mystery_gift')}
-                style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{t('mystery_gift')}</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                  <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                  <span style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                    10–100
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={handleMysteryOpen}
-                disabled={mysteryOpened || mysteryAdLoading}
-                style={{
-                  background: mysteryOpened ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-                  color: mysteryOpened ? 'rgba(255,255,255,0.3)' : '#fff',
-                  border: 'none',
-                  width: 92, height: 38, boxSizing: 'border-box' as const, borderRadius: 12, padding: 0, fontSize: 12, fontWeight: 800,
-                  cursor: (mysteryOpened || mysteryAdLoading) ? 'not-allowed' : 'pointer', flexShrink: 0,
-                  boxShadow: mysteryOpened ? 'none' : '0 2px 12px rgba(37,99,235,0.4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, letterSpacing: '0.03em',
-                }}
-                className="active:scale-95 transition-transform"
-              >
-                {mysteryAdLoading ? (
-                  <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin-hdc 0.7s linear infinite' }} />
-                ) : mysteryOpened ? t('done') : t('open')}
-              </button>
+            <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
+              <img src="/assets/mystery-box.png" alt="Mystery Gift" style={{ width: 28, height: 28, objectFit: "contain" }} />
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Mystery Gift</div></div>
+              <button type="button" onClick={openMysteryBox} disabled={mysteryOpened || mysteryLoading} style={{ background: mysteryOpened || mysteryLoading ? "rgba(255,255,255,0.06)" : ACTION_BACKGROUND, color: mysteryOpened || mysteryLoading ? "rgba(255,255,255,0.3)" : "#fff", border: "none", width: 92, height: 38, borderRadius: 12, fontSize: 12, fontWeight: 800 }}>{mysteryLoading ? "..." : mysteryOpened ? "DONE" : "OPEN"}</button>
             </div>
-
-            {/* Check for Updates and Share With Friends stay inside Daily Task */}
-            <DailyMissionTasks />
           </div>
+        </section>
 
-        </div>
-
-          <DailyCheckinSheet
-            open={checkinSheetOpen}
-            onClose={() => setCheckinSheetOpen(false)}
-            streak={checkinStatus?.streak ?? 0}
-            dayIndex={checkinStatus?.dayIndex ?? 0}
-            alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? false}
-            adsgramBlockId={appConfig?.adsgramCheckinBlockId || ''}
-            onClaimed={() => {
-              setCheckinSheetOpen(false);
-              queryClient.invalidateQueries({ queryKey: ['/api/daily-checkin/status'] });
-              queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-              queryClient.invalidateQueries({ queryKey: ['/api/missions/status'] });
-            }}
-          />
-
-        <InviteFriendsSection />
-
-        {/* Bottom Spacer for floating nav */}
-        <div style={{ height: 80, flexShrink: 0 }} />
+        <HomeStatistics />
       </main>
 
+      <DailyCheckinSheet
+        open={checkinOpen}
+        onClose={() => setCheckinOpen(false)}
+        streak={checkinStatus?.streak ?? 0}
+        dayIndex={checkinStatus?.dayIndex ?? 0}
+        alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? false}
+        adsgramBlockId={appConfig?.adsgramCheckinBlockId || ""}
+        onClaimed={() => {
+          setCheckinOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["/api/daily-checkin/status"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        }}
+      />
+
+      {promoOpen && (
+        <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 1200, display: "flex", alignItems: "flex-end" }} onClick={() => setPromoOpen(false)}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)" }} />
+          <div onClick={event => event.stopPropagation()} style={{ position: "relative", width: "100%", background: "#0a0a0a", borderRadius: "28px 28px 0 0", padding: "24px 16px max(38px, calc(env(safe-area-inset-bottom, 0px) + 20px))", boxSizing: "border-box" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 3, background: "rgba(255,255,255,.1)", margin: "0 auto 20px" }} />
+            <div style={{ textAlign: "center", color: "#fff", fontSize: 18, fontWeight: 900, marginBottom: 16 }}>Promo Code</div>
+            <PromoCodeInput />
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
