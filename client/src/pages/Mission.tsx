@@ -1,9 +1,8 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import AdWatchingSection from '@/components/AdWatchingSection';
-import DailyCheckinSheet from '@/components/DailyCheckinSheet';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import CreatePanel from '@/components/CreatePanel';
 
 type MissionTab = 'daily' | 'community' | 'partner';
@@ -11,24 +10,7 @@ type MissionTab = 'daily' | 'community' | 'partner';
 export default function Mission() {
   const [createTaskOpen, setCreateTaskOpen] = useState(() => new URLSearchParams(window.location.search).get('open') === 'create');
   const [activeTab, setActiveTab] = useState<MissionTab>('daily');
-  const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
-  const checkinShownRef = useRef(false);
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
-  const { data: checkinStatus } = useQuery<any>({
-    queryKey: ['/api/daily-checkin/status'],
-    queryFn: async () => {
-      const response = await fetch('/api/daily-checkin/status', { credentials: 'include' });
-      if (!response.ok) return null;
-      return response.json();
-    },
-    retry: false,
-  });
-
-  useEffect(() => {
-    if (checkinShownRef.current || !checkinStatus) return;
-    checkinShownRef.current = true;
-    if (!checkinStatus.alreadyClaimedToday) setCheckinSheetOpen(true);
-  }, [checkinStatus]);
 
   const tabStyle = (tab: MissionTab) => ({
     border: 0,
@@ -53,7 +35,7 @@ export default function Mission() {
 
   return (
     <Layout onAddTask={() => setCreateTaskOpen(true)}>
-      <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
+      <main className="max-w-md mx-auto min-h-full px-4 pt-2 pb-24 text-white space-y-4 bg-black" style={{ background: '#000' }}>
         <section aria-label="Mission tabs" role="tablist" style={tabsStyle}>
           <button type="button" style={tabStyle('daily')} onClick={() => setActiveTab('daily')}>Daily</button>
           <button type="button" style={tabStyle('community')} onClick={() => setActiveTab('community')}>Community</button>
@@ -70,14 +52,6 @@ export default function Mission() {
         {activeTab === 'community' && <AdvertiserTaskFeed kind="community" title="Community Tasks" />}
         {activeTab === 'partner' && <AdvertiserTaskFeed kind="partner" title="Partner Tasks" />}
 
-        <DailyCheckinSheet
-          open={checkinSheetOpen}
-          onClose={() => setCheckinSheetOpen(false)}
-          streak={checkinStatus?.streak ?? 0}
-          dayIndex={checkinStatus?.dayIndex ?? 0}
-          alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? false}
-          onClaimed={() => setCheckinSheetOpen(false)}
-        />
         <CreatePanel open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
       </main>
     </Layout>
