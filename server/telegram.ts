@@ -1374,8 +1374,8 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
     buttonRows.push([{ text: 'Start Mining', icon_custom_emoji_id: '5197371802136892976', url: appUrl }]);
   }
   const discussUpdateRow = [
-    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', icon_custom_emoji_id: '5197269100878907942', url: config.bot.updateUrl }] : [] ),
-    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', icon_custom_emoji_id: '5001410247059833785', url: config.bot.discussUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.updateUrl) ? [{ text: 'UPDATE', icon_custom_emoji_id: '5316568418890049830', url: config.bot.updateUrl }] : [] ),
+    ...( /^https?:\/\//i.test(config.bot.discussUrl) ? [{ text: 'DISCUSS', icon_custom_emoji_id: '6310075555106528104', url: config.bot.discussUrl }] : [] ),
   ];
   if (discussUpdateRow.length > 0) buttonRows.push(discussUpdateRow);
 
