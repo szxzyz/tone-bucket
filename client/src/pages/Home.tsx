@@ -14,7 +14,7 @@ export default function Home() {
 
   return (
     <Layout>
-      <main className="max-w-md mx-auto min-h-full px-4 pt-4 pb-24 text-white bg-[#000]">
+      <main className="max-w-md mx-auto min-h-full px-4 pt-4 pb-4 text-white bg-[#000]">
         <GameFarmingSection />
       </main>
     </Layout>
