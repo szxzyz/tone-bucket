@@ -4,6 +4,14 @@ import { useLanguage } from "@/hooks/useLanguage";
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
 
+const HomeIcon = ({ active, c }: { active: boolean; c: string }) => (
+  <svg width="29" height="29" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="m3.5 10.5 8.5-7 8.5 7" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5.5 9.5v10h13v-10" fill={active ? c : "none"} opacity={active ? 0.14 : 1} stroke={c} strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M9.5 19.5v-5h5v5" stroke={c} strokeWidth="1.8" strokeLinejoin="round" />
+  </svg>
+);
+
 const TasksIcon = ({ active, c }: { active: boolean; c: string }) => (
   <svg width="29" height="29" viewBox="0 0 24 24" fill="none">
     <rect x="3" y="4" width="18" height="16" rx="3" fill={active ? c : "none"} opacity={active ? 0.15 : 1} stroke={c} strokeWidth="1.8" />
@@ -29,6 +37,7 @@ const AccountIcon = ({ active, c }: { active: boolean; c: string }) => (
 );
 
 const TABS = [
+  { id: "home", key: "nav_home", path: "/" },
   { id: "mission", key: "nav_mission", path: "/mission" },
   { id: "friends", key: "nav_friends", path: "/affiliates" },
   { id: "account", key: "nav_account", path: "/account" },
@@ -56,9 +65,7 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {labels.map((tab) => {
-        // Keep the root and legacy game/machine aliases highlighted on Mission.
-        const active = (tab.id === "mission" && ["/", "/game", "/machine"].includes(location))
-          || location === tab.path;
+        const active = (tab.id === "mission" && ["/game", "/machine"].includes(location)) || location === tab.path;
         const color = active ? ACTIVE : DIM;
 
         return (
@@ -97,7 +104,8 @@ export default function BottomNav() {
               />
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34 }}>
-              {tab.id === "mission" ? <TasksIcon active={active} c={color} />
+              {tab.id === "home" ? <HomeIcon active={active} c={color} />
+                : tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : <AccountIcon active={active} c={color} />}
             </div>

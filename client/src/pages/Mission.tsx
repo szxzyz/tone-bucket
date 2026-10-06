@@ -32,21 +32,30 @@ export default function Mission() {
   }, [checkinStatus]);
 
   const tabStyle = (tab: MissionTab) => ({
-    flex: 1,
-    height: 40,
     border: 0,
     borderRadius: 11,
-    background: activeTab === tab ? 'rgba(59,130,246,0.22)' : 'transparent',
-    color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.45)',
+    padding: '10px 8px',
+    background: activeTab === tab ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
+    color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.5)',
     fontSize: 12,
-    fontWeight: 800,
+    fontWeight: 900,
     cursor: 'pointer',
   });
+
+  const tabsStyle = {
+    margin: '0 0 10px',
+    padding: 4,
+    borderRadius: 14,
+    background: 'rgba(255,255,255,0.06)',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 4,
+  } as const;
 
   return (
     <Layout onAddTask={() => setCreateTaskOpen(true)}>
       <main className="max-w-md mx-auto px-4 pt-2 pb-24 text-white space-y-4">
-        <section aria-label="Mission tabs" style={{ padding: 4, borderRadius: 15, background: 'rgba(255,255,255,0.06)', display: 'flex', gap: 4 }}>
+        <section aria-label="Mission tabs" role="tablist" style={tabsStyle}>
           <button type="button" style={tabStyle('daily')} onClick={() => setActiveTab('daily')}>Daily</button>
           <button type="button" style={tabStyle('community')} onClick={() => setActiveTab('community')}>Community</button>
           <button type="button" style={tabStyle('partner')} onClick={() => setActiveTab('partner')}>Partner</button>

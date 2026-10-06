@@ -14,6 +14,7 @@ interface LanguageContextType {
 }
 
 const baseTranslations: Record<string, string> = {
+  nav_home: 'Home',
   nav_mission: 'Mission',
   nav_ads: 'Ads',
   nav_rank: 'Rank',
