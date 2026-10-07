@@ -12,12 +12,10 @@ import CountryBlockedScreen from "@/components/CountryBlockedScreen";
 import SeasonEndOverlay from "@/components/SeasonEndOverlay";
 import { SeasonEndContext } from "@/lib/SeasonEndContext";
 import { useAdmin } from "@/hooks/useAdmin";
-import BottomNav from "@/components/BottomNav";
 import { LanguageProvider } from "@/hooks/useLanguage";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Mission from "@/pages/Mission";
-import Home from "@/pages/Home";
 import Leaderboard from "@/pages/Leaderboard";
 import CreateTask from "@/pages/CreateTask";
 import Affiliates from "@/pages/Affiliates";
@@ -82,7 +80,7 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Home} />
+        <Route path="/" component={Mission} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Mission} />
         <Route path="/admin" component={Admin} />

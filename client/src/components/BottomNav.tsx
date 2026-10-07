@@ -1,17 +1,8 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useAdmin } from "@/hooks/useAdmin";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
-
-const HomeIcon = ({ active, c }: { active: boolean; c: string }) => (
-  <svg width="29" height="29" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="m3.5 10.5 8.5-7 8.5 7" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M5.5 9.5v10h13v-10" fill={active ? c : "none"} opacity={active ? 0.14 : 1} stroke={c} strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M9.5 19.5v-5h5v5" stroke={c} strokeWidth="1.8" strokeLinejoin="round" />
-  </svg>
-);
 
 const TasksIcon = ({ active, c }: { active: boolean; c: string }) => (
   <svg width="29" height="29" viewBox="0 0 24 24" fill="none">
@@ -38,8 +29,7 @@ const AccountIcon = ({ active, c }: { active: boolean; c: string }) => (
 );
 
 const TABS = [
-  { id: "home", key: "nav_home", path: "/" },
-  { id: "mission", key: "nav_mission", path: "/mission" },
+  { id: "mission", key: "nav_mission", path: "/" },
   { id: "friends", key: "nav_friends", path: "/affiliates" },
   { id: "account", key: "nav_account", path: "/account" },
 ] as const;
@@ -47,9 +37,8 @@ const TABS = [
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { t } = useLanguage();
-  const { isAdmin } = useAdmin();
-  const visibleTabs = isAdmin ? TABS : TABS.filter((tab) => tab.id !== "home");
-  const labels = visibleTabs.map((tab) => ({ ...tab, label: t(tab.key) }));
+  const currentPath = location.split("?")[0];
+  const labels = TABS.map((tab) => ({ ...tab, label: t(tab.key) }));
 
   return (
     <nav
@@ -68,13 +57,15 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {labels.map((tab) => {
-        const active = (tab.id === "mission" && ["/game", "/machine"].includes(location)) || location === tab.path;
+        const active = tab.id === "mission"
+          ? ["/", "/mission", "/game", "/machine"].includes(currentPath)
+          : currentPath === tab.path;
         const color = active ? ACTIVE : DIM;
 
         return (
           <button
             key={tab.id}
-            onClick={() => setLocation(tab.path)}
+            onClick={() => { if (!active) setLocation(tab.path); }}
             aria-label={tab.label}
             aria-current={active ? "page" : undefined}
             style={{
@@ -107,8 +98,7 @@ export default function BottomNav() {
               />
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34 }}>
-              {tab.id === "home" ? <HomeIcon active={active} c={color} />
-                : tab.id === "mission" ? <TasksIcon active={active} c={color} />
+              {tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : <AccountIcon active={active} c={color} />}
             </div>
