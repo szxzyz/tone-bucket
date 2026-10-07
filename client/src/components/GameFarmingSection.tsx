@@ -87,6 +87,31 @@ export default function GameFarmingSection() {
     return data;
   };
 
+  const runBoostAction = async () => {
+    const blockId = String(appConfig?.adsgramRewardBlockId || import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '').trim();
+    if (!blockId) throw new Error('AdsGram rewarded-ad Block ID is not configured. Please contact the app admin.');
+
+    const sessionId = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    try {
+      await apiRequest('POST', '/api/ads/register-session', {
+        sessionId,
+        adType: 'adsgram',
+        context: 'farming_boost',
+      });
+      await showAdgramAd(blockId);
+      await apiRequest('POST', '/api/ads/provider-complete', { sessionId, provider: 'adsgram' });
+      const response = await apiRequest('POST', '/api/farming/boost', { sessionId });
+      return await response.json();
+    } catch (error) {
+      // Retire an abandoned session; a verified provider callback is never
+      // removed by the server's cancellation endpoint.
+      await apiRequest('POST', '/api/ads/cancel-session', { sessionId }).catch(() => undefined);
+      throw error;
+    }
+  };
+
   const startMutation = useMutation({
     mutationFn: () => runFarmAction("/api/farming/start"),
     onSuccess: () => {
@@ -107,7 +132,7 @@ export default function GameFarmingSection() {
   });
 
   const boostMutation = useMutation({
-    mutationFn: () => runFarmAction("/api/farming/boost", true),
+    mutationFn: runBoostAction,
     onSuccess: (data) => {
       showNotification(`Mining boosted to ${data.multiplier ?? "next"}x`, "success");
       queryClient.invalidateQueries({ queryKey: ["/api/farming/state"] });

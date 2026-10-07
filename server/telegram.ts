@@ -12,6 +12,31 @@ import { CONTEST_PRIZE_AMOUNTS } from '../shared/constants';
 // The centralized env config (server/config.ts) is also used at line ~665
 // for the withdrawal group chat id fallback.
 
+const TELEGRAM_API_TIMEOUT_MS = 5_000;
+
+/** Retry transient Telegram network/server failures once; never retry 4xx errors. */
+async function fetchTelegramApi(url: string, init: RequestInit = {}): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
+      });
+      if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+  if (lastError instanceof Error) throw lastError;
+  throw new Error('Telegram API request failed after retry');
+}
+
 /** Parse all admin Telegram IDs from environment variables.
  *  Supports: ADMIN_IDS, TELEGRAM_ADMIN_IDS, SUPER_ADMIN_ID, TELEGRAM_ADMIN_ID
  *  No hardcoded fallback IDs — env vars are the sole source of truth.
@@ -75,7 +100,7 @@ export async function getBotUsername(): Promise<string> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return config.bot.username;
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const res = await fetchTelegramApi(`https://api.telegram.org/bot${token}/getMe`);
     if (res.ok) {
       const data = await res.json();
       if (data.result?.username) {
@@ -193,7 +218,7 @@ async function getCachedBotId(botToken: string): Promise<number | null> {
   const hit = botIdCache.get(key);
   if (hit !== undefined) return hit;
   try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+    const res = await fetchTelegramApi(`https://api.telegram.org/bot${botToken}/getMe`);
     if (res.ok) {
       const data = await res.json();
       if (data.ok && data.result?.id) {
@@ -210,7 +235,7 @@ async function getChatType(botToken: string, channelIdentifier: string): Promise
   const hit = chatTypeCache.get(key);
   if (hit && Date.now() < hit.expiresAt) return hit.type;
   try {
-    const res = await fetch(
+    const res = await fetchTelegramApi(
       `https://api.telegram.org/bot${botToken}/getChat?chat_id=${encodeURIComponent(channelIdentifier)}`
     );
     if (res.ok) {
@@ -235,7 +260,7 @@ async function isBotAdminInChannel(botToken: string, channelIdentifier: string):
       console.warn(`⚠️ isBotAdminInChannel: Could not resolve bot ID for ${channelIdentifier}`);
       return false;
     }
-    const res = await fetch(
+    const res = await fetchTelegramApi(
       `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(channelIdentifier)}&user_id=${botId}`
     );
     if (res.ok) {
@@ -278,7 +303,7 @@ export async function checkBotCanPostToChannel(
     // Resolve numeric chat ID and type via getChat
     let chatId: string | undefined;
     let chatType: string | undefined;
-    const chatRes = await fetch(
+    const chatRes = await fetchTelegramApi(
       `https://api.telegram.org/bot${botToken}/getChat?chat_id=${encodeURIComponent(channelIdentifier)}`
     );
     if (chatRes.ok) {
@@ -290,7 +315,7 @@ export async function checkBotCanPostToChannel(
     }
 
     // Check bot membership / permissions
-    const memberRes = await fetch(
+    const memberRes = await fetchTelegramApi(
       `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(channelIdentifier)}&user_id=${botId}`
     );
     if (!memberRes.ok) return { canPost: false, isAdmin: false, hasPostPermission: false, chatId, chatType, error: 'Telegram API error fetching membership' };
@@ -381,7 +406,7 @@ export async function verifyChannelMembership(
       const url =
         `https://api.telegram.org/bot${botToken}/getChatMember` +
         `?chat_id=${encodeURIComponent(channelIdentifier)}&user_id=${userId}`;
-      const res = await fetch(url);
+      const res = await fetchTelegramApi(url);
       const httpStatus = res.status;
 
       // Telegram always returns HTTP 200 for API calls, even on errors.
@@ -439,7 +464,7 @@ export async function verifyChannelMembership(
             // If the bot IS an admin (confirmed in Step 1) and we get "user not found",
             // we will check if the bot has the "can_invite_users" or "can_manage_chat" 
             // permission which is required for member lookups in some channel types.
-            const botMember = await fetch(
+            const botMember = await fetchTelegramApi(
               `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(channelIdentifier)}&user_id=${await getCachedBotId(botToken)}`
             ).then(r => r.json()).catch(() => null);
             
@@ -3753,7 +3778,7 @@ export async function checkBotStatus(): Promise<{ ok: boolean; username?: string
   }
 
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`, {
+    const response = await fetchTelegramApi(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`, {
       method: 'GET',
     });
 
@@ -4596,7 +4621,7 @@ export async function getWebhookInfo(): Promise<any> {
   }
 
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`, {
+    const response = await fetchTelegramApi(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`, {
       method: 'GET',
     });
 
@@ -4630,7 +4655,7 @@ export async function setupTelegramWebhook(webhookUrl: string, retries = 3): Pro
       
       console.log(`✅ Bot token valid: @${botStatus.username}`);
       
-      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
+      const response = await fetchTelegramApi(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

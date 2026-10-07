@@ -1717,11 +1717,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid session ID", errorType: 'invalid_session' });
       }
 
-      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code'];
+      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost'];
       const normalizedContext = allowedContexts.includes(context ?? '') ? (context as string) : 'ads_watch';
       const allowedAdTypes =
         normalizedContext === 'mission_ad' ? ['monetag', 'gigapub']
         : normalizedContext === 'promo_code' ? ['adsgram']
+        : normalizedContext === 'farming_boost' ? ['adsgram']
         : (normalizedContext === 'daily_checkin' || normalizedContext === 'mystery_box') ? ['adsgram']
         : ['adsgram', 'monetag', 'gigapub', 'uslads'];
       const normalizedAdType = allowedAdTypes.includes(adType ?? '') ? (adType as string) : null;
@@ -1729,7 +1730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
       }
       const adsgramUsesSdkCompletion = normalizedAdType === 'adsgram'
-        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(normalizedContext);
+        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost'].includes(normalizedContext);
       if (!hasTrustedRewardCallback(normalizedAdType) && !adsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
@@ -1873,7 +1874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, errorType: 'invalid_session' });
       }
       const allowedContexts = provider === 'adsgram'
-        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box']
+        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost']
         : ['ads_watch'];
       if (session.adType !== provider || !allowedContexts.includes(session.context)) {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
@@ -1965,7 +1966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [recentSession] = await db.select().from(adSessions)
         .where(and(
           eq(adSessions.userId, user.id),
-          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box', 'promo_code']),
+          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost']),
           eq(adSessions.adType, 'adsgram'),
           gte(adSessions.registeredAt, recentCutoff),
         ))
@@ -9747,6 +9748,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Farming start error:', error);
       return res.status(500).json({ message: 'Could not start Farming' });
+    }
+  });
+
+  app.post('/api/farming/boost', authenticateTelegram, adWatchRateLimit, async (req: any, res: any) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      if (!userId) return res.status(401).json({ message: 'Authentication required' });
+      const sessionId = req.body?.sessionId;
+      if (typeof sessionId !== 'string' || sessionId.length < 10 || sessionId.length > 180) {
+        return res.status(400).json({ message: 'Invalid ad session. Please watch a new ad.' });
+      }
+
+      const result: any = await db.transaction(async (tx) => {
+        const cutoff = new Date(Date.now() - AD_SESSION_MAX_AGE_MS);
+        const [session] = await tx.select().from(adSessions).where(and(
+          eq(adSessions.id, sessionId),
+          eq(adSessions.userId, String(userId)),
+          eq(adSessions.context, 'farming_boost'),
+          eq(adSessions.adType, 'adsgram'),
+          eq(adSessions.status, 'pending'),
+          gte(adSessions.registeredAt, cutoff),
+        )).for('update').limit(1);
+        if (!session) return { status: 400, message: 'Ad session expired or already used. Please watch a new ad.' };
+
+        const [providerProof] = await tx.select({ id: adRewardCallbacks.id }).from(adRewardCallbacks).where(and(
+          eq(adRewardCallbacks.provider, 'adsgram'),
+          eq(adRewardCallbacks.sessionId, sessionId),
+          eq(adRewardCallbacks.userId, String(userId)),
+        )).limit(1);
+        if (!providerProof) return { status: 409, message: 'Ad completion is not confirmed yet. Please wait a moment and try again.' };
+
+        const [user] = await tx.select().from(users).where(eq(users.id, String(userId))).for('update');
+        if (!user) return { status: 404, message: 'User not found' };
+        if (!user.miningStartedAt) return { status: 400, message: 'Start a mining cycle before boosting it.' };
+
+        const nowMs = Date.now();
+        const startedAt = new Date(user.miningStartedAt).getTime();
+        const elapsedSeconds = Math.max(0, Math.floor((nowMs - startedAt) / 1000));
+        if (elapsedSeconds >= MINING_DURATION_SECONDS) {
+          return { status: 400, message: 'This mining cycle is complete. Claim it before starting another cycle.' };
+        }
+
+        const currentMultiplier = Number(user.miningBoostMultiplier || 1);
+        const currentIndex = MINING_BOOSTS.indexOf(currentMultiplier as (typeof MINING_BOOSTS)[number]);
+        if (currentIndex < 0) return { status: 409, message: 'Mining boost state is invalid. Refresh the app and try again.' };
+        if (currentIndex >= MINING_BOOSTS.length - 1) {
+          return { status: 409, message: 'Maximum mining boost has already been reached.' };
+        }
+        const nextMultiplier = MINING_BOOSTS[currentIndex + 1];
+
+        // Credit the elapsed portion at the OLD rate before changing the rate,
+        // so each second of this cycle is accounted for exactly once.
+        const cycleEndMs = startedAt + MINING_DURATION_SECONDS * 1000;
+        const lastAccrualMs = user.miningLastAccrualAt
+          ? new Date(user.miningLastAccrualAt).getTime()
+          : startedAt;
+        const segmentSeconds = Math.max(0, Math.min(nowMs, cycleEndMs) - lastAccrualMs) / 1000;
+        const accruedGold = Math.min(
+          MINING_BASE_RATE_PER_HOUR * currentMultiplier,
+          Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * currentMultiplier,
+        );
+
+        const [consumedSession] = await tx.update(adSessions).set({
+          status: 'used',
+          usedAt: new Date(nowMs),
+        }).where(and(
+          eq(adSessions.id, sessionId),
+          eq(adSessions.userId, String(userId)),
+          eq(adSessions.status, 'pending'),
+        )).returning({ id: adSessions.id });
+        if (!consumedSession) return { status: 409, message: 'This ad session was already used. Please refresh and try again.' };
+
+        await tx.update(users).set({
+          miningBoostMultiplier: String(nextMultiplier),
+          miningBoostStep: currentIndex + 1,
+          miningAccruedGold: String(accruedGold),
+          miningLastAccrualAt: new Date(nowMs),
+          updatedAt: new Date(nowMs),
+        }).where(eq(users.id, String(userId)));
+
+        return { multiplier: nextMultiplier, boostStep: currentIndex + 1 };
+      });
+
+      if (result.status) return res.status(result.status).json({ message: result.message });
+      return res.json({ success: true, multiplier: result.multiplier, boostStep: result.boostStep });
+    } catch (error) {
+      console.error('Farming boost error:', error);
+      return res.status(500).json({ message: 'Could not boost mining. Please try again.' });
     }
   });
 
