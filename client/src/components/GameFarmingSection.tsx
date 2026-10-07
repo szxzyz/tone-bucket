@@ -133,11 +133,8 @@ export default function GameFarmingSection() {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-          <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 50, height: 50, flexShrink: 0, objectFit: "contain" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <FarmingMatrixCounter amount={amount} decimals={4} />
-          </div>
+        <div style={{ marginBottom: 16 }}>
+          <FarmingMatrixCounter amount={amount} decimals={4} />
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: "#8E8E93", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: isRunning ? 14 : 16 }}>

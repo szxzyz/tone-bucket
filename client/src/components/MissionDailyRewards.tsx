@@ -7,6 +7,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
 import { showAdgramAd } from "@/lib/showAd";
 import DailyMissionTasks from "@/components/DailyMissionTasks";
+import { GoldIcon } from "@/components/GameGoldIcon";
+import { CHECKIN_REWARDS } from "@/components/DailyCheckinSheet";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const MYSTERY_DAILY_LIMIT = 1;
 
@@ -18,6 +21,7 @@ function getTodayKey() {
 
 export default function MissionDailyRewards() {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [mysteryClaimsToday, setMysteryClaimsToday] = useState(0);
@@ -100,30 +104,34 @@ export default function MissionDailyRewards() {
 
   const checkinClaimed = Boolean(checkinStatus?.alreadyClaimedToday);
   const mysteryOpened = mysteryClaimsToday >= MYSTERY_DAILY_LIMIT;
+  const checkinReward = Number(checkinStatus?.reward ?? CHECKIN_REWARDS[checkinStatus?.dayIndex ?? 0] ?? CHECKIN_REWARDS[0]);
 
   return (
-    <>
+    <section aria-label={t("daily_task")} style={{ width: "100%", marginBottom: 16 }}>
       <style>{`@keyframes spin-mission-rewards { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.12em", textTransform: "uppercase", paddingLeft: 4 }}>
+        {t("daily_task")}
+      </div>
+      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 2, marginBottom: 8, paddingLeft: 4 }}>
+        {t("daily_task_hint")}
+      </div>
       <div
         aria-label="Daily rewards"
         style={{
           width: "100%",
-          borderRadius: 16,
+          borderRadius: 14,
           overflow: "hidden",
-          background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)",
-          boxShadow: "0 8px 22px rgba(0,0,0,0.25)",
+          background: "#252525",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-            <polyline points="9 16 11 18 15 14" />
-          </svg>
+          <img src="/assets/check-in.png" alt={t("daily_checkin")} style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Daily Check-In</div>
+            <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>{t("daily_checkin")}</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 7 }}>
+              <GoldIcon size={20} />
+              <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>{checkinReward.toLocaleString()}</span>
+            </div>
           </div>
           <button
             type="button"
@@ -139,20 +147,20 @@ export default function MissionDailyRewards() {
             }}
             className="active:scale-95 transition-transform"
           >
-            {checkinClaimed ? "DONE" : "CHECK"}
+            {checkinClaimed ? t("done") : t("claim")}
           </button>
         </div>
 
         <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px" }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z" />
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-            <line x1="12" y1="22.08" x2="12" y2="12" />
-          </svg>
+          <img src="/assets/mystery-box.png" alt={t("mystery_gift")} style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Mystery Box</div>
+            <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>{t("mystery_gift")}</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 7 }}>
+              <GoldIcon size={20} />
+              <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>10–100</span>
+            </div>
           </div>
           <button
             type="button"
@@ -170,7 +178,7 @@ export default function MissionDailyRewards() {
           >
             {mysteryAdLoading ? (
               <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin-mission-rewards 0.7s linear infinite" }} />
-            ) : mysteryOpened ? "DONE" : "OPEN"}
+            ) : mysteryOpened ? t("done") : t("open")}
           </button>
         </div>
         <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
@@ -190,6 +198,6 @@ export default function MissionDailyRewards() {
           queryClient.invalidateQueries({ queryKey: ["/api/missions/status"] });
         }}
       />
-    </>
+    </section>
   );
 }

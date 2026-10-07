@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import GameFarmingSection from "@/components/GameFarmingSection";
+import MissionDailyRewards from "@/components/MissionDailyRewards";
 
 export default function Mining() {
   return (
@@ -10,6 +11,7 @@ export default function Mining() {
           <p className="m-0 mt-1 text-xs text-white/45">Start a cycle, collect AXN, and upgrade your mining boost.</p>
         </header>
         <GameFarmingSection />
+        <MissionDailyRewards />
       </main>
     </Layout>
   );
