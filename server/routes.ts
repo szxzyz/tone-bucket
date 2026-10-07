@@ -899,7 +899,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/telegram/join-status', authenticateTelegramOrSession, async (req: any, res) => {
     res.set('Cache-Control', 'no-store');
-    const required = process.env.REQUIRE_CHANNEL_JOIN !== 'false';
+    let required = process.env.REQUIRE_CHANNEL_JOIN !== 'false';
+    try {
+      const [storedSetting] = await db.select({ settingValue: adminSettings.settingValue })
+        .from(adminSettings)
+        .where(eq(adminSettings.settingKey, 'require_channel_join'))
+        .limit(1);
+      if (storedSetting) required = storedSetting.settingValue === 'true';
+    } catch (error) {
+      console.warn('Could not load admin channel-join setting; using REQUIRE_CHANNEL_JOIN env default:', error);
+    }
     const configuredResources = [
       { key: 'channel' as const, title: config.telegram.channelName || 'Official Channel', link: config.telegram.channelUrl, id: config.telegram.channelId },
       { key: 'group' as const, title: config.telegram.groupName || 'Community group', link: config.telegram.groupUrl, id: config.telegram.groupId },
@@ -917,6 +926,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return { ...resource, id };
     }).filter((resource) => Boolean(resource.id || resource.link?.trim()));
 
+    const telegramId = Number(
+      req.user?.telegramUser?.id ||
+      req.user?.user?.telegram_id ||
+      req.session?.user?.telegramUser?.id ||
+      req.session?.user?.user?.telegram_id,
+    );
+    if (required && Number.isFinite(telegramId) && (isAdmin(String(telegramId)) || await isAdminAsync(String(telegramId)))) {
+      return res.json({
+        required: false,
+        verified: true,
+        resources: configuredResources.map(({ key, title, link }) => ({ key, title, link, joined: true })),
+      });
+    }
+
     // A missing optional resource must not be reported as "not joined" forever.
     // Only resources with a Telegram chat ID can be checked by getChatMember.
     if (!required || configuredResources.length === 0) {
@@ -932,12 +955,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // the database user, depending on whether the request used initData or a
       // previously-created session. Support both shapes so launch-time checks do
       // not depend on one authentication path.
-      const telegramId = Number(
-        req.user?.telegramUser?.id ||
-        req.user?.user?.telegram_id ||
-        req.session?.user?.telegramUser?.id ||
-        req.session?.user?.user?.telegram_id,
-      );
       const botToken = config.bot.token || process.env.TELEGRAM_BOT_TOKEN;
       if (!Number.isFinite(telegramId) || !botToken) {
         return res.json({
@@ -5413,6 +5430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adsgramAdLimit: parseInt(getSetting('adsgram_ad_limit', '40')),
         adsgramRewardPerAd: parseInt(getSetting('adsgram_reward_per_ad', '50')),
         adsgramEnabled: getSetting('adsgram_enabled', 'true') === 'true',
+        requireChannelJoin: getSetting('require_channel_join', process.env.REQUIRE_CHANNEL_JOIN === 'false' ? 'false' : 'true') === 'true',
         monetagAdLimit: parseInt(getSetting('monetag_ad_limit', '30')),
         monetagRewardPerAd: parseInt(getSetting('monetag_reward_per_ad', '30')),
         monetagEnabled: getSetting('monetag_enabled', 'true') === 'true',
