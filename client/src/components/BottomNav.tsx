@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAdmin } from "@/hooks/useAdmin";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
@@ -46,7 +47,9 @@ const TABS = [
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { t } = useLanguage();
-  const labels = TABS.map((tab) => ({ ...tab, label: t(tab.key) }));
+  const { isAdmin } = useAdmin();
+  const visibleTabs = isAdmin ? TABS : TABS.filter((tab) => tab.id !== "home");
+  const labels = visibleTabs.map((tab) => ({ ...tab, label: t(tab.key) }));
 
   return (
     <nav

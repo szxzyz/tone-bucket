@@ -4147,7 +4147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error('Error fetching unified home tasks:', error);
-      res.json({ success: true, tasks: [], completedTaskIds: [], totalAvailableTasks: 0 });
+      res.status(500).json({ success: false, message: 'Could not load community tasks. Please try again.' });
     }
   });
 

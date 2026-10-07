@@ -50,8 +50,8 @@ export default function Mission() {
         )}
         {activeTab === 'community' && (
           <>
-            <AdvertiserTaskFeed kind="game" title="Game Tasks" hideWhenEmpty />
-            <AdvertiserTaskFeed kind="social" title="Social Tasks" hideWhenEmpty />
+            <AdvertiserTaskFeed kind="game" title="Game Tasks" />
+            <AdvertiserTaskFeed kind="social" title="Social Tasks" />
           </>
         )}
 

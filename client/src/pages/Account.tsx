@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { User, Receipt, Shield, Globe, FileCheck2 } from 'lucide-react';
+import { User, Receipt, Shield, FileCheck2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -14,7 +14,7 @@ import GameWithdrawPopup from '@/components/GameWithdrawPopup';
 import PromoCodeInput from '@/components/PromoCodeInput';
 import { useLanguage } from '@/hooks/useLanguage';
 
-type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal' | 'language';
+type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
 
 export default function Account() {
@@ -67,7 +67,6 @@ export default function Account() {
   };
 
   const menuActions = [
-    { label: t('change_language'), icon: <Globe className="w-5 h-5 text-sky-400" />, action: () => setMenuView('language') },
     { label: t('proof_of_payment'), icon: <FileCheck2 className="w-5 h-5 text-purple-400" />, action: openPaymentProof },
     { label: t('transactions'), icon: <Receipt className="w-5 h-5 text-yellow-400" />, action: () => setMenuView('transactions') },
     { label: t('project_statistics'), icon: <RiBarChartFill className="w-5 h-5 text-blue-400" />, action: () => setMenuView('stats') },
@@ -81,7 +80,7 @@ export default function Account() {
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-[88px]">
         <div className="px-1 mb-3">
           <h1 className="m-0 text-xl font-black text-white">{t('profile')}</h1>
-          <p className="m-0 mt-1 text-xs text-white/45">Manage your language settings and TON wallet payouts</p>
+          <p className="m-0 mt-1 text-xs text-white/45">Manage your account and TON wallet payouts</p>
         </div>
         <section className="rounded-2xl p-4 mb-3" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">{t('account_info')}</p>

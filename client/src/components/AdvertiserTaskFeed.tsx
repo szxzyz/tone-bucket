@@ -160,14 +160,17 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
   // Older records use channel/bot; newer records may use social/game.
   const taskTypes = kind === "game" ? ["bot", "game"] : ["channel", "social"];
 
-  const { data, isLoading } = useQuery<{ success: boolean; tasks: UnifiedTask[] }>({
+  const { data, isLoading, isError, error, refetch } = useQuery<{ success: boolean; tasks: UnifiedTask[] }>({
     queryKey: ["/api/tasks/home/unified"],
     queryFn: async () => {
       const response = await fetch("/api/tasks/home/unified", { credentials: "include" });
-      if (!response.ok) return { success: true, tasks: [] };
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || `Could not load ${kind} tasks (${response.status}).`);
+      }
       return response.json();
     },
-    retry: false,
+    retry: 1,
   });
 
   const clickTaskMutation = useMutation({
@@ -208,7 +211,7 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
     if (directTimerRef.current) clearTimeout(directTimerRef.current);
   }, []);
 
-  if (!isLoading && hideWhenEmpty && tasks.length === 0) return null;
+  if (!isLoading && !isError && hideWhenEmpty && tasks.length === 0) return null;
 
   const handleTaskSelect = (task: UnifiedTask) => {
     // All mission links open directly. Verification-required tasks use the
@@ -246,7 +249,12 @@ export default function AdvertiserTaskFeed({ kind, title, subtitle, allowCreate 
         </button>
       )}
 
-      {isLoading ? (
+      {isError ? (
+        <div style={{ textAlign: "center", padding: "20px", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", borderRadius: 16 }}>
+          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 12 }}>{error instanceof Error ? error.message : `Could not load ${kind} tasks.`}</p>
+          <button type="button" onClick={() => refetch()} style={{ border: 0, borderRadius: 10, padding: "8px 14px", color: "#fff", background: "#2563eb", fontSize: 12, fontWeight: 800 }}>Try again</button>
+        </div>
+      ) : isLoading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "30px 0" }}><Loader2 className="animate-spin text-white/20" /></div>
       ) : tasks.length === 0 ? (
         <div style={{ textAlign: "center", padding: "24px 20px", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)", borderRadius: 16 }}>
