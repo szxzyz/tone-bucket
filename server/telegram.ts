@@ -1131,83 +1131,83 @@ interface AmbPromoStrings {
 
 const AMB_PROMO_STRINGS: Record<AmbPromoLang, AmbPromoStrings> = {
   en: {
-    title: 'Paid Adz Promo Code is LIVE!',
+    title: 'Axionet Promo Code is LIVE!',
     subtitle: 'First 100 Active Users Only',
     rewardLabel: 'Reward:',
     codeLabel: 'Code:',
-    cta: "Open Paid Adz and claim your reward now before it's gone!",
+    cta: "Open Axionet and claim your reward now before it's gone!",
     button: '👉🏻 Click here to claim 👈🏻',
   },
   ru: {
-    title: 'Промокод Paid Adz уже АКТИВЕН!',
+    title: 'Промокод Axionet уже АКТИВЕН!',
     subtitle: 'Только первые 100 активных пользователей',
     rewardLabel: 'Награда:',
     codeLabel: 'Код:',
-    cta: 'Откройте Paid Adz и заберите награду, пока не поздно!',
+    cta: 'Откройте Axionet и заберите награду, пока не поздно!',
     button: '👉🏻 Нажмите, чтобы получить 👈🏻',
   },
   ar: {
-    title: 'رمز ترويجي Paid Adz متاح الآن!',
+    title: 'رمز ترويجي Axionet متاح الآن!',
     subtitle: 'أول 100 مستخدم نشط فقط',
     rewardLabel: 'المكافأة:',
     codeLabel: 'الرمز:',
-    cta: 'افتح Paid Adz واحصل على مكافأتك قبل أن تنتهي!',
+    cta: 'افتح Axionet واحصل على مكافأتك قبل أن تنتهي!',
     button: '👉🏻 اضغط هنا للمطالبة 👈🏻',
   },
   uk: {
-    title: 'Промокод Paid Adz вже АКТИВНИЙ!',
+    title: 'Промокод Axionet вже АКТИВНИЙ!',
     subtitle: 'Лише перші 100 активних користувачів',
     rewardLabel: 'Нагорода:',
     codeLabel: 'Код:',
-    cta: 'Відкрийте Paid Adz та отримайте нагороду, поки не сплив час!',
+    cta: 'Відкрийте Axionet та отримайте нагороду, поки не сплив час!',
     button: '👉🏻 Натисніть, щоб отримати 👈🏻',
   },
   de: {
-    title: 'Paid Adz Promo-Code ist LIVE!',
+    title: 'Axionet Promo-Code ist LIVE!',
     subtitle: 'Nur die ersten 100 aktiven Nutzer',
     rewardLabel: 'Belohnung:',
     codeLabel: 'Code:',
-    cta: 'Öffne Paid Adz und sichere dir deine Belohnung, bevor sie weg ist!',
+    cta: 'Öffne Axionet und sichere dir deine Belohnung, bevor sie weg ist!',
     button: '👉🏻 Hier klicken zum Einlösen 👈🏻',
   },
   zh: {
-    title: 'Paid Adz 促销码现已上线！',
+    title: 'Axionet 促销码现已上线！',
     subtitle: '仅限前 100 位活跃用户',
     rewardLabel: '奖励：',
     codeLabel: '码：',
-    cta: '立即打开 Paid Adz 领取奖励，先到先得！',
+    cta: '立即打开 Axionet 领取奖励，先到先得！',
     button: '👉🏻 点击领取 👈🏻',
   },
   pt: {
-    title: 'Código Promo Paid Adz está LIVE!',
+    title: 'Código Promo Axionet está LIVE!',
     subtitle: 'Apenas os primeiros 100 usuários ativos',
     rewardLabel: 'Recompensa:',
     codeLabel: 'Código:',
-    cta: 'Abra o Paid Adz e resgate sua recompensa antes que acabe!',
+    cta: 'Abra o Axionet e resgate sua recompensa antes que acabe!',
     button: '👉🏻 Clique aqui para resgatar 👈🏻',
   },
   es: {
-    title: '¡El código promo de Paid Adz está EN VIVO!',
+    title: '¡El código promo de Axionet está EN VIVO!',
     subtitle: 'Solo los primeros 100 usuarios activos',
     rewardLabel: 'Recompensa:',
     codeLabel: 'Código:',
-    cta: '¡Abre Paid Adz y reclama tu recompensa antes de que se acabe!',
+    cta: '¡Abre Axionet y reclama tu recompensa antes de que se acabe!',
     button: '👉🏻 Haz clic aquí para reclamar 👈🏻',
   },
   vi: {
-    title: 'Mã khuyến mãi Paid Adz đã ra mắt!',
+    title: 'Mã khuyến mãi Axionet đã ra mắt!',
     subtitle: 'Chỉ 100 người dùng hoạt động đầu tiên',
     rewardLabel: 'Phần thưởng:',
     codeLabel: 'Mã:',
-    cta: 'Mở Paid Adz và nhận phần thưởng của bạn ngay trước khi hết!',
+    cta: 'Mở Axionet và nhận phần thưởng của bạn ngay trước khi hết!',
     button: '👉🏻 Nhấp vào đây để nhận 👈🏻',
   },
   bn: {
-    title: 'Paid Adz প্রোমো কোড লাইভ!',
+    title: 'Axionet প্রোমো কোড লাইভ!',
     subtitle: 'শুধুমাত্র প্রথম ১০০ জন সক্রিয় ব্যবহারকারী',
     rewardLabel: 'পুরস্কার:',
     codeLabel: 'কোড:',
-    cta: 'Paid Adz খুলুন এবং এখনই আপনার পুরস্কার দাবি করুন!',
+    cta: 'Axionet খুলুন এবং এখনই আপনার পুরস্কার দাবি করুন!',
     button: '👉🏻 এখানে ক্লিক করুন 👈🏻',
   },
 };
@@ -1540,7 +1540,7 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
     }
 
     // Get the share banner image URL - use public URL
-    const shareImageUrl = `${appUrl}/images/paid-adz-invite-banner.png?v=paidadz`;
+    const shareImageUrl = `${appUrl}/images/axionet-invite-banner.png?v=axionet`;
     
     console.log(`📷 Share image URL: ${shareImageUrl}`);
     console.log(`🔗 Referral Link: ${referralLink}`);
@@ -1552,9 +1552,9 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: '💵 Join Paid Adz and earn TON!',
-        description: '💵 Join Paid Adz and earn TON just by Mining & completing tasks!',
-        caption: '💵 Join Paid Adz and earn TON just by Mining & completing tasks!',
+        title: '🚀 Join Axionet & earn GRAM by Mining $AXN!',
+        description: '🚀 Join Axionet & earn GRAM by Mining $AXN! Signup with my referral Link 👇',
+        caption: '🚀 Join Axionet & earn GRAM by Mining $AXN! Signup with my referral Link 👇',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -1572,10 +1572,10 @@ export async function handleInlineQuery(inlineQuery: any): Promise<boolean> {
         type: 'article',
         id: `article_${user.referralCode}_${Date.now()}`,
         title: '💸 Share with friends',
-        description: 'Join Paid Adz and start earning with me.',
+        description: '🚀 Join Axionet & earn GRAM by Mining $AXN! Signup with my referral Link 👇',
         thumbnail_url: shareImageUrl,
         input_message_content: {
-          message_text: '💵 Join Paid Adz and earn TON just by Mining & completing tasks!',
+          message_text: '🚀 Join Axionet & earn GRAM by Mining $AXN! Signup with my referral Link 👇',
           parse_mode: 'HTML'
         },
         reply_markup: {
@@ -3105,7 +3105,7 @@ Share your unique referral link and earn GEM when your friends join:
           const botUsername = await getBotUsername();
           const botLink = `https://t.me/${botUsername}/MyWAdz`;
           const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
-          const shareText = `🎉 My withdrawal of ${netUsdtAmount.toFixed(3)} USDT has just been successfully completed! 💰\n\nJoin Paid Adz using my referral link and start earning together! 🚀`;
+          const shareText = `🎉 My withdrawal of ${netUsdtAmount.toFixed(3)} USDT has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
           const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
           const successKeyboard = {
             inline_keyboard: [

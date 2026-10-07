@@ -35,7 +35,7 @@ export default function Mission() {
 
   return (
     <Layout onAddTask={() => setCreateTaskOpen(true)}>
-      <main className="max-w-md mx-auto min-h-full px-4 pt-2 pb-24 text-white space-y-4 bg-black" style={{ background: '#000' }}>
+      <main className="max-w-md mx-auto min-h-full px-3 pt-2 pb-24 text-white space-y-4 bg-black" style={{ background: '#000' }}>
         <section aria-label="Mission tabs" role="tablist" style={tabsStyle}>
           <button type="button" style={tabStyle('daily')} onClick={() => setActiveTab('daily')}>Daily</button>
           <button type="button" style={tabStyle('community')} onClick={() => setActiveTab('community')}>Community</button>

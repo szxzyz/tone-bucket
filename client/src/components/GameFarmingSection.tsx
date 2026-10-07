@@ -19,10 +19,10 @@ function formatCountdown(seconds: number) {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: "#1b1b1b",
+  background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)",
   borderRadius: 16,
   padding: 16,
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "none",
 };
 
 const actionButtonStyle: React.CSSProperties = {
@@ -151,7 +151,7 @@ export default function GameFarmingSection() {
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <button type="button" onClick={() => setShowBoostPopup(true)} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: "#007AFF", boxShadow: "0 8px 20px rgba(0,122,255,0.18)" }}>
+          <button type="button" onClick={() => setShowBoostPopup(true)} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 8px 20px rgba(37,99,235,0.28)" }}>
             <Rocket size={16} /> Boost
           </button>
           {pending ? (
@@ -159,7 +159,7 @@ export default function GameFarmingSection() {
               <Loader2 size={15} className="animate-spin" /> {claimMutation.isPending ? "Claiming…" : "Starting…"}
             </button>
           ) : isComplete ? (
-            <button type="button" onClick={() => claimMutation.mutate()} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: "#007AFF", boxShadow: "0 8px 20px rgba(0,122,255,0.18)" }}>
+            <button type="button" onClick={() => claimMutation.mutate()} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 8px 20px rgba(37,99,235,0.28)" }}>
               <HandCoins size={16} /> Claim
             </button>
           ) : isRunning ? (
@@ -167,7 +167,7 @@ export default function GameFarmingSection() {
               <Pickaxe size={15} /> Mining
             </button>
           ) : (
-            <button type="button" onClick={() => startMutation.mutate()} disabled={isLoading} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: isLoading ? "rgba(255,255,255,0.08)" : "#007AFF", color: isLoading ? "rgba(255,255,255,0.5)" : "#fff", boxShadow: isLoading ? "none" : "0 8px 20px rgba(0,122,255,0.18)" }}>
+            <button type="button" onClick={() => startMutation.mutate()} disabled={isLoading} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: isLoading ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg, #2563eb, #3b82f6)", color: isLoading ? "rgba(255,255,255,0.5)" : "#fff", boxShadow: isLoading ? "none" : "0 8px 20px rgba(37,99,235,0.28)" }}>
               {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Pickaxe size={16} />} Start
             </button>
           )}

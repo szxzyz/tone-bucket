@@ -103,8 +103,8 @@ app.get('/tonconnect-manifest.json', async (req, res) => {
 
   res.json({
     url: appOrigin,
-    name: "Paid Adz",
-    iconUrl: `${appOrigin}/paid-adz-logo.png`,
+    name: "Axionet",
+    iconUrl: `${appOrigin}/assets/axionet-mining.webp`,
     termsOfUseUrl: `${appOrigin}/terms`,
     privacyPolicyUrl: `${appOrigin}/privacy`
   });

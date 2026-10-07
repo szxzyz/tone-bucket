@@ -280,8 +280,8 @@ export default function CwalletSetupDialog({ open, onOpenChange }: CwalletSetupD
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#6b21a8] text-lg">
-            <img src="/paid-adz-logo.png" alt="Paid Adz TON wallet" className="w-7 h-7 rounded-full object-cover" />
-            Paid Adz Wallet Setup
+            <img src="/assets/axionet-mining.webp" alt="Axionet AXN" className="w-7 h-7 rounded-full object-contain" />
+            Axionet Wallet Setup
           </DialogTitle>
         </DialogHeader>
 

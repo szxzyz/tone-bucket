@@ -83,8 +83,8 @@ export default function WalletDialog({ open, onOpenChange }: WalletDialogProps) 
       <DialogContent className="sm:max-w-md rounded-[20px] bg-black/95">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
-            <img src="/paid-adz-logo.png" alt="Paid Adz TON wallet" className="w-7 h-7 rounded-full object-cover" />
-            Paid Adz Wallet Setup
+            <img src="/assets/axionet-mining.webp" alt="Axionet AXN" className="w-7 h-7 rounded-full object-contain" />
+            Axionet Wallet Setup
           </DialogTitle>
           <DialogDescription className="text-gray-400">
             Enter your payment details to withdraw earned funds

@@ -1,9 +1,15 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
-import { Pickaxe } from "lucide-react";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
+
+const MiningIcon = ({ active, c }: { active: boolean; c: string }) => (
+  <svg width="29" height="29" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M3.5 20.5 12 12" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+    <path d="m7.1 7.7 2.1-2.1a6 6 0 0 1 8.5 0l2.7 2.7a1.5 1.5 0 0 1 0 2.1l-2.1 2.1a1.5 1.5 0 0 1-2.1 0l-6.9-6.9a1.5 1.5 0 0 0-2.1 0Z" fill={active ? c : "none"} opacity={active ? 0.14 : 1} stroke={c} strokeWidth="1.7" strokeLinejoin="round" />
+  </svg>
+);
 
 const TasksIcon = ({ active, c }: { active: boolean; c: string }) => (
   <svg width="29" height="29" viewBox="0 0 24 24" fill="none">
@@ -102,7 +108,7 @@ export default function BottomNav() {
               />
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34 }}>
-              {tab.id === "mining" ? <Pickaxe size={29} color={color} strokeWidth={1.8} />
+              {tab.id === "mining" ? <MiningIcon active={active} c={color} />
                 : tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : <AccountIcon active={active} c={color} />}

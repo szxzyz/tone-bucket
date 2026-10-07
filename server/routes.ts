@@ -4290,10 +4290,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const webAppUrl = `https://t.me/${botUsername}/MyWAdz?startapp=${encodeURIComponent(user.referralCode)}`;
 
       // Get share banner image URL
-      const shareImageUrl = `${appUrl}/images/paid-adz-invite-banner.png?v=paidadz`;
+      const shareImageUrl = `${appUrl}/images/axionet-invite-banner.png?v=axionet`;
 
       // Caption for the share message
-      const caption = 'Join Paid Adz and earn GEM by watching ads, completing tasks, and inviting friends!';
+      const caption = '🚀 Join Axionet & earn GRAM by Mining $AXN! Signup with my referral Link 👇';
 
       // Send the photo message with inline button
       const result = await sendSharePhotoToChat(
@@ -12801,8 +12801,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null) ||
                     'https://vuuug.onrender.com';
 
-      const shareImageUrl = `${appUrl}/images/paid-adz-invite-banner.png?v=paidadz`;
-      const shareCaption = '🚀 Join Paid Adz and earn GRAM by watching ads! Sign up with my referral link 👇';
+      const shareImageUrl = `${appUrl}/images/axionet-invite-banner.png?v=axionet`;
+      const shareCaption = '🚀 Join Axionet & earn GRAM by Mining $AXN! Signup with my referral Link 👇';
       const webAppUrl = referralLink;
 
       console.log(`📤 Preparing share message for user ${userId}`);
@@ -12818,7 +12818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `share_${user.referralCode}_${Date.now()}`,
         photo_url: shareImageUrl,
         thumbnail_url: shareImageUrl,
-        title: 'Join Paid Adz and earn GRAM!',
+        title: 'Join Axionet and earn GRAM with $AXN!',
         description: shareCaption,
         caption: shareCaption,
         parse_mode: 'HTML',
