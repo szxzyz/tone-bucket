@@ -1340,7 +1340,7 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment(' Earn by:', { bold: true });
   addSegment('\n\n');
   addSegment('⛏️', { emojiId: '5197371802136892976' });
-  addSegment(' Mining Gold daily\n');
+  addSegment(' Mining $AXN daily\n');
   addSegment('✍️', { emojiId: '5197269100878907942' });
   addSegment(' Completing tasks\n');
   addSegment('📺', { emojiId: '5337068143175041033' });
@@ -1349,7 +1349,7 @@ export async function formatWelcomeMessage(userId: string, referralCode?: string
   addSegment(' Inviting friends\n');
   addSegment('💵', { emojiId: '5409048419211682843' });
   addSegment(' Withdrawing your ');
-  addSegment('$AXN', { bold: true });
+  addSegment('$GRAM', { bold: true });
   addSegment('\n\n');
   addSegment('🤑', { emojiId: '5249049926679147776' });
   addSegment(' Be part of the ');

@@ -122,7 +122,7 @@ function TaskCard({
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
+              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
               <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{reward.toLocaleString()}</span>
             </span>
           </div>

@@ -103,7 +103,7 @@ export default function Account() {
         </section>
 
         <section className="rounded-2xl px-3 py-3 mb-3 flex items-center gap-3" aria-label="AXN balance" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
-          <img src="/assets/gems-icon.svg" alt="AXN" className="w-9 h-9 object-contain shrink-0" />
+          <img src="/assets/axionet-mining.webp" alt="AXN" className="w-9 h-9 object-contain shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">{t('balance')}</p>
             <div className="flex items-baseline gap-1.5 min-w-0">

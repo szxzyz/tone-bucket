@@ -6,7 +6,7 @@ interface GoldIconProps {
 export function GoldIcon({ size = 20, className = "" }: GoldIconProps) {
   return (
     <img
-      src="/assets/gems-icon.svg"
+      src="/assets/axionet-mining.webp"
       alt="AXN"
       className={`flex-shrink-0 inline-block ${className}`}
       style={{

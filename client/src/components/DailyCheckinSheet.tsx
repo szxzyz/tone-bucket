@@ -48,7 +48,7 @@ function GemCoin({ size = 20, circle = false }: { size?: number; circle?: boolea
   // Same circular style as the AXN balance icon in the app header
   return (
     <img
-      src="/assets/gems-icon.svg"
+      src="/assets/axionet-mining.webp"
       alt="AXN"
       draggable={false}
       style={{

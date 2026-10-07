@@ -368,7 +368,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain" }} />
+                        <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain" }} />
                         <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
                       </span>
                     </div>

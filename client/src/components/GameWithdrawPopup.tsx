@@ -105,7 +105,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
               <div className="bg-white/5 rounded-xl px-4 py-3 flex justify-between items-center">
                 <span className="text-white text-xs font-semibold">Available Balance</span>
                 <span className="text-white text-sm font-black tabular-nums inline-flex items-center gap-1.5">
-                  <img src="/assets/gems-icon.svg" alt="AXN" className="w-5 h-5 object-contain" />
+                  <img src="/assets/axionet-mining.webp" alt="AXN" className="w-5 h-5 object-contain" />
                   {Math.floor(userBalance).toLocaleString()} AXN
                 </span>
               </div>

@@ -160,7 +160,7 @@ export default function WalletSection({ padBalance, usdBalance, uid, isAdmin, on
         <div className="flex items-center justify-between gap-3">
           {/* AXN Balance */}
           <div className="flex items-center gap-2">
-            <img src="/assets/gems-icon.svg" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
+            <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
             <div className="text-white font-bold text-xl">{Math.floor(padBalance).toLocaleString()} AXN</div>
           </div>
 

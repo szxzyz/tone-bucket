@@ -238,7 +238,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
                       }}>
                         {formatBalance(balanceGold)}
                       </span>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1, letterSpacing: '0.04em' }}><img src="/assets/gems-icon.svg" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1, letterSpacing: '0.04em' }}><img src="/assets/axionet-mining.webp" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
                     </div>
                   )}
                 </div>
