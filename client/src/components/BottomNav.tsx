@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
+import { Pickaxe } from "lucide-react";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
@@ -29,7 +30,8 @@ const AccountIcon = ({ active, c }: { active: boolean; c: string }) => (
 );
 
 const TABS = [
-  { id: "mission", key: "nav_mission", path: "/" },
+  { id: "mining", key: "nav_mining", path: "/" },
+  { id: "mission", key: "nav_mission", path: "/mission" },
   { id: "friends", key: "nav_friends", path: "/affiliates" },
   { id: "account", key: "nav_account", path: "/account" },
 ] as const;
@@ -57,8 +59,10 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {labels.map((tab) => {
-        const active = tab.id === "mission"
-          ? ["/", "/mission", "/game", "/machine"].includes(currentPath)
+        const active = tab.id === "mining"
+          ? ["/", "/mining"].includes(currentPath)
+          : tab.id === "mission"
+            ? ["/mission", "/game", "/machine"].includes(currentPath)
           : currentPath === tab.path;
         const color = active ? ACTIVE : DIM;
 
@@ -98,7 +102,8 @@ export default function BottomNav() {
               />
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34 }}>
-              {tab.id === "mission" ? <TasksIcon active={active} c={color} />
+              {tab.id === "mining" ? <Pickaxe size={29} color={color} strokeWidth={1.8} />
+                : tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : <AccountIcon active={active} c={color} />}
             </div>

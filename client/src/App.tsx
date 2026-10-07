@@ -16,6 +16,7 @@ import { LanguageProvider } from "@/hooks/useLanguage";
 
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Mission from "@/pages/Mission";
+import Mining from "@/pages/Mining";
 import Leaderboard from "@/pages/Leaderboard";
 import CreateTask from "@/pages/CreateTask";
 import Affiliates from "@/pages/Affiliates";
@@ -80,7 +81,8 @@ function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
-        <Route path="/" component={Mission} />
+        <Route path="/" component={Mining} />
+        <Route path="/mining" component={Mining} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Mission} />
         <Route path="/admin" component={Admin} />

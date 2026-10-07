@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Clock, HandCoins, Loader2, Pickaxe, Rocket } from "lucide-react";
+import { HandCoins, Loader2, Pickaxe, Rocket } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 import { showAdgramAd } from "@/lib/showAd";
+import FarmingMatrixCounter from "@/components/FarmingMatrixCounter";
 
 const BASE_RATE_PER_HOUR = 23.9574;
 const CYCLE_SECONDS = 60 * 60;
+const MINING_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25];
 
 function formatCountdown(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds));
@@ -15,6 +17,30 @@ function formatCountdown(seconds: number) {
   const secs = safe % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
+
+const cardStyle: React.CSSProperties = {
+  background: "#1b1b1b",
+  borderRadius: 16,
+  padding: 16,
+  border: "1px solid rgba(255,255,255,0.05)",
+};
+
+const actionButtonStyle: React.CSSProperties = {
+  width: "100%",
+  height: 44,
+  border: "none",
+  borderRadius: 12,
+  color: "#fff",
+  fontWeight: 900,
+  fontSize: 13,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  cursor: "pointer",
+};
 
 export default function GameFarmingSection() {
   const queryClient = useQueryClient();
@@ -27,6 +53,7 @@ export default function GameFarmingSection() {
   });
   const [amount, setAmount] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(CYCLE_SECONDS);
+  const [showBoostPopup, setShowBoostPopup] = useState(false);
 
   useEffect(() => {
     setAmount(Number(farm?.minedGold ?? farm?.minedAxn ?? 0));
@@ -38,6 +65,10 @@ export default function GameFarmingSection() {
   const isComplete = isActive && (Boolean(farm?.isComplete) || remainingSeconds <= 0);
   const isRunning = isActive && !isComplete;
   const progress = isActive ? Math.min(100, Math.max(0, ((CYCLE_SECONDS - remainingSeconds) / CYCLE_SECONDS) * 100)) : 0;
+  const multiplier = Math.max(1, Number(farm?.multiplier ?? 1));
+  const currentBoostIndex = MINING_BOOSTS.indexOf(multiplier);
+  const nextBoost = MINING_BOOSTS[Math.min(MINING_BOOSTS.length - 1, Math.max(0, currentBoostIndex) + 1)];
+  const maxBoostReached = multiplier >= MINING_BOOSTS[MINING_BOOSTS.length - 1];
 
   useEffect(() => {
     if (!isRunning) return;
@@ -59,7 +90,7 @@ export default function GameFarmingSection() {
   const startMutation = useMutation({
     mutationFn: () => runFarmAction("/api/farming/start"),
     onSuccess: () => {
-      showNotification("RIG RUNNING — AXN mining started", "success");
+      showNotification("Mining cycle started", "success");
       queryClient.invalidateQueries({ queryKey: ["/api/farming/state"] });
     },
     onError: (error: any) => showNotification(error?.message || "Could not start mining", "error"),
@@ -80,50 +111,89 @@ export default function GameFarmingSection() {
     onSuccess: (data) => {
       showNotification(`Mining boosted to ${data.multiplier ?? "next"}x`, "success");
       queryClient.invalidateQueries({ queryKey: ["/api/farming/state"] });
+      setShowBoostPopup(false);
     },
     onError: (error: any) => showNotification(error?.message || "Could not boost mining", "error"),
   });
 
-  const pending = startMutation.isPending || claimMutation.isPending || boostMutation.isPending;
-  const rigStatus = isLoading ? "LOADING" : isComplete ? "RIG COMPLETE" : isRunning ? "RIG RUNNING" : "RIG OFFLINE";
-  const canStart = !isLoading && !isActive && !pending;
-  const canClaim = isComplete && !pending;
-  const canBoost = isRunning && !pending;
-  const primaryLabel = startMutation.isPending
-    ? "Starting…"
-    : claimMutation.isPending
-      ? "Collecting…"
-      : isComplete
-        ? "Collect"
-        : isRunning
-          ? `Mining in Progress ${Math.round(progress)}%`
-          : "Start";
+  const pending = startMutation.isPending || claimMutation.isPending;
+  const statusLabel = isLoading ? "Loading" : isComplete ? "Complete" : isRunning ? "Active" : "Ready";
+  const statusColor = isRunning ? "#22c55e" : isComplete ? "#60a5fa" : "#8E8E93";
 
   return (
-    <section style={{ position: "relative", width: "100%", padding: "28px 0 20px" }} aria-labelledby="farming-title">
-      <style>{`@keyframes axionet-float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-7px) scale(1.025); } } @keyframes axionet-glow { 0%,100% { filter: drop-shadow(0 0 8px rgba(0,122,255,.2)); } 50% { filter: drop-shadow(0 0 28px rgba(0,122,255,.85)); } }`}</style>
-
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "min(38vh, 280px)" }}>
-        <img src="/assets/axionet-mining.webp" alt="AXIONET" style={{ width: "min(52vw, 200px)", height: "min(52vw, 200px)", objectFit: "contain", animation: isRunning ? "axionet-float 2.4s ease-in-out infinite, axionet-glow 1.8s ease-in-out infinite" : "axionet-float 4s ease-in-out infinite", transition: "filter .3s ease" }} />
-      </div>
-
-      <div style={{ textAlign: "center", margin: "12px auto 0", width: "100%", maxWidth: 420, padding: "18px 14px", borderRadius: 20, background: "linear-gradient(160deg, #111820, #0b0d10)", border: "1px solid rgba(255,255,255,.08)", boxShadow: "0 12px 30px rgba(0,0,0,.24)" }}>
-        <div id="farming-title" style={{ color: isRunning ? "#39ff14" : isComplete ? "#60a5fa" : "rgba(255,255,255,.55)", fontSize: 12, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 10 }}>{rigStatus}</div>
-        <div style={{ color: "#fff", fontSize: "clamp(32px, 10vw, 48px)", fontWeight: 900, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{amount.toFixed(4)} <span style={{ fontSize: 14, color: "rgba(255,255,255,.62)", letterSpacing: ".12em" }}>AXN</span></div>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 7, marginTop: 14, color: "rgba(255,255,255,.58)", fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-          <span>{isRunning ? <><Clock size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />{formatCountdown(remainingSeconds)} Left</> : isComplete ? "Cycle complete" : "Ready to mine"}</span>
-          <span>•</span>
-          <span>{ratePerHour.toFixed(2)} AXN / hour</span>
+    <section aria-labelledby="mining-card-title" style={{ marginBottom: 20 }}>
+      <div style={cardStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <span id="mining-card-title" style={{ color: "#8E8E93", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            Mining rate · {ratePerHour.toFixed(2)} AXN/hour
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: statusColor, boxShadow: isRunning ? `0 0 8px ${statusColor}` : "none" }} />
+            <span style={{ color: statusColor, fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em" }}>{statusLabel}</span>
+          </div>
         </div>
-        {isRunning && <div style={{ maxWidth: 420, margin: "18px auto 0", padding: "0 10px" }}><div style={{ height: 5, background: "rgba(255,255,255,.1)", borderRadius: 99, overflow: "hidden" }}><div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#2563eb,#60a5fa)", transition: "width .5s linear" }} /></div><div style={{ color: "rgba(255,255,255,.42)", fontSize: 10, fontWeight: 800, marginTop: 7, letterSpacing: ".08em" }}>MINING IN PROGRESS · {Math.round(progress)}%</div></div>}
-      </div>
 
-      <div style={{ margin: "24px auto 0", width: "100%", maxWidth: 420 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <button type="button" onClick={() => boostMutation.mutate()} disabled={!canBoost} className="active:scale-[0.98] transition-transform" style={{ height: 52, border: 0, borderRadius: 14, background: canBoost ? "linear-gradient(135deg,#2563eb,#3b82f6)" : "rgba(255,255,255,.1)", color: canBoost ? "#fff" : "rgba(255,255,255,.38)", fontSize: 13, fontWeight: 900, letterSpacing: ".04em", textTransform: "uppercase", boxShadow: canBoost ? "0 8px 24px rgba(37,99,235,.3)" : "none" }}>{boostMutation.isPending ? <Loader2 size={15} className="inline animate-spin" /> : <><Rocket size={15} className="inline mr-2" />Boost</>}</button>
-          <button type="button" onClick={() => isComplete ? claimMutation.mutate() : startMutation.mutate()} disabled={(!canStart && !canClaim) || pending} className="active:scale-[0.98] transition-transform" style={{ height: 52, border: 0, borderRadius: 14, background: canStart || canClaim ? "#007aff" : "rgba(255,255,255,.1)", color: canStart || canClaim ? "#fff" : "rgba(255,255,255,.38)", fontSize: 13, fontWeight: 900, letterSpacing: ".02em", textTransform: "uppercase", boxShadow: canStart || canClaim ? "0 8px 24px rgba(0,122,255,.28)" : "none" }}>{startMutation.isPending || claimMutation.isPending ? <Loader2 size={15} className="inline animate-spin" /> : isComplete ? <><HandCoins size={15} className="inline mr-2" />{primaryLabel}</> : isRunning ? primaryLabel : <><Pickaxe size={15} className="inline mr-2" />{primaryLabel}</>}</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 50, height: 50, flexShrink: 0, objectFit: "contain" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <FarmingMatrixCounter amount={amount} decimals={4} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: "#8E8E93", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: isRunning ? 14 : 16 }}>
+          <span>{isRunning ? `Mining · ${formatCountdown(remainingSeconds)}` : isComplete ? "Cycle complete" : "Cycle ready"}</span>
+          <span>{ratePerHour.toFixed(2)} AXN/h · {multiplier}x</span>
+        </div>
+
+        {isRunning && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#2563eb,#60a5fa)", transition: "width .5s linear" }} />
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <button type="button" onClick={() => setShowBoostPopup(true)} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: "#007AFF", boxShadow: "0 8px 20px rgba(0,122,255,0.18)" }}>
+            <Rocket size={16} /> Boost
+          </button>
+          {pending ? (
+            <button type="button" disabled style={{ ...actionButtonStyle, background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}>
+              <Loader2 size={15} className="animate-spin" /> {claimMutation.isPending ? "Claiming…" : "Starting…"}
+            </button>
+          ) : isComplete ? (
+            <button type="button" onClick={() => claimMutation.mutate()} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: "#007AFF", boxShadow: "0 8px 20px rgba(0,122,255,0.18)" }}>
+              <HandCoins size={16} /> Claim
+            </button>
+          ) : isRunning ? (
+            <button type="button" disabled style={{ ...actionButtonStyle, background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}>
+              <Pickaxe size={15} /> Mining
+            </button>
+          ) : (
+            <button type="button" onClick={() => startMutation.mutate()} disabled={isLoading} className="active:scale-95 transition-transform" style={{ ...actionButtonStyle, background: isLoading ? "rgba(255,255,255,0.08)" : "#007AFF", color: isLoading ? "rgba(255,255,255,0.5)" : "#fff", boxShadow: isLoading ? "none" : "0 8px 20px rgba(0,122,255,0.18)" }}>
+              {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Pickaxe size={16} />} Start
+            </button>
+          )}
         </div>
       </div>
+
+      {showBoostPopup && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1300, display: "flex", alignItems: "flex-end" }}>
+          <button type="button" aria-label="Close boost dialog" onClick={() => setShowBoostPopup(false)} style={{ position: "absolute", inset: 0, border: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }} />
+          <div role="dialog" aria-modal="true" aria-labelledby="boost-dialog-title" style={{ position: "relative", width: "100%", background: "linear-gradient(160deg, #0d0d0f, #0f0f0f)", borderRadius: "28px 28px 0 0", padding: "28px 20px max(32px, calc(env(safe-area-inset-bottom, 0px) + 20px))", textAlign: "center" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.14)", margin: "0 auto 24px" }} />
+            <div id="boost-dialog-title" style={{ color: "#fff", fontSize: 18, fontWeight: 900, marginBottom: 10 }}>Upgrade multiplier</div>
+            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 11, textTransform: "uppercase" }}>Current boost</div>
+              <div style={{ color: "#c084fc", fontSize: 24, fontWeight: 900 }}>{multiplier}x</div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 3 }}>{maxBoostReached ? "Maximum boost reached" : `Watch an ad to unlock the next level: ${nextBoost}x`}</div>
+            </div>
+            <button type="button" onClick={() => boostMutation.mutate()} disabled={!isRunning || boostMutation.isPending || maxBoostReached} style={{ width: "100%", padding: 14, background: "linear-gradient(135deg, #2563eb, #3b82f6)", border: 0, borderRadius: 14, color: "#fff", fontWeight: 800, opacity: !isRunning || boostMutation.isPending || maxBoostReached ? 0.45 : 1 }}>
+              {boostMutation.isPending ? "Watching ad…" : maxBoostReached ? "Maximum boost reached" : "Watch ad to boost"}
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
