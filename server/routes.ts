@@ -9694,166 +9694,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // One-hour Farming cycle. Cycle state lives on the user record so progress
-  // survives reloads and server restarts.
+  // Continuous mining. Mining starts automatically and never stops; users can
+  // claim accrued AXN at any time while the accrual timestamp continues.
   app.get('/api/farming/state', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({
+      let result = await db.select({
         miningStartedAt: users.miningStartedAt,
-        miningBoostMultiplier: users.miningBoostMultiplier,
-        miningBoostStep: users.miningBoostStep,
         miningAccruedGold: users.miningAccruedGold,
         miningLastAccrualAt: users.miningLastAccrualAt,
       }).from(users).where(eq(users.id, userId)).limit(1);
+      let user = result[0];
       if (!user) return res.status(404).json({ message: 'User not found' });
 
+      if (!user.miningStartedAt) {
+        const startedAt = new Date();
+        await db.update(users).set({
+          miningStartedAt: startedAt,
+          miningBoostMultiplier: '1',
+          miningBoostStep: 0,
+          miningAccruedGold: '0',
+          miningLastAccrualAt: startedAt,
+          updatedAt: startedAt,
+        }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
+        result = await db.select({
+          miningStartedAt: users.miningStartedAt,
+          miningAccruedGold: users.miningAccruedGold,
+          miningLastAccrualAt: users.miningLastAccrualAt,
+        }).from(users).where(eq(users.id, userId)).limit(1);
+        user = result[0];
+      }
+
       const now = Date.now();
-      const startedAt = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : 0;
-      const elapsedSeconds = startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
-      const remainingSeconds = startedAt ? Math.max(0, MINING_DURATION_SECONDS - elapsedSeconds) : 0;
-      const multiplier = Math.min(MINING_BOOSTS[MINING_BOOSTS.length - 1], Math.max(1, Number(user.miningBoostMultiplier || 1)));
+      const startedAt = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : now;
       const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = startedAt
-        ? Math.max(0, Math.min(now, startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000
-        : 0;
-      const minedGold = startedAt
-        ? Math.min(MINING_BASE_RATE_PER_HOUR * multiplier, Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * multiplier)
-        : 0;
+      const elapsedSeconds = Math.max(0, now - lastAccrualAt) / 1000;
+      const minedGold = Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR);
 
       return res.json({
-        isActive: Boolean(startedAt),
-        isComplete: Boolean(startedAt && remainingSeconds === 0),
-        startedAt: startedAt ? new Date(startedAt).toISOString() : null,
-        remainingSeconds,
+        isActive: true,
+        isComplete: false,
+        startedAt: new Date(startedAt).toISOString(),
+        remainingSeconds: null,
         minedGold: Number(minedGold.toFixed(4)),
         minedAxn: Number(minedGold.toFixed(4)),
         baseRatePerHour: MINING_BASE_RATE_PER_HOUR,
-        effectiveRate: MINING_BASE_RATE_PER_HOUR * multiplier,
-        multiplier,
-        boostStep: Number(user.miningBoostStep || 0),
+        effectiveRate: MINING_BASE_RATE_PER_HOUR,
+        multiplier: 1,
+        continuous: true,
       });
     } catch (error) {
-      console.error('Farming state error:', error);
-      return res.status(500).json({ message: 'Could not load Farming state' });
+      console.error('Continuous mining state error:', error);
+      return res.status(500).json({ message: 'Could not load mining state' });
     }
   });
 
+  // Kept as a compatibility endpoint for older clients. Mining is already active.
   app.post('/api/farming/start', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
       const [user] = await db.select({ miningStartedAt: users.miningStartedAt }).from(users).where(eq(users.id, userId)).limit(1);
       if (!user) return res.status(404).json({ message: 'User not found' });
-      if (user.miningStartedAt) {
-        const elapsedSeconds = Math.floor((Date.now() - new Date(user.miningStartedAt).getTime()) / 1000);
-        return res.status(409).json({ message: elapsedSeconds < MINING_DURATION_SECONDS ? 'Farming is already active' : 'Claim the completed Farming cycle before starting another one' });
+      if (!user.miningStartedAt) {
+        const startedAt = new Date();
+        await db.update(users).set({ miningStartedAt: startedAt, miningBoostMultiplier: '1', miningBoostStep: 0, miningAccruedGold: '0', miningLastAccrualAt: startedAt, updatedAt: startedAt }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
       }
-
-      const startedAt = new Date();
-      const started = await db.update(users).set({
-        miningStartedAt: startedAt,
-        miningBoostMultiplier: '1',
-        miningBoostStep: 0,
-        miningAccruedGold: '0',
-        miningLastAccrualAt: startedAt,
-        updatedAt: startedAt,
-      }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`)).returning({ id: users.id });
-      if (!started.length) return res.status(409).json({ message: 'Farming is already active; refresh and try again' });
-
-      return res.json({ success: true, startedAt: startedAt.toISOString(), durationSeconds: MINING_DURATION_SECONDS, multiplier: 1 });
+      return res.json({ success: true, continuous: true });
     } catch (error) {
-      console.error('Farming start error:', error);
-      return res.status(500).json({ message: 'Could not start Farming' });
-    }
-  });
-
-  app.post('/api/farming/boost', authenticateTelegram, adWatchRateLimit, async (req: any, res: any) => {
-    try {
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-      if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const sessionId = req.body?.sessionId;
-      if (typeof sessionId !== 'string' || sessionId.length < 10 || sessionId.length > 180) {
-        return res.status(400).json({ message: 'Invalid ad session. Please watch a new ad.' });
-      }
-
-      const result: any = await db.transaction(async (tx) => {
-        const cutoff = new Date(Date.now() - AD_SESSION_MAX_AGE_MS);
-        const [session] = await tx.select().from(adSessions).where(and(
-          eq(adSessions.id, sessionId),
-          eq(adSessions.userId, String(userId)),
-          eq(adSessions.context, 'farming_boost'),
-          eq(adSessions.adType, 'adsgram'),
-          eq(adSessions.status, 'pending'),
-          gte(adSessions.registeredAt, cutoff),
-        )).for('update').limit(1);
-        if (!session) return { status: 400, message: 'Ad session expired or already used. Please watch a new ad.' };
-
-        const [providerProof] = await tx.select({ id: adRewardCallbacks.id }).from(adRewardCallbacks).where(and(
-          eq(adRewardCallbacks.provider, 'adsgram'),
-          eq(adRewardCallbacks.sessionId, sessionId),
-          eq(adRewardCallbacks.userId, String(userId)),
-        )).limit(1);
-        if (!providerProof) return { status: 409, message: 'Ad completion is not confirmed yet. Please wait a moment and try again.' };
-
-        const [user] = await tx.select().from(users).where(eq(users.id, String(userId))).for('update');
-        if (!user) return { status: 404, message: 'User not found' };
-        if (!user.miningStartedAt) return { status: 400, message: 'Start a mining cycle before boosting it.' };
-
-        const nowMs = Date.now();
-        const startedAt = new Date(user.miningStartedAt).getTime();
-        const elapsedSeconds = Math.max(0, Math.floor((nowMs - startedAt) / 1000));
-        if (elapsedSeconds >= MINING_DURATION_SECONDS) {
-          return { status: 400, message: 'This mining cycle is complete. Claim it before starting another cycle.' };
-        }
-
-        const currentMultiplier = Number(user.miningBoostMultiplier || 1);
-        const currentIndex = MINING_BOOSTS.indexOf(currentMultiplier as (typeof MINING_BOOSTS)[number]);
-        if (currentIndex < 0) return { status: 409, message: 'Mining boost state is invalid. Refresh the app and try again.' };
-        if (currentIndex >= MINING_BOOSTS.length - 1) {
-          return { status: 409, message: 'Maximum mining boost has already been reached.' };
-        }
-        const nextMultiplier = MINING_BOOSTS[currentIndex + 1];
-
-        // Credit the elapsed portion at the OLD rate before changing the rate,
-        // so each second of this cycle is accounted for exactly once.
-        const cycleEndMs = startedAt + MINING_DURATION_SECONDS * 1000;
-        const lastAccrualMs = user.miningLastAccrualAt
-          ? new Date(user.miningLastAccrualAt).getTime()
-          : startedAt;
-        const segmentSeconds = Math.max(0, Math.min(nowMs, cycleEndMs) - lastAccrualMs) / 1000;
-        const accruedGold = Math.min(
-          MINING_BASE_RATE_PER_HOUR * currentMultiplier,
-          Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * currentMultiplier,
-        );
-
-        const [consumedSession] = await tx.update(adSessions).set({
-          status: 'used',
-          usedAt: new Date(nowMs),
-        }).where(and(
-          eq(adSessions.id, sessionId),
-          eq(adSessions.userId, String(userId)),
-          eq(adSessions.status, 'pending'),
-        )).returning({ id: adSessions.id });
-        if (!consumedSession) return { status: 409, message: 'This ad session was already used. Please refresh and try again.' };
-
-        await tx.update(users).set({
-          miningBoostMultiplier: String(nextMultiplier),
-          miningBoostStep: currentIndex + 1,
-          miningAccruedGold: String(accruedGold),
-          miningLastAccrualAt: new Date(nowMs),
-          updatedAt: new Date(nowMs),
-        }).where(eq(users.id, String(userId)));
-
-        return { multiplier: nextMultiplier, boostStep: currentIndex + 1 };
-      });
-
-      if (result.status) return res.status(result.status).json({ message: result.message });
-      return res.json({ success: true, multiplier: result.multiplier, boostStep: result.boostStep });
-    } catch (error) {
-      console.error('Farming boost error:', error);
-      return res.status(500).json({ message: 'Could not boost mining. Please try again.' });
+      console.error('Continuous mining start error:', error);
+      return res.status(500).json({ message: 'Could not initialize mining' });
     }
   });
 
@@ -9861,52 +9772,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({
+      let result = await db.select({
         miningStartedAt: users.miningStartedAt,
-        miningBoostMultiplier: users.miningBoostMultiplier,
         miningAccruedGold: users.miningAccruedGold,
         miningLastAccrualAt: users.miningLastAccrualAt,
       }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user?.miningStartedAt) return res.status(400).json({ message: 'No completed Farming cycle to claim' });
+      let user = result[0];
+      if (!user) return res.status(404).json({ message: 'User not found' });
 
-      const startedAt = new Date(user.miningStartedAt).getTime();
-      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
-      if (elapsedSeconds < MINING_DURATION_SECONDS) {
-        return res.status(400).json({ message: `Farming is still running. Claim available in ${Math.ceil((MINING_DURATION_SECONDS - elapsedSeconds) / 60)} minutes.` });
+      if (!user.miningStartedAt) {
+        const startedAt = new Date();
+        await db.update(users).set({ miningStartedAt: startedAt, miningBoostMultiplier: '1', miningBoostStep: 0, miningAccruedGold: '0', miningLastAccrualAt: startedAt, updatedAt: startedAt }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
+        result = await db.select({ miningStartedAt: users.miningStartedAt, miningAccruedGold: users.miningAccruedGold, miningLastAccrualAt: users.miningLastAccrualAt }).from(users).where(eq(users.id, userId)).limit(1);
+        user = result[0];
       }
 
-      const multiplier = Math.min(MINING_BOOSTS[MINING_BOOSTS.length - 1], Math.max(1, Number(user.miningBoostMultiplier || 1)));
-      const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = Math.max(0, Math.min(Date.now(), startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000;
-      const reward = Number((Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * multiplier).toFixed(4));
+      const now = new Date();
+      const startedAtMs = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : now.getTime();
+      const lastAccrualAtMs = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAtMs;
+      const elapsedSeconds = Math.max(0, now.getTime() - lastAccrualAtMs) / 1000;
+      const reward = Number((Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR)).toFixed(4));
 
-      // Conditional reset makes the one-time reward claim safe against two
-      // simultaneous requests for the same completed cycle.
       const claimed = await db.transaction(async (tx) => {
         const updated = await tx.update(users).set({
           balance: sql`${users.balance} + ${reward}`,
-          miningStartedAt: null,
+          miningStartedAt: user.miningStartedAt,
           miningBoostMultiplier: '1',
           miningBoostStep: 0,
           miningAccruedGold: '0',
-          miningLastAccrualAt: null,
-          updatedAt: new Date(),
+          miningLastAccrualAt: now,
+          updatedAt: now,
         }).where(and(eq(users.id, userId), eq(users.miningStartedAt, user.miningStartedAt!))).returning({ id: users.id });
         if (!updated.length) return false;
-        await tx.insert(earnings).values({
-          userId,
-          amount: String(reward),
-          source: 'farming',
-          description: `One-hour Farming cycle at ${multiplier}x boost`,
-          currency: 'GOLD',
-        });
+        if (reward > 0) {
+          await tx.insert(earnings).values({ userId, amount: String(reward), source: 'farming', description: 'Continuous mining claim', currency: 'GOLD' });
+        }
         return true;
       });
-      if (!claimed) return res.status(409).json({ message: 'This Farming reward was already claimed. Refresh your balance.' });
-      return res.json({ success: true, amount: reward, multiplier });
+      if (!claimed) return res.status(409).json({ message: 'Mining claim changed. Refresh and try again.' });
+      return res.json({ success: true, amount: reward, continuous: true });
     } catch (error) {
-      console.error('Farming claim error:', error);
-      return res.status(500).json({ message: 'Could not claim Farming reward' });
+      console.error('Continuous mining claim error:', error);
+      return res.status(500).json({ message: 'Could not claim mining reward' });
     }
   });
 
