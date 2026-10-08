@@ -20,6 +20,9 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
   });
   const rawGoldBalance = parseFloat(user?.balance || "0");
   const goldBalance = rawGoldBalance < 1 ? Math.round(rawGoldBalance * 10_000_000) : Math.round(rawGoldBalance);
+  const profileName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User";
+  const profileId = user?.telegramId ?? user?.telegram_id ?? user?.id ?? "—";
+  const profileImage = user?.profileImageUrl || user?.profile_image_url || "/assets/axionet-mining.webp";
   const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
   useEffect(() => {
@@ -54,12 +57,24 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
       <div ref={innerRef} className="fixed top-0 left-0 right-0 z-40" style={{ background: "#0f0f0f", paddingTop: `${overlayTop + 6}px` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", padding: "8px 12px 10px", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+          {location === "/" || location === "/mining" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 9px", flex: "0 1 auto", minWidth: 0, maxWidth: "calc(100% - 88px)", height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,.08)" }}>
+                <img src={profileImage} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              </div>
+              <div style={{ minWidth: 0, lineHeight: 1.05 }}>
+                <div style={{ color: "#fff", fontSize: 12, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profileName}</div>
+                <div style={{ color: "rgba(255,255,255,.48)", fontSize: 10, marginTop: 3, fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>ID: {profileId}</div>
+              </div>
+            </div>
+          ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", flex: "0 1 auto", minWidth: 82, maxWidth: "calc(100% - 88px)", height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
               <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
             <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{goldBalance.toLocaleString()}</span>
           </div>
+          )}
           <button
             type="button"
             onClick={() => setDepositOpen(true)}
