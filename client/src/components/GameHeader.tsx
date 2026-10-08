@@ -105,9 +105,9 @@ function AxnTokenPriceBanner() {
     }}>
       <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(216,180,254,.7)" }}>Live</span>
       <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
-      <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".04em" }}>AXN token</span>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".04em" }}>AXN token</span>
       <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
-      <span style={{ fontSize: 13, fontWeight: 800, fontFamily: "Roboto Mono", color: "#e9d5ff" }}>$0.000010</span>
+      <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "Roboto Mono", color: "#e9d5ff" }}>$0.000010</span>
     </div>
   );
 }
