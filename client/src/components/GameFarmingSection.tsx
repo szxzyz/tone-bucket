@@ -5,7 +5,6 @@ import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 
 const AXN_PER_USD = 100_000;
-const AXN_PRICE_USD = 1 / AXN_PER_USD;
 const formatAxn = (value: number) => (Number.isFinite(value) ? value : 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 const formatUsd = (value: number, digits = 4) => `$${(Number.isFinite(value) ? value : 0).toFixed(digits)}`;
 
@@ -67,8 +66,7 @@ export default function GameFarmingSection() {
         .axn-point { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 999px; background: #93c5fd; box-shadow: 0 0 10px #60a5fa, 0 0 20px rgba(37,99,235,.85); animation: axnPoint .68s cubic-bezier(.2,.8,.25,1) forwards; pointer-events: none; }
       `}</style>
       <section aria-labelledby="mining-card-title" style={{ marginBottom: 18, color: "#fff" }}>
-      <div style={{ width: "calc(100% + 24px)", marginLeft: -12, marginRight: -12, marginBottom: 10, background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "5px 16px", boxSizing: "border-box", color: "#e9d5ff" }}><span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".04em" }}>AXN Token Price</span><span style={{ width: 1, height: 13, background: "rgba(216,180,254,.3)" }} /><strong style={{ fontSize: 13, fontWeight: 800, fontFamily: "Roboto Mono", color: "#e9d5ff" }}>{formatUsd(AXN_PRICE_USD, 6)}</strong></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
         <div style={glassPill}><span>Lvl</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
         <div style={glassPill}><span>Yield:</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
       </div>

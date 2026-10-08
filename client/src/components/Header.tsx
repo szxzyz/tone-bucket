@@ -114,6 +114,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
         }}
       >
         {location === '/mission' && <ResetCountdownBanner />}
+        {location === '/' || location === '/mining' ? <AxnTokenPriceBanner /> : null}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -171,6 +172,26 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
       </div>
     );
   }
+);
+
+const AxnTokenPriceBanner = () => (
+  <div
+    style={{
+      background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      padding: "5px 16px",
+      color: "#e9d5ff",
+    }}
+  >
+    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(216,180,254,.7)" }}>Live</span>
+    <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
+    <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".04em" }}>AXN token</span>
+    <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
+    <span style={{ fontSize: 13, fontWeight: 800, fontFamily: "Roboto Mono", color: "#e9d5ff" }}>$0.000010</span>
+  </div>
 );
 
 const ResetCountdownBanner = () => {
