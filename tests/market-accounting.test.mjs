@@ -21,4 +21,8 @@ test('legacy GRAM reconciliation migration is non-destructive and idempotent', a
   assert.match(sql, /ON CONFLICT \(user_id\) DO NOTHING/);
   assert.doesNotMatch(sql, /UPDATE users[\s\S]*gram_balance[\s\S]*usd_balance/);
   assert.doesNotMatch(sql, /DROP COLUMN.*gram_balance/i);
+  const legacy = await (await import('node:fs/promises')).readFile(new URL('../migrations/0015_reject_legacy_axn_pending.sql', import.meta.url), 'utf8');
+  assert.match(legacy, /status = 'pending'/);
+  assert.match(legacy, /NOT IN \('USD', 'GRAM'\)/);
+  assert.match(legacy, /legacy_axn_withdrawal_reconciliation/);
 });

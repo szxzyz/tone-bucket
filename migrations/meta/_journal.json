@@ -29,6 +29,13 @@
       "when": 1791573906279,
       "tag": "0014_usd_balance_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791575082583,
+      "tag": "0015_reject_legacy_axn_pending",
+      "breakpoints": true
     }
   ]
 }

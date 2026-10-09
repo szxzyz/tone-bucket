@@ -1253,6 +1253,71 @@ export async function ensureDatabaseSchema(): Promise<void> {
       `);
       console.log('✅ [MIGRATION] Legacy GRAM values preserved for reconciliation; USD is authoritative');
     } catch (err) { console.error('⚠️ [MIGRATION] USD reconciliation snapshot failed:', err); }
+    // One-time legacy AXN/GEM cleanup requested by the account migration.
+    // Only pending records carrying axnAmount/goldAmount are selected; USD/GRAM
+    // records are explicitly excluded. The audit table makes this idempotent.
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS legacy_axn_withdrawal_reconciliation (
+          withdrawal_id VARCHAR PRIMARY KEY,
+          user_id VARCHAR NOT NULL,
+          axn_amount NUMERIC(30, 18) NOT NULL,
+          was_debited BOOLEAN NOT NULL DEFAULT FALSE,
+          refunded BOOLEAN NOT NULL DEFAULT FALSE,
+          notified_at TIMESTAMP,
+          processed_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+      await db.execute(sql`
+        INSERT INTO legacy_axn_withdrawal_reconciliation (withdrawal_id, user_id, axn_amount, was_debited)
+        SELECT w.id, w.user_id,
+          COALESCE(NULLIF(w.details->>'axnAmount', '')::numeric, NULLIF(w.details->>'goldAmount', '')::numeric, w.gold_amount::numeric, 0),
+          COALESCE(w.deducted, false)
+        FROM withdrawals w
+        WHERE w.status = 'pending'
+          AND (w.details ? 'axnAmount' OR w.details ? 'goldAmount')
+          AND COALESCE(w.payout_currency, '') NOT IN ('USD', 'GRAM')
+          AND COALESCE(w.details->>'manualUsdWithdrawal', 'false') <> 'true'
+          AND COALESCE(w.details->>'manualGramWithdrawal', 'false') <> 'true'
+        ON CONFLICT (withdrawal_id) DO NOTHING;
+      `);
+      await db.execute(sql`
+        UPDATE users u SET balance = u.balance + r.axn_amount, updated_at = NOW()
+        FROM legacy_axn_withdrawal_reconciliation r
+        WHERE r.user_id = u.id AND r.was_debited = true AND r.refunded = false;
+      `);
+      await db.execute(sql`
+        UPDATE legacy_axn_withdrawal_reconciliation SET refunded = was_debited WHERE refunded = false;
+      `);
+      await db.execute(sql`
+        UPDATE withdrawals w SET status = 'rejected', refunded = r.refunded, deducted = false,
+          admin_notes = COALESCE(w.admin_notes, 'Automatically rejected: legacy AXN/GEM withdrawal reconciliation'),
+          updated_at = NOW(), details = COALESCE(w.details, '{}'::jsonb) || jsonb_build_object('legacyAxnReconciled', true)
+        FROM legacy_axn_withdrawal_reconciliation r
+        WHERE w.id = r.withdrawal_id AND w.status = 'pending';
+      `);
+      const pendingNotifications = await db.execute(sql`
+        SELECT r.withdrawal_id, r.axn_amount, u.telegram_id
+        FROM legacy_axn_withdrawal_reconciliation r JOIN users u ON u.id = r.user_id
+        WHERE r.notified_at IS NULL AND u.telegram_id IS NOT NULL;
+      `);
+      const token = process.env.TELEGRAM_BOT_TOKEN;
+      if (token) {
+        for (const row of pendingNotifications.rows as any[]) {
+          const amount = Number(row.axn_amount);
+          const formatted = Number.isInteger(amount) ? amount.toLocaleString() : amount.toLocaleString(undefined, { maximumFractionDigits: 6 });
+          try {
+            const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: row.telegram_id, parse_mode: 'HTML', text: `❌ Your legacy AXN/GEM withdrawal request was rejected.\n\n<b>${formatted} AXN/GEM</b> has been returned to your AXN/GEM balance. USD balance was not changed.` }),
+              signal: AbortSignal.timeout(5000),
+            });
+            if (response.ok) await db.execute(sql`UPDATE legacy_axn_withdrawal_reconciliation SET notified_at = NOW() WHERE withdrawal_id = ${row.withdrawal_id}`);
+          } catch (notificationError) { console.error('⚠️ [MIGRATION] Legacy AXN notification failed:', notificationError); }
+        }
+      }
+      console.log(`✅ [MIGRATION] Legacy AXN/GEM pending requests rejected: ${pendingNotifications.rows.length} user notifications queued`);
+    } catch (err) { console.error('⚠️ [MIGRATION] Legacy AXN/GEM reconciliation failed:', err); }
     // AXN virtual AMM market — all amounts remain internal until on-chain settlement is implemented.
     try {
       await db.execute(sql`
