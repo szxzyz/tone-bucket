@@ -42,6 +42,7 @@ export const users = pgTable("users", {
   usdBalance: decimal("usd_balance", { precision: 30, scale: 10 }).default("0"), // USD with high precision to prevent overflow
   tonBalance: decimal("ton_balance", { precision: 30, scale: 10 }).default("0"),
   pdzBalance: decimal("pdz_balance", { precision: 30, scale: 10 }).default("0"),
+  gramBalance: decimal("gram_balance", { precision: 30, scale: 18 }).default("0"),
   bugBalance: decimal("bug_balance", { precision: 30, scale: 10 }).default("0"), // BUG currency for withdrawal requirements
   withdrawBalance: decimal("withdraw_balance", { precision: 30, scale: 10 }),
   totalEarnings: decimal("total_earnings", { precision: 30, scale: 10 }),

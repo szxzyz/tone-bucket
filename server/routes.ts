@@ -43,6 +43,7 @@ import {
 import { db } from "./db";
 import { eq, sql, desc, and, gte, inArray, lt } from "drizzle-orm";
 import crypto from "crypto";
+import { getLiveTonPriceUSD } from "./tonPriceService";
 import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToAdmins } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
 import { validateDeviceAndDetectDuplicate } from "./deviceTracking";
@@ -644,29 +645,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server first
   const httpServer = createServer(app);
 
-  const AXN_MARKET_INITIAL_PRICE = 0.00001;
-  const AXN_MARKET_TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1D'] as const;
-  const timeframeMs: Record<string, number> = { '1m': 60000, '5m': 300000, '15m': 900000, '1h': 3600000, '4h': 14400000, '1D': 86400000 };
-  function marketTimeframe(value: unknown): keyof typeof timeframeMs {
-    const candidate = String(value);
-    return AXN_MARKET_TIMEFRAMES.includes(candidate as any) ? candidate as keyof typeof timeframeMs : '1h';
+  const AXN_MARKET_TIMEFRAMES = ['1H', '24H', '7D', '30D'] as const;
+  const marketWindowMs: Record<string, number> = { '1H': 3600000, '24H': 86400000, '7D': 604800000, '30D': 2592000000 };
+  const DECIMAL_RE = /^\d+(?:\.\d{1,18})?$/;
+  const MARKET_DEFAULT_GRAM_USD = '0.000001';
+
+  async function readAxnMarketSettings(conn: any = db) {
+    const result = await conn.execute(sql`SELECT setting_key, setting_value, text_value FROM axn_market_settings`);
+    const map = new Map<string, any>((result.rows as any[]).map((row) => [String(row.setting_key), row]));
+    const number = (key: string, fallback: string) => String(map.get(key)?.setting_value ?? fallback);
+    const text = (key: string, fallback: string) => String(map.get(key)?.text_value ?? fallback);
+    return {
+      buyFeeBps: number('buy_fee_bps', '30'), sellFeeBps: number('sell_fee_bps', '30'),
+      minSwapTon: number('min_swap_ton', '0.0001'), maxSwapTon: number('max_swap_ton', '1000'),
+      minSwapAxn: number('min_swap_axn', '1'), maxSwapAxn: number('max_swap_axn', '1000000000'),
+      maxPriceImpactBps: number('max_price_impact_bps', '1000'), slippageBps: number('slippage_bps', '100'),
+      gramUsdPrice: number('gram_usd_price', MARKET_DEFAULT_GRAM_USD),
+      marketPaused: text('market_paused', 'false') === 'true',
+      publicTradingEnabled: text('public_trading_enabled', 'false') === 'true',
+    };
   }
-  function marketCandles(rows: any[], timeframe: keyof typeof timeframeMs) {
-    const bucketMs = timeframeMs[timeframe];
-    const buckets = new Map<number, any>();
-    for (const row of rows) {
-      const timestamp = new Date(row.created_at).getTime();
-      const price = Number(row.price_per_axn);
-      const volume = Number(row.axn_quantity);
-      if (!Number.isFinite(timestamp) || !Number.isFinite(price) || price <= 0) continue;
-      const bucket = Math.floor(timestamp / bucketMs) * bucketMs;
-      const candle = buckets.get(bucket);
-      if (!candle) buckets.set(bucket, { time: new Date(bucket).toISOString(), open: price, high: price, low: price, close: price, volume });
-      else { candle.high = Math.max(candle.high, price); candle.low = Math.min(candle.low, price); candle.close = price; candle.volume += volume; }
-    }
-    return Array.from(buckets.values()).sort((a, b) => a.time.localeCompare(b.time));
+
+  function validMarketAmount(value: unknown): string | null {
+    const amount = String(value ?? '').trim();
+    return DECIMAL_RE.test(amount) && !/^0+(?:\.0+)?$/.test(amount) ? amount : null;
   }
-  async function requireMarketAdmin(req: any, res: any): Promise<{ telegramId: string } | null> {
+
+  async function marketAdmin(req: any, res: any): Promise<{ telegramId: string } | null> {
     const telegramId = req.user?.telegramUser?.id?.toString() || '';
     const roleInfo = await getAdminRole(telegramId);
     if (!roleInfo || (!isSuperAdmin(telegramId) && !roleInfo.permissions.includes('manage_market'))) {
@@ -676,60 +681,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { telegramId };
   }
 
-  app.get('/api/axn-market', authenticateTelegram, async (req: any, res) => {
+  async function marketTrader(req: any, res: any, settings: any): Promise<{ telegramId: string } | null> {
+    const telegramId = req.user?.telegramUser?.id?.toString() || '';
+    if (settings.publicTradingEnabled) return { telegramId };
+    return marketAdmin(req, res);
+  }
+
+  function marketTimeframe(value: unknown): keyof typeof marketWindowMs {
+    const candidate = String(value || '24H').toUpperCase();
+    return (candidate in marketWindowMs ? candidate : '24H') as keyof typeof marketWindowMs;
+  }
+
+  function aggregateMarketCandles(rows: any[], timeframe: keyof typeof marketWindowMs) {
+    const bucketMs = timeframe === '1H' ? 300000 : timeframe === '24H' ? 3600000 : timeframe === '7D' ? 21600000 : 86400000;
+    const buckets = new Map<number, any>();
+    for (const row of rows) {
+      const ts = new Date(row.recorded_at).getTime();
+      const price = Number(row.price_usd);
+      if (!Number.isFinite(ts) || !Number.isFinite(price) || price <= 0) continue;
+      const bucket = Math.floor(ts / bucketMs) * bucketMs;
+      const current = buckets.get(bucket);
+      if (!current) buckets.set(bucket, { time: new Date(bucket).toISOString(), open: price, high: price, low: price, close: price, volume: Number(row.volume_axn || 0) });
+      else { current.high = Math.max(current.high, price); current.low = Math.min(current.low, price); current.close = price; current.volume += Number(row.volume_axn || 0); }
+    }
+    return Array.from(buckets.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }
+
+  app.get('/api/axn-market', authenticateTelegram, async (req: any, res: any) => {
     try {
       const timeframe = marketTimeframe(req.query.timeframe);
-      const result = await db.execute(sql`SELECT side, axn_quantity, ton_amount, price_per_axn, created_at FROM axn_market_trades ORDER BY created_at ASC LIMIT 5000`);
-      const candles = marketCandles(result.rows, timeframe);
-      const latest = result.rows.length ? Number(result.rows[result.rows.length - 1].price_per_axn) : AXN_MARKET_INITIAL_PRICE;
-      const previous = candles.length > 1 ? Number(candles[candles.length - 2].close) : latest;
-      const changePercent = previous > 0 ? ((latest - previous) / previous) * 100 : 0;
-      res.json({ timeframe, candles, currentPrice: latest, changePercent, tradeCount: result.rows.length, initialPrice: AXN_MARKET_INITIAL_PRICE, virtualMarket: true, message: 'Virtual Market — Not a Real TON Market Price.' });
+      const settings = await readAxnMarketSettings();
+      const poolResult = await db.execute(sql`SELECT ton_reserve, axn_reserve, gram_reserve, updated_at FROM axn_market_pool WHERE id = 1`);
+      const pool = poolResult.rows[0] as any;
+      if (!pool) return res.status(503).json({ message: 'Market pool is not initialized' });
+      const tonUsd = await getLiveTonPriceUSD().catch(() => null);
+      const priceResult = await db.execute(sql`SELECT recorded_at, price_usd, volume_axn FROM axn_market_price_snapshots WHERE recorded_at >= NOW() - ${marketWindowMs[timeframe]} * INTERVAL '1 millisecond' ORDER BY recorded_at ASC`);
+      const swaps = await db.execute(sql`SELECT side, input_asset, output_asset, input_amount, net_output, fee_amount, price_impact, created_at FROM axn_market_swaps WHERE status = 'completed' ORDER BY created_at DESC LIMIT 20`);
+      const priceTon = `(CAST(${pool.ton_reserve} AS NUMERIC) / NULLIF(CAST(${pool.axn_reserve} AS NUMERIC), 0))`;
+      const priceGram = `(CAST(${pool.gram_reserve} AS NUMERIC) / NULLIF(CAST(${pool.axn_reserve} AS NUMERIC), 0))`;
+      const calculated = await db.execute(sql`SELECT ${pool.ton_reserve}::numeric / NULLIF(${pool.axn_reserve}::numeric, 0) AS price_ton, ${pool.gram_reserve}::numeric / NULLIF(${pool.axn_reserve}::numeric, 0) AS price_gram`);
+      const current = calculated.rows[0] as any;
+      const currentTon = String(current?.price_ton || '0');
+      const currentGram = String(current?.price_gram || '0');
+      const currentUsd = tonUsd ? (Number(currentTon) * tonUsd.price).toFixed(12) : null;
+      const candles = aggregateMarketCandles(priceResult.rows, timeframe);
+      const last = candles[candles.length - 1]; const previous = candles[candles.length - 2];
+      res.json({ virtualMarket: true, marketPaused: settings.marketPaused, adminOnly: !settings.publicTradingEnabled, timeframe,
+        price: { usd: currentUsd, ton: currentTon, gram: currentGram, tonUsd: tonUsd?.price?.toString() || null, tonUsdSource: tonUsd?.source || null },
+        pool: { ton: String(pool.ton_reserve), axn: String(pool.axn_reserve), gram: String(pool.gram_reserve) },
+        settings: { buyFeeBps: settings.buyFeeBps, sellFeeBps: settings.sellFeeBps, slippageBps: settings.slippageBps, maxPriceImpactBps: settings.maxPriceImpactBps, gramUsdPrice: settings.gramUsdPrice },
+        candles, changePercent: last && previous ? ((last.close - previous.close) / previous.close * 100).toFixed(4) : '0',
+        recentSwaps: swaps.rows, swapCount: swaps.rows.length,
+        disclaimer: 'Virtual Market — TON and GRAM balances are internal accounting units. No blockchain transfer is performed.' });
     } catch (error) { console.error('AXN market read error:', error); res.status(500).json({ message: 'Market data unavailable' }); }
   });
 
-  app.post('/api/axn-market/admin/quote', authenticateAdmin, async (req: any, res) => {
-    const admin = await requireMarketAdmin(req, res); if (!admin) return;
-    const side = req.body?.side === 'sell' ? 'sell' : req.body?.side === 'buy' ? 'buy' : null;
-    const quantity = Number(req.body?.quantity);
-    if (!side || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 1000000000000000) return res.status(400).json({ message: 'Enter a valid whole AXN quantity' });
-    const result = await db.execute(sql`SELECT price_per_axn FROM axn_market_trades ORDER BY created_at DESC LIMIT 1`);
-    const price = result.rows[0] ? Number(result.rows[0].price_per_axn) : AXN_MARKET_INITIAL_PRICE;
-    res.json({ side, quantity, pricePerAxn: price, tonAmount: quantity * price, virtualMarket: true });
-  });
+  async function calculateMarketQuote(conn: any, side: 'buy' | 'sell', inputAmount: string, settings: any) {
+    const fee = side === 'buy' ? settings.buyFeeBps : settings.sellFeeBps;
+    const result = await conn.execute(sql`
+      WITH p AS (SELECT ton_reserve::numeric ton, axn_reserve::numeric axn, gram_reserve::numeric gram FROM axn_market_pool WHERE id = 1),
+      q AS (SELECT p.*, CAST(${inputAmount} AS NUMERIC) input_amount, CAST(${fee} AS NUMERIC) fee_bps FROM p)
+      SELECT input_amount, input_amount * fee_bps / 10000 AS fee_amount,
+        CASE WHEN ${side} = 'buy' THEN axn * ((input_amount * (10000 - fee_bps) / 10000) / (ton + input_amount * (10000 - fee_bps) / 10000))
+             ELSE gram * ((input_amount * (10000 - fee_bps) / 10000) / (axn + input_amount * (10000 - fee_bps) / 10000)) END AS gross_output,
+        CASE WHEN ${side} = 'buy' THEN (input_amount * (10000 - fee_bps) / 10000) / NULLIF(ton, 0)
+             ELSE (input_amount * (10000 - fee_bps) / 10000) / NULLIF(axn, 0) END AS relative_price,
+        CASE WHEN ${side} = 'buy' THEN axn / NULLIF(ton, 0) ELSE gram / NULLIF(axn, 0) END AS spot_price
+      FROM q`);
+    const row = result.rows[0] as any;
+    if (!row) throw Object.assign(new Error('Market pool is not initialized'), { statusCode: 503 });
+    const calculated = await conn.execute(sql`SELECT
+      (${row.gross_output}::numeric) AS gross_output,
+      (${row.fee_amount}::numeric) AS fee_amount,
+      (GREATEST(0, (1 - ((${row.gross_output}::numeric / NULLIF(${row.input_amount}::numeric - ${row.fee_amount}::numeric, 0)) / NULLIF(${row.spot_price}::numeric, 0))) * 10000)) AS price_impact_bps`);
+    const values = calculated.rows[0] as any;
+    return { inputAmount: String(row.input_amount), feeAmount: String(values.fee_amount), grossOutput: String(values.gross_output), netOutput: String(values.gross_output), priceImpactBps: String(values.price_impact_bps), feeBps: String(fee) };
+  }
 
-  app.post('/api/axn-market/admin/trade', authenticateAdmin, async (req: any, res) => {
-    const admin = await requireMarketAdmin(req, res); if (!admin) return;
-    const side = req.body?.side === 'sell' ? 'sell' : req.body?.side === 'buy' ? 'buy' : null;
-    const quantity = Number(req.body?.quantity);
-    const idempotencyKey = String(req.body?.idempotencyKey || '').trim();
-    if (!side || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 1000000000000000 || !/^[A-Za-z0-9._:-]{8,120}$/.test(idempotencyKey)) return res.status(400).json({ message: 'Invalid trade details' });
+  app.post('/api/axn-market/quote', authenticateTelegram, async (req: any, res: any) => {
     try {
-      const result = await db.transaction(async (tx) => {
-        const prior = await tx.execute(sql`SELECT id, side, axn_quantity, ton_amount, price_per_axn, created_at FROM axn_market_trades WHERE idempotency_key = ${idempotencyKey} LIMIT 1`);
-        if (prior.rows[0]) return { trade: prior.rows[0], replayed: true };
-        const priceResult = await tx.execute(sql`SELECT price_per_axn FROM axn_market_trades ORDER BY created_at DESC LIMIT 1`);
-        const price = priceResult.rows[0] ? Number(priceResult.rows[0].price_per_axn) : AXN_MARKET_INITIAL_PRICE;
-        const tonAmount = quantity * price;
-        const userResult = await tx.execute(sql`SELECT id, balance, ton_balance FROM users WHERE telegram_id = ${admin.telegramId} FOR UPDATE`);
-        const user = userResult.rows[0] as any;
-        if (!user) throw Object.assign(new Error('Admin account not found'), { statusCode: 404 });
-        if (side === 'buy' && Number(user.ton_balance || 0) < tonAmount) throw Object.assign(new Error('Insufficient virtual TON balance'), { statusCode: 400 });
-        if (side === 'sell' && Number(user.balance || 0) < quantity) throw Object.assign(new Error('Insufficient AXN balance'), { statusCode: 400 });
-        if (side === 'buy') await tx.execute(sql`UPDATE users SET ton_balance = COALESCE(ton_balance, 0) - ${tonAmount}, balance = COALESCE(balance, 0) + ${quantity}, updated_at = NOW() WHERE id = ${user.id}`);
-        else await tx.execute(sql`UPDATE users SET ton_balance = COALESCE(ton_balance, 0) + ${tonAmount}, balance = COALESCE(balance, 0) - ${quantity}, updated_at = NOW() WHERE id = ${user.id}`);
-        const inserted = await tx.execute(sql`INSERT INTO axn_market_trades (user_id, side, axn_quantity, ton_amount, price_per_axn, idempotency_key) VALUES (${user.id}, ${side}, ${quantity}, ${tonAmount}, ${price}, ${idempotencyKey}) RETURNING id, side, axn_quantity, ton_amount, price_per_axn, created_at`);
-        const trade = inserted.rows[0] as any;
-        for (const [tf, ms] of Object.entries(timeframeMs)) {
-          const bucket = new Date(Math.floor(Date.now() / ms) * ms);
-          await tx.execute(sql`INSERT INTO axn_market_price_history (trade_id, timeframe, bucket_start, open_price, high_price, low_price, close_price, volume_axn) VALUES (${trade.id}, ${tf}, ${bucket}, ${price}, ${price}, ${price}, ${price}, ${quantity}) ON CONFLICT (timeframe, bucket_start) DO UPDATE SET high_price = GREATEST(axn_market_price_history.high_price, EXCLUDED.high_price), low_price = LEAST(axn_market_price_history.low_price, EXCLUDED.low_price), close_price = EXCLUDED.close_price, volume_axn = axn_market_price_history.volume_axn + EXCLUDED.volume_axn`);
-        }
-        return { trade, replayed: false };
-      });
-      res.status(result.replayed ? 200 : 201).json({ ...result, virtualMarket: true });
-    } catch (error: any) { console.error('AXN market trade error:', error); res.status(error?.statusCode || 500).json({ message: error?.message || 'Trade failed' }); }
+      const settings = await readAxnMarketSettings();
+      const trader = await marketTrader(req, res, settings); if (!trader) return;
+      if (settings.marketPaused) return res.status(423).json({ message: 'Market is paused' });
+      const side = req.body?.side === 'sell' ? 'sell' : req.body?.side === 'buy' ? 'buy' : null;
+      const inputAmount = validMarketAmount(req.body?.inputAmount);
+      if (!side || !inputAmount) return res.status(400).json({ message: 'Enter a valid swap amount' });
+      const min = side === 'buy' ? settings.minSwapTon : settings.minSwapAxn;
+      const max = side === 'buy' ? settings.maxSwapTon : settings.maxSwapAxn;
+      const q = await db.transaction(async (tx) => calculateMarketQuote(tx, side, inputAmount, settings));
+      const within = await db.execute(sql`SELECT CAST(${inputAmount} AS NUMERIC) >= ${min}::numeric AND CAST(${inputAmount} AS NUMERIC) <= ${max}::numeric AS valid`);
+      if (!(within.rows[0] as any)?.valid) return res.status(400).json({ message: `Amount must be between ${min} and ${max}` });
+      const slippage = await db.execute(sql`SELECT (${q.netOutput}::numeric * (10000 - ${settings.slippageBps}::numeric) / 10000) AS min_received`);
+      res.json({ side, inputAsset: side === 'buy' ? 'TON' : 'AXN', outputAsset: side === 'buy' ? 'AXN' : 'GRAM', ...q, minReceived: String((slippage.rows[0] as any).min_received), virtualMarket: true });
+    } catch (error: any) { res.status(error?.statusCode || 500).json({ message: error?.message || 'Could not calculate quote' }); }
   });
 
+  app.post('/api/axn-market/swap', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const idempotencyKey = String(req.body?.idempotencyKey || '').trim();
+      const side = req.body?.side === 'sell' ? 'sell' : req.body?.side === 'buy' ? 'buy' : null;
+      const inputAmount = validMarketAmount(req.body?.inputAmount);
+      const minReceived = validMarketAmount(req.body?.minReceived || '0') || '0';
+      if (!side || !inputAmount || !/^[A-Za-z0-9._:-]{8,120}$/.test(idempotencyKey)) return res.status(400).json({ message: 'Invalid swap details' });
+      const settings = await readAxnMarketSettings();
+      const trader = await marketTrader(req, res, settings); if (!trader) return;
+      if (settings.marketPaused) return res.status(423).json({ message: 'Market is paused' });
+      const result = await db.transaction(async (tx) => {
+        const prior = await tx.execute(sql`SELECT * FROM axn_market_swaps WHERE idempotency_key = ${idempotencyKey} LIMIT 1`);
+        if (prior.rows[0]) return { swap: prior.rows[0], replayed: true };
+        const pool = await tx.execute(sql`SELECT ton_reserve, axn_reserve, gram_reserve FROM axn_market_pool WHERE id = 1 FOR UPDATE`);
+        if (!pool.rows[0]) throw Object.assign(new Error('Market pool is not initialized'), { statusCode: 503 });
+        const quote = await calculateMarketQuote(tx, side, inputAmount, settings);
+        const limit = side === 'buy' ? settings.maxPriceImpactBps : settings.maxPriceImpactBps;
+        const guard = await tx.execute(sql`SELECT (${quote.priceImpactBps}::numeric <= ${limit}::numeric) AS impact_ok, (${quote.netOutput}::numeric >= ${minReceived}::numeric) AS slippage_ok`);
+        const checks = guard.rows[0] as any;
+        if (!checks.impact_ok) throw Object.assign(new Error('Price impact exceeds the configured limit'), { statusCode: 400 });
+        if (!checks.slippage_ok) throw Object.assign(new Error('Slippage protection failed; refresh the quote'), { statusCode: 400 });
+        const userRows = await tx.execute(sql`SELECT id, balance, ton_balance, gram_balance FROM users WHERE telegram_id = ${trader.telegramId} FOR UPDATE`);
+        const user = userRows.rows[0] as any; if (!user) throw Object.assign(new Error('User account not found'), { statusCode: 404 });
+        if (side === 'buy') {
+          const enough = await tx.execute(sql`SELECT (${user.ton_balance || 0}::numeric >= ${inputAmount}::numeric) AS ok`);
+          if (!(enough.rows[0] as any).ok) throw Object.assign(new Error('Insufficient virtual TON balance'), { statusCode: 400 });
+          await tx.execute(sql`UPDATE users SET ton_balance = ton_balance - ${inputAmount}::numeric, balance = balance + TRUNC(${quote.netOutput}::numeric), updated_at = NOW() WHERE id = ${user.id}`);
+          await tx.execute(sql`UPDATE axn_market_pool SET ton_reserve = ton_reserve + ${inputAmount}::numeric, axn_reserve = axn_reserve - TRUNC(${quote.netOutput}::numeric), updated_at = NOW() WHERE id = 1`);
+        } else {
+          const enough = await tx.execute(sql`SELECT (${user.balance || 0}::numeric >= ${inputAmount}::numeric) AS ok`);
+          if (!(enough.rows[0] as any).ok) throw Object.assign(new Error('Insufficient AXN balance'), { statusCode: 400 });
+          await tx.execute(sql`UPDATE users SET balance = balance - ${inputAmount}::numeric, gram_balance = COALESCE(gram_balance, 0) + ${quote.netOutput}::numeric, updated_at = NOW() WHERE id = ${user.id}`);
+          await tx.execute(sql`UPDATE axn_market_pool SET axn_reserve = axn_reserve + ${inputAmount}::numeric, gram_reserve = gram_reserve - ${quote.netOutput}::numeric, updated_at = NOW() WHERE id = 1`);
+        }
+        const tonUsd = await getLiveTonPriceUSD().catch(() => null);
+        const gramUsd = settings.gramUsdPrice;
+        const inserted = await tx.execute(sql`INSERT INTO axn_market_swaps (user_id, side, input_asset, output_asset, input_amount, gross_output, fee_amount, fee_rate_bps, net_output, min_received, price_impact, ton_usd_price, gram_usd_price, idempotency_key) VALUES (${user.id}, ${side}, ${side === 'buy' ? 'TON' : 'AXN'}, ${side === 'buy' ? 'AXN' : 'GRAM'}, ${inputAmount}, ${quote.grossOutput}, ${quote.feeAmount}, ${quote.feeBps}, ${quote.netOutput}, ${minReceived}, ${quote.priceImpactBps}, ${tonUsd?.price?.toString() || null}, ${gramUsd}, ${idempotencyKey}) RETURNING *`);
+        const swap = inserted.rows[0] as any;
+        const prices = await tx.execute(sql`SELECT ton_reserve::numeric / NULLIF(axn_reserve::numeric, 0) AS price_ton, gram_reserve::numeric / NULLIF(axn_reserve::numeric, 0) AS price_gram FROM axn_market_pool WHERE id = 1`);
+        const pr = prices.rows[0] as any;
+        const priceUsd = tonUsd ? (Number(pr.price_ton) * tonUsd.price).toFixed(18) : null;
+        await tx.execute(sql`INSERT INTO axn_market_price_snapshots (swap_id, price_ton, price_gram, price_usd, volume_axn) VALUES (${swap.id}, ${pr.price_ton}, ${pr.price_gram}, ${priceUsd}, ${side === 'buy' ? quote.netOutput : inputAmount})`);
+        return { swap, replayed: false };
+      });
+      res.status(result.replayed ? 200 : 201).json({ ...result, virtualMarket: true, message: result.replayed ? 'Swap already processed' : 'Virtual swap completed' });
+    } catch (error: any) { console.error('AXN AMM swap error:', error); res.status(error?.statusCode || 500).json({ message: error?.message || 'Swap failed' }); }
+  });
+
+  app.get('/api/admin/axn-market/settings', authenticateAdmin, async (req: any, res: any) => {
+    const admin = await marketAdmin(req, res); if (!admin) return;
+    const settings = await readAxnMarketSettings();
+    const pool = await db.execute(sql`SELECT * FROM axn_market_pool WHERE id = 1`);
+    res.json({ settings, pool: pool.rows[0] || null });
+  });
+  app.put('/api/admin/axn-market/settings', authenticateAdmin, async (req: any, res: any) => {
+    const admin = await marketAdmin(req, res); if (!admin) return;
+    try {
+      const allowedNumbers = ['buyFeeBps','sellFeeBps','minSwapTon','maxSwapTon','minSwapAxn','maxSwapAxn','maxPriceImpactBps','slippageBps','gramUsdPrice'];
+      const allowedText = ['marketPaused','publicTradingEnabled'];
+      const mapping: Record<string, string> = { buyFeeBps:'buy_fee_bps', sellFeeBps:'sell_fee_bps', minSwapTon:'min_swap_ton', maxSwapTon:'max_swap_ton', minSwapAxn:'min_swap_axn', maxSwapAxn:'max_swap_axn', maxPriceImpactBps:'max_price_impact_bps', slippageBps:'slippage_bps', gramUsdPrice:'gram_usd_price', marketPaused:'market_paused', publicTradingEnabled:'public_trading_enabled' };
+      for (const key of allowedNumbers) { const value = validMarketAmount(req.body?.[key]); if (!value) continue; await db.execute(sql`INSERT INTO axn_market_settings (setting_key, setting_value, text_value, updated_by, updated_at) VALUES (${mapping[key]}, ${value}::numeric, NULL, (SELECT id FROM users WHERE telegram_id = ${admin.telegramId} LIMIT 1), NOW()) ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_by = EXCLUDED.updated_by, updated_at = NOW()`); }
+      for (const key of allowedText) { if (typeof req.body?.[key] !== 'boolean') continue; await db.execute(sql`INSERT INTO axn_market_settings (setting_key, setting_value, text_value, updated_by, updated_at) VALUES (${mapping[key]}, NULL, ${req.body[key] ? 'true' : 'false'}, (SELECT id FROM users WHERE telegram_id = ${admin.telegramId} LIMIT 1), NOW()) ON CONFLICT (setting_key) DO UPDATE SET text_value = EXCLUDED.text_value, updated_by = EXCLUDED.updated_by, updated_at = NOW()`); }
+      res.json({ success: true, settings: await readAxnMarketSettings() });
+    } catch (error: any) { res.status(400).json({ message: error?.message || 'Could not update market settings' }); }
+  });
 
   // Set up WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
