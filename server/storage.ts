@@ -1840,13 +1840,15 @@ export class DatabaseStorage implements IStorage {
         : withdrawalAmount;
       
       // Determine if this is an SWAG-direct withdrawal (new flow) or legacy USD withdrawal
+      const gramAmountRaw = withdrawalDetails?.gramAmount ? parseFloat(String(withdrawalDetails.gramAmount)) : null;
       const axnAmountRaw = withdrawalDetails?.axnAmount ? parseFloat(String(withdrawalDetails.axnAmount)) : null;
-      const isAxnWithdrawal = axnAmountRaw !== null && Number.isFinite(axnAmountRaw) && axnAmountRaw > 0;
+      const isGramWithdrawal = gramAmountRaw !== null && Number.isFinite(gramAmountRaw) && gramAmountRaw > 0;
+      const isAxnWithdrawal = !isGramWithdrawal && axnAmountRaw !== null && Number.isFinite(axnAmountRaw) && axnAmountRaw > 0;
 
       let updatedWithdrawal: any;
 
-      if (isAxnWithdrawal) {
-        // ── SWAG-direct withdrawal — fully atomic transaction ───────────────────
+      if (isAxnWithdrawal || isGramWithdrawal) {
+        // ── Direct AXN/GRAM withdrawal — fully atomic transaction ───────────────────
         // Lock the withdrawal row first to re-confirm it is still pending and
         // not yet deducted (guards against double-approval via concurrent
         // Telegram callbacks or admin clicks).
@@ -1875,6 +1877,11 @@ export class DatabaseStorage implements IStorage {
             const rawBal = parseFloat(lockedUser.balance || '0');
             const currentGemsBalance = rawBal < 1 ? Math.round(rawBal * 10_000_000) : Math.round(rawBal);
 
+            if (isGramWithdrawal) {
+              const [lockedGramUser] = await tx.select({ gramBalance: users.gramBalance }).from(users).where(eq(users.id, withdrawal.userId));
+              const currentGramBalance = Number(lockedGramUser?.gramBalance || 0);
+              throw new Error(`Cannot approve: GRAM was already deducted at request time; current GRAM balance is ${currentGramBalance}`);
+            }
             if (currentGemsBalance < axnAmountRaw!) {
               throw new Error(
                 `Cannot approve: user's GEM balance (${currentGemsBalance.toLocaleString()} GEM) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} GEM) and it isn't flagged as already-deducted.`
@@ -1884,11 +1891,12 @@ export class DatabaseStorage implements IStorage {
 
           // Audit records inside the same transaction
           const paymentSystemName = lockedWithdrawal.method;
-          const description = `Withdrawal approved: ${axnAmountRaw} Gems via ${paymentSystemName}`;
+          const approvedAmount = isGramWithdrawal ? gramAmountRaw : axnAmountRaw;
+          const description = `Withdrawal approved: ${approvedAmount} GRAM via ${paymentSystemName}`;
 
           await tx.insert(earnings).values({
             userId: withdrawal.userId,
-            amount: `-${axnAmountRaw}`,
+            amount: `-${approvedAmount}`,
             source: 'withdrawal',
             description,
           });
@@ -1907,7 +1915,7 @@ export class DatabaseStorage implements IStorage {
         // logTransaction can run outside the tx (it's append-only audit, not balance-critical)
         await this.logTransaction({
           userId: withdrawal.userId,
-          amount: `-${axnAmountRaw}`,
+          amount: `-${isGramWithdrawal ? gramAmountRaw : axnAmountRaw}`,
           type: 'debit',
           source: 'withdrawal',
           description: txResult.description,
@@ -1964,8 +1972,8 @@ export class DatabaseStorage implements IStorage {
         [updatedWithdrawal] = await db.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
       }
 
-      const deductedCurrency = isAxnWithdrawal ? 'SWAG' : 'USD';
-      console.log(`✅ Manual TON withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated; admin must pay externally ✅`);
+      const deductedCurrency = isGramWithdrawal ? 'GRAM' : (isAxnWithdrawal ? 'SWAG' : 'USD');
+      console.log(`✅ GRAM withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated; admin must pay externally ✅`);
 
       return { success: true, message: 'Withdrawal approved and processed', withdrawal: updatedWithdrawal };
     } catch (error) {
@@ -1995,7 +2003,7 @@ export class DatabaseStorage implements IStorage {
       // New manual TON withdrawals deduct GEM at request time.
       // Rejection must atomically restore that exact GEM amount and transition
       // the request, so repeated admin actions cannot refund twice.
-      if (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal)) {
+      if ((withdrawal.details as any)?.manualGramWithdrawal || (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal))) {
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
           const [claimed] = await tx.update(withdrawals).set({
             status: 'rejected',
@@ -2005,15 +2013,23 @@ export class DatabaseStorage implements IStorage {
             updatedAt: new Date(),
           }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
           if (!claimed) return [];
-          await tx.update(users).set({
-            balance: sql`${users.balance} + ${withdrawal.goldAmount}`,
-            updatedAt: new Date(),
-          }).where(eq(users.id, withdrawal.userId));
+          const details = withdrawal.details as any;
+          if (details?.manualGramWithdrawal || withdrawal.payoutCurrency === 'GRAM') {
+            await tx.update(users).set({
+              gramBalance: sql`${users.gramBalance} + ${details?.gramAmount || withdrawal.cryptoAmount || withdrawal.amount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          } else {
+            await tx.update(users).set({
+              balance: sql`${users.balance} + ${withdrawal.goldAmount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          }
           return [claimed];
         });
         if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
-        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GEM`);
-        return { success: true, message: 'Withdrawal rejected and GEM refunded', withdrawal: updatedWithdrawal };
+        console.log(`💰 Rejected GRAM withdrawal ${withdrawalId}: restored GRAM balance`);
+        return { success: true, message: 'Withdrawal rejected and GRAM refunded', withdrawal: updatedWithdrawal };
       }
       
       const withdrawalAmount = parseFloat(withdrawal.amount);

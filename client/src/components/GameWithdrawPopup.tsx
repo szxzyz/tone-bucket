@@ -24,19 +24,19 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
 
   const savedAddress = user?.payoutWalletAddress || '';
   const address = connectedAddress || savedAddress;
-  const minimum = Math.max(1, Number(settings?.minimumCashoutGold || 1000));
-  const feePercent = Math.max(0, Math.min(100, Number(settings?.withdrawalFeeTON ?? 9)));
+  const minimum = Math.max(1, Number(settings?.minimumCashoutGram || 1000));
+  const feePercent = Math.max(0, Math.min(100, Number(settings?.withdrawalFeeGRAM ?? settings?.withdrawalFeeTON ?? 9)));
   const secondaryAccountBlocked = Boolean(user?.secondaryAccountBlocked);
 
   const saveWallet = useMutation({
-    mutationFn: async () => (await apiRequest('PATCH', '/api/wallet/payout', { currency: 'TON', address: address.trim() })).json(),
+    mutationFn: async () => (await apiRequest('PATCH', '/api/wallet/payout', { currency: 'GRAM', address: address.trim() })).json(),
     onSuccess: (data) => {
       if (!data.success) throw new Error(data.message);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/withdrawal-eligibility'] });
-      showNotification('TON address saved successfully', 'success');
+      showNotification('GRAM wallet saved successfully', 'success');
     },
-    onError: (error: any) => showNotification(error.message || 'Could not save TON address', 'error'),
+    onError: (error: any) => showNotification(error.message || 'Could not save GRAM wallet', 'error'),
   });
 
   const withdrawal = useMutation({
@@ -44,27 +44,27 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
       // Persist a newly connected wallet before submitting the AXN Bux AXN payout.
       if (connectedAddress && connectedAddress !== savedAddress) {
         const response = await apiRequest('PATCH', '/api/wallet/payout', {
-          currency: 'TON',
+          currency: 'GRAM',
           address: connectedAddress.trim(),
         });
         const data = await response.json();
-        if (!data.success) throw new Error(data.message || 'Could not save TON wallet');
+        if (!data.success) throw new Error(data.message || 'Could not save GRAM wallet');
       }
-      return (await apiRequest('POST', '/api/payouts', { goldAmount: Number(amount) })).json();
+      return (await apiRequest('POST', '/api/payouts', { gramAmount: Number(amount) })).json();
     },
     onSuccess: (data) => {
       if (!data.success) throw new Error(data.message);
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
       queryClient.invalidateQueries({ queryKey: ['/api/withdrawal-eligibility'] });
-      showNotification('AXN withdrawal request sent to admin', 'success');
+      showNotification('GRAM withdrawal request sent to admin', 'success');
       onClose();
     },
     onError: (error: any) => showNotification(error.message || 'Could not create withdrawal request', 'error'),
   });
 
   const value = Number(amount || 0);
-  const netUsd = (value / 100000) * (1 - feePercent / 100);
+  const netGram = value * (1 - feePercent / 100);
   // The server obtains the authoritative TON market quote during submission.
   // A failed UI-only quote request must not leave this button permanently disabled.
   const canSubmit = !secondaryAccountBlocked && eligibility?.canWithdraw === true && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && !withdrawal.isPending;
@@ -94,7 +94,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
           >
             <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center px-5 py-3 border-b border-white/5">
-              <h2 className="text-white font-bold text-base">AXN Withdrawal</h2>
+              <h2 className="text-white font-bold text-base">GRAM Withdrawal</h2>
             </div>
             <div className="px-5 py-4 space-y-4">
               {secondaryAccountBlocked && (
@@ -103,19 +103,19 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 </div>
               )}
               <div className="bg-white/5 rounded-xl px-4 py-3 flex justify-between items-center">
-                <span className="text-white text-xs font-semibold">Available Balance</span>
+                <span className="text-white text-xs font-semibold">GRAM Balance</span>
                 <span className="text-white text-sm font-black tabular-nums inline-flex items-center gap-1.5">
-                  <img src="/assets/axionet-mining.webp" alt="AXN" className="w-5 h-5 object-contain" />
-                  {Math.floor(userBalance).toLocaleString()} AXN
+                  <img src="/assets/axionet-mining.webp" alt="GRAM" className="w-5 h-5 object-contain" />
+                  {Number(user?.gramBalance ?? userBalance).toLocaleString(undefined, { maximumFractionDigits: 6 })} GRAM
                 </span>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">TON wallet address</label>
+                  <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">GRAM wallet address</label>
                 </div>
                 <div className="flex justify-center">
                   <button type="button" onClick={openWallet} className="h-9 px-4 rounded-lg border border-[#0098ea]/55 bg-[#0098ea] text-white text-sm font-bold shadow-[0_2px_8px_rgba(0,152,234,0.22)]">
-                    {connectedAddress || savedAddress ? 'CHANGE WALLET' : 'Connect TON Wallet'}
+                    {connectedAddress || savedAddress ? 'CHANGE WALLET' : 'Connect GRAM Wallet'}
                   </button>
                 </div>
                 {address && <div className="bg-white/5 border border-white/10 text-white h-11 rounded-xl px-3 flex items-center text-xs font-medium truncate">{address}</div>}
@@ -126,19 +126,19 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">AXN amount</label>
+                <label className="text-white/40 text-[10px] font-black uppercase tracking-widest">GRAM amount</label>
                 <div className="relative">
                   <input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} placeholder={minimum.toLocaleString()} className="w-full bg-white/5 border border-white/10 text-white h-11 rounded-xl font-bold text-sm px-3.5 pr-16 placeholder:text-white/20 focus:outline-none focus:border-[#0066D6]/40" />
                   <button onClick={handleMax} className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white hover:bg-gray-200 text-gray-700 text-[10px] font-black rounded-lg uppercase">Max</button>
                 </div>
-                {value > 0 && value < minimum && <p className="text-red-400 text-[11px]">Minimum {minimum.toLocaleString()} AXN required</p>}
+                {value > 0 && value < minimum && <p className="text-red-400 text-[11px]">Minimum {minimum.toLocaleString()} GRAM required</p>}
               </div>
               <div className="bg-white/5 rounded-xl p-4 space-y-2.5">
                 <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Withdraw Fee</span><span className="text-white text-xs font-bold">{feePercent}%</span></div>
                 <div className="h-px bg-white/5" />
-                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} AXN</span></div>
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">Min. Withdrawal</span><span className="text-white text-xs font-bold">{minimum.toLocaleString()} GRAM</span></div>
                 <div className="h-px bg-white/5" />
-                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{value > 0 ? `$${netUsd.toFixed(3)} USD` : '—'}</span></div>
+                <div className="flex justify-between items-center"><span className="text-white/50 text-xs font-semibold">You Receive</span><span className="text-white text-sm font-black tabular-nums">{value > 0 ? `${netGram.toFixed(6)} GRAM` : '—'}</span></div>
               </div>
               <div className="bg-white/5 rounded-xl px-4 py-3 space-y-2 text-[11px]">
                 <p className="text-white/70 font-black uppercase tracking-wider">Withdrawal requirements</p>
@@ -155,7 +155,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 {!eligibilityLoading && !eligibility && <p className="text-red-300">Could not check withdrawal requirements. Reopen this window to retry.</p>}
               </div>
               <button onClick={() => withdrawal.mutate()} disabled={!canSubmit} className="w-full h-11 bg-[#007AFF] hover:bg-[#0066D6] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center justify-center gap-2">
-                {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw AXN'}
+                {withdrawal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw GRAM'}
               </button>
               <button onClick={onClose} className="w-full text-white/40 text-xs font-bold uppercase tracking-wider py-2 hover:text-white/60 transition-colors">Close</button>
             </div>

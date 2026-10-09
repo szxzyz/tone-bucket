@@ -1822,8 +1822,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minimumWithdrawal,
         minimumWithdrawalUSD,
         minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
+        minimumCashoutGram: parseFloat(getSetting('minimum_cashout_gram', getSetting('minimum_cashout_gold', '1000'))),
         minimumWithdrawalTON,
         withdrawalFeeTON,
+        withdrawalFeeGRAM: parseFloat(getSetting('withdrawal_fee_gram', getSetting('withdrawal_fee_ton', '9'))),
         withdrawalFeeUSD,
         channelTaskCostUSD,
         botTaskCostUSD,
@@ -5569,8 +5571,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         walletChangeFee: parseInt(getSetting('wallet_change_fee', '100')), // Return as Gems, default 100
         minimumWithdrawalUSD: parseFloat(getSetting('minimum_withdrawal_usd', '1.00')), // NEW: Min USD withdrawal
         minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
+        minimumCashoutGram: parseFloat(getSetting('minimum_cashout_gram', getSetting('minimum_cashout_gold', '1000'))),
         minimumWithdrawalTON: parseFloat(getSetting('minimum_withdrawal_ton', '0.5')), // NEW: Min TON withdrawal
-        withdrawalFeeTON: parseFloat(getSetting('withdrawal_fee_ton', '9')), // TON GEM withdrawal fee %
+        withdrawalFeeTON: parseFloat(getSetting('withdrawal_fee_ton', '9')), // legacy deposit/compatibility setting
+        withdrawalFeeGRAM: parseFloat(getSetting('withdrawal_fee_gram', getSetting('withdrawal_fee_ton', '9'))), // GRAM withdrawal fee %
         withdrawalFeeUSD: parseFloat(getSetting('withdrawal_fee_usd', '3')), // NEW: USD withdrawal fee %
         channelTaskCost: parseFloat(getSetting('channel_task_cost_usd', '0.003')), // NEW: Channel cost in USD (admin only)
         botTaskCost: parseFloat(getSetting('bot_task_cost_usd', '0.003')), // NEW: Bot cost in USD (admin only)
@@ -7431,7 +7435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currency = String(req.body?.currency || '').toUpperCase();
       const address = String(req.body?.address || '').trim();
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
-      if (currency !== 'TON') return res.status(400).json({ success: false, message: 'Only TON withdrawals are supported' });
+      if (currency !== 'GRAM') return res.status(400).json({ success: false, message: 'Only GRAM withdrawals are supported' });
       if (address.length < 8 || address.length > 180) return res.status(400).json({ success: false, message: 'Enter a valid wallet address' });
       await db.update(users).set({ payoutCurrency: currency, payoutWalletAddress: address, walletUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
       res.json({ success: true, currency, address });
@@ -7450,10 +7454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
-      const requestedGold = req.body?.goldAmount === undefined || req.body?.goldAmount === '' ? NaN : Number(req.body.goldAmount);
-      const gold = Math.trunc(requestedGold);
-      if (!Number.isFinite(requestedGold) || !Number.isInteger(requestedGold) || gold <= 0) {
-        return res.status(400).json({ success: false, message: 'Enter a whole GEM amount to withdraw' });
+      const requestedGram = req.body?.gramAmount ?? req.body?.goldAmount;
+      const gram = Number(requestedGram);
+      if (!Number.isFinite(gram) || gram <= 0) {
+        return res.status(400).json({ success: false, message: 'Enter a valid GRAM amount to withdraw' });
       }
 
       const settingsRows = await db.select().from(adminSettings);
@@ -7467,21 +7471,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const enabled = (key: string) => setting(key, key, 'true') === 'true';
       const maxWithdrawalsPerDay = Math.max(1, safeInt('max_withdrawals_per_day', 'maxWithdrawalsPerDay', 1));
-      const minimumCashoutGold = Math.max(1, safeInt('minimum_cashout_gold', 'minimumCashoutGold', 1000));
+      const minimumCashoutGram = Math.max(1, safeInt('minimum_cashout_gram', 'minimumCashoutGram', 1000));
       const minimumAds = safeInt('minimum_ads_for_withdrawal', 'minimumAdsForWithdrawal', 100);
       const minimumTasks = safeInt('minimum_tasks_for_withdrawal', 'minimumTasksForWithdrawal', 10);
       const minimumInvites = safeInt('minimum_invites_for_withdrawal', 'minimumInvitesForWithdrawal', 3);
       const adRequirementEnabled = enabled('withdrawal_ad_requirement_enabled');
       const taskRequirementEnabled = enabled('withdrawal_task_requirement_enabled');
       const inviteRequirementEnabled = enabled('withdrawal_invite_requirement_enabled');
-      const parsedFeePercent = Number.parseFloat(setting('withdrawal_fee_ton', 'withdrawalFeeTON', '9'));
+      const parsedFeePercent = Number.parseFloat(setting('withdrawal_fee_gram', 'withdrawalFeeGRAM', setting('withdrawal_fee_ton', 'withdrawalFeeTON', '9')));
       const feePercent = Number.isFinite(parsedFeePercent) ? Math.max(0, Math.min(100, parsedFeePercent)) : 9;
 
-      const { getLiveTonPriceUSD } = await import('./tonPriceService');
-      const { price: withdrawalTonPrice, source: withdrawalPriceSource } = await getLiveTonPriceUSD();
-      if (withdrawalPriceSource.includes('(stale)') || !Number.isFinite(withdrawalTonPrice) || withdrawalTonPrice <= 0) {
-        throw new Error('Live TON price is temporarily unavailable. Please try again in a few seconds.');
-      }
 
       const outcome = await db.transaction(async (tx) => {
         // Lock the user's row so concurrent submissions cannot pass the daily
@@ -7489,7 +7488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
         if (!user) throw new Error('User not found');
         if (user.banned) throw new Error('Account is banned and cannot withdraw');
-        if (!user.payoutWalletAddress) throw new Error('Save your TON address first');
+        if (!user.payoutWalletAddress) throw new Error('Save your GRAM wallet address first');
 
         const todayStart = new Date();
         todayStart.setUTCHours(0, 0, 0, 0);
@@ -7511,11 +7510,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )).limit(1);
         if (pending) throw new Error('A payout is already awaiting admin approval or processing');
 
-        const currentBalance = Math.floor(Number(user.balance || 0));
-        if (gold < minimumCashoutGold) {
-          throw new Error(`Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GEM`);
+        const currentBalance = Number(user.gramBalance || 0);
+        if (gram < minimumCashoutGram) {
+          throw new Error(`Minimum withdrawal is ${minimumCashoutGram.toLocaleString()} GRAM`);
         }
-        if (gold > currentBalance) throw new Error('Insufficient GEM balance');
+        if (gram > currentBalance) throw new Error('Insufficient GRAM balance');
 
         // Ads reset after each submitted (non-rejected) withdrawal request.
         const [lastWithdrawal] = await tx.select({ createdAt: withdrawals.createdAt }).from(withdrawals)
@@ -7554,40 +7553,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        const usdValue = gold / 100_000;
-        const fee = usdValue * (feePercent / 100);
-        const netAmount = usdValue - fee;
-        const tonAmount = netAmount / withdrawalTonPrice;
+        const usdPerGram = 1;
+        const usdValue = gram * usdPerGram;
+        const fee = gram * (feePercent / 100);
+        const netAmount = gram - fee;
         const [debited] = await tx.update(users)
-          .set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() })
-          .where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`))
+          .set({ gramBalance: sql`${users.gramBalance} - ${gram}`, updatedAt: new Date() })
+          .where(and(eq(users.id, userId), sql`CAST(${users.gramBalance} AS NUMERIC) >= ${gram}`))
           .returning({ id: users.id });
         if (!debited) throw new Error('Balance changed; please try again');
 
         const withdrawalDetails = {
           walletAddress: user.payoutWalletAddress,
-          goldAmount: gold,
-          axnAmount: gold,
+          gramAmount: gram,
           usdValue,
           fee,
           feePercent,
           netAmount,
-          tonAmount,
-          marketRateUsd: withdrawalTonPrice,
-          totalDeducted: gold,
-          manualTonWithdrawal: true,
+          totalDeducted: gram,
+          manualGramWithdrawal: true,
         };
         const [withdrawal] = await tx.insert(withdrawals).values({
           userId,
           amount: netAmount.toFixed(10),
-          method: 'TON',
+          method: 'GRAM',
           status: 'pending',
           details: withdrawalDetails,
-          goldAmount: String(gold),
           usdValue: netAmount.toFixed(10),
-          payoutCurrency: 'TON',
-          cryptoAmount: tonAmount.toFixed(18),
-          marketRateUsd: withdrawalTonPrice.toFixed(18),
+          payoutCurrency: 'GRAM',
+          cryptoAmount: netAmount.toFixed(18),
+          marketRateUsd: '1.000000000000000000',
           walletAddress: user.payoutWalletAddress,
           deducted: true,
           refunded: false,
@@ -7600,9 +7595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fee,
           netAmount,
           feePercent,
-          tonAmount,
-          tonPrice: withdrawalTonPrice,
-          gold,
+          gram,
         };
       });
 
@@ -7617,26 +7610,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usdAmount: outcome.netAmount,
         fee: outcome.fee,
         feePercent: outcome.feePercent,
-        axnAmount: outcome.gold,
-        tonAmount: outcome.tonAmount,
-        tonPrice: outcome.tonPrice,
+        gramAmount: outcome.gram,
       });
       if (!notificationSent) console.error(`❌ Withdrawal ${outcome.withdrawal.id} created but private admin delivery failed`);
       res.json({
         success: true,
         status: 'pending',
         withdrawalId: outcome.withdrawal.id,
-        goldAmount: outcome.gold,
+        gramAmount: outcome.gram,
         usdValue: outcome.netAmount,
         fee: outcome.fee,
         feePercent: outcome.feePercent,
-        currency: 'TON',
+        currency: 'GRAM',
       });
     } catch (error) {
       console.error('GEM withdrawal request failed:', error);
       const message = error instanceof Error ? error.message : 'Could not create withdrawal request. Please try again.';
-      const isExpectedValidation = /^(User not found|Account is banned|Save your TON address first|Daily withdrawal limit reached|A payout is already|Minimum withdrawal is|Insufficient GEM balance|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?|Balance changed;|Enter a whole GEM amount)/.test(message);
-      const isPriceUnavailable = message.startsWith('Live TON price is temporarily unavailable');
+      const isExpectedValidation = /^(User not found|Account is banned|Save your GRAM wallet address first|Daily withdrawal limit reached|A payout is already|Minimum withdrawal is|Insufficient GRAM balance|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?|Balance changed;|Enter a valid GRAM amount)/.test(message);
+      const isPriceUnavailable = false;
       res.status(isExpectedValidation ? 400 : isPriceUnavailable ? 503 : 500).json({
         success: false,
         message: isExpectedValidation || isPriceUnavailable ? message : 'Could not create withdrawal request. Please try again.',
