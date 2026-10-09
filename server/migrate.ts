@@ -1274,11 +1274,24 @@ export async function ensureDatabaseSchema(): Promise<void> {
         INSERT INTO axn_market_pool (id, ton_reserve, axn_reserve, gram_reserve)
           VALUES (1, 10, 1000000, 100000) ON CONFLICT (id) DO NOTHING;
         INSERT INTO axn_market_settings (setting_key, setting_value, text_value) VALUES
-          ('buy_fee_bps', 30, NULL), ('sell_fee_bps', 30, NULL), ('min_swap_ton', 0.0001, NULL),
-          ('max_swap_ton', 1000, NULL), ('min_swap_axn', 1, NULL), ('max_swap_axn', 1000000000, NULL),
-          ('max_price_impact_bps', 1000, NULL), ('slippage_bps', 100, NULL), ('gram_usd_price', 0.000001, NULL),
+          ('buy_fee_bps', 30, NULL), ('sell_fee_bps', 30, NULL), ('min_swap_ton', 0.1, NULL),
+          ('max_swap_ton', 10, NULL), ('min_swap_axn', 1000, NULL), ('max_swap_axn', 1000000, NULL),
+          ('max_price_impact_bps', 500, NULL), ('slippage_bps', 100, NULL), ('gram_usd_price', 0.000001, NULL),
           ('market_paused', NULL, 'false'), ('public_trading_enabled', NULL, 'false')
         ON CONFLICT (setting_key) DO NOTHING;
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM axn_market_settings WHERE setting_key = 'amm_defaults_v2_applied') THEN
+            UPDATE axn_market_settings SET setting_value = 30 WHERE setting_key IN ('buy_fee_bps', 'sell_fee_bps');
+            UPDATE axn_market_settings SET setting_value = 0.1 WHERE setting_key = 'min_swap_ton';
+            UPDATE axn_market_settings SET setting_value = 10 WHERE setting_key = 'max_swap_ton';
+            UPDATE axn_market_settings SET setting_value = 1000 WHERE setting_key = 'min_swap_axn';
+            UPDATE axn_market_settings SET setting_value = 1000000 WHERE setting_key = 'max_swap_axn';
+            UPDATE axn_market_settings SET setting_value = 500 WHERE setting_key = 'max_price_impact_bps';
+            UPDATE axn_market_settings SET setting_value = 100 WHERE setting_key = 'slippage_bps';
+            INSERT INTO axn_market_settings (setting_key, text_value) VALUES ('amm_defaults_v2_applied', 'true');
+          END IF;
+        END $$;
       `);
       console.log('✅ [MIGRATION] AXN AMM market tables, pool and settings ready');
     } catch (err) {

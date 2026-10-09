@@ -657,9 +657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const text = (key: string, fallback: string) => String(map.get(key)?.text_value ?? fallback);
     return {
       buyFeeBps: number('buy_fee_bps', '30'), sellFeeBps: number('sell_fee_bps', '30'),
-      minSwapTon: number('min_swap_ton', '0.0001'), maxSwapTon: number('max_swap_ton', '1000'),
-      minSwapAxn: number('min_swap_axn', '1'), maxSwapAxn: number('max_swap_axn', '1000000000'),
-      maxPriceImpactBps: number('max_price_impact_bps', '1000'), slippageBps: number('slippage_bps', '100'),
+      minSwapTon: number('min_swap_ton', '0.1'), maxSwapTon: number('max_swap_ton', '10'),
+      minSwapAxn: number('min_swap_axn', '1000'), maxSwapAxn: number('max_swap_axn', '1000000'),
+      maxPriceImpactBps: number('max_price_impact_bps', '500'), slippageBps: number('slippage_bps', '100'),
       gramUsdPrice: number('gram_usd_price', MARKET_DEFAULT_GRAM_USD),
       marketPaused: text('market_paused', 'false') === 'true',
       publicTradingEnabled: text('public_trading_enabled', 'false') === 'true',
