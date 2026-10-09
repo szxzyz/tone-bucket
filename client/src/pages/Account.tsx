@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { User, Receipt, Shield, FileCheck2, ShoppingCart, ArrowUpFromLine } from 'lucide-react';
+import { User, Receipt, Shield, FileCheck2, CandlestickChart } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -115,9 +115,8 @@ export default function Account() {
           <button type="button" onClick={() => setWithdrawOpen(true)} disabled={!balanceLoaded} className="h-9 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>{t('withdraw')}</button>
         </section>
 
-        <section className="grid grid-cols-2 gap-2 mb-3" aria-label="AXN market actions">
-          <button type="button" onClick={() => setLocation('/axn-market?side=buy')} className="h-11 rounded-xl flex items-center justify-center gap-2 text-white text-xs font-black active:scale-95 transition-transform" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 5px 14px rgba(0,0,0,.22)' }}><ShoppingCart className="w-4 h-4 text-green-300" />Buy AXN</button>
-          <button type="button" onClick={() => setLocation('/axn-market?side=sell')} className="h-11 rounded-xl flex items-center justify-center gap-2 text-white text-xs font-black active:scale-95 transition-transform" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 5px 14px rgba(0,0,0,.22)' }}><ArrowUpFromLine className="w-4 h-4 text-red-300" />Sell AXN</button>
+        <section className="mb-3" aria-label="AXN market actions">
+          <button type="button" onClick={() => setLocation('/axn-market')} className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-white text-xs font-black active:scale-95 transition-transform" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 5px 14px rgba(0,0,0,.22)' }}><CandlestickChart className="w-4 h-4 text-blue-300" />Buy/Sell AXIONET</button>
         </section>
         <section className="rounded-2xl p-3 mb-3" aria-label="Promo code" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">Promo Code</p>
