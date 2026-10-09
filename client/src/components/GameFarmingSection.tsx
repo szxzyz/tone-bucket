@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 const AXN_PER_USD = 100_000;
 const formatAxn = (value: number) => (Number.isFinite(value) ? value : 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-const formatUsd = (value: number, digits = 4) => `$${(Number.isFinite(value) ? value : 0).toFixed(digits)}`;
+const formatAxnSix = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(6);
 
 const glassPill: React.CSSProperties = {
   minWidth: 0, height: 38, boxSizing: "border-box", padding: "0 12px", borderRadius: 12,
@@ -14,11 +14,9 @@ const glassPill: React.CSSProperties = {
   fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center",
   gap: 8, border: "1px solid rgba(255,255,255,.16)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.08), 0 7px 18px rgba(0,0,0,.12)",
 };
-const mutedPill: React.CSSProperties = { ...glassPill, background: "rgba(255,255,255,.045)", color: "rgba(255,255,255,.62)", boxShadow: "none" };
 
 export default function GameFarmingSection() {
   const queryClient = useQueryClient();
-  const { data: user } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false, staleTime: 10_000 });
   const { data: farm, isLoading } = useQuery<any>({ queryKey: ["/api/farming/state"], retry: false, staleTime: 10_000, refetchInterval: 30_000 });
   const [amount, setAmount] = useState(0);
   const [tokenTapped, setTokenTapped] = useState(false);
@@ -45,7 +43,6 @@ export default function GameFarmingSection() {
     },
     onError: (error: any) => showNotification(error?.message || "Could not claim AXN", "error"),
   });
-  const totalAssets = Math.max(0, Number(user?.balance ?? 0));
   const miningUsd = Math.max(0, amount / AXN_PER_USD);
   const tapToken = () => {
     setTokenTapped(true);
@@ -70,20 +67,13 @@ export default function GameFarmingSection() {
         <div style={glassPill}><span>Lvl</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
         <div style={glassPill}><span>Yield:</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
       </div>
-      <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <div style={{ color: "rgba(255,255,255,.62)", fontSize: 11, fontWeight: 900, letterSpacing: ".08em", textTransform: "uppercase" }}>TOTAL ASSETS <span style={{ color: "rgba(255,255,255,.38)", letterSpacing: 0 }}>({formatUsd(totalAssets / AXN_PER_USD, 2)} USD value)</span></div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 7 }}><img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 25, height: 25, objectFit: "contain" }} /><strong style={{ color: "#fff", fontSize: "clamp(20px, 6vw, 27px)", lineHeight: 1, letterSpacing: "-.035em" }}>{Math.round(totalAssets).toLocaleString("en-US")} <span style={{ color: "#fff", fontSize: 14 }}>AXN</span></strong></div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 22 }}>
-        <div style={mutedPill}><span>Holding</span><span style={{ color: "#fff", fontSize: 10 }}>Coming soon</span></div>
-        <div style={mutedPill}><span>Pool</span><span style={{ color: "#fff", fontSize: 10 }}>Coming soon</span></div>
-      </div>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <div style={{ color: "#fff", fontSize: "clamp(27px, 9vw, 39px)", fontWeight: 900, lineHeight: 1, letterSpacing: ".01em", textShadow: "0 0 14px rgba(255,255,255,.18)" }}>+{formatAxn(amount)}</div>
-        <div style={{ color: "rgba(255,255,255,.58)", fontSize: 12, marginTop: 5 }}>= {formatUsd(miningUsd, 4)} USD</div>
+        <div style={{ color: "rgba(255,255,255,.62)", fontSize: 12, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", marginBottom: 5 }}>Unclaimed reward</div>
+        <div style={{ color: "#fff", fontSize: "clamp(22px, 7vw, 30px)", fontWeight: 900, lineHeight: 1, letterSpacing: ".01em" }}>{formatAxnSix(amount)} <span style={{ fontSize: 14, fontWeight: 800 }}>AXN</span></div>
+        <div style={{ color: "rgba(255,255,255,.58)", fontSize: 12, marginTop: 5 }}>= {miningUsd.toFixed(4)}</div>
       </div>
-      <div onPointerDown={tapToken} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") tapToken(); }} role="button" tabIndex={0} aria-label="Tap AXN token" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", margin: "34px auto 48px", height: 164, cursor: "pointer" }}><img className={tokenTapped ? "axn-token tapped" : "axn-token"} src="/assets/axionet-mining.webp" alt="AXN mining token" style={{ width: 150, height: 150, objectFit: "contain" }} />{showBurst && <div aria-hidden="true">{[["-56px","-42px"],["0px","-68px"],["56px","-42px"],["68px","8px"],["-68px","8px"],["-42px","54px"],["42px","54px"]].map(([x,y]) => <span key={`${x}-${y}`} className="axn-point" style={{ "--x": x, "--y": y } as React.CSSProperties} />)}</div>}</div>
-      <button type="button" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending || isLoading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "calc(100% - 28px)", margin: "0 auto", height: 50, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 900, fontSize: 13, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimMutation.isPending || isLoading ? .65 : 1 }}>{claimMutation.isPending ? <Loader2 size={15} className="animate-spin" style={{ margin: "0 auto" }} /> : <><HandCoins size={16} /> Claim</>}</button>
+      <div onPointerDown={tapToken} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") tapToken(); }} role="button" tabIndex={0} aria-label="Tap AXN token" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", margin: "5px auto 22px", height: 164, cursor: "pointer" }}><img className={tokenTapped ? "axn-token tapped" : "axn-token"} src="/assets/axionet-mining.webp" alt="AXN mining token" style={{ width: 150, height: 150, objectFit: "contain" }} />{showBurst && <div aria-hidden="true">{[["-56px","-42px"],["0px","-68px"],["56px","-42px"],["68px","8px"],["-68px","8px"],["-42px","54px"],["42px","54px"]].map(([x,y]) => <span key={`${x}-${y}`} className="axn-point" style={{ "--x": x, "--y": y } as React.CSSProperties} />)}</div>}</div>
+      <button type="button" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending || isLoading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "calc(100% - 28px)", margin: "0 auto", height: 44, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 900, fontSize: 13, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimMutation.isPending || isLoading ? .65 : 1 }}>{claimMutation.isPending ? <Loader2 size={15} className="animate-spin" style={{ margin: "0 auto" }} /> : <><HandCoins size={16} /> Claim Reward {Number(amount).toFixed(2)} AXN</>}</button>
 
     </section>
     </>
