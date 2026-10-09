@@ -737,7 +737,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   async function calculateMarketQuote(conn: any, side: 'buy' | 'sell', inputAmount: string, settings: any) {
-    const fee = side === 'buy' ? settings.buyFeeBps : settings.sellFeeBps;
+    const fee = Math.max(0, Math.round(Number(side === 'buy' ? settings.buyFeeBps : settings.sellFeeBps)));
+    if (!Number.isFinite(fee) || fee > 10000) throw Object.assign(new Error('Invalid market fee configuration'), { statusCode: 500 });
     const result = await conn.execute(sql`
       WITH p AS (SELECT ton_reserve::numeric ton, axn_reserve::numeric axn, gram_reserve::numeric gram FROM axn_market_pool WHERE id = 1),
       q AS (SELECT p.*, CAST(${inputAmount} AS NUMERIC) input_amount, CAST(${fee} AS NUMERIC) fee_bps FROM p)
@@ -812,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         const tonUsd = await getLiveTonPriceUSD().catch(() => null);
         const gramUsd = settings.gramUsdPrice;
-        const inserted = await tx.execute(sql`INSERT INTO axn_market_swaps (user_id, side, input_asset, output_asset, input_amount, gross_output, fee_amount, fee_rate_bps, net_output, min_received, price_impact, ton_usd_price, gram_usd_price, idempotency_key) VALUES (${user.id}, ${side}, ${side === 'buy' ? 'TON' : 'AXN'}, ${side === 'buy' ? 'AXN' : 'GRAM'}, ${inputAmount}, ${quote.grossOutput}, ${quote.feeAmount}, ${quote.feeBps}, ${quote.netOutput}, ${minReceived}, ${quote.priceImpactBps}, ${tonUsd?.price?.toString() || null}, ${gramUsd}, ${idempotencyKey}) RETURNING *`);
+        const inserted = await tx.execute(sql`INSERT INTO axn_market_swaps (user_id, side, input_asset, output_asset, input_amount, gross_output, fee_amount, fee_rate_bps, net_output, min_received, price_impact, ton_usd_price, gram_usd_price, idempotency_key) VALUES (${user.id}, ${side}, ${side === 'buy' ? 'TON' : 'AXN'}, ${side === 'buy' ? 'AXN' : 'GRAM'}, ${inputAmount}, ${quote.grossOutput}, ${quote.feeAmount}, ${quote.feeBps}::numeric::integer, ${quote.netOutput}, ${minReceived}, ${quote.priceImpactBps}, ${tonUsd?.price?.toString() || null}, ${gramUsd}, ${idempotencyKey}) RETURNING *`);
         const swap = inserted.rows[0] as any;
         const prices = await tx.execute(sql`SELECT ton_reserve::numeric / NULLIF(axn_reserve::numeric, 0) AS price_ton, gram_reserve::numeric / NULLIF(axn_reserve::numeric, 0) AS price_gram FROM axn_market_pool WHERE id = 1`);
         const pr = prices.rows[0] as any;
