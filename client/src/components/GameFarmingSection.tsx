@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HandCoins, Loader2 } from "lucide-react";
+import { HandCoins, Loader2, Activity, Clock3, Layers3, Home, Link2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
@@ -75,40 +75,45 @@ export default function GameFarmingSection() {
         <div style={{ color: "rgba(255,255,255,.58)", fontSize: 12, marginTop: 5 }}>= {miningUsd.toFixed(4)}</div>
       </div>
       <button type="button" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending || isLoading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "calc(100% - 28px)", margin: "0 auto", height: 44, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 900, fontSize: 13, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimMutation.isPending || isLoading ? .65 : 1 }}>{claimMutation.isPending ? <Loader2 size={15} className="animate-spin" style={{ margin: "0 auto" }} /> : <><HandCoins size={16} /> Claim Reward {Number(amount).toFixed(2)} AXN</>}</button>
-      <section aria-label="Miner details" style={{ marginTop: 18 }}>
-        <div style={{ color: "rgba(255,255,255,.52)", fontSize: 12, fontWeight: 800, margin: "0 0 8px 4px" }}>Miner:</div>
-        <div style={{ background: "#252525", borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
-            <span style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Mining Speed</span>
-            <strong style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>{ratePerHour.toFixed(2)} AXN/hr</strong>
+      <section aria-label="Miner details" style={{ marginTop: 16 }}>
+        <div style={{ color: "rgba(255,255,255,.42)", fontSize: 11, fontWeight: 700, margin: "0 0 6px 4px", letterSpacing: ".04em" }}>Miner:</div>
+        <div style={{ borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(37,99,235,.12)", color: "#60a5fa" }}><Activity size={16} /></div>
+            <span style={{ flex: 1, color: "#fff", fontSize: 13, fontWeight: 700 }}>Mining Speed</span>
+            <strong style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{ratePerHour.toFixed(2)} AXN/hr</strong>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
-            <span style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>24h Output</span>
-            <strong style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>{(ratePerHour * 24).toFixed(2)} AXN</strong>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(59,130,246,.12)", color: "#93c5fd" }}><Clock3 size={16} /></div>
+            <span style={{ flex: 1, color: "#fff", fontSize: 13, fontWeight: 700 }}>24h Output</span>
+            <strong style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{(ratePerHour * 24).toFixed(2)} AXN</strong>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
-            <span style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>Level</span>
-            <strong style={{ color: "rgba(255,255,255,.38)", fontSize: 12, fontWeight: 700 }}>Coming soon</strong>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(96,165,250,.12)", color: "#bfdbfe" }}><Layers3 size={16} /></div>
+            <span style={{ flex: 1, color: "#fff", fontSize: 13, fontWeight: 700 }}>Level</span>
+            <strong style={{ color: "rgba(255,255,255,.38)", fontSize: 11, fontWeight: 700 }}>Coming soon</strong>
           </div>
-          <div style={{ padding: "12px 16px 14px", color: "rgba(255,255,255,.35)", fontSize: 12 }}>Claim within 24 hours to keep mining active</div>
+          <div style={{ padding: "9px 12px 11px", color: "rgba(255,255,255,.32)", fontSize: 11 }}>Claim within 24 hours to keep mining active</div>
         </div>
       </section>
 
-      <section aria-label="My holdings" style={{ marginTop: 14 }}>
-        <div style={{ color: "rgba(255,255,255,.52)", fontSize: 12, fontWeight: 800, margin: "0 0 8px 4px" }}>My holdings</div>
-        <div style={{ background: "#252525", borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
-            <span style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>In app</span>
-            <strong style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>{Math.round(Number(user?.balance ?? 0)).toLocaleString("en-US")} AXN</strong>
+      <section aria-label="My holdings" style={{ marginTop: 12 }}>
+        <div style={{ color: "rgba(255,255,255,.42)", fontSize: 11, fontWeight: 700, margin: "0 0 6px 4px", letterSpacing: ".04em" }}>My holdings</div>
+        <div style={{ borderRadius: 16, overflow: "hidden", background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(37,99,235,.12)", color: "#60a5fa" }}><Home size={16} /></div>
+            <span style={{ flex: 1, color: "#fff", fontSize: 13, fontWeight: 700 }}>In app</span>
+            <strong style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{Math.round(Number(user?.balance ?? 0)).toLocaleString("en-US")} AXN</strong>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px" }}>
-            <span style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>GRAM Wallet</span>
-            <strong style={{ color: "rgba(255,255,255,.38)", fontSize: 12, fontWeight: 700 }}>Coming soon</strong>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(59,130,246,.12)", color: "#93c5fd" }}><Link2 size={16} /></div>
+            <span style={{ flex: 1, color: "#fff", fontSize: 13, fontWeight: 700 }}>GRAM Wallet</span>
+            <strong style={{ color: "rgba(255,255,255,.38)", fontSize: 11, fontWeight: 700 }}>Coming soon</strong>
           </div>
         </div>
       </section>
 
-      <section aria-label="AXN Live chart" style={{ marginTop: 14, padding: "14px 14px 10px", borderRadius: 14, background: "rgba(255,255,255,.035)", border: "1px solid rgba(255,255,255,.08)" }}>
+      <section aria-label="AXN Live chart" style={{ marginTop: 14, padding: "14px 14px 10px", borderRadius: 14, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,.25)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><span style={{ color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 900 }}>AXN Live chart</span><span style={{ color: "#86efac", fontSize: 10, fontWeight: 800 }}>Live · $0.000010</span></div>
         <svg viewBox="0 0 320 70" width="100%" height="70" role="img" aria-label="AXN live price trend" preserveAspectRatio="none">
           <defs><linearGradient id="axnChartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity=".35" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0" /></linearGradient></defs>
