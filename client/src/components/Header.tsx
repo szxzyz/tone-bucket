@@ -6,6 +6,7 @@ import DepositPopup from "@/components/DepositPopup";
 import { TonIcon } from "@/components/TonIcon";
 import { useLocation } from "wouter";
 import { getTONPrice } from "@/lib/tonPriceService";
+import { apiRequest } from "@/lib/queryClient";
 
 interface HeaderProps {
   onInviteOpen?: () => void;
@@ -177,19 +178,15 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
 const AxnTokenPriceBanner = () => {
   const { data } = useQuery<any>({
     queryKey: ["/api/axn-market", "24H", "header"],
-    queryFn: async () => {
-      const response = await fetch("/api/axn-market?timeframe=24H");
-      if (!response.ok) throw new Error("market unavailable");
-      return response.json();
-    },
+    queryFn: async () => (await apiRequest("GET", "/api/axn-market?hours=720")).json(),
     staleTime: 15_000,
     refetchInterval: 20_000,
     retry: false,
   });
   const liveUsd = Number(data?.price?.usd);
-  const price = Number.isFinite(liveUsd) && liveUsd > 0 ? `$${liveUsd.toFixed(8)}` : "—";
+  const price = Number.isFinite(liveUsd) && liveUsd > 0 ? `$${liveUsd.toFixed(12)}` : "—";
   return (
-    <div style={{ background: "#0f0f0f", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "5px 16px", color: "#e9d5ff" }}>
+    <div style={{ background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "5px 16px", color: "#e9d5ff" }}>
       <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(216,180,254,.7)" }}>Live</span>
       <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
       <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".04em" }}>AXN token</span>

@@ -801,24 +801,29 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
     const botUsername = await getBotUsername();
     const currentDate = new Date().toUTCString();
 
-    const gramLine = withdrawalData.gramAmount
-      ? `💎 GRAM: <code>${Number(withdrawalData.gramAmount).toLocaleString(undefined, { maximumFractionDigits: Number(withdrawalData.gramAmount) % 1 === 0 ? 0 : 6 })} GRAM</code>\n`
-      : '';
-
+    const usdAmount = Number(withdrawalData.usdAmount ?? withdrawalData.amount ?? 0);
+    const fee = Number(withdrawalData.fee || 0);
     const text = `💰 <b>Withdrawal Request</b>
-
-🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>
-🆔 User ID: <code>${withdrawalData.userTelegramId}</code>
-💳 Username: ${formatTelegramUsername(withdrawalData.userTelegramUsername)}
-🌐 Address:
-<code>${escapeHtml(withdrawalData.walletAddress)}</code>
-${gramLine}💵 GRAM value (after fee): <code>${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} GRAM</code>
-💸 GRAM to send: <code>${Number(withdrawalData.gramAmount || 0).toLocaleString(undefined, { maximumFractionDigits: Number(withdrawalData.gramAmount || 0) % 1 === 0 ? 0 : 6 })} GRAM</code>
-🪙 Payment: <b>Manual GRAM payment by admin after approval</b>
-🛂 Fee: <code>${Number(withdrawalData.fee || 0).toFixed(6)} GRAM (${withdrawalData.feePercent}%)</code>
-📅 Date: ${currentDate}
-🤖 Bot: @${botUsername}`;
-
+` +
+      `🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>
+` +
+      `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>
+` +
+      `💳 Username: ${formatTelegramUsername(withdrawalData.userTelegramUsername)}
+` +
+      `🌐 Address: <code>${escapeHtml(withdrawalData.walletAddress)}</code>
+` +
+      `💵 USD balance request: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
+` +
+      `💸 USD payout after fee: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
+` +
+      `🪙 Payment: <b>Manual payout by admin after approval</b>
+` +
+      `🛂 Fee: <code>${fee.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD (${withdrawalData.feePercent}%)</code>
+` +
+      `📅 Date: ${currentDate}
+` +
+      `🤖 Bot: @${botUsername}`;
     const replyMarkup = {
       inline_keyboard: [[
         { text: '✅ Approve', callback_data: `withdraw_paid_${withdrawalData.withdrawalId}` },
@@ -861,15 +866,16 @@ export async function sendWithdrawalRequestToAdmins(withdrawalData: Parameters<t
     return false;
   }
   const currentDate = new Date().toUTCString();
+  const usdAmount = Number(withdrawalData.usdAmount ?? withdrawalData.amount ?? 0);
+  const fee = Number(withdrawalData.fee || 0);
   const text = `💰 <b>Withdrawal Request</b>\n\n` +
     `🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>\n` +
     `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>\n` +
     `💳 Username: ${formatTelegramUsername(withdrawalData.userTelegramUsername)}\n` +
     `🌐 Wallet: <code>${escapeHtml(withdrawalData.walletAddress)}</code>\n` +
-    `💎 GRAM: <code>${Number(withdrawalData.gramAmount || 0).toLocaleString(undefined, { maximumFractionDigits: 6 })} GRAM</code>\n` +
-    `💵 GRAM value (after fee): <code>${Number(withdrawalData.usdAmount ?? withdrawalData.amount).toFixed(6)} USDT</code>\n` +
-    `💸 GRAM to send: <code>${Number(withdrawalData.gramAmount || 0).toLocaleString(undefined, { maximumFractionDigits: Number(withdrawalData.gramAmount || 0) % 1 === 0 ? 0 : 6 })} GRAM</code>\n` +
-    `🛂 Fee: <code>${withdrawalData.fee.toFixed(4)} USDT (${withdrawalData.feePercent}%)</code>\n` +
+    `💵 Requested: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>\n` +
+    `💸 Payout after fee: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>\n` +
+    `🛂 Fee: <code>${fee.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD (${withdrawalData.feePercent}%)</code>\n` +
     `📅 Date: ${currentDate}`;
   const replyMarkup = { inline_keyboard: [[
     { text: '✅ Approve', callback_data: `withdraw_paid_${withdrawalData.withdrawalId}` },
@@ -966,7 +972,7 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
     
     const withdrawalDetails = withdrawal.details as any;
     const walletAddress = withdrawal.walletAddress || withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
-    const gramAmount = Number(withdrawalDetails?.gramAmount || withdrawal.cryptoAmount || 0);
+    const usdAmount = Number(withdrawalDetails?.usdAmount || withdrawal.usdValue || withdrawal.amount || 0);
     const transactionHash = withdrawal.transactionHash || 'N/A';
     
     const userTelegramId = user?.telegram_id || '';
@@ -978,12 +984,12 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
     const transactionUrl = `https://tonviewer.com/transaction/${encodeURIComponent(transactionHash)}`;
     const rawFeePercent = Number(withdrawalDetails?.feePercent ?? 0);
     const feePercent = Number.isFinite(rawFeePercent) ? Math.max(0, Math.min(100, rawFeePercent)) : 0;
-    const netGramAmount = Math.max(0, gramAmount * (1 - feePercent / 100));
+    const netUsdAmount = Number(withdrawalDetails?.netAmount || usdAmount * (1 - feePercent / 100));
     const groupMessage = `🎉 <b>New Withdrawal Success!</b>
 
 📛 <b>${userTelegramUsername} (${escapeHtml(String(userTelegramId || 'N/A'))})</b>
-💵 <b>Amount:</b> <code>${netGramAmount.toLocaleString(undefined, { maximumFractionDigits: netGramAmount % 1 === 0 ? 0 : 6 })} GRAM</code>
-📦 <b>Send (after fee):</b> <code>${netGramAmount.toLocaleString(undefined, { maximumFractionDigits: netGramAmount % 1 === 0 ? 0 : 6 })} GRAM</code>
+💵 <b>Amount:</b> <code>${netUsdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
+📦 <b>Send (after fee):</b> <code>${netUsdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
 🏦 <b>To:</b> <code>${escapeHtml(walletAddress)}</code>
 
 🕐 <b>Time:</b> ${currentDate}
@@ -2517,7 +2523,7 @@ Share your unique referral link and earn GEM when your friends join:
             const feeAmount = parseFloat(withdrawalDetails?.fee || '0');
             const feePercent = withdrawalDetails?.feePercent || '0';
             const walletAddress = withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
-            const gramAmount = Number(withdrawalDetails?.gramAmount || withdrawal.cryptoAmount || 0);
+            const usdPendingAmount = Number(withdrawalDetails?.usdAmount || withdrawal.usdValue || withdrawal.amount || 0);
             const userName = user?.firstName || user?.username || 'Unknown';
             const userTelegramId = user?.telegram_id || '';
             const userTelegramUsername = user?.username ? `@${user.username}` : 'N/A';
@@ -2531,8 +2537,8 @@ Share your unique referral link and earn GEM when your friends join:
 💳 Username: ${userTelegramUsername}
 🌐 Address:
 <code>${escapeHtml(walletAddress)}</code>
-💎 GRAM: ${gramAmount.toLocaleString(undefined, { maximumFractionDigits: gramAmount % 1 === 0 ? 0 : 6 })} GRAM
-💵 GRAM value (after fee): <code>${netAmount.toFixed(6)} GRAM</code>
+💵 USD: ${usdPendingAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
+💸 USD payout after fee: <code>${netAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
 🛂 Fee: ${feeAmount.toFixed(5)} (${feePercent}%)
 📅 Date: ${createdAt}
 🤖 Bot: @${await getBotUsername()}`;
@@ -2843,9 +2849,9 @@ Share your unique referral link and earn GEM when your friends join:
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Send the GRAM payout reference in chat' })
+            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: 'Send the USD payout reference in chat' })
           });
-          await sendUserTelegramNotification(chatId, `✅ Approval selected for withdrawal <code>${withdrawalId}</code>.\n\nSend the GRAM payout reference now to complete the payout.\nSend /cancel to abort.`, undefined, 'HTML');
+          await sendUserTelegramNotification(chatId, `✅ Approval selected for withdrawal <code>${withdrawalId}</code>.\n\nSend the USD payout reference now to complete the payout.\nSend /cancel to abort.`, undefined, 'HTML');
         } catch (error) {
           console.error('Error approving withdrawal:', error);
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
@@ -2908,13 +2914,13 @@ Share your unique referral link and earn GEM when your friends join:
             // Send notification to user
             const rejectedUser = await storage.getUser(result.withdrawal.userId);
             if (rejectedUser?.telegram_id) {
-              const rejectedAmount = Number((result.withdrawal.details as any)?.gramAmount || result.withdrawal.cryptoAmount || result.withdrawal.amount).toLocaleString(undefined, { maximumFractionDigits: 6 });
+              const rejectedAmount = Number((result.withdrawal.details as any)?.usdAmount || result.withdrawal.usdValue || result.withdrawal.amount).toLocaleString(undefined, { maximumFractionDigits: 2 });
               const supportKeyboard = /^https?:\/\//i.test(config.support.link)
                 ? { inline_keyboard: [[{ text: '📩 Contact Support', url: config.support.link }]] }
                 : undefined;
               await sendUserTelegramNotification(
                 rejectedUser.telegram_id,
-                `❌ Your GRAM withdrawal request of <b>${rejectedAmount} GRAM</b> has been rejected.\n\nYour balance has been refunded. Please contact support if you have any questions.`,
+                `❌ Your USD withdrawal request of <b>$${rejectedAmount}</b> has been rejected.\n\nYour balance has been refunded. Please contact support if you have any questions.`,
                 supportKeyboard
               );
             }
@@ -3103,7 +3109,7 @@ Share your unique referral link and earn GEM when your friends join:
         return true;
       }
       if (!transactionHash || transactionHash.startsWith('/')) {
-        await sendUserTelegramNotification(chatId, 'Please send a valid GRAM payout reference, or /cancel.');
+        await sendUserTelegramNotification(chatId, 'Please send a valid USD payout reference, or /cancel.');
         return true;
       }
 
@@ -3118,14 +3124,14 @@ Share your unique referral link and earn GEM when your friends join:
           const withdrawal = result.withdrawal;
           const user = await storage.getUser(withdrawal.userId);
           const details = withdrawal.details as any;
-          const netGramAmount = Number(details?.gramAmount ?? withdrawal.cryptoAmount ?? details?.netAmount ?? withdrawal.amount ?? 0);
+          const netUsdAmount = Number(details?.netAmount ?? details?.usdAmount ?? withdrawal.usdValue ?? withdrawal.amount ?? 0);
           const userName = user?.firstName || user?.username || 'Unknown';
           const userTelegramId = String(user?.telegram_id || '');
           const currentDate = new Date().toUTCString();
           const botUsername = await getBotUsername();
           const botLink = `https://t.me/${botUsername}/MyWAdz`;
           const referralLink = user?.referralCode ? `${botLink}?startapp=${encodeURIComponent(user.referralCode)}` : botLink;
-          const shareText = `🎉 My withdrawal of ${netGramAmount.toLocaleString(undefined, { maximumFractionDigits: netGramAmount % 1 === 0 ? 0 : 6 })} GRAM has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
+          const shareText = `🎉 My withdrawal of ${netUsdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD has just been successfully completed! 💰\n\nJoin Axionet using my referral link and start earning together! 🚀`;
           const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(`${shareText}\n\n${referralLink}`)}`;
           const successKeyboard = {
             inline_keyboard: [
@@ -3138,7 +3144,7 @@ Share your unique referral link and earn GEM when your friends join:
           if (userTelegramId) {
             await sendUserTelegramNotification(
               userTelegramId,
-              `🎉 <b>Withdrawal successful!</b>\n\n💎 <b>Amount:</b> ${netGramAmount.toLocaleString(undefined, { maximumFractionDigits: netGramAmount % 1 === 0 ? 0 : 6 })} GRAM\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n\n📅 <b>Date:</b> ${currentDate}`,
+              `🎉 <b>Withdrawal successful!</b>\n\n💎 <b>Amount:</b> ${netUsdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD\n🛂 <b>Transaction hash:</b> <code>${escapeHtml(transactionHash)}</code>\n\n📅 <b>Date:</b> ${currentDate}`,
               successKeyboard,
               'HTML',
             );

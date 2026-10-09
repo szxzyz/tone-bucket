@@ -1236,6 +1236,23 @@ export async function ensureDatabaseSchema(): Promise<void> {
     } catch (err) {
       console.error('⚠️ [MIGRATION] Could not ensure AXN market tables:', err);
     }
+    // USD is the single authoritative withdrawable account balance. Preserve legacy GRAM snapshots without inventing a conversion rate.
+    try {
+      await db.execute(sql`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL(30, 10) DEFAULT '0';
+        CREATE TABLE IF NOT EXISTS legacy_gram_balance_reconciliation (
+          user_id VARCHAR PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          gram_balance NUMERIC(30, 18) NOT NULL,
+          captured_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          status VARCHAR(24) NOT NULL DEFAULT 'needs_review',
+          note TEXT NOT NULL DEFAULT 'Preserved without conversion: historical USD/GRAM rate unavailable'
+        );
+        INSERT INTO legacy_gram_balance_reconciliation (user_id, gram_balance)
+          SELECT id, COALESCE(gram_balance, 0) FROM users WHERE COALESCE(gram_balance, 0) <> 0
+          ON CONFLICT (user_id) DO NOTHING;
+      `);
+      console.log('✅ [MIGRATION] Legacy GRAM values preserved for reconciliation; USD is authoritative');
+    } catch (err) { console.error('⚠️ [MIGRATION] USD reconciliation snapshot failed:', err); }
     // AXN virtual AMM market — all amounts remain internal until on-chain settlement is implemented.
     try {
       await db.execute(sql`

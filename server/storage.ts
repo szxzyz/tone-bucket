@@ -1922,6 +1922,24 @@ export class DatabaseStorage implements IStorage {
           metadata: { withdrawalId, currency: 'GEMS', method: txResult.paymentSystemName, axnAmount: axnAmountRaw, usdEquivalent: withdrawalAmount }
         });
 
+      } else if (withdrawalDetails?.manualUsdWithdrawal) {
+        // ── New USD request: debit already happened at request time; lock the row
+        // and only transition pending → Approved. This makes concurrent admin
+        // approvals idempotent and prevents a second balance mutation.
+        const txResult = await db.transaction(async (tx) => {
+          const [locked] = await tx.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId)).for('update');
+          if (!locked || locked.status !== 'pending') throw new Error('Withdrawal is no longer pending');
+          const description = `Withdrawal approved: ${withdrawalAmount} USD via ${locked.method}`;
+          await tx.insert(earnings).values({ userId: locked.userId, amount: `-${withdrawalAmount}`, source: 'withdrawal', description });
+          const updateData: any = { status: 'Approved', deducted: true, updatedAt: new Date() };
+          if (transactionHash) updateData.transactionHash = transactionHash;
+          if (adminNotes) updateData.adminNotes = adminNotes;
+          const [updated] = await tx.update(withdrawals).set(updateData).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
+          if (!updated) throw new Error('Withdrawal is no longer pending');
+          return { updated, description };
+        });
+        updatedWithdrawal = txResult.updated;
+        await this.logTransaction({ userId: withdrawal.userId, amount: `-${withdrawalAmount}`, type: 'debit', source: 'withdrawal', description: txResult.description, metadata: { withdrawalId, currency: 'USD', method: withdrawal.method } });
       } else {
         // ── Legacy USD withdrawal: deduct from user.usdBalance ─────────────────
         const currency = 'USD';
@@ -2003,7 +2021,7 @@ export class DatabaseStorage implements IStorage {
       // New manual TON withdrawals deduct GEM at request time.
       // Rejection must atomically restore that exact GEM amount and transition
       // the request, so repeated admin actions cannot refund twice.
-      if ((withdrawal.details as any)?.manualGramWithdrawal || (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal))) {
+      if ((withdrawal.details as any)?.manualGramWithdrawal || (withdrawal.details as any)?.manualUsdWithdrawal || (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal))) {
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
           const [claimed] = await tx.update(withdrawals).set({
             status: 'rejected',
@@ -2014,7 +2032,12 @@ export class DatabaseStorage implements IStorage {
           }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
           if (!claimed) return [];
           const details = withdrawal.details as any;
-          if (details?.manualGramWithdrawal || withdrawal.payoutCurrency === 'GRAM') {
+          if (details?.manualUsdWithdrawal || withdrawal.payoutCurrency === 'USD') {
+            await tx.update(users).set({
+              usdBalance: sql`${users.usdBalance} + ${details?.usdAmount || details?.totalDeducted || withdrawal.amount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          } else if (details?.manualGramWithdrawal || withdrawal.payoutCurrency === 'GRAM') {
             await tx.update(users).set({
               gramBalance: sql`${users.gramBalance} + ${details?.gramAmount || withdrawal.cryptoAmount || withdrawal.amount}`,
               updatedAt: new Date(),
@@ -2028,8 +2051,8 @@ export class DatabaseStorage implements IStorage {
           return [claimed];
         });
         if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
-        console.log(`💰 Rejected GRAM withdrawal ${withdrawalId}: restored GRAM balance`);
-        return { success: true, message: 'Withdrawal rejected and GRAM refunded', withdrawal: updatedWithdrawal };
+        console.log(`💰 Rejected withdrawal ${withdrawalId}: restored the debited balance`);
+        return { success: true, message: 'Withdrawal rejected and balance refunded', withdrawal: updatedWithdrawal };
       }
       
       const withdrawalAmount = parseFloat(withdrawal.amount);
