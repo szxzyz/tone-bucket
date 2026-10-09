@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HandCoins, Loader2, Activity, Clock3, Layers3, Home, Link2 } from "lucide-react";
+import { HandCoins, Loader2, Compass, ArrowLeftRight } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
@@ -79,14 +79,10 @@ export default function GameFarmingSection() {
         <div style={{ color: "rgba(255,255,255,.58)", fontSize: 12, marginTop: 5 }}>= {miningUsd.toFixed(4)}</div>
       </div>
       <button type="button" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending || isLoading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "calc(100% - 28px)", margin: "0 auto", height: 44, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 900, fontSize: 13, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimMutation.isPending || isLoading ? .65 : 1 }}>{claimMutation.isPending ? <Loader2 size={15} className="animate-spin" style={{ margin: "0 auto" }} /> : <><HandCoins size={16} /> Claim Reward {Number(amount).toFixed(2)} AXN</>}</button>
-      <section aria-label="AXN Live chart" style={{ marginTop: 14, padding: "14px 14px 10px", borderRadius: 14, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><span style={{ color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 900 }}>AXN Live chart</span><span style={{ color: "#86efac", fontSize: 10, fontWeight: 800 }}>Live · $0.000010</span></div>
-        <svg viewBox="0 0 320 70" width="100%" height="70" role="img" aria-label="AXN live price trend" preserveAspectRatio="none">
-          <defs><linearGradient id="axnChartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity=".35" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0" /></linearGradient></defs>
-          <path d="M0 58 L24 54 L48 57 L72 42 L96 47 L120 35 L144 40 L168 27 L192 33 L216 22 L240 30 L264 17 L288 24 L320 10 L320 70 L0 70 Z" fill="url(#axnChartFill)" />
-          <path d="M0 58 L24 54 L48 57 L72 42 L96 47 L120 35 L144 40 L168 27 L192 33 L216 22 L240 30 L264 17 L288 24 L320 10" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </section>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
+        <button type="button" onClick={() => showNotification("Explore Miner coming soon", "success")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><Compass size={16} color="#60a5fa" /> Explore miner</button>
+        <button type="button" onClick={() => showNotification("Buy/Sell AXN coming soon", "success")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><ArrowLeftRight size={16} color="#93c5fd" /> Buy/Sell AXN</button>
+      </div>
 
     </section>
     </>
