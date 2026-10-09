@@ -177,7 +177,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
 const AxnTokenPriceBanner = () => (
   <div
     style={{
-      background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
+      background: "#0f0f0f",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -239,7 +239,7 @@ const ResetCountdownBanner = () => {
   return (
     <div
       style={{
-        background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
+        background: "#0f0f0f",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

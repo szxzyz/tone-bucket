@@ -132,7 +132,7 @@ export async function settleExpiredAdContest(): Promise<void> {
   }
 }
 
-const MINING_DURATION_SECONDS = 60 * 60;
+const MINING_DURATION_SECONDS = 8 * 60 * 60;
 const MINING_BASE_RATE_PER_HOUR = 23.9574;
 const MINING_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25] as const;
 
@@ -9816,21 +9816,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const now = Date.now();
       const startedAt = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : now;
+      const sessionEnd = startedAt + MINING_DURATION_SECONDS * 1000;
+      const accrualNow = Math.min(now, sessionEnd);
       const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const elapsedSeconds = Math.max(0, now - lastAccrualAt) / 1000;
+      const elapsedSeconds = Math.max(0, accrualNow - Math.min(lastAccrualAt, sessionEnd)) / 1000;
       const minedGold = Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR);
-
+      const isComplete = now >= sessionEnd;
       return res.json({
-        isActive: true,
-        isComplete: false,
+        isActive: !isComplete,
+        isComplete,
         startedAt: new Date(startedAt).toISOString(),
-        remainingSeconds: null,
+        remainingSeconds: Math.max(0, Math.ceil((sessionEnd - now) / 1000)),
         minedGold: Number(minedGold.toFixed(4)),
         minedAxn: Number(minedGold.toFixed(4)),
         baseRatePerHour: MINING_BASE_RATE_PER_HOUR,
-        effectiveRate: MINING_BASE_RATE_PER_HOUR,
+        effectiveRate: isComplete ? 0 : MINING_BASE_RATE_PER_HOUR,
         multiplier: 1,
-        continuous: true,
+        durationSeconds: MINING_DURATION_SECONDS,
+        continuous: false,
       });
     } catch (error) {
       console.error('Continuous mining state error:', error);
@@ -9877,10 +9880,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const now = new Date();
       const startedAtMs = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : now.getTime();
+      const sessionEndMs = startedAtMs + MINING_DURATION_SECONDS * 1000;
+      const accrualNowMs = Math.min(now.getTime(), sessionEndMs);
       const lastAccrualAtMs = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAtMs;
-      const elapsedSeconds = Math.max(0, now.getTime() - lastAccrualAtMs) / 1000;
+      const elapsedSeconds = Math.max(0, accrualNowMs - Math.min(lastAccrualAtMs, sessionEndMs)) / 1000;
       const reward = Number((Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR)).toFixed(4));
-
       const claimed = await db.transaction(async (tx) => {
         const updated = await tx.update(users).set({
           balance: sql`${users.balance} + ${reward}`,
@@ -9898,7 +9902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return true;
       });
       if (!claimed) return res.status(409).json({ message: 'Mining claim changed. Refresh and try again.' });
-      return res.json({ success: true, amount: reward, continuous: true });
+      return res.json({ success: true, amount: reward, continuous: false, isComplete: now.getTime() >= sessionEndMs });
     } catch (error) {
       console.error('Continuous mining claim error:', error);
       return res.status(500).json({ message: 'Could not claim mining reward' });
