@@ -1839,7 +1839,7 @@ export class DatabaseStorage implements IStorage {
         ? parseFloat(withdrawalDetails.totalDeducted) 
         : withdrawalAmount;
       
-      // Determine if this is an SWAG-direct withdrawal (new flow) or legacy USD withdrawal
+      // Distinguish direct AXN/GRAM requests from historical USD withdrawals.
       const gramAmountRaw = withdrawalDetails?.gramAmount ? parseFloat(String(withdrawalDetails.gramAmount)) : null;
       const axnAmountRaw = withdrawalDetails?.axnAmount ? parseFloat(String(withdrawalDetails.axnAmount)) : null;
       const isGramWithdrawal = gramAmountRaw !== null && Number.isFinite(gramAmountRaw) && gramAmountRaw > 0;
@@ -1882,17 +1882,18 @@ export class DatabaseStorage implements IStorage {
               const currentGramBalance = Number(lockedGramUser?.gramBalance || 0);
               throw new Error(`Cannot approve: GRAM was already deducted at request time; current GRAM balance is ${currentGramBalance}`);
             }
-            if (currentGemsBalance < axnAmountRaw!) {
-              throw new Error(
-                `Cannot approve: user's GEM balance (${currentGemsBalance.toLocaleString()} GEM) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} GEM) and it isn't flagged as already-deducted.`
-              );
-            }
+          if (currentGemsBalance < axnAmountRaw!) {
+            throw new Error(
+              `Cannot approve: user's AXN balance (${currentGemsBalance.toLocaleString()} AXN) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} AXN) and it isn't flagged as already-deducted.`
+            );
+          }
           }
 
           // Audit records inside the same transaction
           const paymentSystemName = lockedWithdrawal.method;
           const approvedAmount = isGramWithdrawal ? gramAmountRaw : axnAmountRaw;
-          const description = `Withdrawal approved: ${approvedAmount} GRAM via ${paymentSystemName}`;
+          const approvedCurrency = isGramWithdrawal ? 'GRAM' : 'AXN';
+          const description = `Withdrawal approved: ${approvedAmount} ${approvedCurrency} via ${paymentSystemName}`;
 
           await tx.insert(earnings).values({
             userId: withdrawal.userId,
@@ -1919,7 +1920,7 @@ export class DatabaseStorage implements IStorage {
           type: 'debit',
           source: 'withdrawal',
           description: txResult.description,
-          metadata: { withdrawalId, currency: 'GEMS', method: txResult.paymentSystemName, axnAmount: axnAmountRaw, usdEquivalent: withdrawalAmount }
+          metadata: { withdrawalId, currency: isGramWithdrawal ? 'GRAM' : 'AXN', method: txResult.paymentSystemName, axnAmount: isAxnWithdrawal ? axnAmountRaw : undefined }
         });
 
       } else if (withdrawalDetails?.manualUsdWithdrawal) {
@@ -1990,8 +1991,8 @@ export class DatabaseStorage implements IStorage {
         [updatedWithdrawal] = await db.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
       }
 
-      const deductedCurrency = isGramWithdrawal ? 'GRAM' : (isAxnWithdrawal ? 'SWAG' : 'USD');
-      console.log(`✅ GRAM withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated; admin must pay externally ✅`);
+      const deductedCurrency = isGramWithdrawal ? 'GRAM' : (isAxnWithdrawal ? 'AXN' : 'USD');
+      console.log(`✅ ${deductedCurrency} withdrawal #${withdrawalId} approved — balance handled; admin must pay externally ✅`);
 
       return { success: true, message: 'Withdrawal approved and processed', withdrawal: updatedWithdrawal };
     } catch (error) {
@@ -2018,10 +2019,10 @@ export class DatabaseStorage implements IStorage {
         return { success: false, message: 'User not found' };
       }
 
-      // New manual TON withdrawals deduct GEM at request time.
-      // Rejection must atomically restore that exact GEM amount and transition
+      // Manual AXN requests deduct AXN at request time.
+      // Rejection must atomically restore the exact AXN amount and transition
       // the request, so repeated admin actions cannot refund twice.
-      if ((withdrawal.details as any)?.manualGramWithdrawal || (withdrawal.details as any)?.manualUsdWithdrawal || (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal))) {
+      if ((withdrawal.details as any)?.manualAxnWithdrawal || (withdrawal.details as any)?.manualGramWithdrawal || (withdrawal.details as any)?.manualUsdWithdrawal || (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal))) {
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
           const [claimed] = await tx.update(withdrawals).set({
             status: 'rejected',
