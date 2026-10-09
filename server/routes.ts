@@ -570,11 +570,12 @@ const ALL_PERMISSIONS = [
   'manage_promos',
   'manage_admins',
   'manage_bans',
+  'manage_market',
 ];
 
 const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   super_admin: ALL_PERMISSIONS,
-  finance: ['view_stats', 'manage_withdrawals'],
+  finance: ['view_stats', 'manage_withdrawals', 'manage_market'],
   moderator: ['view_stats', 'manage_users', 'manage_bans'],
   content: ['view_stats', 'manage_tasks'],
 };
@@ -642,6 +643,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create HTTP server first
   const httpServer = createServer(app);
+
+  const AXN_MARKET_INITIAL_PRICE = 0.00001;
+  const AXN_MARKET_TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1D'] as const;
+  const timeframeMs: Record<string, number> = { '1m': 60000, '5m': 300000, '15m': 900000, '1h': 3600000, '4h': 14400000, '1D': 86400000 };
+  function marketTimeframe(value: unknown): keyof typeof timeframeMs {
+    const candidate = String(value);
+    return AXN_MARKET_TIMEFRAMES.includes(candidate as any) ? candidate as keyof typeof timeframeMs : '1h';
+  }
+  function marketCandles(rows: any[], timeframe: keyof typeof timeframeMs) {
+    const bucketMs = timeframeMs[timeframe];
+    const buckets = new Map<number, any>();
+    for (const row of rows) {
+      const timestamp = new Date(row.created_at).getTime();
+      const price = Number(row.price_per_axn);
+      const volume = Number(row.axn_quantity);
+      if (!Number.isFinite(timestamp) || !Number.isFinite(price) || price <= 0) continue;
+      const bucket = Math.floor(timestamp / bucketMs) * bucketMs;
+      const candle = buckets.get(bucket);
+      if (!candle) buckets.set(bucket, { time: new Date(bucket).toISOString(), open: price, high: price, low: price, close: price, volume });
+      else { candle.high = Math.max(candle.high, price); candle.low = Math.min(candle.low, price); candle.close = price; candle.volume += volume; }
+    }
+    return Array.from(buckets.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }
+  async function requireMarketAdmin(req: any, res: any): Promise<{ telegramId: string } | null> {
+    const telegramId = req.user?.telegramUser?.id?.toString() || '';
+    const roleInfo = await getAdminRole(telegramId);
+    if (!roleInfo || (!isSuperAdmin(telegramId) && !roleInfo.permissions.includes('manage_market'))) {
+      res.status(403).json({ message: 'Market trading is restricted to authorized admins' });
+      return null;
+    }
+    return { telegramId };
+  }
+
+  app.get('/api/axn-market', authenticateTelegram, async (req: any, res) => {
+    try {
+      const timeframe = marketTimeframe(req.query.timeframe);
+      const result = await db.execute(sql`SELECT side, axn_quantity, ton_amount, price_per_axn, created_at FROM axn_market_trades ORDER BY created_at ASC LIMIT 5000`);
+      const candles = marketCandles(result.rows, timeframe);
+      const latest = result.rows.length ? Number(result.rows[result.rows.length - 1].price_per_axn) : AXN_MARKET_INITIAL_PRICE;
+      const previous = candles.length > 1 ? Number(candles[candles.length - 2].close) : latest;
+      const changePercent = previous > 0 ? ((latest - previous) / previous) * 100 : 0;
+      res.json({ timeframe, candles, currentPrice: latest, changePercent, tradeCount: result.rows.length, initialPrice: AXN_MARKET_INITIAL_PRICE, virtualMarket: true, message: 'Virtual Market — Not a Real TON Market Price.' });
+    } catch (error) { console.error('AXN market read error:', error); res.status(500).json({ message: 'Market data unavailable' }); }
+  });
+
+  app.post('/api/axn-market/admin/quote', authenticateAdmin, async (req: any, res) => {
+    const admin = await requireMarketAdmin(req, res); if (!admin) return;
+    const side = req.body?.side === 'sell' ? 'sell' : req.body?.side === 'buy' ? 'buy' : null;
+    const quantity = Number(req.body?.quantity);
+    if (!side || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 1000000000000000) return res.status(400).json({ message: 'Enter a valid whole AXN quantity' });
+    const result = await db.execute(sql`SELECT price_per_axn FROM axn_market_trades ORDER BY created_at DESC LIMIT 1`);
+    const price = result.rows[0] ? Number(result.rows[0].price_per_axn) : AXN_MARKET_INITIAL_PRICE;
+    res.json({ side, quantity, pricePerAxn: price, tonAmount: quantity * price, virtualMarket: true });
+  });
+
+  app.post('/api/axn-market/admin/trade', authenticateAdmin, async (req: any, res) => {
+    const admin = await requireMarketAdmin(req, res); if (!admin) return;
+    const side = req.body?.side === 'sell' ? 'sell' : req.body?.side === 'buy' ? 'buy' : null;
+    const quantity = Number(req.body?.quantity);
+    const idempotencyKey = String(req.body?.idempotencyKey || '').trim();
+    if (!side || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 1000000000000000 || !/^[A-Za-z0-9._:-]{8,120}$/.test(idempotencyKey)) return res.status(400).json({ message: 'Invalid trade details' });
+    try {
+      const result = await db.transaction(async (tx) => {
+        const prior = await tx.execute(sql`SELECT id, side, axn_quantity, ton_amount, price_per_axn, created_at FROM axn_market_trades WHERE idempotency_key = ${idempotencyKey} LIMIT 1`);
+        if (prior.rows[0]) return { trade: prior.rows[0], replayed: true };
+        const priceResult = await tx.execute(sql`SELECT price_per_axn FROM axn_market_trades ORDER BY created_at DESC LIMIT 1`);
+        const price = priceResult.rows[0] ? Number(priceResult.rows[0].price_per_axn) : AXN_MARKET_INITIAL_PRICE;
+        const tonAmount = quantity * price;
+        const userResult = await tx.execute(sql`SELECT id, balance, ton_balance FROM users WHERE telegram_id = ${admin.telegramId} FOR UPDATE`);
+        const user = userResult.rows[0] as any;
+        if (!user) throw Object.assign(new Error('Admin account not found'), { statusCode: 404 });
+        if (side === 'buy' && Number(user.ton_balance || 0) < tonAmount) throw Object.assign(new Error('Insufficient virtual TON balance'), { statusCode: 400 });
+        if (side === 'sell' && Number(user.balance || 0) < quantity) throw Object.assign(new Error('Insufficient AXN balance'), { statusCode: 400 });
+        if (side === 'buy') await tx.execute(sql`UPDATE users SET ton_balance = COALESCE(ton_balance, 0) - ${tonAmount}, balance = COALESCE(balance, 0) + ${quantity}, updated_at = NOW() WHERE id = ${user.id}`);
+        else await tx.execute(sql`UPDATE users SET ton_balance = COALESCE(ton_balance, 0) + ${tonAmount}, balance = COALESCE(balance, 0) - ${quantity}, updated_at = NOW() WHERE id = ${user.id}`);
+        const inserted = await tx.execute(sql`INSERT INTO axn_market_trades (user_id, side, axn_quantity, ton_amount, price_per_axn, idempotency_key) VALUES (${user.id}, ${side}, ${quantity}, ${tonAmount}, ${price}, ${idempotencyKey}) RETURNING id, side, axn_quantity, ton_amount, price_per_axn, created_at`);
+        const trade = inserted.rows[0] as any;
+        for (const [tf, ms] of Object.entries(timeframeMs)) {
+          const bucket = new Date(Math.floor(Date.now() / ms) * ms);
+          await tx.execute(sql`INSERT INTO axn_market_price_history (trade_id, timeframe, bucket_start, open_price, high_price, low_price, close_price, volume_axn) VALUES (${trade.id}, ${tf}, ${bucket}, ${price}, ${price}, ${price}, ${price}, ${quantity}) ON CONFLICT (timeframe, bucket_start) DO UPDATE SET high_price = GREATEST(axn_market_price_history.high_price, EXCLUDED.high_price), low_price = LEAST(axn_market_price_history.low_price, EXCLUDED.low_price), close_price = EXCLUDED.close_price, volume_axn = axn_market_price_history.volume_axn + EXCLUDED.volume_axn`);
+        }
+        return { trade, replayed: false };
+      });
+      res.status(result.replayed ? 200 : 201).json({ ...result, virtualMarket: true });
+    } catch (error: any) { console.error('AXN market trade error:', error); res.status(error?.statusCode || 500).json({ message: error?.message || 'Trade failed' }); }
+  });
+
 
   // Set up WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });

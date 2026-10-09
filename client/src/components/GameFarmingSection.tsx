@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { HandCoins, Loader2, Compass, ArrowLeftRight } from "lucide-react";
+import { useLocation } from "wouter";
+import { HandCoins, Loader2, Compass, ShoppingCart, ArrowUpFromLine } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,6 +18,7 @@ const glassPill: React.CSSProperties = {
 
 export default function GameFarmingSection() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const { data: user } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false, staleTime: 10_000 });
   const { data: farm, isLoading } = useQuery<any>({ queryKey: ["/api/farming/state"], retry: false, staleTime: 10_000, refetchInterval: 30_000 });
   const [amount, setAmount] = useState(0);
@@ -80,8 +82,9 @@ export default function GameFarmingSection() {
       </div>
       <button type="button" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending || isLoading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "calc(100% - 28px)", margin: "0 auto", height: 44, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 900, fontSize: 13, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimMutation.isPending || isLoading ? .65 : 1 }}>{claimMutation.isPending ? <Loader2 size={15} className="animate-spin" style={{ margin: "0 auto" }} /> : <><HandCoins size={16} /> Claim Reward {Number(amount).toFixed(2)} AXN</>}</button>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
-        <button type="button" onClick={() => showNotification("Explore Miner coming soon", "success")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><Compass size={16} color="#60a5fa" /> Explore miner</button>
-        <button type="button" onClick={() => showNotification("Buy/Sell AXN coming soon", "success")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><ArrowLeftRight size={16} color="#93c5fd" /> Buy/Sell AXN</button>
+        <button type="button" onClick={() => setLocation("/mining")} style={{ gridColumn: "1 / -1", height: 40, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><Compass size={16} color="#60a5fa" /> Explore miner</button>
+        <button type="button" onClick={() => setLocation("/axn-market?side=buy")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><ShoppingCart size={16} color="#86efac" /> Buy AXN</button>
+        <button type="button" onClick={() => setLocation("/axn-market?side=sell")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><ArrowUpFromLine size={16} color="#fca5a5" /> Sell AXN</button>
       </div>
 
     </section>
