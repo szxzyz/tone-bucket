@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { HandCoins, Loader2, Compass, ShoppingCart, ArrowUpFromLine } from "lucide-react";
+import { HandCoins, Loader2, Compass, ShoppingCart, ArrowUpFromLine, Layers3, TrendingUp, WalletCards, Waves } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
@@ -9,11 +9,11 @@ const AXN_PER_USD = 100_000;
 const formatAxn = (value: number) => (Number.isFinite(value) ? value : 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 const formatAxnSix = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(6);
 
-const glassPill: React.CSSProperties = {
-  minWidth: 0, height: 38, boxSizing: "border-box", padding: "0 12px", borderRadius: 12,
-  background: "rgba(255,255,255,.055)", color: "#fff", fontSize: 11,
+const actionPill: React.CSSProperties = {
+  minWidth: 0, height: 42, boxSizing: "border-box", padding: "0 10px", borderRadius: 12,
+  background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 11,
   fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center",
-  gap: 8, border: "1px solid rgba(255,255,255,.16)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.08), 0 7px 18px rgba(0,0,0,.12)",
+  gap: 7, border: "none", boxShadow: "0 5px 14px rgba(0,0,0,.22)",
 };
 
 export default function GameFarmingSection() {
@@ -67,12 +67,12 @@ export default function GameFarmingSection() {
       `}</style>
       <section aria-labelledby="mining-card-title" style={{ marginBottom: 18, color: "#fff" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-        <div style={glassPill}><span>Lvl</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
-        <div style={glassPill}><span>Yield:</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
+        <div style={actionPill}><Layers3 size={15} color="#60a5fa" /><span>Lvl</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
+        <div style={actionPill}><TrendingUp size={15} color="#86efac" /><span>Yield</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 36, padding: "0 10px", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 4px 12px rgba(0,0,0,.18)", color: "rgba(255,255,255,.62)", fontSize: 11, fontWeight: 700 }}>Holding: <span style={{ color: "rgba(255,255,255,.38)", marginLeft: 4 }}>Coming soon</span></div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 36, padding: "0 10px", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 4px 12px rgba(0,0,0,.18)", color: "rgba(255,255,255,.62)", fontSize: 11, fontWeight: 700 }}>Pool: <span style={{ color: "rgba(255,255,255,.38)", marginLeft: 4 }}>Coming soon</span></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 44 }}>
+        <div style={actionPill}><WalletCards size={15} color="#93c5fd" /><span>Holding</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
+        <div style={actionPill}><Waves size={15} color="#fca5a5" /><span>Pool</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
       </div>
       <div onPointerDown={tapToken} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") tapToken(); }} role="button" tabIndex={0} aria-label="Tap AXN token" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", margin: "5px auto 22px", height: 164, cursor: "pointer" }}><img className={tokenTapped ? "axn-token tapped" : "axn-token"} src="/assets/axionet-mining.webp" alt="AXN mining token" style={{ width: 150, height: 150, objectFit: "contain" }} />{showBurst && <div aria-hidden="true">{[["-56px","-42px"],["0px","-68px"],["56px","-42px"],["68px","8px"],["-68px","8px"],["-42px","54px"],["42px","54px"]].map(([x,y]) => <span key={`${x}-${y}`} className="axn-point" style={{ "--x": x, "--y": y } as React.CSSProperties} />)}</div>}</div>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
