@@ -2532,6 +2532,7 @@ function SettingsSection() {
     mysteryBoxMaxReward: '100',
     minimumClicks: '500',
     seasonBroadcastActive: false,
+    requireChannelJoin: true,
     referralJoinRewardGold: '500',
     referralActiveRewardGold: '2000',
     referralAdsRequired: '15',
@@ -2589,6 +2590,7 @@ function SettingsSection() {
         mysteryBoxMaxReward: (settingsData as any).mysteryBoxMaxReward?.toString() || '100',
         minimumClicks: settingsData.minimumClicks?.toString() || '500',
         seasonBroadcastActive: settingsData.seasonBroadcastActive || false,
+        requireChannelJoin: settingsData.requireChannelJoin !== false,
         referralJoinRewardGold: settingsData.referralJoinRewardGold?.toString() ?? '500',
         referralActiveRewardGold: settingsData.referralActiveRewardGold?.toString() ?? '2000',
         referralAdsRequired: settingsData.referralAdsRequired?.toString() ?? '15',
@@ -2737,6 +2739,7 @@ function SettingsSection() {
         maxWithdrawalsPerDay: maxWithdrawalsPerDay,
         withdrawalFeeTON: withdrawalFeeTON,
         withdrawalGroupChatId: settings.withdrawalGroupChatId,
+        requireChannelJoin: settings.requireChannelJoin,
         channelTaskCost: channelCost,
         botTaskCost: botCost,
         channelTaskReward: channelReward,
@@ -2787,6 +2790,7 @@ function SettingsSection() {
         showNotification("Settings updated successfully", "success");
         queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
         queryClient.invalidateQueries({ queryKey: ["/api/app-settings"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/telegram/join-status"] });
       } else {
         throw new Error(result.message || 'Failed to update settings');
       }
@@ -3083,7 +3087,7 @@ function SettingsSection() {
             <div className="space-y-2 md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <Label htmlFor="withdrawal-group-chat-id" className="text-sm font-semibold">
                 <i className="fab fa-telegram mr-2 text-blue-500"></i>
-                Withdrawal Group Chat ID
+                AXN Withdrawal Group Chat ID
               </Label>
               <Input
                 id="withdrawal-group-chat-id"
@@ -3094,7 +3098,7 @@ function SettingsSection() {
               />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-xs text-muted-foreground flex-1">
-                  Telegram group/channel ID jahan withdrawal approvals post hoein. Current: {settingsData?.withdrawalGroupChatId || '-1002480439556'}
+                  Telegram group/channel ID for approved AXN payout announcements. Current: {settingsData?.withdrawalGroupChatId || '-1002480439556'}
                 </p>
                 <button
                   type="button"
@@ -3124,12 +3128,12 @@ function SettingsSection() {
                 type="number"
                 value={(settings as any).minimumCashoutGold}
                 onChange={(e) => setSettings({ ...settings, minimumCashoutGold: e.target.value })}
-                placeholder="100000"
+                placeholder="1000"
                 min="1"
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Users must have at least this many AXN. 1,000 AXN = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} AXN
+                Minimum AXN balance required for a withdrawal request. Current: {settingsData?.minimumCashoutGold || 1000} AXN
               </p>
             </div>
 
@@ -3148,17 +3152,17 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Current: {settingsData?.maxWithdrawalsPerDay ?? 1} per day
+                Request-count limit per day; each request may use the user's available AXN balance. Current: {settingsData?.maxWithdrawalsPerDay ?? 1} per day
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="withdrawal-fee-ton" className="text-sm font-semibold">
+              <Label htmlFor="withdrawal-fee-axn" className="text-sm font-semibold">
                 <i className="fas fa-percent mr-2 text-blue-500"></i>
-                Withdrawal Fee (TON AXN payouts, %)
+                AXN Withdrawal Fee (%)
               </Label>
               <Input
-                id="withdrawal-fee-ton"
+                id="withdrawal-fee-axn"
                 type="number"
                 value={settings.withdrawalFeeTON}
                 onChange={(e) => setSettings({ ...settings, withdrawalFeeTON: e.target.value })}
@@ -3503,6 +3507,31 @@ function SettingsSection() {
 
         {activeCategory === 'other' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2 p-3 border border-blue-500/20 rounded-lg bg-blue-500/5">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="require-channel-join" className="text-sm font-semibold">
+                  <i className="fas fa-user-check mr-2 text-blue-400"></i>
+                  Require Channel / Group Join
+                </Label>
+                <button
+                  id="require-channel-join"
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.requireChannelJoin}
+                  aria-label="Require Telegram channel and group membership"
+                  onClick={() => setSettings({ ...settings, requireChannelJoin: !settings.requireChannelJoin })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${settings.requireChannelJoin ? 'bg-blue-600' : 'bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.requireChannelJoin ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {settings.requireChannelJoin
+                  ? 'ON: users must join the configured official channel and community group before using the app.'
+                  : 'OFF: users can use the app without joining. Admin accounts are always exempt.'}
+              </p>
+            </div>
+
             <div className="space-y-2 p-3 border rounded-lg">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">
