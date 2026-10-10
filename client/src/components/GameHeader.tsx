@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Plus } from "lucide-react";
+import { Clock, Plus, Wallet } from "lucide-react";
+import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { TonIcon } from "@/components/TonIcon";
 import DepositPopup from "@/components/DepositPopup";
-import { useLocation } from "wouter";
 
-interface GameHeaderProps { onAddTask?: () => void; }
-const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) => {
+interface GameHeaderProps {}
+const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
   const [overlayTop, setOverlayTop] = useState(0);
   const innerRef = useRef<HTMLDivElement>(null);
   const [depositOpen, setDepositOpen] = useState(false);
-  const [location, setLocation] = useLocation();
+  const [tonConnectUI] = useTonConnectUI();
+  const connectedAddress = useTonAddress();
   useImperativeHandle(ref, () => innerRef.current!);
 
   const { data: user } = useQuery<any>({
@@ -72,9 +73,9 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>(({ onAddTask }, ref) 
             <span style={{ width: 15, height: 15, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(255,255,255,0.16)", color: "#fff" }}><Plus size={10} strokeWidth={3} /></span>
           </button>
         </div>
-          {<button type="button" onClick={() => onAddTask ? onAddTask() : setLocation("/mission?open=create")} aria-label="Add Task" className="active:scale-95 transition-transform" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "7px 10px", minWidth: 86, height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", border: "none", borderRadius: 10, cursor: "pointer", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 900 }}><Plus size={15} strokeWidth={3} />Add Task</button>}
+          <button type="button" onClick={() => tonConnectUI.openModal()} aria-label={connectedAddress ? `Connected wallet ${connectedAddress}. Open wallet options` : "Connect TON wallet"} title={connectedAddress || "Connect Wallet"} className="active:scale-95 transition-transform" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 10px", minWidth: 112, maxWidth: 160, height: 38, boxSizing: "border-box", background: connectedAddress ? "rgba(37,99,235,0.16)" : "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, cursor: "pointer", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><Wallet size={15} />{connectedAddress ? `${connectedAddress.slice(0, 6)}…${connectedAddress.slice(-4)}` : "Connect Wallet"}</button>
       </div>
-      {location === "/mission" && <ResetCountdownBanner />}
+      {window.location.pathname === "/mission" && <ResetCountdownBanner />}
       <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );

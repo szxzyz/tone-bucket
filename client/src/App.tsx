@@ -18,7 +18,6 @@ import { LanguageProvider } from "@/hooks/useLanguage";
 import Mission from "@/pages/Mission";
 import Mining from "@/pages/Mining";
 import Leaderboard from "@/pages/Leaderboard";
-import CreateTask from "@/pages/CreateTask";
 import Affiliates from "@/pages/Affiliates";
 import Account from "@/pages/Account";
 
@@ -88,7 +87,6 @@ function Router() {
         <Route path="/admin" component={Admin} />
         <Route path="/admin/country-controls" component={CountryControls} />
         <Route path="/leaderboard" component={Leaderboard} />
-        <Route path="/tasks/create" component={CreateTask} />
         {/* Primary navigation destinations */}
         <Route path="/account" component={Account} />
         <Route path="/affiliates" component={Affiliates} />

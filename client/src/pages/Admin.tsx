@@ -3440,14 +3440,7 @@ function SettingsSection() {
                 <p className="text-xs text-[#6b21a8] font-semibold mb-1">📺 Mission Page — Ad Platforms</p>
                 <p className="text-xs text-muted-foreground">Set reward (AXN per ad) and daily ad limit for each platform shown on the Missions page.</p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setCreateTaskOpen(true)}
-                className="shrink-0 bg-[#252525] hover:bg-[#303030] text-white text-xs font-bold rounded-xl"
-              >
-                <i className="fas fa-plus mr-1"></i> Add Task
-              </Button>
+
             </div>
 
             {/* Daily Missions Divider */}

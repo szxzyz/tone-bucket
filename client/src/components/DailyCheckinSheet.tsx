@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { showNotification } from "@/components/AppNotification";
-import PopupShell from "@/components/PopupShell";
 import { useAdSession } from "@/hooks/useAdSession";
 import { apiRequest } from "@/lib/queryClient";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
@@ -185,10 +184,10 @@ export default function DailyCheckinSheet({
   if (!open) return null;
 
   return (
-    <PopupShell onClose={onClose} maxWidth={390}>
+    <section aria-label="Daily check-in rewards" style={{ width: "100%", maxWidth: 448, margin: "0 auto", padding: 14, boxSizing: "border-box", borderRadius: 16, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
       <div style={{ position: "relative", width: "100%" }}>
         {/* Header row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/>
@@ -254,9 +253,9 @@ export default function DailyCheckinSheet({
           ref={daysRef}
           style={{
             display: "flex",
-            gap: 10,
+            gap: 7,
             overflowX: "auto",
-            paddingBottom: 16,
+            paddingBottom: 10,
             scrollSnapType: "x mandatory",
             WebkitOverflowScrolling: "touch",
           }}
@@ -271,13 +270,13 @@ export default function DailyCheckinSheet({
                 key={idx}
                 style={{
                   flex: "0 0 auto",
-                  width: 80,
+                  width: 68,
                   borderRadius: 16,
                   border: isCurrentDay
                     ? "2px solid #2563eb"
                     : "1px solid rgba(255,255,255,0.08)",
                   background: isCurrentDay ? "rgba(37,99,235,0.1)" : "rgba(255,255,255,0.04)",
-                  padding: "12px 4px 11px",
+                  padding: "9px 4px 8px",
                   textAlign: "center",
                   scrollSnapAlign: "start",
                   opacity: isFuture ? 0.5 : 1,
@@ -294,7 +293,7 @@ export default function DailyCheckinSheet({
                   D{idx + 1}
                 </div>
                 <div style={{ margin: "8px auto 6px" }}>
-                  <GemCoin size={36} circle />
+                  <GemCoin size={29} circle />
                 </div>
                 <div
                   style={{
@@ -358,6 +357,6 @@ export default function DailyCheckinSheet({
         </div>
         <style>{`@keyframes spin-hdc { to { transform: rotate(360deg); } }`}</style>
       </div>
-    </PopupShell>
+    </section>
   );
 }

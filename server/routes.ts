@@ -8468,9 +8468,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new advertiser task
-  app.post('/api/advertiser-tasks/create', authenticateTelegram, async (req: any, res) => {
+  app.post('/api/advertiser-tasks/create', authenticateAdmin, async (req: any, res) => {
     try {
-      const userId = req.user.user.id;
+      const authenticatedTelegramId = String(req.user?.telegramUser?.id ?? '');
+      if (!authenticatedTelegramId) return res.status(403).json({ success: false, message: 'Admin access required' });
+      const [authenticatedUser] = await db.select({ id: users.id }).from(users)
+        .where(eq(users.telegram_id, authenticatedTelegramId)).limit(1);
+      if (!authenticatedUser) return res.status(404).json({ success: false, message: 'Admin user record not found' });
+      const userId = authenticatedUser.id;
       const { taskType, title, link, totalClicksRequired, channelVerified } = req.body;
       const verificationRequired = taskType === 'channel';
 
@@ -8524,8 +8529,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const userIsAdmin = isAdmin(userData.telegram_id || '') ||
-                          (process.env.NODE_ENV === 'development' && !!process.env.DEV_ADMIN_ID && userData.telegram_id === process.env.DEV_ADMIN_ID);
+      // This route is guarded by authenticateAdmin, so every accepted creator is an admin.
+      const userIsAdmin = true;
 
       // Partner tasks can only be created by admin
       if (taskType === "partner" && !userIsAdmin) {
@@ -12467,7 +12472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: new Date(),
         }).where(and(
           eq(users.id, userId),
-          sql`NOT (daily_checkin_claimed = true AND daily_checkin_last_claim_date IS NOT NULL AND DATE(daily_checkin_last_claim_date AT TIME ZONE 'Asia/Kolkata') = ${today})`,
+          sql`(daily_checkin_last_claim_date IS NULL OR DATE(daily_checkin_last_claim_date AT TIME ZONE 'Asia/Kolkata') <> ${today})`,
         )).returning({ balance: users.balance });
         if (updated.length === 0) return { alreadyClaimed: true as const };
 

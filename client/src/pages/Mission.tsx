@@ -1,16 +1,18 @@
 import Layout from '@/components/Layout';
 import AdvertiserTaskFeed from '@/components/AdvertiserTaskFeed';
 import AdWatchingSection from '@/components/AdWatchingSection';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import CreatePanel from '@/components/CreatePanel';
+import DailyCheckinSheet from '@/components/DailyCheckinSheet';
 
 type MissionTab = 'daily' | 'community';
 
 export default function Mission() {
-  const [createTaskOpen, setCreateTaskOpen] = useState(() => new URLSearchParams(window.location.search).get('open') === 'create');
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<MissionTab>('daily');
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
+  const { data: checkinStatus } = useQuery<any>({ queryKey: ['/api/daily-checkin/status'], retry: false });
+  const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], retry: false, staleTime: 5 * 60_000 });
 
   const tabStyle = (tab: MissionTab) => ({
     border: 0,
@@ -34,8 +36,21 @@ export default function Mission() {
   } as const;
 
   return (
-    <Layout onAddTask={() => setCreateTaskOpen(true)}>
+    <Layout>
       <main className="max-w-md mx-auto min-h-full px-3 pt-2 pb-24 text-white space-y-4 bg-black" style={{ background: '#000' }}>
+        <DailyCheckinSheet
+          open={true}
+          onClose={() => {}}
+          streak={checkinStatus?.streak ?? 0}
+          dayIndex={checkinStatus?.dayIndex ?? 0}
+          alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? false}
+          adsgramBlockId={appConfig?.adsgramCheckinBlockId || ""}
+          onClaimed={() => {
+            queryClient.invalidateQueries({ queryKey: ['/api/daily-checkin/status'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/missions/status'] });
+          }}
+        />
         <section aria-label="Mission tabs" role="tablist" style={tabsStyle}>
           <button type="button" style={tabStyle('daily')} onClick={() => setActiveTab('daily')}>Daily</button>
           <button type="button" style={tabStyle('community')} onClick={() => setActiveTab('community')}>Community</button>
@@ -55,7 +70,7 @@ export default function Mission() {
           </>
         )}
 
-        <CreatePanel open={createTaskOpen} onClose={() => setCreateTaskOpen(false)} />
+
       </main>
     </Layout>
   );

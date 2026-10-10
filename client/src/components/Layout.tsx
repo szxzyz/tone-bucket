@@ -9,10 +9,9 @@ import BottomNav from "@/components/BottomNav";
 
 interface LayoutProps {
   children: React.ReactNode;
-  onAddTask?: () => void;
 }
 
-export default function Layout({ children, onAddTask }: LayoutProps) {
+export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { isConnected } = useWebSocket();
   const { showSeasonEnd } = useSeasonEnd();
@@ -28,7 +27,7 @@ export default function Layout({ children, onAddTask }: LayoutProps) {
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-black overflow-hidden">
       {/* Fixed header — always visible on all pages */}
-      <GameHeader onAddTask={onAddTask} />
+      <GameHeader />
 
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-black"
