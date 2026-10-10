@@ -98,32 +98,13 @@ function TaskCard({
       <div className="flex items-center gap-3 px-3 py-2.5">
         <TaskAvatar link={task.link} isBot={isBot} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: 1.3, marginBottom: 2 }}>
-            Sponsored by
-          </p>
           <p className="text-white font-bold" style={{ fontSize: 13, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {task.title}
           </p>
-        </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 2 }}>
-            Task Limit
-          </p>
-          <span style={{ fontSize: 13, fontWeight: 800, color: limitReached ? "rgba(239,68,68,0.85)" : "rgba(255,255,255,0.75)" }}>
-            {currentClicks}<span style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontWeight: 500 }}>/{totalClicks}</span>
-          </span>
-        </div>
-      </div>
-
-      <div style={{ padding: "0 12px 12px", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>
-            Reward
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", marginTop: 5 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: "50%" }} />
-              <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{reward.toLocaleString()}</span>
+              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: "50%" }} />
+              <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{reward.toLocaleString()}</span>
             </span>
           </div>
         </div>
@@ -135,14 +116,15 @@ function TaskCard({
           }}
           disabled={limitReached || directPending}
           style={{
-            height: 38, boxSizing: "border-box", padding: "0 16px", borderRadius: 12, minWidth: 92,
+            height: 38, boxSizing: "border-box", padding: "0 13px", borderRadius: 12, minWidth: 88,
             fontSize: 12, fontWeight: 700, border: "none", cursor: limitReached || directPending ? "default" : "pointer",
             letterSpacing: "0.02em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center",
             background: limitReached || directPending ? "rgba(255,255,255,0.06)" : directReady ? "#22c55e" : "linear-gradient(135deg, #2563eb, #3b82f6)",
             color: limitReached || directPending ? "rgba(255,255,255,0.3)" : "#fff",
+            flexShrink: 0,
           }}
         >
-          {limitReached ? "LIMIT" : directPending ? "WAIT 5s" : directReady ? "CLAIM" : "GET AXN"}
+          {limitReached ? "FULL" : directPending ? "WAIT 5s" : directReady ? "CLAIM" : "GET AXN"}
         </button>
       </div>
     </div>
