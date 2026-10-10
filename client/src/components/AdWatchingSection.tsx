@@ -342,6 +342,15 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     <p className="text-white font-bold" style={{ fontSize: 13, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {card.title}
                     </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
+                        <span style={{ fontSize: 15, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>{reward}</span>
+                      </span>
+                      <span aria-label={`${watched} of ${limit} ads watched`} style={{ padding: "3px 7px", borderRadius: 8, background: "rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: limitReached ? "rgba(239,68,68,0.9)" : "rgba(255,255,255,0.55)" }}>
+                        {watched}/{limit}
+                      </span>
+                    </div>
                   </div>
 
                   <button
@@ -368,15 +377,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                   </button>
                 </div>
 
-                <div style={{ padding: "0 12px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                    <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                    <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
-                  </span>
-                  <span aria-label={`${watched} of ${limit} ads watched`} style={{ padding: "3px 7px", borderRadius: 8, background: "rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: limitReached ? "rgba(239,68,68,0.9)" : "rgba(255,255,255,0.55)" }}>
-                    {watched}/{limit}
-                  </span>
-                </div>
               </div>
             );
           })}
