@@ -38,10 +38,9 @@ export default function Mission() {
   return (
     <Layout>
       <main className="max-w-md mx-auto min-h-full px-3 pt-2 pb-24 text-white space-y-4 bg-black" style={{ background: '#000' }}>
+        <h2 style={{ margin: '0 0 -8px 4px', color: '#fff', fontSize: 15, fontWeight: 800 }}>Daily Check-In</h2>
         <DailyCheckinSheet
           open={true}
-          onClose={() => {}}
-          streak={checkinStatus?.streak ?? 0}
           dayIndex={checkinStatus?.dayIndex ?? 0}
           alreadyClaimedToday={checkinStatus?.alreadyClaimedToday ?? false}
           adsgramBlockId={appConfig?.adsgramCheckinBlockId || ""}

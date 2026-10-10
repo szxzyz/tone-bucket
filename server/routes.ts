@@ -67,10 +67,8 @@ function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// AdsGram interaction is enforced only on the server. The client reports the
-// lifecycle facts it observes, but never instructs the user to minimize the
-// app or displays a dedicated interaction/minimize UI.
-const ADSGRAM_MIN_BACKGROUND_MS = 1_000;
+// AdsGram rewards require a persisted provider-completion callback; Telegram
+// background lifecycle events are not reliable across embedded Mini App clients.
 
 // Idempotent settlement for the Ad Watch Contest. A database setting acts as
 // the once-only period lock, so concurrent requests/scheduler ticks cannot pay
@@ -1879,6 +1877,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
       }
       if (session.status !== 'pending') {
+        if (session.status === 'used') {
+          const [existingCompletion] = await db.select({ id: adRewardCallbacks.id })
+            .from(adRewardCallbacks)
+            .where(and(
+              eq(adRewardCallbacks.provider, provider),
+              eq(adRewardCallbacks.sessionId, sessionId),
+            ))
+            .limit(1);
+          if (existingCompletion) return res.json({ success: true, alreadyCompleted: true });
+        }
         return res.status(409).json({ success: false, errorType: 'session_not_pending' });
       }
       if (Date.now() - new Date(session.registeredAt as any).getTime() > AD_SESSION_MAX_AGE_MS) {
@@ -2228,12 +2236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionAgeMs = typeof sessionStart === 'number' ? Date.now() - sessionStart : 0;
       console.log(`ℹ️ Ad session bg time for user ${userId}: entered=${bgEntered} duration=${bgDuration}ms (total: ${sessionAgeMs}ms)`);
 
-      if (serverAdType === 'adsgram' && (!bgEntered || bgDuration < ADSGRAM_MIN_BACKGROUND_MS)) {
-        return res.status(400).json({
-          message: 'Please interact with ads.',
-          errorType: 'adsgram_interaction_required',
-        });
-      }
+      // AdsGram's SDK completion is persisted above as a provider callback. Do
+      // not require Telegram to emit background/foreground events: embedded
+      // Telegram clients often play the interstitial without those events.
 
       const adsgramRewardPercent = 100;
 
@@ -2970,9 +2975,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const adsgramUsesSdkCompletion = session.adType === 'adsgram'
       && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(context);
     if (!hasTrustedRewardCallback(session.adType) && !adsgramUsesSdkCompletion) return false;
-    if (session.adType === 'adsgram' && (!bgEntered || bgDuration < ADSGRAM_MIN_BACKGROUND_MS)) {
-      return false;
-    }
+    // AdsGram SDK completion is checked against a persisted callback below.
+    // Background lifecycle events are unreliable in embedded Telegram clients.
 
     const [providerCallback] = await tx
       .select({ id: adRewardCallbacks.id })
@@ -12362,8 +12366,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/missions/daily-checkin/claim - Claim daily check-in reward
-  // 7-day check-in streak rewards (Gems) — matches the 7-day carousel UI
-  const CHECKIN_REWARDS = [78, 82, 90, 97, 117, 136, 194];
+  // Seven-day check-in rewards; the final reward repeats for longer streaks.
+  const CHECKIN_REWARDS = [2, 4, 6, 9, 13, 17, 21];
   // Daily Check-In is once per IST calendar day. Older releases stored the
   // 12-hour AM/PM reset key, so normalize both formats when reading history.
   const getCheckinDayKey = (date = new Date()): string => {
@@ -12372,6 +12376,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }).formatToParts(date);
     const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
     return `${values.year}-${values.month}-${values.day}`;
+  };
+  const getPreviousCheckinDayKey = (today = getCheckinDayKey()): string => {
+    const previousDay = new Date(`${today}T00:00:00.000Z`);
+    previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+    return previousDay.toISOString().slice(0, 10);
   };
   const normalizeCheckinDayKey = (value: string | Date | null | undefined): string | null => {
     if (!value) return null;
@@ -12394,14 +12403,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = getCheckinDayKey();
       const lastClaimDate = getLastCheckinClaim(user);
       
-      // Streak continues only if last claim was in the current or immediately previous period
-      let streak = user.dailyCheckinStreak || 0;
-      if (lastClaimDate !== today) {
-        // Simplified streak logic for 12h periods: if not current, reset (or could check previous period)
-        // For now, we'll just check if it was claimed in this period
-      }
-      const dayIndex = streak % CHECKIN_REWARDS.length;
       const alreadyClaimedToday = lastClaimDate === today;
+      let streak = user.dailyCheckinStreak || 0;
+      if (!alreadyClaimedToday && lastClaimDate !== getPreviousCheckinDayKey(today)) streak = 0;
+      const dayIndex = Math.min(streak, CHECKIN_REWARDS.length - 1);
 
       res.json({
         streak,
@@ -12437,15 +12442,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let streak = user.dailyCheckinStreak || 0;
-      // Preserve the streak only when the previous claim was yesterday.
-      if (lastClaimDate && lastClaimDate !== today) {
-        const todayDate = new Date(`${today}T00:00:00.000Z`);
-        const previousDay = new Date(todayDate);
-        previousDay.setUTCDate(previousDay.getUTCDate() - 1);
-        const previousDayKey = previousDay.toISOString().slice(0, 10);
-        if (lastClaimDate !== previousDayKey) streak = 0;
-      }
-      const dayIndex = streak % CHECKIN_REWARDS.length;
+      // Keep consecutive streaks; after a missed calendar day, start at D1.
+      if (lastClaimDate !== getPreviousCheckinDayKey(today)) streak = 0;
+      const dayIndex = Math.min(streak, CHECKIN_REWARDS.length - 1);
       let reward = CHECKIN_REWARDS[dayIndex];
 
       // Reward is now always 100% as requested by user
