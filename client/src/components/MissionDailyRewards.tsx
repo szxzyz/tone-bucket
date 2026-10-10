@@ -27,7 +27,6 @@ export default function MissionDailyRewards() {
     staleTime: 5 * 60_000,
     retry: false,
   });
-
   useEffect(() => {
     if (!user) return;
     if (user.mysteryBoxDate) {
@@ -133,7 +132,6 @@ export default function MissionDailyRewards() {
         <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 16px" }} />
         <DailyMissionTasks />
       </div>
-
     </>
   );
 }
