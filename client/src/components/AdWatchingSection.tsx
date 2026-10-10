@@ -339,39 +339,9 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: 1.3, marginBottom: 2 }}>
-                      Sponsored by
-                    </p>
-                    <p className="text-white font-bold" style={{ fontSize: 13, lineHeight: 1.2 }}>
+                    <p className="text-white font-bold" style={{ fontSize: 13, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {card.title}
                     </p>
-                  </div>
-
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 2 }}>
-                      Ad Limit
-                    </p>
-                    <span style={{
-                      fontSize: 13, fontWeight: 800,
-                      color: limitReached ? "rgba(239,68,68,0.85)" : "rgba(255,255,255,0.75)",
-                    }}>
-                      {watched}
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontWeight: 500 }}>/{limit}</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ padding: "0 12px 12px", display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>
-                      Reward
-                    </p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                        <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
-                      </span>
-                    </div>
                   </div>
 
                   <button
@@ -384,18 +354,28 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     }}
                     disabled={isLoading || limitReached || !isProviderConfigured(card.adType)}
                     style={{
-                      height: 38, boxSizing: "border-box", padding: "0 16px", borderRadius: 12, minWidth: 92,
+                      height: 38, boxSizing: "border-box", padding: "0 13px", borderRadius: 12, minWidth: 88,
                       fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
                       letterSpacing: "0.02em", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center",
                       background: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #2563eb, #3b82f6)",
-                      color:      limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.3)"  : "#fff",
-                      transition: "opacity 0.2s",
+                      color: limitReached || !isProviderConfigured(card.adType) ? "rgba(255,255,255,0.3)" : "#fff",
+                      transition: "opacity 0.2s", flexShrink: 0,
                     }}
                   >
                     {isLoading ? (
                       <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "spin 0.8s linear infinite" }} aria-label="Loading" />
                     ) : limitReached ? "LIMIT" : !isProviderConfigured(card.adType) ? "SETUP NEEDED" : "GET AXN"}
                   </button>
+                </div>
+
+                <div style={{ padding: "0 12px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 20, height: 20, objectFit: "contain" }} />
+                    <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>{reward}</span>
+                  </span>
+                  <span aria-label={`${watched} of ${limit} ads watched`} style={{ padding: "3px 7px", borderRadius: 8, background: "rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: limitReached ? "rgba(239,68,68,0.9)" : "rgba(255,255,255,0.55)" }}>
+                    {watched}/{limit}
+                  </span>
                 </div>
               </div>
             );
