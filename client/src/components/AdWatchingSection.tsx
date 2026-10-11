@@ -66,7 +66,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       queryClient.setQueryData(["/api/auth/user"], (old: any) => {
         if (!old) return old;
         const updates: any = {
-          balance: data?.newBalance !== undefined ? String(data.newBalance) : old.balance,
+          axnBalance: data?.newAxnBalance !== undefined ? String(data.newAxnBalance) : old.axnBalance,
         };
         if      (adType === "adsgram") updates.adsWatchedToday        = data?.adType === "adsgram" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.adsWatchedToday || 0) + 1;
         else if (adType === "monetag") updates.monetagAdsWatchedToday = data?.adType === "monetag" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.monetagAdsWatchedToday || 0) + 1;

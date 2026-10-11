@@ -2712,7 +2712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         sendRealtimeUpdate(userId, {
           type: 'balance_update',
-          balance: updatedUser?.balance,
+          axnBalance: updatedUser?.axnBalance,
           usdBalance: updatedUser?.usdBalance,
           amount: adRewardGems.toString(),
           message: 'Ad reward earned!',
@@ -2729,7 +2729,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         rewardGems: adRewardGems,
         rewardPercent: normalizedAdType === 'adsgram' ? adsgramRewardPercent : 100,
-        newBalance: finalUpdatedUser.balance,
+        newBalance: finalUpdatedUser.axnBalance,
+        newAxnBalance: finalUpdatedUser.axnBalance,
         adsWatchedToday: finalUpdatedUser.adsWatchedToday,
         adType: normalizedAdType,
         adTypeWatchedToday: updatedTypeWatched,
@@ -8921,10 +8922,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = ${taskId}
       `);
 
-      console.log(`✅ Task reward claimed: ${taskId} by ${userId} - Reward: ${rewardGems} Gems`);
+      console.log(`✅ Task reward claimed: ${taskId} by ${userId} - Reward: ${rewardGems} AXN`);
       res.json({
         success: true,
-        message: `Reward claimed! +${rewardGems} Gems`,
+        message: `Reward claimed! +${rewardGems} AXN`,
         reward: rewardGems,
       });
     } catch (error) {

@@ -13,6 +13,7 @@ interface User {
   id?: string;
   telegramId?: string;
   balance?: string;
+  axnBalance?: string | number;
   usdBalance?: string;
   firstName?: string;
   referralCode?: string;
@@ -54,7 +55,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
         if (!old) return old;
         return {
           ...old,
-          ...(data.newAxnBalance !== undefined && { balance: String(Math.round(data.newAxnBalance)) }),
+          ...(data.newAxnBalance !== undefined && { axnBalance: String(Math.round(data.newAxnBalance)) }),
           ...(data.newPowBalance !== undefined && { balance: String(Math.round(data.newPowBalance)) }),
           ...(data.newUsdBalance !== undefined && { usdBalance: data.newUsdBalance }),
           ...(data.newTonBalance !== undefined && { tonBalance: data.newTonBalance }),

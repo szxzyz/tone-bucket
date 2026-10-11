@@ -60,11 +60,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     }
   }, [withdrawalsData]);
 
-  const hasConfirmedGoldBalance = user?.balance !== undefined && user?.balance !== null;
-  const rawGoldBalance = hasConfirmedGoldBalance ? parseFloat(String(user.balance)) : null;
-  const goldBalance = rawGoldBalance === null ? null : rawGoldBalance < 1
-    ? Math.round(rawGoldBalance * 10_000_000)
-    : Math.round(rawGoldBalance);
+  const hasConfirmedAxnBalance = user?.axnBalance !== undefined && user?.axnBalance !== null;
+  const axnBalance = hasConfirmedAxnBalance ? Number(user.axnBalance) : null;
 
     const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null
       ? null
@@ -129,7 +126,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
             <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
               <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
               <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {goldBalance === null || !Number.isFinite(goldBalance) ? '—' : goldBalance.toLocaleString()}
+                {axnBalance === null || !Number.isFinite(axnBalance) ? '—' : Math.floor(axnBalance).toLocaleString()}
               </span>
             </div>
             <button

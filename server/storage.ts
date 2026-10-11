@@ -1134,7 +1134,7 @@ export class DatabaseStorage implements IStorage {
           .set({
             pendingReferralBonus: '0',
             totalClaimedReferralBonus: sql`COALESCE(${users.totalClaimedReferralBonus}, 0) + ${amount}`,
-            balance: sql`COALESCE(${users.balance}, 0) + ${amount}`,
+            axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${amount}`,
             withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${amount}`,
             totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${amount}`,
             totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${amount}`,
@@ -1621,7 +1621,7 @@ export class DatabaseStorage implements IStorage {
         });
 
         await tx.update(users).set({
-          balance: sql`COALESCE(${users.balance}, 0) + ${commissionAmount}`,
+          axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${commissionAmount}`,
           withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${commissionAmount}`,
           totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${commissionAmount}`,
           totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${commissionAmount}`,
@@ -2524,9 +2524,8 @@ export class DatabaseStorage implements IStorage {
 
       console.log(`📊 DAILY_TASK_COMPLETION_LOG: UserID=${userId}, TaskID=${promotionId}, AmountRewarded=${rewardAmount}, Date=${currentDate}, Status=SUCCESS, Title="${promotion.title}"`);
 
-      // Add reward to user's earnings balance
-      await this.addBalance(userId, rewardAmount);
-
+      // Add the reward through the canonical AXN earning pipeline.
+      // addEarning is the only balance credit so this task is not double-paid.
       // Add earning record
       await this.addEarning({
         userId,
