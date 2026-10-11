@@ -3087,7 +3087,7 @@ function SettingsSection() {
             <div className="space-y-2 md:col-span-2 p-3 border rounded-lg bg-[#6b21a8]/5 border-[#6b21a8]/20">
               <Label htmlFor="withdrawal-group-chat-id" className="text-sm font-semibold">
                 <i className="fab fa-telegram mr-2 text-blue-500"></i>
-                Withdrawal Group Chat ID
+                AXN Withdrawal Group Chat ID
               </Label>
               <Input
                 id="withdrawal-group-chat-id"
@@ -3098,7 +3098,7 @@ function SettingsSection() {
               />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-xs text-muted-foreground flex-1">
-                  Telegram group/channel ID jahan withdrawal approvals post hoein. Current: {settingsData?.withdrawalGroupChatId || '-1002480439556'}
+                  Telegram group/channel ID for approved AXN payout announcements. Current: {settingsData?.withdrawalGroupChatId || '-1002480439556'}
                 </p>
                 <button
                   type="button"
@@ -3128,12 +3128,12 @@ function SettingsSection() {
                 type="number"
                 value={(settings as any).minimumCashoutGold}
                 onChange={(e) => setSettings({ ...settings, minimumCashoutGold: e.target.value })}
-                placeholder="100000"
+                placeholder="1000"
                 min="1"
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Users must have at least this many AXN. 1,000 AXN = $0.01 USD. Current: {settingsData?.minimumCashoutGold || 1000} AXN
+                Minimum AXN balance required for a withdrawal request. Current: {settingsData?.minimumCashoutGold || 1000} AXN
               </p>
             </div>
 
@@ -3152,17 +3152,17 @@ function SettingsSection() {
                 step="1"
               />
               <p className="text-xs text-muted-foreground">
-                Current: {settingsData?.maxWithdrawalsPerDay ?? 1} per day
+                Request-count limit per day; each request may use the user's available AXN balance. Current: {settingsData?.maxWithdrawalsPerDay ?? 1} per day
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="withdrawal-fee-ton" className="text-sm font-semibold">
+              <Label htmlFor="withdrawal-fee-axn" className="text-sm font-semibold">
                 <i className="fas fa-percent mr-2 text-blue-500"></i>
-                Withdrawal Fee (TON AXN payouts, %)
+                AXN Withdrawal Fee (%)
               </Label>
               <Input
-                id="withdrawal-fee-ton"
+                id="withdrawal-fee-axn"
                 type="number"
                 value={settings.withdrawalFeeTON}
                 onChange={(e) => setSettings({ ...settings, withdrawalFeeTON: e.target.value })}

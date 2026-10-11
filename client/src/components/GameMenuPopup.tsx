@@ -11,8 +11,6 @@ import { RiBarChartFill } from "react-icons/ri";
 import { BsQuestionCircleFill } from "react-icons/bs";
 import { MdOutlineSupportAgent } from "react-icons/md";
 import { format } from "date-fns";
-import { getTONPrice } from "@/lib/tonPriceService";
-import { TonIcon } from "@/components/TonIcon";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useSupportLink } from "@/hooks/useSupportLink";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -56,7 +54,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   const [check3, setCheck3] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [transactionPage, setTransactionPage] = useState(0);
-  const [tonPrice, setTonPrice] = useState<number | null>(null);
   const { isAdmin } = useAdmin();
   const { t } = useLanguage();
   const supportLink = useSupportLink();
@@ -98,11 +95,6 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
   React.useEffect(() => {
     setTransactionPage(page => Math.min(page, transactionPageCount - 1));
   }, [transactionPageCount]);
-  React.useEffect(() => {
-    if (view !== "transactions") return;
-    getTONPrice().then(price => { if (Number.isFinite(price) && price > 0) setTonPrice(price); }).catch(() => {});
-  }, [view]);
-
   const contestMutation = useMutation({
     mutationFn: async (data: { link: string; viewsRange: string }) => {
       const res = await fetch("/api/contest/submit", {
@@ -295,13 +287,11 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                       const status = String(w.status || "pending").toLowerCase();
                       const color = status === "approved" || status === "completed" || status === "paid" ? "#4ade80" : status === "rejected" ? "#f87171" : "#fbbf24";
                       const details = w.details || {};
-                      const grm = Number(w.grmAmount ?? w.goldAmount ?? details.grmAmount ?? details.goldAmount ?? w.amount ?? 0);
-                      const ton = Number(details.tonAmount ?? w.cryptoAmount ?? details.cryptoAmount ?? (tonPrice ? Number(w.usdValue ?? details.usdValue ?? 0) / tonPrice : NaN));
+                      const axnAmount = Number(details.axnAmount ?? w.goldAmount ?? details.goldAmount ?? w.amount ?? 0);
                       const date = w.createdAt ? new Date(w.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
                       return <div key={w.id} style={{ padding: "13px 16px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{grm.toLocaleString()} AXN</span></div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{Number.isFinite(ton) && ton > 0 ? ton.toFixed(6) : "—"} TON</span></div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 22, height: 22, objectFit: "contain" }} /><span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{axnAmount.toLocaleString()} AXN</span></div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7, color: "rgba(255,255,255,.35)", fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: "3px 9px", borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: "uppercase", letterSpacing: ".04em" }}>{w.status || "pending"}</span></div>
                       </div>;
@@ -331,7 +321,7 @@ export default function MenuPopup({ onClose, initialView = "main", fullScreen = 
                   { label: "Total users", value: appStatistics ? Number(appStatistics.totalUsers ?? 0).toLocaleString() : "—", icon: Users },
                   { label: "Active today", value: appStatistics ? Number(appStatistics.activeToday ?? 0).toLocaleString() : "—", icon: Activity },
                   { label: "AXN earned", value: appStatistics ? Number(appStatistics.goldEarned ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", icon: Coins },
-                  { label: "Total withdrawal", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} TON` : "—", icon: Coins },
+                  { label: "Total AXN withdrawn", value: appStatistics ? `${Number(appStatistics.totalWithdrawal ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} AXN` : "—", icon: Coins },
                   { label: "Tasks created", value: appStatistics ? Number(appStatistics.taskCreated ?? 0).toLocaleString() : "—", icon: ClipboardList },
                   { label: "Tasks completed", value: appStatistics ? Number(appStatistics.taskCompleted ?? 0).toLocaleString() : "—", icon: CheckCircle2 },
                 ].map((card) => {

@@ -781,10 +781,6 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
   fee: number;
   feePercent: string | number;
   axnAmount?: number;
-  gramAmount?: number;
-  tonPrice?: number;
-  tonAmount?: number;
-  usdAmount?: number;
 }): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.warn('⚠️ Telegram bot token not set — skipping group withdrawal request notification');
@@ -801,28 +797,19 @@ export async function sendWithdrawalRequestToGroup(withdrawalData: {
     const botUsername = await getBotUsername();
     const currentDate = new Date().toUTCString();
 
-    const usdAmount = Number(withdrawalData.usdAmount ?? withdrawalData.amount ?? 0);
-    const fee = Number(withdrawalData.fee || 0);
-    const text = `💰 <b>Withdrawal Request</b>
-` +
-      `🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>
-` +
-      `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>
-` +
-      `💳 Username: ${formatTelegramUsername(withdrawalData.userTelegramUsername)}
-` +
-      `🌐 Address: <code>${escapeHtml(withdrawalData.walletAddress)}</code>
-` +
-      `💵 USD balance request: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
-` +
-      `💸 USD payout after fee: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
-` +
-      `🪙 Payment: <b>Manual payout by admin after approval</b>
-` +
-      `🛂 Fee: <code>${fee.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD (${withdrawalData.feePercent}%)</code>
-` +
-      `📅 Date: ${currentDate}
-` +
+    const axnAmount = Number(withdrawalData.axnAmount ?? withdrawalData.amount ?? 0);
+    const netAxn = Number(withdrawalData.amount ?? axnAmount);
+    const feeAxn = Number(withdrawalData.fee || 0);
+    const text = `💰 <b>AXN Withdrawal Request</b>\n\n` +
+      `🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>\n` +
+      `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>\n` +
+      `💳 Username: ${formatTelegramUsername(withdrawalData.userTelegramUsername)}\n` +
+      `🌐 Address: <code>${escapeHtml(withdrawalData.walletAddress)}</code>\n` +
+      `💵 Requested: <code>${axnAmount.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN</code>\n` +
+      `💸 Send after fee: <code>${netAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN</code>\n` +
+      `🛂 Fee: <code>${feeAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN (${withdrawalData.feePercent}%)</code>\n` +
+      `🪙 Admin sends AXN manually after approval\n` +
+      `📅 Date: ${currentDate}\n` +
       `🤖 Bot: @${botUsername}`;
     const replyMarkup = {
       inline_keyboard: [[
@@ -866,16 +853,17 @@ export async function sendWithdrawalRequestToAdmins(withdrawalData: Parameters<t
     return false;
   }
   const currentDate = new Date().toUTCString();
-  const usdAmount = Number(withdrawalData.usdAmount ?? withdrawalData.amount ?? 0);
-  const fee = Number(withdrawalData.fee || 0);
-  const text = `💰 <b>Withdrawal Request</b>\n\n` +
+  const axnAmount = Number(withdrawalData.axnAmount ?? withdrawalData.amount ?? 0);
+  const netAxn = Number(withdrawalData.amount ?? axnAmount);
+  const feeAxn = Number(withdrawalData.fee || 0);
+  const text = `💰 <b>AXN Withdrawal Request</b>\n\n` +
     `🗣 User: <a href="tg://user?id=${withdrawalData.userTelegramId}">${escapeHtml(withdrawalData.userName)}</a>\n` +
     `🆔 User ID: <code>${withdrawalData.userTelegramId}</code>\n` +
     `💳 Username: ${formatTelegramUsername(withdrawalData.userTelegramUsername)}\n` +
     `🌐 Wallet: <code>${escapeHtml(withdrawalData.walletAddress)}</code>\n` +
-    `💵 Requested: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>\n` +
-    `💸 Payout after fee: <code>${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>\n` +
-    `🛂 Fee: <code>${fee.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD (${withdrawalData.feePercent}%)</code>\n` +
+    `💵 Requested: <code>${axnAmount.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN</code>\n` +
+    `💸 Send after fee: <code>${netAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN</code>\n` +
+    `🛂 Fee: <code>${feeAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN (${withdrawalData.feePercent}%)</code>\n` +
     `📅 Date: ${currentDate}`;
   const replyMarkup = { inline_keyboard: [[
     { text: '✅ Approve', callback_data: `withdraw_paid_${withdrawalData.withdrawalId}` },
@@ -906,7 +894,7 @@ export async function sendWithdrawalRequestToAdmins(withdrawalData: Parameters<t
 // gracefully either way.
 export async function sendWithdrawalSubmittedNotification(
   userTelegramId: string,
-  data: { amount: number | string; walletAddress: string; withdrawalId: string; tonPrice?: number }
+  data: { amount: number | string; walletAddress: string; withdrawalId: string; axnAmount?: number | string; feeAxn?: number | string }
 ): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
     console.error('❌ Telegram bot token not configured for withdrawal submitted notification');
@@ -918,24 +906,17 @@ export async function sendWithdrawalSubmittedNotification(
   }
 
   try {
-    const amountStr = typeof data.amount === 'number' ? data.amount.toFixed(2) : data.amount;
     const safeAddress = escapeHtml(data.walletAddress || 'N/A');
     const safeId = escapeHtml(data.withdrawalId);
-
-    const axnAmtDm = (data as any).axnAmount ? parseFloat((data as any).axnAmount) : null;
-    const usdtVal = typeof data.amount === 'number' ? data.amount : parseFloat(String(data.amount));
-    const price = data.tonPrice || 5.5;
-    const tonVal = axnAmtDm !== null ? (axnAmtDm / 100_000) / price : usdtVal / price;
-    
-    const amountDisplay = axnAmtDm !== null && Number.isFinite(axnAmtDm)
-      ? `${Math.round(axnAmtDm).toLocaleString()} GEM (${usdtVal.toFixed(2)} USDT / ${tonVal.toFixed(4)} TON)`
-      : `${usdtVal.toFixed(2)} USDT (~${tonVal.toFixed(4)} TON)`;
+    const netAxn = Number(data.amount || 0);
+    const feeAxn = Number(data.feeAxn || 0);
 
     const message = `<tg-emoji emoji-id="5445355530111437729">📤</tg-emoji> <b>Withdrawal Request Submitted</b>
 
 Your withdrawal is now pending review by our team.
 
-<tg-emoji emoji-id="5197434882321567830">💵</tg-emoji> <b>Amount</b>: ${amountDisplay}
+<tg-emoji emoji-id="5197434882321567830">💵</tg-emoji> <b>Send after fee</b>: ${netAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN
+<b>Fee</b>: ${feeAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN
 <tg-emoji emoji-id="5197269100878907942">✍️</tg-emoji> <b>Address</b>: ${safeAddress}
 <tg-emoji emoji-id="5444856076954520455">🧾</tg-emoji> <b>ID</b>: ${safeId}
 
@@ -971,9 +952,17 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
     const user = await storage.getUser(withdrawal.userId);
     
     const withdrawalDetails = withdrawal.details as any;
+    const payoutCurrency = String(withdrawal.payoutCurrency || '').toUpperCase();
+    const isAxnWithdrawal = payoutCurrency === 'AXN' || withdrawalDetails?.manualAxnWithdrawal ||
+      withdrawalDetails?.axnAmount || withdrawalDetails?.manualTonWithdrawal || Number(withdrawal.goldAmount || 0) > 0;
+    if (!isAxnWithdrawal || payoutCurrency === 'USD' || payoutCurrency === 'GRAM' ||
+        withdrawalDetails?.manualUsdWithdrawal || withdrawalDetails?.manualGramWithdrawal) {
+      console.log(`Skipping AXN Telegram announcement for legacy non-AXN withdrawal ${withdrawal.id}`);
+      return true;
+    }
     const walletAddress = withdrawal.walletAddress || withdrawalDetails?.paymentDetails || withdrawalDetails?.walletAddress || 'N/A';
-    const usdAmount = Number(withdrawalDetails?.usdAmount || withdrawal.usdValue || withdrawal.amount || 0);
-    const transactionHash = withdrawal.transactionHash || 'N/A';
+    const requestedAxn = Number(withdrawalDetails?.axnAmount || withdrawal.goldAmount || withdrawal.amount || 0);
+    const netAxn = Number(withdrawalDetails?.netAxn || withdrawal.amount || requestedAxn);
     
     const userTelegramId = user?.telegram_id || '';
     const userTelegramUsername = formatTelegramUsername(user?.username);
@@ -981,20 +970,16 @@ export async function sendWithdrawalApprovedNotification(withdrawal: any, target
 
     const botUsername = await getBotUsername();
     const botLink = `https://t.me/${botUsername}/MyWAdz`;
-    const transactionUrl = `https://tonviewer.com/transaction/${encodeURIComponent(transactionHash)}`;
-    const rawFeePercent = Number(withdrawalDetails?.feePercent ?? 0);
-    const feePercent = Number.isFinite(rawFeePercent) ? Math.max(0, Math.min(100, rawFeePercent)) : 0;
-    const netUsdAmount = Number(withdrawalDetails?.netAmount || usdAmount * (1 - feePercent / 100));
     const groupMessage = `🎉 <b>New Withdrawal Success!</b>
 
 📛 <b>${userTelegramUsername} (${escapeHtml(String(userTelegramId || 'N/A'))})</b>
-💵 <b>Amount:</b> <code>${netUsdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
-📦 <b>Send (after fee):</b> <code>${netUsdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</code>
+💵 <b>Amount:</b> <code>${requestedAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN</code>
+📦 <b>Send (after fee):</b> <code>${netAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN</code>
 🏦 <b>To:</b> <code>${escapeHtml(walletAddress)}</code>
 
 🕐 <b>Time:</b> ${currentDate}
 
-✅ Paid on-chain · <a href="${escapeHtml(transactionUrl)}">view transaction</a>`;
+✅ Paid manually by admin`;
 
     const replyMarkup = {
       inline_keyboard: [
@@ -3700,7 +3685,12 @@ Share your unique referral link and earn GEM when your friends join:
       console.log('💰 Processing admin payouts list command');
       
       try {
-        const pendingWithdrawals = await storage.getAllPendingWithdrawals();
+        const pendingWithdrawals = (await storage.getAllPendingWithdrawals()).filter((withdrawal: any) => {
+          const details = withdrawal.details as any;
+          return details?.manualAxnWithdrawal || details?.axnAmount ||
+            (Number(withdrawal.goldAmount || 0) > 0 && !['GRAM', 'USD'].includes(String(withdrawal.payoutCurrency || '').toUpperCase()) &&
+              !details?.manualGramWithdrawal && !details?.manualUsdWithdrawal);
+        });
         
         if (pendingWithdrawals.length === 0) {
           const noRequestsMessage = '📋 No pending withdrawal requests found.';
@@ -3716,9 +3706,12 @@ Share your unique referral link and earn GEM when your friends join:
           const details = withdrawal.details as any;
           
           requestsList += `👤 User: ${userName} (ID: ${user?.telegram_id || 'N/A'})\n`;
-          requestsList += `💰 Amount: $${parseFloat(withdrawal.amount).toFixed(2)}\n`;
-          requestsList += `💳 Method: ${withdrawal.method}\n`;
-          requestsList += `📋 Details: ${details?.paymentDetails || 'N/A'}\n`;
+          const requestedAxn = Number(details?.axnAmount || withdrawal.goldAmount || withdrawal.amount || 0);
+          const netAxn = Number(details?.netAxn || withdrawal.amount || requestedAxn);
+          requestsList += `💰 Requested: ${requestedAxn.toLocaleString()} AXN\n`;
+          requestsList += `💸 Send after fee: ${netAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN\n`;
+          requestsList += `💳 Method: AXN\n`;
+          requestsList += `📋 Address: ${withdrawal.walletAddress || details?.walletAddress || details?.paymentDetails || 'N/A'}\n`;
           requestsList += `⏰ Requested: ${withdrawal.createdAt ? new Date(withdrawal.createdAt.toString()).toLocaleString() : 'Unknown'}\n`;
           requestsList += `📝 ID: ${withdrawal.id}\n\n`;
         }
@@ -3729,7 +3722,10 @@ Share your unique referral link and earn GEM when your friends join:
           const userName = user ? (user.firstName || user.username || 'Unknown User') : 'Unknown User';
           const details = withdrawal.details as any;
           
-          const adminMessage = `💵 Withdraw request from user ${userName} (ID: ${user?.telegram_id || 'N/A'})\nAmount: $${parseFloat(withdrawal.amount).toFixed(2)}\nPayment System: ${withdrawal.method}\nPayment Details: ${details?.paymentDetails || 'N/A'}\nTime: ${withdrawal.createdAt ? new Date(withdrawal.createdAt.toString()).toLocaleString() : 'Unknown'}`;
+          const requestedAxn = Number(details?.axnAmount || withdrawal.goldAmount || withdrawal.amount || 0);
+          const netAxn = Number(details?.netAxn || withdrawal.amount || requestedAxn);
+          const walletAddress = withdrawal.walletAddress || details?.walletAddress || details?.paymentDetails || 'N/A';
+          const adminMessage = `💰 AXN withdrawal request from ${userName} (ID: ${user?.telegram_id || 'N/A'})\nRequested: ${requestedAxn.toLocaleString()} AXN\nSend after fee: ${netAxn.toLocaleString(undefined, { maximumFractionDigits: 8 })} AXN\nAddress: ${walletAddress}\nAdmin sends manually after approval\nTime: ${withdrawal.createdAt ? new Date(withdrawal.createdAt.toString()).toLocaleString() : 'Unknown'}`;
           
           const adminKeyboard = {
             inline_keyboard: [

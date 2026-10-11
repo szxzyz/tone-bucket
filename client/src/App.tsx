@@ -21,7 +21,6 @@ import Leaderboard from "@/pages/Leaderboard";
 import CreateTask from "@/pages/CreateTask";
 import Affiliates from "@/pages/Affiliates";
 import Account from "@/pages/Account";
-import AxnMarket from "@/pages/AxnMarket";
 
 // Lazy-load heavy/rare pages only
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -78,13 +77,17 @@ function LoadingFallback() {
   );
 }
 
+function DisabledAxnMarketRoute() {
+  return null;
+}
+
 function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Mining} />
         <Route path="/mining" component={Mining} />
-        <Route path="/axn-market" component={AxnMarket} />
+        <Route path="/axn-market" component={DisabledAxnMarketRoute} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Mission} />
         <Route path="/admin" component={Admin} />
