@@ -1236,6 +1236,28 @@ export async function ensureDatabaseSchema(): Promise<void> {
     } catch (err) {
       console.error('⚠️ [MIGRATION] Could not ensure AXN market tables:', err);
     }
+    // Gems/AXN separation: existing balance is legacy Early Access Gems. Never overwrite
+    // it; copy it into the explicit Gems column and start a separate AXN column at zero.
+    try {
+      await db.execute(sql`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS gems_balance DECIMAL(30, 0) DEFAULT '0';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS axn_balance DECIMAL(30, 0) DEFAULT '0';
+        UPDATE users SET gems_balance = COALESCE(balance, 0)
+          WHERE COALESCE(gems_balance, 0) = 0 AND COALESCE(balance, 0) <> 0;
+        CREATE TABLE IF NOT EXISTS gems_axn_migrations (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id VARCHAR NOT NULL UNIQUE REFERENCES users(id),
+          gems_amount NUMERIC(30, 0) NOT NULL, axn_amount NUMERIC(30, 18) NOT NULL,
+          conversion_rate NUMERIC(30, 0) NOT NULL, tasks_completed INTEGER NOT NULL,
+          friends_invited INTEGER NOT NULL, ads_watched INTEGER NOT NULL, claimed_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+        INSERT INTO admin_settings (setting_key, setting_value, description)
+          VALUES ('gems_axn_migration_rate', '39', 'Legacy Gems per AXN'),
+                 ('gems_axn_migration_started_at', NOW()::text, 'Official Gems to AXN migration launch time'),
+                 ('gems_axn_migration_duration_hours', '24', 'Migration availability window')
+          ON CONFLICT (setting_key) DO NOTHING;
+      `);
+      console.log('✅ [MIGRATION] Gems/AXN separation and 24h migration schema ready');
+    } catch (err) { console.error('⚠️ [MIGRATION] Gems/AXN separation failed:', err); }
     // USD is the single authoritative withdrawable account balance. Preserve legacy GRAM snapshots without inventing a conversion rate.
     try {
       await db.execute(sql`
