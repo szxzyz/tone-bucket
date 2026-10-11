@@ -497,7 +497,8 @@ export class DatabaseStorage implements IStorage {
         await db
           .update(users)
           .set({
-            balance: sql`COALESCE(${users.balance}, 0) + ${earning.amount}`,
+            // All new rewards are live AXN. Legacy users.balance remains Gems.
+            axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${earning.amount}`,
             withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${earning.amount}`,
             totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${earning.amount}`,
             totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${earning.amount}`,

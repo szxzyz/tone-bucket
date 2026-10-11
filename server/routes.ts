@@ -1676,6 +1676,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─── Legacy Gems → AXN migration (one-time, server-enforced 24h window) ───
+  async function getGemsAxnMigrationConfig() {
+    const rows = await db.select().from(adminSettings);
+    const get = (key: string, fallback: string) => rows.find((r) => r.settingKey === key)?.settingValue || fallback;
+    const startedAt = new Date(get('gems_axn_migration_started_at', new Date().toISOString()));
+    const durationHours = Math.max(1, Number(get('gems_axn_migration_duration_hours', '24')) || 24);
+    const rate = Math.max(1, Math.floor(Number(get('gems_axn_migration_rate', '39')) || 39));
+    const endsAt = new Date(startedAt.getTime() + durationHours * 60 * 60 * 1000);
+    return { rate, startedAt, endsAt, open: Date.now() < endsAt.getTime() };
+  }
+
+  app.get('/api/gems-axn-migration', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const userId = req.user.user.id;
+      const config = await getGemsAxnMigrationConfig();
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      const claimedResult = await db.execute(sql`SELECT claimed_at FROM gems_axn_migrations WHERE user_id = ${userId} LIMIT 1`);
+      const claimed = claimedResult.rows[0] as any;
+      const [taskRow] = await db.select({ count: sql<number>`count(*)` }).from(taskClicks).where(eq(taskClicks.publisherId, userId));
+      const tasksCompleted = Number(taskRow?.count || 0);
+      const friendsInvited = await storage.getValidReferralCount(userId);
+      const adsWatched = Number(user.adsWatched || 0);
+      const gems = Number(user.gemsBalance !== null && user.gemsBalance !== undefined ? user.gemsBalance : user.balance || 0);
+      const axn = Number(user.axnBalance || 0);
+      const eligible = config.open && !claimed && tasksCompleted >= 10 && friendsInvited >= 1 && adsWatched >= 100 && gems >= config.rate;
+      return res.json({ open: config.open, startedAt: config.startedAt.toISOString(), endsAt: config.endsAt.toISOString(), rate: config.rate, gemsBalance: Math.max(0, Math.floor(gems)), axnBalance: Math.max(0, Math.floor(axn)), estimatedAxn: Math.floor(Math.max(0, gems) / config.rate), tasksCompleted, requiredTasks: 10, friendsInvited, requiredFriends: 1, adsWatched, requiredAds: 100, claimed: Boolean(claimed), claimedAt: claimed?.claimed_at || null, eligible });
+    } catch (error) { console.error('Gems/AXN migration status error:', error); res.status(500).json({ message: 'Migration status unavailable' }); }
+  });
+
+  app.post('/api/gems-axn-migration/claim', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const userId = req.user.user.id;
+      const config = await getGemsAxnMigrationConfig();
+      if (!config.open) return res.status(410).json({ message: 'The Gems to AXN migration window has ended' });
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
+        if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 });
+        const existing = await tx.execute(sql`SELECT id FROM gems_axn_migrations WHERE user_id = ${userId} LIMIT 1`);
+        if (existing.rows[0]) throw Object.assign(new Error('Gems migration already claimed'), { statusCode: 409 });
+        const [taskRow] = await tx.select({ count: sql<number>`count(*)` }).from(taskClicks).where(eq(taskClicks.publisherId, userId));
+        const tasksCompleted = Number(taskRow?.count || 0);
+        const friendsInvited = await storage.getValidReferralCount(userId);
+        const adsWatched = Number(user.adsWatched || 0);
+        if (tasksCompleted < 10 || friendsInvited < 1 || adsWatched < 100) throw Object.assign(new Error('Complete 10 tasks, invite 1 friend, and watch 100 ads first'), { statusCode: 400 });
+        const gemsBalance = Math.max(0, Math.floor(Number(user.gemsBalance !== null && user.gemsBalance !== undefined ? user.gemsBalance : user.balance || 0)));
+        const axnAmount = Math.floor(gemsBalance / config.rate);
+        const gemsAmount = axnAmount * config.rate;
+        if (axnAmount <= 0) throw Object.assign(new Error(`You need at least ${config.rate} Gems to migrate`), { statusCode: 400 });
+        await tx.update(users).set({ gemsBalance: sql`${users.gemsBalance} - ${gemsAmount}`, axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${axnAmount}`, updatedAt: new Date() }).where(eq(users.id, userId));
+        await tx.execute(sql`INSERT INTO gems_axn_migrations (user_id, gems_amount, axn_amount, conversion_rate, tasks_completed, friends_invited, ads_watched) VALUES (${userId}, ${gemsAmount}, ${axnAmount}, ${config.rate}, ${tasksCompleted}, ${friendsInvited}, ${adsWatched})`);
+        await tx.insert(transactions).values({ userId, amount: String(axnAmount), type: 'addition', source: 'gems_to_axn_migration', description: `Migrated ${gemsAmount} Gems to ${axnAmount} AXN`, metadata: { gemsAmount, axnAmount, conversionRate: config.rate, tasksCompleted, friendsInvited, adsWatched } });
+        return { gemsAmount, axnAmount, remainingGems: gemsBalance - gemsAmount };
+      });
+      res.json({ success: true, ...result, rate: config.rate, message: `Successfully migrated ${result.gemsAmount.toLocaleString()} Gems into ${result.axnAmount.toLocaleString()} AXN` });
+    } catch (error: any) { const status = error?.statusCode || 500; console.error('Gems/AXN migration claim error:', error); res.status(status).json({ message: status === 500 ? 'Migration failed. Please try again.' : error.message }); }
+  });
+
   // Balance refresh endpoint - used after conversion to sync frontend
   app.get('/api/user/balance/refresh', authenticateTelegram, async (req: any, res) => {
     try {
@@ -9873,7 +9931,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reward = Number((Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR)).toFixed(4));
       const claimed = await db.transaction(async (tx) => {
         const updated = await tx.update(users).set({
-          balance: sql`${users.balance} + ${reward}`,
+          axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${reward}`,
           miningStartedAt: user.miningStartedAt,
           miningBoostMultiplier: '1',
           miningBoostStep: 0,
