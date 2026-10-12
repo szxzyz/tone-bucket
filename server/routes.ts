@@ -7422,9 +7422,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (taskRequirementEnabled && Number(tasksRow?.count || 0) < minimumTasks) throw new Error(`Complete ${minimumTasks - Number(tasksRow?.count || 0)} more tasks before withdrawing.`);
         const friendsInvited = await storage.getValidReferralCount(userId);
         if (inviteRequirementEnabled && friendsInvited < minimumInvites) throw new Error(`Invite ${minimumInvites - friendsInvited} more friends to unlock withdrawals.`);
+        const availableAxn = Math.max(0, Math.floor(Number(user.axnBalance || 0)));
+        if (axn > availableAxn) throw new Error('Insufficient AXN balance');
         const feeAxn = Number((axn * feePercent / 100).toFixed(8));
         const netAxn = Number((axn - feeAxn).toFixed(8));
-        const [debited] = await tx.update(users).set({ balance: sql`${users.balance} - ${axn}`, updatedAt: new Date() }).where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${axn}`)).returning({ id: users.id });
+        const [debited] = await tx.update(users)
+          .set({ axnBalance: sql`COALESCE(${users.axnBalance}, 0) - ${axn}`, updatedAt: new Date() })
+          .where(and(eq(users.id, userId), sql`COALESCE(${users.axnBalance}, 0)::numeric >= ${axn}`))
+          .returning({ id: users.id });
         if (!debited) throw new Error('Balance changed; please try again');
         const details = { walletAddress, axnAmount: axn, goldAmount: axn, feeAxn, feePercent, netAxn, totalDeducted: axn, manualAxnWithdrawal: true };
         const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAxn.toFixed(8), method: 'AXN', status: 'pending', details, goldAmount: String(axn), payoutCurrency: 'AXN', walletAddress, deducted: true, refunded: false }).returning();
@@ -7435,7 +7440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ success: true, status: 'pending', withdrawalId: outcome.withdrawal.id, axnAmount: outcome.axn, netAxn: outcome.netAxn, feeAxn: outcome.feeAxn, feePercent: outcome.feePercent, currency: 'AXN' });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not create withdrawal request';
-      const expected = /^(User not found|Account is banned|Save a valid AXN|A payout|Balance changed|Enter a whole-number AXN|Minimum withdrawal|Daily withdrawal|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?)/.test(message);
+      const expected = /^(User not found|Account is banned|Save a valid AXN|A payout|Balance changed|Insufficient AXN balance|Enter a whole-number AXN|Minimum withdrawal|Daily withdrawal|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?)/.test(message);
       console.error('AXN withdrawal request failed:', error);
       return res.status(expected ? 400 : 500).json({ success: false, message: expected ? message : 'Could not create AXN withdrawal request. Please try again.' });
     }

@@ -35,9 +35,7 @@ export default function Account() {
   const displayName = user?.firstName || telegramUser?.first_name || 'User';
   const username = user?.telegramUsername || telegramUser?.username || null;
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
-  const balanceLoaded = user?.balance !== undefined && user?.balance !== null;
-  const rawBalance = balanceLoaded ? Number(user.balance) : 0;
-  const gemBalance = rawBalance < 1 ? Math.round(rawBalance * 10_000_000) : Math.floor(rawBalance);
+  const balanceLoaded = user?.axnBalance !== undefined && user?.axnBalance !== null;
   const axnBalance = Math.max(0, Math.floor(Number(user?.axnBalance ?? 0)));
   // Match the Telegram bot's PAYOUTS inline button (TELEGRAM_PAYOUT_CHANNEL_LINK).
   // Keep the legacy proof URL as a fallback for deployments that still use it.
@@ -144,7 +142,7 @@ export default function Account() {
         </section>
       </main>
 
-      <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={axnBalance} />
+      <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} axnBalance={axnBalance} />
 
       {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} />}
     </Layout>

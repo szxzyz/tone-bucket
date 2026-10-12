@@ -1864,28 +1864,27 @@ export class DatabaseStorage implements IStorage {
           if (lockedWithdrawal.status !== 'pending') throw new Error('Withdrawal is not pending');
 
           if (lockedWithdrawal.deducted) {
-            console.log(`⚠️ Gems Withdrawal ${withdrawalId} already flagged as deducted — approving without deducting again.`);
+            console.log(`⚠️ AXN withdrawal ${withdrawalId} already flagged as deducted — approving without deducting again.`);
           } else {
             // Lock the user row and read the live balance
             const [lockedUser] = await tx
-              .select({ balance: users.balance })
+              .select({ axnBalance: users.axnBalance })
               .from(users)
               .where(eq(users.id, withdrawal.userId))
               .for('update');
 
             if (!lockedUser) throw new Error('User not found inside transaction');
 
-            const rawBal = parseFloat(lockedUser.balance || '0');
-            const currentGemsBalance = rawBal < 1 ? Math.round(rawBal * 10_000_000) : Math.round(rawBal);
+            const currentAxnBalance = Math.max(0, Math.floor(Number(lockedUser.axnBalance || 0)));
 
             if (isGramWithdrawal) {
               const [lockedGramUser] = await tx.select({ gramBalance: users.gramBalance }).from(users).where(eq(users.id, withdrawal.userId));
               const currentGramBalance = Number(lockedGramUser?.gramBalance || 0);
               throw new Error(`Cannot approve: GRAM was already deducted at request time; current GRAM balance is ${currentGramBalance}`);
             }
-          if (currentGemsBalance < axnAmountRaw!) {
+          if (currentAxnBalance < axnAmountRaw!) {
             throw new Error(
-              `Cannot approve: user's AXN balance (${currentGemsBalance.toLocaleString()} AXN) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} AXN) and it isn't flagged as already-deducted.`
+              `Cannot approve: user's AXN balance (${currentAxnBalance.toLocaleString()} AXN) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} AXN) and it isn't flagged as already-deducted.`
             );
           }
           }
@@ -2034,7 +2033,12 @@ export class DatabaseStorage implements IStorage {
           }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
           if (!claimed) return [];
           const details = withdrawal.details as any;
-          if (details?.manualUsdWithdrawal || withdrawal.payoutCurrency === 'USD') {
+          if (details?.manualAxnWithdrawal) {
+            await tx.update(users).set({
+              axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${details.axnAmount ?? withdrawal.goldAmount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          } else if (details?.manualUsdWithdrawal || withdrawal.payoutCurrency === 'USD') {
             await tx.update(users).set({
               usdBalance: sql`${users.usdBalance} + ${details?.usdAmount || details?.totalDeducted || withdrawal.amount}`,
               updatedAt: new Date(),

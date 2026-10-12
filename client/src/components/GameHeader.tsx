@@ -21,8 +21,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
     retry: false,
     staleTime: 0,
   });
-  const rawGoldBalance = parseFloat(user?.balance || "0");
-  const goldBalance = rawGoldBalance < 1 ? Math.round(rawGoldBalance * 10_000_000) : Math.round(rawGoldBalance);
+  const axnBalance = Math.max(0, Math.floor(Number(user?.axnBalance ?? 0)));
   const profileImage = user?.profileImageUrl || user?.profile_image_url || "/assets/axionet-mining.webp";
   const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
@@ -65,7 +64,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
               <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{goldBalance.toLocaleString()}</span>
+            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{axnBalance.toLocaleString()}</span>
           </div>
           <button
             type="button"

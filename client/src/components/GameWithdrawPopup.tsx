@@ -6,9 +6,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { showNotification } from '@/components/AppNotification';
 
-type Props = { open: boolean; onClose: () => void; userBalance: number };
+type Props = { open: boolean; onClose: () => void; axnBalance: number };
 
-export default function GameWithdrawPopup({ open, onClose, userBalance }: Props) {
+export default function GameWithdrawPopup({ open, onClose, axnBalance }: Props) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const connectedAddress = useTonAddress();
@@ -25,7 +25,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const savedAddress = user?.payoutCurrency === 'AXN' ? (user?.payoutWalletAddress || '') : '';
   const address = connectedAddress || savedAddress;
   const minimum = Math.max(1, Math.floor(Number(settings?.minimumCashoutGold || 1000)));
-  const availableAxn = Math.max(0, Math.floor(Number(user?.balance ?? userBalance ?? 0)));
+  const availableAxn = Math.max(0, Math.floor(Number(user?.axnBalance ?? axnBalance ?? 0)));
   const feePercent = Math.max(0, Math.min(100, Number(settings?.withdrawalFeeTON ?? 9)));
   const secondaryAccountBlocked = Boolean(user?.secondaryAccountBlocked);
 
