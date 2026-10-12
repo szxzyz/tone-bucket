@@ -23,19 +23,11 @@ const formatAxn = (value: number) => (Number.isFinite(value) ? value : 0).toLoca
 const formatAxnSix = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(6);
 
 const actionPill: React.CSSProperties = {
-  height: 42, boxSizing: "border-box", padding: "0 10px", borderRadius: 12,
+  minWidth: 0, height: 42, boxSizing: "border-box", padding: "0 10px", borderRadius: 12,
   background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12,
   fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center",
   gap: 7, border: "none", boxShadow: "0 5px 14px rgba(0,0,0,.22)",
 };
-
-const metricCard = (accent: string): React.CSSProperties => ({
-  minWidth: 0, minHeight: 62, boxSizing: "border-box", padding: "9px 10px",
-  borderRadius: 14, border: `1px solid ${accent}33`,
-  background: `linear-gradient(145deg, ${accent}16 0%, #121317 88%)`,
-  display: "flex", alignItems: "center", gap: 9,
-  boxShadow: "0 5px 14px rgba(0,0,0,.2)",
-});
 
 export default function GameFarmingSection() {
   const queryClient = useQueryClient();
@@ -129,10 +121,10 @@ export default function GameFarmingSection() {
   };
 
   const stats = [
-    { label: "Level", value: `L${currentLevel}`, color: "#60a5fa", icon: <Layers3 size={18} strokeWidth={2.4} /> },
-    { label: "Yield", value: `${dailyYield.toFixed(2)} AXN/day`, color: "#86efac", icon: <TrendingUp size={18} strokeWidth={2.4} /> },
-    { label: "Power", value: `${miningPower.toFixed(2)} TH/s`, color: "#fbbf24", icon: <Gauge size={18} strokeWidth={2.4} /> },
-    { label: "Pool", value: `${formatCompactAxn(eligibleHolding)} AXN`, color: "#c4b5fd", icon: <Waves size={18} strokeWidth={2.4} /> },
+    { label: "Level", value: `L${currentLevel}`, color: "#60a5fa", icon: <Layers3 size={15} strokeWidth={2.4} /> },
+    { label: "Yield", value: `${dailyYield.toFixed(2)} AXN/day`, color: "#86efac", icon: <TrendingUp size={15} strokeWidth={2.4} /> },
+    { label: "Power", value: `${miningPower.toFixed(2)} TH/s`, color: "#fbbf24", icon: <Gauge size={15} strokeWidth={2.4} /> },
+    { label: "Pool", value: `${formatCompactAxn(eligibleHolding)} AXN`, color: "#c4b5fd", icon: <Waves size={15} strokeWidth={2.4} /> },
   ];
 
   const claimPending = claimMutation.isPending;
@@ -150,16 +142,21 @@ export default function GameFarmingSection() {
         .axn-point { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 999px; background: #93c5fd; box-shadow: 0 0 10px #60a5fa, 0 0 20px rgba(37,99,235,.85); animation: axnPoint .68s cubic-bezier(.2,.8,.25,1) forwards; pointer-events: none; }
       `}</style>
       <section aria-labelledby="mining-card-title" style={{ marginBottom: 18, color: "#fff" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 18 }}>
-          {stats.map((stat) => (
-            <div key={stat.label} style={metricCard(stat.color)}>
-              <span style={{ width: 34, height: 34, flex: "0 0 34px", display: "grid", placeItems: "center", borderRadius: 11, color: stat.color, background: `${stat.color}20` }}>
-                {stat.icon}
-              </span>
-              <span style={{ minWidth: 0, display: "grid", gap: 3 }}>
-                <span style={{ color: "rgba(255,255,255,.68)", fontSize: 12, lineHeight: 1.1, fontWeight: 850, letterSpacing: ".02em" }}>{stat.label}</span>
-                <span style={{ color: "#fff", fontSize: 13, lineHeight: 1.15, fontWeight: 950, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontVariantNumeric: "tabular-nums" }}>{stat.value}</span>
-              </span>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+          {stats.slice(0, 2).map((stat) => (
+            <div key={stat.label} style={{ ...actionPill, padding: "0 5px", gap: 4 }}>
+              <span style={{ color: stat.color, display: "inline-flex", flexShrink: 0 }}>{stat.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 900, whiteSpace: "nowrap" }}>{stat.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 900, opacity: .92, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{stat.value}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 44 }}>
+          {stats.slice(2).map((stat) => (
+            <div key={stat.label} style={{ ...actionPill, padding: "0 5px", gap: 4 }}>
+              <span style={{ color: stat.color, display: "inline-flex", flexShrink: 0 }}>{stat.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 900, whiteSpace: "nowrap" }}>{stat.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 900, opacity: .92, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{stat.value}</span>
             </div>
           ))}
         </div>
