@@ -21,7 +21,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
     retry: false,
     staleTime: 0,
   });
-  const axnBalance = Math.max(0, Math.floor(Number(user?.axnBalance ?? 0)));
+  const axnBalance = Math.max(0, Number(user?.axnBalance ?? 0));
   const profileImage = user?.profileImageUrl || user?.profile_image_url || "/assets/axionet-icon.webp";
   const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
@@ -64,7 +64,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
               <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{axnBalance.toLocaleString()}</span>
+            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{axnBalance.toLocaleString("en-US", { maximumFractionDigits: 6 })}</span>
           </div>
           <button
             type="button"

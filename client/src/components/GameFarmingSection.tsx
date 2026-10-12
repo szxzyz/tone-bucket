@@ -5,9 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { showNotification } from "@/components/AppNotification";
 import { apiRequest } from "@/lib/queryClient";
 
-const AXN_PER_USD = 100_000;
 const formatAxn = (value: number) => (Number.isFinite(value) ? value : 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 const formatAxnSix = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(6);
+const compactAxn = (value: number) => value >= 1_000_000 ? `${(value / 1_000_000).toFixed(value % 1_000_000 ? 1 : 0).replace(/\.0$/, "")}M` : value >= 1_000 ? `${(value / 1_000).toFixed(value % 1_000 ? 1 : 0).replace(/\.0$/, "")}K` : value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 
 const actionPill: React.CSSProperties = {
   minWidth: 0, height: 42, boxSizing: "border-box", padding: "0 10px", borderRadius: 12,
@@ -19,13 +19,16 @@ const actionPill: React.CSSProperties = {
 export default function GameFarmingSection() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const { data: user } = useQuery<any>({ queryKey: ["/api/auth/user"], retry: false, staleTime: 10_000 });
   const { data: farm, isLoading } = useQuery<any>({ queryKey: ["/api/farming/state"], retry: false, staleTime: 10_000, refetchInterval: 30_000 });
   const [amount, setAmount] = useState(0);
   const [tokenTapped, setTokenTapped] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
   useEffect(() => setAmount(Number(farm?.minedGold ?? farm?.minedAxn ?? 0)), [farm]);
-  const ratePerHour = Math.max(0, Number(farm?.effectiveRate ?? farm?.baseRatePerHour ?? 23.9574));
+  const currentLevel = Math.max(1, Number(farm?.currentLevel ?? 1));
+  const dailyYield = Math.max(0, Number(farm?.dailyYieldAXN ?? 5));
+  const miningPower = Math.max(0, Number(farm?.miningPowerTHs ?? 0.2));
+  const eligibleHolding = Math.max(0, Number(farm?.eligibleHolding ?? 0));
+  const ratePerHour = dailyYield / 24;
   const isActive = Boolean(farm?.isActive);
   useEffect(() => {
     if (!isActive) return;
@@ -46,7 +49,6 @@ export default function GameFarmingSection() {
     },
     onError: (error: any) => showNotification(error?.message || "Could not claim AXN", "error"),
   });
-  const miningUsd = Math.max(0, amount / AXN_PER_USD);
   const tapToken = () => {
     setTokenTapped(true);
     setShowBurst(true);
@@ -67,22 +69,21 @@ export default function GameFarmingSection() {
       `}</style>
       <section aria-labelledby="mining-card-title" style={{ marginBottom: 18, color: "#fff" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-        <div style={actionPill}><Layers3 size={15} color="#60a5fa" /><span>Lvl</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
-        <div style={actionPill}><TrendingUp size={15} color="#86efac" /><span>Yield</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
+        <div style={actionPill}><Layers3 size={15} color="#60a5fa" /><span>Level</span><span style={{ fontSize: 10, opacity: .9 }}>L{currentLevel}</span></div>
+        <div style={actionPill}><TrendingUp size={15} color="#86efac" /><span>Yield</span><span style={{ fontSize: 10, opacity: .9 }}>{dailyYield.toFixed(2)} AXN/day</span></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 44 }}>
-        <div style={actionPill}><WalletCards size={15} color="#93c5fd" /><span>Holding</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
-        <div style={actionPill}><Waves size={15} color="#fca5a5" /><span>Pool</span><span style={{ fontSize: 10, opacity: .74 }}>Coming soon</span></div>
+        <div style={actionPill}><WalletCards size={15} color="#93c5fd" /><span>Power</span><span style={{ fontSize: 10, opacity: .9 }}>{miningPower.toFixed(2)} TH/s</span></div>
+        <div style={actionPill}><Waves size={15} color="#fca5a5" /><span>Pool</span><span style={{ fontSize: 10, opacity: .9 }}>{compactAxn(eligibleHolding)} AXN</span></div>
       </div>
       <div onPointerDown={tapToken} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") tapToken(); }} role="button" tabIndex={0} aria-label="Tap AXN token" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", margin: "5px auto 22px", height: 164, cursor: "pointer" }}><img className={tokenTapped ? "axn-token tapped" : "axn-token"} src="/assets/axionet-mining.webp" alt="AXN mining token" style={{ width: 150, height: 150, objectFit: "contain" }} />{showBurst && <div aria-hidden="true">{[["-56px","-42px"],["0px","-68px"],["56px","-42px"],["68px","8px"],["-68px","8px"],["-42px","54px"],["42px","54px"]].map(([x,y]) => <span key={`${x}-${y}`} className="axn-point" style={{ "--x": x, "--y": y } as React.CSSProperties} />)}</div>}</div>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
         <div style={{ color: "rgba(255,255,255,.62)", fontSize: 12, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", marginBottom: 5 }}>Unclaimed reward</div>
         <div style={{ color: "#fff", fontSize: "clamp(22px, 7vw, 30px)", fontWeight: 900, lineHeight: 1, letterSpacing: ".01em" }}>{formatAxnSix(amount)} <span style={{ fontSize: 14, fontWeight: 800 }}>AXN</span></div>
-        <div style={{ color: "rgba(255,255,255,.58)", fontSize: 12, marginTop: 5 }}>= {miningUsd.toFixed(4)}</div>
       </div>
       <button type="button" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending || isLoading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "calc(100% - 28px)", margin: "0 auto", height: 44, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 900, fontSize: 13, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimMutation.isPending || isLoading ? .65 : 1 }}>{claimMutation.isPending ? <Loader2 size={15} className="animate-spin" style={{ margin: "0 auto" }} /> : <><HandCoins size={16} /> Claim Reward {Number(amount).toFixed(2)} AXN</>}</button>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
-        <button type="button" onClick={() => setLocation("/mining")} style={{ gridColumn: "1 / -1", height: 40, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><Compass size={16} color="#60a5fa" /> Explore miner</button>
+        <button type="button" onClick={() => setLocation("/miners")} style={{ gridColumn: "1 / -1", height: 40, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><Compass size={16} color="#60a5fa" /> Explore miner</button>
         <button type="button" onClick={() => setLocation("/axn-market?side=buy")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><ShoppingCart size={16} color="#86efac" /> Buy AXN</button>
         <button type="button" onClick={() => setLocation("/axn-market?side=sell")} style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: "none", borderRadius: 12, background: "linear-gradient(145deg, #1a1c20 0%, #121317 100%)", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 5px 14px rgba(0,0,0,.22)" }}><ArrowUpFromLine size={16} color="#fca5a5" /> Sell AXN</button>
       </div>

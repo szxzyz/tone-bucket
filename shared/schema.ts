@@ -41,7 +41,7 @@ export const users = pgTable("users", {
   // Legacy Early Access Gems. Keep separate from the live AXN token balance.
   balance: decimal("balance", { precision: 20, scale: 0 }).default("0"),
   gemsBalance: decimal("gems_balance", { precision: 30, scale: 0 }).default("0"),
-  axnBalance: decimal("axn_balance", { precision: 30, scale: 0 }).default("0"),
+  axnBalance: decimal("axn_balance", { precision: 40, scale: 10 }).default("0"),
   usdBalance: decimal("usd_balance", { precision: 30, scale: 10 }).default("0"), // USD with high precision to prevent overflow
   tonBalance: decimal("ton_balance", { precision: 30, scale: 10 }).default("0"),
   pdzBalance: decimal("pdz_balance", { precision: 30, scale: 10 }).default("0"),
@@ -154,6 +154,7 @@ export const users = pgTable("users", {
   miningBoostStep: integer("mining_boost_step").default(0),
   miningAccruedGold: decimal("mining_accrued_gold", { precision: 30, scale: 10 }).default("0"),
   miningLastAccrualAt: timestamp("mining_last_accrual_at"),
+  miningAccrualLevel: integer("mining_accrual_level").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -299,6 +300,22 @@ export const adminSettings = pgTable("admin_settings", {
   updatedBy: varchar("updated_by"), // Admin user ID who last updated
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Seeded miner tiers. Values can be changed without altering AXN accrual logic.
+export const minerConfigurations = pgTable("miner_configurations", {
+  level: integer("level").primaryKey(),
+  requiredHolding: decimal("required_holding", { precision: 30, scale: 10 }).notNull(),
+  miningPowerTHs: decimal("mining_power_ths", { precision: 12, scale: 4 }).notNull(),
+  dailyYieldAXN: decimal("daily_yield_axn", { precision: 30, scale: 10 }).notNull(),
+  displayValueUSD: decimal("display_value_usd", { precision: 30, scale: 10 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const minerSystemMigrations = pgTable("miner_system_migrations", {
+  migrationKey: varchar("migration_key").primaryKey(),
+  appliedAt: timestamp("applied_at").defaultNow().notNull(),
 });
 
 // Advertiser tasks table

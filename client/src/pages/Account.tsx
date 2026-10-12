@@ -37,6 +37,7 @@ export default function Account() {
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
   const balanceLoaded = user?.axnBalance !== undefined && user?.axnBalance !== null;
   const axnBalance = Math.max(0, Math.floor(Number(user?.axnBalance ?? 0)));
+  const displayedAxnBalance = Math.max(0, Number(user?.axnBalance ?? 0));
   // Match the Telegram bot's PAYOUTS inline button (TELEGRAM_PAYOUT_CHANNEL_LINK).
   // Keep the legacy proof URL as a fallback for deployments that still use it.
   const proofOfPaymentLink = String(appConfig?.payoutChannelUrl || appConfig?.proofOfPaymentLink || '').trim();
@@ -108,7 +109,7 @@ export default function Account() {
           <div className="flex-1 min-w-0">
             <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">AXN Balance</p>
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? axnBalance.toLocaleString() : '—'}</span>
+              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? displayedAxnBalance.toLocaleString('en-US', { maximumFractionDigits: 6 }) : '—'}</span>
               <span className="text-white/55 text-[11px] font-extrabold">AXN</span>
             </div>
           </div>

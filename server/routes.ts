@@ -37,6 +37,7 @@ import {
   taskStatuses,
   dailyTaskCompletions,
   taskCompletions,
+  minerConfigurations,
   insertPromotionSchema,
   type TaskStatus,
 } from "../shared/schema";
@@ -63,6 +64,7 @@ import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
 import { CONTEST_PRIZE_AMOUNTS } from "../shared/constants";
+import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress, normalizeAxnAmount, type MinerTier } from "../shared/minerLogic";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -131,9 +133,6 @@ export async function settleExpiredAdContest(): Promise<void> {
   }
 }
 
-const MINING_DURATION_SECONDS = 8 * 60 * 60;
-const MINING_BASE_RATE_PER_HOUR = 23.9574;
-const MINING_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25] as const;
 
 // Store WebSocket connections for real-time updates
 // Map: sessionId -> { socket: WebSocket, userId: string }
@@ -9700,129 +9699,203 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Continuous mining. Mining starts automatically and never stops; users can
-  // claim accrued AXN at any time while the accrual timestamp continues.
+  const mapMinerTier = (row: any): MinerTier => ({
+    level: Number(row.level),
+    requiredHolding: Number(row.requiredHolding),
+    miningPowerTHs: Number(row.miningPowerTHs),
+    dailyYieldAXN: Number(row.dailyYieldAXN),
+    displayValueUSD: Number(row.displayValueUSD),
+  });
+
+  app.get('/api/miners', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      if (!userId) return res.status(401).json({ message: 'Authentication required' });
+      const [user] = await db.select({ axnBalance: users.axnBalance }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      const rows = await db.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+      const tiers = rows.map(mapMinerTier);
+      if (!tiers.length) return res.status(503).json({ message: 'Miner configuration is not installed' });
+      const holding = getEligibleHolding(user.axnBalance);
+      const current = getMinerLevel(holding, tiers);
+      const progress = getMinerProgress(holding, current, tiers);
+      return res.json({
+        eligibleHolding: holding,
+        currentLevel: current.level,
+        nextLevel: progress.next?.level ?? null,
+        remainingAXN: progress.remaining,
+        progressPercent: progress.progressPercent,
+        miners: rows,
+      });
+    } catch (error) {
+      console.error('Miner catalog error:', error);
+      return res.status(500).json({ message: 'Could not load miner levels' });
+    }
+  });
+
+  // Continuous miner accrual is server-owned and persisted on every state read.
+  // A row lock serializes requests with balance changes and claim operations.
   app.get('/api/farming/state', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      let result = await db.select({
-        miningStartedAt: users.miningStartedAt,
-        miningAccruedGold: users.miningAccruedGold,
-        miningLastAccrualAt: users.miningLastAccrualAt,
-      }).from(users).where(eq(users.id, userId)).limit(1);
-      let user = result[0];
-      if (!user) return res.status(404).json({ message: 'User not found' });
-
-      if (!user.miningStartedAt) {
-        const startedAt = new Date();
-        await db.update(users).set({
-          miningStartedAt: startedAt,
-          miningBoostMultiplier: '1',
-          miningBoostStep: 0,
-          miningAccruedGold: '0',
-          miningLastAccrualAt: startedAt,
-          updatedAt: startedAt,
-        }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
-        result = await db.select({
+      const state = await db.transaction(async (tx) => {
+        const [user] = await tx.select({
+          axnBalance: users.axnBalance,
           miningStartedAt: users.miningStartedAt,
+          miningAccrualLevel: users.miningAccrualLevel,
           miningAccruedGold: users.miningAccruedGold,
           miningLastAccrualAt: users.miningLastAccrualAt,
-        }).from(users).where(eq(users.id, userId)).limit(1);
-        user = result[0];
-      }
-
-      const now = Date.now();
-      const startedAt = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : now;
-      const sessionEnd = startedAt + MINING_DURATION_SECONDS * 1000;
-      const accrualNow = Math.min(now, sessionEnd);
-      const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const elapsedSeconds = Math.max(0, accrualNow - Math.min(lastAccrualAt, sessionEnd)) / 1000;
-      const minedGold = Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR);
-      const isComplete = now >= sessionEnd;
-      return res.json({
-        isActive: !isComplete,
-        isComplete,
-        startedAt: new Date(startedAt).toISOString(),
-        remainingSeconds: Math.max(0, Math.ceil((sessionEnd - now) / 1000)),
-        minedGold: Number(minedGold.toFixed(4)),
-        minedAxn: Number(minedGold.toFixed(4)),
-        baseRatePerHour: MINING_BASE_RATE_PER_HOUR,
-        effectiveRate: isComplete ? 0 : MINING_BASE_RATE_PER_HOUR,
-        multiplier: 1,
-        durationSeconds: MINING_DURATION_SECONDS,
-        continuous: false,
+        }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+        if (!user) return { httpStatus: 404, message: 'User not found' };
+        const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+        const tiers = rows.map(mapMinerTier);
+        if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
+        const holding = getEligibleHolding(user.axnBalance);
+        const current = getMinerLevel(holding, tiers);
+        const startedAtDate = user.miningStartedAt ? new Date(user.miningStartedAt) : new Date();
+        if (!user.miningStartedAt) {
+          await tx.update(users).set({
+            miningStartedAt: startedAtDate,
+            miningBoostMultiplier: '1',
+            miningBoostStep: 0,
+            miningAccruedGold: normalizeAxnAmount(Number(user.miningAccruedGold || 0)),
+            miningLastAccrualAt: startedAtDate,
+            miningAccrualLevel: current.level,
+            updatedAt: startedAtDate,
+          }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
+        }
+        const startedAt = startedAtDate.getTime();
+        const now = Date.now();
+        const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
+        const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
+        const minedAxn = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now, Number.POSITIVE_INFINITY);
+        const updatedAt = new Date(now);
+        await tx.update(users).set({
+          miningAccruedGold: normalizeAxnAmount(minedAxn),
+          miningLastAccrualAt: updatedAt,
+          miningAccrualLevel: current.level,
+          updatedAt,
+        }).where(eq(users.id, userId));
+        const progress = getMinerProgress(holding, current, tiers);
+        return {
+          isActive: true,
+          isComplete: false,
+          continuous: true,
+          startedAt: startedAtDate.toISOString(),
+          remainingSeconds: null,
+          minedGold: minedAxn,
+          minedAxn,
+          eligibleHolding: holding,
+          currentLevel: current.level,
+          miningPowerTHs: current.miningPowerTHs,
+          dailyYieldAXN: current.dailyYieldAXN,
+          ratePerHour: current.dailyYieldAXN / 24,
+          nextLevel: progress.next?.level ?? null,
+          remainingAXN: progress.remaining,
+        };
       });
+      if ('httpStatus' in state) return res.status(state.httpStatus).json({ message: state.message });
+      return res.json(state);
     } catch (error) {
-      console.error('Continuous mining state error:', error);
-      return res.status(500).json({ message: 'Could not load mining state' });
+      console.error('Continuous miner state error:', error);
+      return res.status(500).json({ message: 'Could not load miner state' });
     }
   });
 
-  // Kept as a compatibility endpoint for older clients. Mining is already active.
+  // Compatibility endpoint: continuous mining is initialized by state reads.
   app.post('/api/farming/start', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({ miningStartedAt: users.miningStartedAt }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      if (!user.miningStartedAt) {
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select({
+          axnBalance: users.axnBalance,
+          miningStartedAt: users.miningStartedAt,
+          miningAccruedGold: users.miningAccruedGold,
+        }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+        if (!user) return { httpStatus: 404, message: 'User not found' };
+        if (user.miningStartedAt) return { success: true, continuous: true };
+        const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+        const tiers = rows.map(mapMinerTier);
+        if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
         const startedAt = new Date();
-        await db.update(users).set({ miningStartedAt: startedAt, miningBoostMultiplier: '1', miningBoostStep: 0, miningAccruedGold: '0', miningLastAccrualAt: startedAt, updatedAt: startedAt }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
-      }
-      return res.json({ success: true, continuous: true });
+        const level = getMinerLevel(getEligibleHolding(user.axnBalance), tiers).level;
+        await tx.update(users).set({
+          miningStartedAt: startedAt,
+          miningBoostMultiplier: '1',
+          miningBoostStep: 0,
+          miningAccruedGold: normalizeAxnAmount(Number(user.miningAccruedGold || 0)),
+          miningLastAccrualAt: startedAt,
+          miningAccrualLevel: level,
+          updatedAt: startedAt,
+        }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
+        return { success: true, continuous: true, currentLevel: level };
+      });
+      if ('httpStatus' in result) return res.status(result.httpStatus).json({ message: result.message });
+      return res.json(result);
     } catch (error) {
-      console.error('Continuous mining start error:', error);
-      return res.status(500).json({ message: 'Could not initialize mining' });
+      console.error('Continuous miner start error:', error);
+      return res.status(500).json({ message: 'Could not initialize miner' });
     }
   });
 
+  // Claim accrued rewards at any time. SELECT FOR UPDATE + timestamp reset make
+  // simultaneous claims serial and prevent paying the same interval twice.
   app.post('/api/farming/claim', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      let result = await db.select({
-        miningStartedAt: users.miningStartedAt,
-        miningAccruedGold: users.miningAccruedGold,
-        miningLastAccrualAt: users.miningLastAccrualAt,
-      }).from(users).where(eq(users.id, userId)).limit(1);
-      let user = result[0];
-      if (!user) return res.status(404).json({ message: 'User not found' });
-
-      if (!user.miningStartedAt) {
-        const startedAt = new Date();
-        await db.update(users).set({ miningStartedAt: startedAt, miningBoostMultiplier: '1', miningBoostStep: 0, miningAccruedGold: '0', miningLastAccrualAt: startedAt, updatedAt: startedAt }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
-        result = await db.select({ miningStartedAt: users.miningStartedAt, miningAccruedGold: users.miningAccruedGold, miningLastAccrualAt: users.miningLastAccrualAt }).from(users).where(eq(users.id, userId)).limit(1);
-        user = result[0];
-      }
-
-      const now = new Date();
-      const startedAtMs = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : now.getTime();
-      const sessionEndMs = startedAtMs + MINING_DURATION_SECONDS * 1000;
-      const accrualNowMs = Math.min(now.getTime(), sessionEndMs);
-      const lastAccrualAtMs = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAtMs;
-      const elapsedSeconds = Math.max(0, accrualNowMs - Math.min(lastAccrualAtMs, sessionEndMs)) / 1000;
-      const reward = Number((Math.max(0, Number(user.miningAccruedGold || 0) + (elapsedSeconds / 3600) * MINING_BASE_RATE_PER_HOUR)).toFixed(4));
-      const claimed = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select({
+          axnBalance: users.axnBalance,
+          miningStartedAt: users.miningStartedAt,
+          miningAccrualLevel: users.miningAccrualLevel,
+          miningAccruedGold: users.miningAccruedGold,
+          miningLastAccrualAt: users.miningLastAccrualAt,
+        }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+        if (!user) return { httpStatus: 404, message: 'User not found' };
+        const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+        const tiers = rows.map(mapMinerTier);
+        if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
+        const holding = getEligibleHolding(user.axnBalance);
+        const current = getMinerLevel(holding, tiers);
+        const now = new Date();
+        const startedAtDate = user.miningStartedAt ? new Date(user.miningStartedAt) : now;
+        const startedAt = startedAtDate.getTime();
+        const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
+        const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
+        const reward = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now.getTime(), Number.POSITIVE_INFINITY);
+        const amount = normalizeAxnAmount(reward);
+        const claimedAt = new Date(Math.max(now.getTime(), lastAccrualAt + 1));
+        const startedUpdate = user.miningStartedAt ?? startedAtDate;
+        const levelAfterCredit = getMinerLevel(holding + reward, tiers).level;
         const updated = await tx.update(users).set({
-          axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${reward}`,
-          miningStartedAt: user.miningStartedAt,
+          axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${amount}::numeric`,
+          miningStartedAt: startedUpdate,
           miningBoostMultiplier: '1',
           miningBoostStep: 0,
           miningAccruedGold: '0',
-          miningLastAccrualAt: now,
+          miningLastAccrualAt: claimedAt,
+          miningAccrualLevel: levelAfterCredit,
           updatedAt: now,
-        }).where(and(eq(users.id, userId), eq(users.miningStartedAt, user.miningStartedAt!))).returning({ id: users.id });
-        if (!updated.length) return false;
+        }).where(and(eq(users.id, userId), user.miningStartedAt ? eq(users.miningStartedAt, user.miningStartedAt) : sql`${users.miningStartedAt} IS NULL`)).returning({ id: users.id });
+        if (!updated.length) return { httpStatus: 409, message: 'Mining claim changed concurrently; refresh and try again' };
         if (reward > 0) {
-          await tx.insert(earnings).values({ userId, amount: String(reward), source: 'farming', description: 'Continuous mining claim', currency: 'GOLD' });
+          await tx.insert(earnings).values({
+            userId,
+            amount,
+            source: 'farming',
+            description: `Miner Level ${accrualTier.level} mining claim`,
+            currency: 'AXN',
+          });
         }
-        return true;
+        return { success: true, amount: reward, continuous: true, currentLevel: levelAfterCredit };
       });
-      if (!claimed) return res.status(409).json({ message: 'Mining claim changed. Refresh and try again.' });
-      return res.json({ success: true, amount: reward, continuous: false, isComplete: now.getTime() >= sessionEndMs });
+      if ('httpStatus' in result) return res.status(result.httpStatus).json({ message: result.message });
+      return res.json(result);
     } catch (error) {
-      console.error('Continuous mining claim error:', error);
+      console.error('Continuous miner claim error:', error);
       return res.status(500).json({ message: 'Could not claim mining reward' });
     }
   });
