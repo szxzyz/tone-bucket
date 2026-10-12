@@ -6,9 +6,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { showNotification } from '@/components/AppNotification';
 
-type Props = { open: boolean; onClose: () => void; userBalance: number };
+type Props = { open: boolean; onClose: () => void; axnBalance: number };
 
-export default function GameWithdrawPopup({ open, onClose, userBalance }: Props) {
+export default function GameWithdrawPopup({ open, onClose, axnBalance }: Props) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const connectedAddress = useTonAddress();
@@ -41,7 +41,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
 
   const withdrawal = useMutation({
     mutationFn: async () => {
-      // Persist a newly connected wallet before submitting the AXN Bux AXN payout.
+      // Persist the selected TON wallet before submitting an AXN-denominated withdrawal.
       if (connectedAddress && connectedAddress !== savedAddress) {
         const response = await apiRequest('PATCH', '/api/wallet/payout', {
           currency: 'TON',
@@ -50,7 +50,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Could not save TON wallet');
       }
-      return (await apiRequest('POST', '/api/payouts', { goldAmount: Number(amount) })).json();
+      return (await apiRequest('POST', '/api/payouts', { axnAmount: Number(amount) })).json();
     },
     onSuccess: (data) => {
       if (!data.success) throw new Error(data.message);
@@ -67,8 +67,8 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
   const netUsd = (value / 100000) * (1 - feePercent / 100);
   // The server obtains the authoritative TON market quote during submission.
   // A failed UI-only quote request must not leave this button permanently disabled.
-  const canSubmit = !secondaryAccountBlocked && eligibility?.canWithdraw === true && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= userBalance && !withdrawal.isPending;
-  const handleMax = () => setAmount(String(Math.floor(userBalance)));
+  const canSubmit = !secondaryAccountBlocked && eligibility?.canWithdraw === true && Boolean(address) && Number.isInteger(value) && value >= minimum && value <= axnBalance && !withdrawal.isPending;
+  const handleMax = () => setAmount(String(Math.floor(axnBalance)));
   const openWallet = async () => {
     try {
       if (connectedAddress) await tonConnectUI.disconnect();
@@ -106,7 +106,7 @@ export default function GameWithdrawPopup({ open, onClose, userBalance }: Props)
                 <span className="text-white text-xs font-semibold">Available Balance</span>
                 <span className="text-white text-sm font-black tabular-nums inline-flex items-center gap-1.5">
                   <img src="/assets/axionet-mining.webp" alt="AXN" className="w-5 h-5 object-contain" />
-                  {Math.floor(userBalance).toLocaleString()} AXN
+                  {Math.floor(axnBalance).toLocaleString()} AXN
                 </span>
               </div>
               <div className="space-y-1.5">

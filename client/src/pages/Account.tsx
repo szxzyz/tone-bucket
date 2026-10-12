@@ -13,6 +13,7 @@ import { useLocation } from 'wouter';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
 import PromoCodeInput from '@/components/PromoCodeInput';
 import { useLanguage } from '@/hooks/useLanguage';
+import { toAxnBalance } from '@shared/axnBalance';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
@@ -33,9 +34,8 @@ export default function Account() {
   const username = user?.telegramUsername || telegramUser?.username || null;
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
   const balanceLoaded = user?.balance !== undefined && user?.balance !== null;
-  const rawBalance = balanceLoaded ? Number(user.balance) : 0;
-  const gemBalance = rawBalance < 1 ? Math.round(rawBalance * 10_000_000) : Math.floor(rawBalance);
-  const usdBalance = gemBalance / 100_000;
+  const axnBalance = toAxnBalance(user?.balance);
+  const usdBalance = axnBalance / 100_000;
   // Match the Telegram bot's PAYOUTS inline button (TELEGRAM_PAYOUT_CHANNEL_LINK).
   // Keep the legacy proof URL as a fallback for deployments that still use it.
   const proofOfPaymentLink = String(appConfig?.payoutChannelUrl || appConfig?.proofOfPaymentLink || '').trim();
@@ -107,7 +107,7 @@ export default function Account() {
           <div className="flex-1 min-w-0">
             <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">{t('balance')}</p>
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? gemBalance.toLocaleString() : '—'}</span>
+              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? axnBalance.toLocaleString() : '—'}</span>
               <span className="text-white/55 text-[11px] font-extrabold">AXN</span>
             </div>
             <p className="text-white/40 text-[10px] font-semibold tabular-nums">~${balanceLoaded ? usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—'} USD</p>
@@ -129,7 +129,7 @@ export default function Account() {
         </section>
       </main>
 
-      <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} userBalance={gemBalance} />
+      <GameWithdrawPopup open={withdrawOpen} onClose={() => setWithdrawOpen(false)} axnBalance={axnBalance} />
 
       {menuView && <MenuPopup key={menuView} onClose={() => setMenuView(null)} initialView={menuView} />}
     </Layout>

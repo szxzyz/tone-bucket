@@ -62,6 +62,7 @@ import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
 import { CONTEST_PRIZE_AMOUNTS } from "../shared/constants";
+import { axnAmountToStoredBalance, toAxnBalance } from "../shared/axnBalance";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -7235,10 +7236,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
-      const requestedGold = req.body?.goldAmount === undefined || req.body?.goldAmount === '' ? NaN : Number(req.body.goldAmount);
-      const gold = Math.trunc(requestedGold);
-      if (!Number.isFinite(requestedGold) || !Number.isInteger(requestedGold) || gold <= 0) {
-        return res.status(400).json({ success: false, message: 'Enter a whole GEM amount to withdraw' });
+      const requestedAxn = req.body?.axnAmount ?? req.body?.goldAmount;
+      const parsedAxn = requestedAxn === undefined || requestedAxn === '' ? NaN : Number(requestedAxn);
+      const axnAmount = Math.trunc(parsedAxn);
+      if (!Number.isFinite(parsedAxn) || !Number.isInteger(parsedAxn) || axnAmount <= 0) {
+        return res.status(400).json({ success: false, message: 'Enter a whole AXN amount to withdraw' });
       }
 
       const settingsRows = await db.select().from(adminSettings);
@@ -7252,7 +7254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const enabled = (key: string) => setting(key, key, 'true') === 'true';
       const maxWithdrawalsPerDay = Math.max(1, safeInt('max_withdrawals_per_day', 'maxWithdrawalsPerDay', 1));
-      const minimumCashoutGold = Math.max(1, safeInt('minimum_cashout_gold', 'minimumCashoutGold', 1000));
+      const minimumCashoutAxn = Math.max(1, safeInt('minimum_cashout_gold', 'minimumCashoutGold', 1000));
       const minimumAds = safeInt('minimum_ads_for_withdrawal', 'minimumAdsForWithdrawal', 100);
       const minimumTasks = safeInt('minimum_tasks_for_withdrawal', 'minimumTasksForWithdrawal', 10);
       const minimumInvites = safeInt('minimum_invites_for_withdrawal', 'minimumInvitesForWithdrawal', 3);
@@ -7270,7 +7272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const outcome = await db.transaction(async (tx) => {
         // Lock the user's row so concurrent submissions cannot pass the daily
-        // limit or spend the same GEM balance twice.
+        // limit or spend the same AXN balance twice.
         const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
         if (!user) throw new Error('User not found');
         if (user.banned) throw new Error('Account is banned and cannot withdraw');
@@ -7296,11 +7298,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )).limit(1);
         if (pending) throw new Error('A payout is already awaiting admin approval or processing');
 
-        const currentBalance = Math.floor(Number(user.balance || 0));
-        if (gold < minimumCashoutGold) {
-          throw new Error(`Minimum withdrawal is ${minimumCashoutGold.toLocaleString()} GEM`);
+        const currentAxnBalance = toAxnBalance(user.balance);
+        if (axnAmount < minimumCashoutAxn) {
+          throw new Error(`Minimum withdrawal is ${minimumCashoutAxn.toLocaleString()} AXN`);
         }
-        if (gold > currentBalance) throw new Error('Insufficient GEM balance');
+        if (axnAmount > currentAxnBalance) throw new Error('Insufficient AXN balance');
 
         // Ads reset after each submitted (non-rejected) withdrawal request.
         const [lastWithdrawal] = await tx.select({ createdAt: withdrawals.createdAt }).from(withdrawals)
@@ -7339,27 +7341,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        const usdValue = gold / 100_000;
+        const usdValue = axnAmount / 100_000;
         const fee = usdValue * (feePercent / 100);
         const netAmount = usdValue - fee;
         const tonAmount = netAmount / withdrawalTonPrice;
+        const balanceStorageDebit = axnAmountToStoredBalance(user.balance, axnAmount);
         const [debited] = await tx.update(users)
-          .set({ balance: sql`${users.balance} - ${gold}`, updatedAt: new Date() })
-          .where(and(eq(users.id, userId), sql`CAST(${users.balance} AS NUMERIC) >= ${gold}`))
+          .set({ balance: sql`${users.balance} - ${balanceStorageDebit}::numeric`, updatedAt: new Date() })
+          .where(and(eq(users.id, userId), sql`COALESCE(${users.balance}, 0)::numeric >= ${balanceStorageDebit}::numeric`))
           .returning({ id: users.id });
         if (!debited) throw new Error('Balance changed; please try again');
 
         const withdrawalDetails = {
           walletAddress: user.payoutWalletAddress,
-          goldAmount: gold,
-          axnAmount: gold,
+          currency: 'AXN',
+          goldAmount: axnAmount,
+          axnAmount,
+          balanceStorageDebit,
           usdValue,
           fee,
           feePercent,
           netAmount,
           tonAmount,
           marketRateUsd: withdrawalTonPrice,
-          totalDeducted: gold,
+          totalDeducted: axnAmount,
           manualTonWithdrawal: true,
         };
         const [withdrawal] = await tx.insert(withdrawals).values({
@@ -7368,7 +7373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           method: 'TON',
           status: 'pending',
           details: withdrawalDetails,
-          goldAmount: String(gold),
+          goldAmount: String(axnAmount),
           usdValue: netAmount.toFixed(10),
           payoutCurrency: 'TON',
           cryptoAmount: tonAmount.toFixed(18),
@@ -7387,7 +7392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           feePercent,
           tonAmount,
           tonPrice: withdrawalTonPrice,
-          gold,
+          axnAmount,
         };
       });
 
@@ -7402,7 +7407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usdAmount: outcome.netAmount,
         fee: outcome.fee,
         feePercent: outcome.feePercent,
-        axnAmount: outcome.gold,
+        axnAmount: outcome.axnAmount,
         tonAmount: outcome.tonAmount,
         tonPrice: outcome.tonPrice,
       });
@@ -7411,16 +7416,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         status: 'pending',
         withdrawalId: outcome.withdrawal.id,
-        goldAmount: outcome.gold,
+        axnAmount: outcome.axnAmount,
+        goldAmount: outcome.axnAmount,
         usdValue: outcome.netAmount,
         fee: outcome.fee,
         feePercent: outcome.feePercent,
         currency: 'TON',
       });
     } catch (error) {
-      console.error('GEM withdrawal request failed:', error);
+      console.error('AXN withdrawal request failed:', error);
       const message = error instanceof Error ? error.message : 'Could not create withdrawal request. Please try again.';
-      const isExpectedValidation = /^(User not found|Account is banned|Save your TON address first|Daily withdrawal limit reached|A payout is already|Minimum withdrawal is|Insufficient GEM balance|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?|Balance changed;|Enter a whole GEM amount)/.test(message);
+      const isExpectedValidation = /^(User not found|Account is banned|Save your TON address first|Daily withdrawal limit reached|A payout is already|Minimum withdrawal is|Insufficient AXN balance|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?|Balance changed;|Enter a whole AXN amount)/.test(message);
       const isPriceUnavailable = message.startsWith('Live TON price is temporarily unavailable');
       res.status(isExpectedValidation ? 400 : isPriceUnavailable ? 503 : 500).json({
         success: false,

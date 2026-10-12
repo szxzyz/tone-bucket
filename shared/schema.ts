@@ -38,7 +38,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   profileImageUrl: text("profile_image_url"),
   personalCode: text("personal_code"),
-  balance: decimal("balance", { precision: 20, scale: 0 }).default("0"), // Gems stored as BIGINT (integer with large precision)
+  balance: decimal("balance", { precision: 20, scale: 0 }).default("0"), // Canonical whole-unit AXN balance; legacy DB integrations may still call it Gems/gold.
   usdBalance: decimal("usd_balance", { precision: 30, scale: 10 }).default("0"), // USD with high precision to prevent overflow
   tonBalance: decimal("ton_balance", { precision: 30, scale: 10 }).default("0"),
   pdzBalance: decimal("pdz_balance", { precision: 30, scale: 10 }).default("0"),

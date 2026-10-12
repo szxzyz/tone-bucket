@@ -45,6 +45,7 @@ import { db } from './db';
 import { eq, desc, and, gte, lt, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { getResetPeriodKey, getPeriodStart } from "./resetPeriod";
+import { toAxnBalance } from "../shared/axnBalance";
 
 export const ADSGRAM_AD_EARNING_DESCRIPTION = 'AdsGram ad';
 
@@ -1839,14 +1840,14 @@ export class DatabaseStorage implements IStorage {
         ? parseFloat(withdrawalDetails.totalDeducted) 
         : withdrawalAmount;
       
-      // Determine if this is an SWAG-direct withdrawal (new flow) or legacy USD withdrawal
+      // Determine if this is an AXN-direct withdrawal (new flow) or legacy USD withdrawal
       const axnAmountRaw = withdrawalDetails?.axnAmount ? parseFloat(String(withdrawalDetails.axnAmount)) : null;
       const isAxnWithdrawal = axnAmountRaw !== null && Number.isFinite(axnAmountRaw) && axnAmountRaw > 0;
 
       let updatedWithdrawal: any;
 
       if (isAxnWithdrawal) {
-        // ── SWAG-direct withdrawal — fully atomic transaction ───────────────────
+        // ── AXN-direct withdrawal — fully atomic transaction ───────────────────
         // Lock the withdrawal row first to re-confirm it is still pending and
         // not yet deducted (guards against double-approval via concurrent
         // Telegram callbacks or admin clicks).
@@ -1861,7 +1862,7 @@ export class DatabaseStorage implements IStorage {
           if (lockedWithdrawal.status !== 'pending') throw new Error('Withdrawal is not pending');
 
           if (lockedWithdrawal.deducted) {
-            console.log(`⚠️ Gems Withdrawal ${withdrawalId} already flagged as deducted — approving without deducting again.`);
+            console.log(`⚠️ AXN withdrawal ${withdrawalId} already flagged as deducted — approving without deducting again.`);
           } else {
             // Lock the user row and read the live balance
             const [lockedUser] = await tx
@@ -1872,19 +1873,18 @@ export class DatabaseStorage implements IStorage {
 
             if (!lockedUser) throw new Error('User not found inside transaction');
 
-            const rawBal = parseFloat(lockedUser.balance || '0');
-            const currentGemsBalance = rawBal < 1 ? Math.round(rawBal * 10_000_000) : Math.round(rawBal);
+            const currentAxnBalance = toAxnBalance(lockedUser.balance);
 
-            if (currentGemsBalance < axnAmountRaw!) {
+            if (currentAxnBalance < axnAmountRaw!) {
               throw new Error(
-                `Cannot approve: user's GEM balance (${currentGemsBalance.toLocaleString()} GEM) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} GEM) and it isn't flagged as already-deducted.`
+                `Cannot approve: user's AXN balance (${currentAxnBalance.toLocaleString()} AXN) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} AXN) and it isn't flagged as already-deducted.`
               );
             }
           }
 
           // Audit records inside the same transaction
           const paymentSystemName = lockedWithdrawal.method;
-          const description = `Withdrawal approved: ${axnAmountRaw} Gems via ${paymentSystemName}`;
+          const description = `Withdrawal approved: ${axnAmountRaw} AXN via ${paymentSystemName}`;
 
           await tx.insert(earnings).values({
             userId: withdrawal.userId,
@@ -1911,7 +1911,7 @@ export class DatabaseStorage implements IStorage {
           type: 'debit',
           source: 'withdrawal',
           description: txResult.description,
-          metadata: { withdrawalId, currency: 'GEMS', method: txResult.paymentSystemName, axnAmount: axnAmountRaw, usdEquivalent: withdrawalAmount }
+          metadata: { withdrawalId, currency: 'AXN', method: txResult.paymentSystemName, axnAmount: axnAmountRaw, usdEquivalent: withdrawalAmount }
         });
 
       } else {
@@ -1992,10 +1992,11 @@ export class DatabaseStorage implements IStorage {
         return { success: false, message: 'User not found' };
       }
 
-      // New manual TON withdrawals deduct GEM at request time.
-      // Rejection must atomically restore that exact GEM amount and transition
+      // New manual TON withdrawals deduct AXN at request time.
+      // Rejection must atomically restore the exact stored balance amount and transition
       // the request, so repeated admin actions cannot refund twice.
       if (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal)) {
+        const balanceStorageDebit = String((withdrawal.details as any)?.balanceStorageDebit ?? withdrawal.goldAmount);
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
           const [claimed] = await tx.update(withdrawals).set({
             status: 'rejected',
@@ -2006,14 +2007,14 @@ export class DatabaseStorage implements IStorage {
           }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
           if (!claimed) return [];
           await tx.update(users).set({
-            balance: sql`${users.balance} + ${withdrawal.goldAmount}`,
+            balance: sql`${users.balance} + ${balanceStorageDebit}::numeric`,
             updatedAt: new Date(),
           }).where(eq(users.id, withdrawal.userId));
           return [claimed];
         });
         if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
-        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} GEM`);
-        return { success: true, message: 'Withdrawal rejected and GEM refunded', withdrawal: updatedWithdrawal };
+        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} AXN`);
+        return { success: true, message: 'Withdrawal rejected and AXN refunded', withdrawal: updatedWithdrawal };
       }
       
       const withdrawalAmount = parseFloat(withdrawal.amount);
