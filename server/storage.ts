@@ -45,7 +45,6 @@ import { db } from './db';
 import { eq, desc, and, gte, lt, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { getResetPeriodKey, getPeriodStart } from "./resetPeriod";
-import { toAxnBalance } from "../shared/axnBalance";
 
 export const ADSGRAM_AD_EARNING_DESCRIPTION = 'AdsGram ad';
 
@@ -498,7 +497,8 @@ export class DatabaseStorage implements IStorage {
         await db
           .update(users)
           .set({
-            balance: sql`COALESCE(${users.balance}, 0) + ${earning.amount}`,
+            // All new rewards are live AXN. Legacy users.balance remains Gems.
+            axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${earning.amount}`,
             withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${earning.amount}`,
             totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${earning.amount}`,
             totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${earning.amount}`,
@@ -1134,7 +1134,7 @@ export class DatabaseStorage implements IStorage {
           .set({
             pendingReferralBonus: '0',
             totalClaimedReferralBonus: sql`COALESCE(${users.totalClaimedReferralBonus}, 0) + ${amount}`,
-            balance: sql`COALESCE(${users.balance}, 0) + ${amount}`,
+            axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${amount}`,
             withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${amount}`,
             totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${amount}`,
             totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${amount}`,
@@ -1621,7 +1621,7 @@ export class DatabaseStorage implements IStorage {
         });
 
         await tx.update(users).set({
-          balance: sql`COALESCE(${users.balance}, 0) + ${commissionAmount}`,
+          axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${commissionAmount}`,
           withdrawBalance: sql`COALESCE(${users.withdrawBalance}, 0) + ${commissionAmount}`,
           totalEarned: sql`COALESCE(${users.totalEarned}, 0) + ${commissionAmount}`,
           totalEarnings: sql`COALESCE(${users.totalEarnings}, 0) + ${commissionAmount}`,
@@ -1840,14 +1840,16 @@ export class DatabaseStorage implements IStorage {
         ? parseFloat(withdrawalDetails.totalDeducted) 
         : withdrawalAmount;
       
-      // Determine if this is an AXN-direct withdrawal (new flow) or legacy USD withdrawal
+      // Distinguish direct AXN/GRAM requests from historical USD withdrawals.
+      const gramAmountRaw = withdrawalDetails?.gramAmount ? parseFloat(String(withdrawalDetails.gramAmount)) : null;
       const axnAmountRaw = withdrawalDetails?.axnAmount ? parseFloat(String(withdrawalDetails.axnAmount)) : null;
-      const isAxnWithdrawal = axnAmountRaw !== null && Number.isFinite(axnAmountRaw) && axnAmountRaw > 0;
+      const isGramWithdrawal = gramAmountRaw !== null && Number.isFinite(gramAmountRaw) && gramAmountRaw > 0;
+      const isAxnWithdrawal = !isGramWithdrawal && axnAmountRaw !== null && Number.isFinite(axnAmountRaw) && axnAmountRaw > 0;
 
       let updatedWithdrawal: any;
 
-      if (isAxnWithdrawal) {
-        // ── AXN-direct withdrawal — fully atomic transaction ───────────────────
+      if (isAxnWithdrawal || isGramWithdrawal) {
+        // ── Direct AXN/GRAM withdrawal — fully atomic transaction ───────────────────
         // Lock the withdrawal row first to re-confirm it is still pending and
         // not yet deducted (guards against double-approval via concurrent
         // Telegram callbacks or admin clicks).
@@ -1866,29 +1868,36 @@ export class DatabaseStorage implements IStorage {
           } else {
             // Lock the user row and read the live balance
             const [lockedUser] = await tx
-              .select({ balance: users.balance })
+              .select({ axnBalance: users.axnBalance })
               .from(users)
               .where(eq(users.id, withdrawal.userId))
               .for('update');
 
             if (!lockedUser) throw new Error('User not found inside transaction');
 
-            const currentAxnBalance = toAxnBalance(lockedUser.balance);
+            const currentAxnBalance = Math.max(0, Math.floor(Number(lockedUser.axnBalance || 0)));
 
-            if (currentAxnBalance < axnAmountRaw!) {
-              throw new Error(
-                `Cannot approve: user's AXN balance (${currentAxnBalance.toLocaleString()} AXN) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} AXN) and it isn't flagged as already-deducted.`
-              );
+            if (isGramWithdrawal) {
+              const [lockedGramUser] = await tx.select({ gramBalance: users.gramBalance }).from(users).where(eq(users.id, withdrawal.userId));
+              const currentGramBalance = Number(lockedGramUser?.gramBalance || 0);
+              throw new Error(`Cannot approve: GRAM was already deducted at request time; current GRAM balance is ${currentGramBalance}`);
             }
+          if (currentAxnBalance < axnAmountRaw!) {
+            throw new Error(
+              `Cannot approve: user's AXN balance (${currentAxnBalance.toLocaleString()} AXN) is less than this withdrawal's total (${axnAmountRaw!.toLocaleString()} AXN) and it isn't flagged as already-deducted.`
+            );
+          }
           }
 
           // Audit records inside the same transaction
           const paymentSystemName = lockedWithdrawal.method;
-          const description = `Withdrawal approved: ${axnAmountRaw} AXN via ${paymentSystemName}`;
+          const approvedAmount = isGramWithdrawal ? gramAmountRaw : axnAmountRaw;
+          const approvedCurrency = isGramWithdrawal ? 'GRAM' : 'AXN';
+          const description = `Withdrawal approved: ${approvedAmount} ${approvedCurrency} via ${paymentSystemName}`;
 
           await tx.insert(earnings).values({
             userId: withdrawal.userId,
-            amount: `-${axnAmountRaw}`,
+            amount: `-${approvedAmount}`,
             source: 'withdrawal',
             description,
           });
@@ -1907,13 +1916,31 @@ export class DatabaseStorage implements IStorage {
         // logTransaction can run outside the tx (it's append-only audit, not balance-critical)
         await this.logTransaction({
           userId: withdrawal.userId,
-          amount: `-${axnAmountRaw}`,
+          amount: `-${isGramWithdrawal ? gramAmountRaw : axnAmountRaw}`,
           type: 'debit',
           source: 'withdrawal',
           description: txResult.description,
-          metadata: { withdrawalId, currency: 'AXN', method: txResult.paymentSystemName, axnAmount: axnAmountRaw, usdEquivalent: withdrawalAmount }
+          metadata: { withdrawalId, currency: isGramWithdrawal ? 'GRAM' : 'AXN', method: txResult.paymentSystemName, axnAmount: isAxnWithdrawal ? axnAmountRaw : undefined }
         });
 
+      } else if (withdrawalDetails?.manualUsdWithdrawal) {
+        // ── New USD request: debit already happened at request time; lock the row
+        // and only transition pending → Approved. This makes concurrent admin
+        // approvals idempotent and prevents a second balance mutation.
+        const txResult = await db.transaction(async (tx) => {
+          const [locked] = await tx.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId)).for('update');
+          if (!locked || locked.status !== 'pending') throw new Error('Withdrawal is no longer pending');
+          const description = `Withdrawal approved: ${withdrawalAmount} USD via ${locked.method}`;
+          await tx.insert(earnings).values({ userId: locked.userId, amount: `-${withdrawalAmount}`, source: 'withdrawal', description });
+          const updateData: any = { status: 'Approved', deducted: true, updatedAt: new Date() };
+          if (transactionHash) updateData.transactionHash = transactionHash;
+          if (adminNotes) updateData.adminNotes = adminNotes;
+          const [updated] = await tx.update(withdrawals).set(updateData).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
+          if (!updated) throw new Error('Withdrawal is no longer pending');
+          return { updated, description };
+        });
+        updatedWithdrawal = txResult.updated;
+        await this.logTransaction({ userId: withdrawal.userId, amount: `-${withdrawalAmount}`, type: 'debit', source: 'withdrawal', description: txResult.description, metadata: { withdrawalId, currency: 'USD', method: withdrawal.method } });
       } else {
         // ── Legacy USD withdrawal: deduct from user.usdBalance ─────────────────
         const currency = 'USD';
@@ -1964,8 +1991,8 @@ export class DatabaseStorage implements IStorage {
         [updatedWithdrawal] = await db.update(withdrawals).set(updateData).where(eq(withdrawals.id, withdrawalId)).returning();
       }
 
-      const deductedCurrency = isAxnWithdrawal ? 'SWAG' : 'USD';
-      console.log(`✅ Manual TON withdrawal #${withdrawalId} approved — ${deductedCurrency} balance updated; admin must pay externally ✅`);
+      const deductedCurrency = isGramWithdrawal ? 'GRAM' : (isAxnWithdrawal ? 'AXN' : 'USD');
+      console.log(`✅ ${deductedCurrency} withdrawal #${withdrawalId} approved — balance handled; admin must pay externally ✅`);
 
       return { success: true, message: 'Withdrawal approved and processed', withdrawal: updatedWithdrawal };
     } catch (error) {
@@ -1992,11 +2019,10 @@ export class DatabaseStorage implements IStorage {
         return { success: false, message: 'User not found' };
       }
 
-      // New manual TON withdrawals deduct AXN at request time.
-      // Rejection must atomically restore the exact stored balance amount and transition
+      // Manual AXN requests deduct AXN at request time.
+      // Rejection must atomically restore the exact AXN amount and transition
       // the request, so repeated admin actions cannot refund twice.
-      if (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal)) {
-        const balanceStorageDebit = String((withdrawal.details as any)?.balanceStorageDebit ?? withdrawal.goldAmount);
+      if ((withdrawal.details as any)?.manualAxnWithdrawal || (withdrawal.details as any)?.manualGramWithdrawal || (withdrawal.details as any)?.manualUsdWithdrawal || (withdrawal.goldAmount && (withdrawal.payoutCurrency || (withdrawal.details as any)?.manualTonWithdrawal))) {
         const [updatedWithdrawal] = await db.transaction(async (tx) => {
           const [claimed] = await tx.update(withdrawals).set({
             status: 'rejected',
@@ -2006,15 +2032,33 @@ export class DatabaseStorage implements IStorage {
             updatedAt: new Date(),
           }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, 'pending'))).returning();
           if (!claimed) return [];
-          await tx.update(users).set({
-            balance: sql`${users.balance} + ${balanceStorageDebit}::numeric`,
-            updatedAt: new Date(),
-          }).where(eq(users.id, withdrawal.userId));
+          const details = withdrawal.details as any;
+          if (details?.manualAxnWithdrawal) {
+            await tx.update(users).set({
+              axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${details.axnAmount ?? withdrawal.goldAmount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          } else if (details?.manualUsdWithdrawal || withdrawal.payoutCurrency === 'USD') {
+            await tx.update(users).set({
+              usdBalance: sql`${users.usdBalance} + ${details?.usdAmount || details?.totalDeducted || withdrawal.amount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          } else if (details?.manualGramWithdrawal || withdrawal.payoutCurrency === 'GRAM') {
+            await tx.update(users).set({
+              gramBalance: sql`${users.gramBalance} + ${details?.gramAmount || withdrawal.cryptoAmount || withdrawal.amount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          } else {
+            await tx.update(users).set({
+              balance: sql`${users.balance} + ${withdrawal.goldAmount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, withdrawal.userId));
+          }
           return [claimed];
         });
         if (!updatedWithdrawal) return { success: false, message: 'Withdrawal is no longer pending' };
-        console.log(`💰 Rejected manual TON withdrawal ${withdrawalId}: restored ${withdrawal.goldAmount} AXN`);
-        return { success: true, message: 'Withdrawal rejected and AXN refunded', withdrawal: updatedWithdrawal };
+        console.log(`💰 Rejected withdrawal ${withdrawalId}: restored the debited balance`);
+        return { success: true, message: 'Withdrawal rejected and balance refunded', withdrawal: updatedWithdrawal };
       }
       
       const withdrawalAmount = parseFloat(withdrawal.amount);
@@ -2484,9 +2528,8 @@ export class DatabaseStorage implements IStorage {
 
       console.log(`📊 DAILY_TASK_COMPLETION_LOG: UserID=${userId}, TaskID=${promotionId}, AmountRewarded=${rewardAmount}, Date=${currentDate}, Status=SUCCESS, Title="${promotion.title}"`);
 
-      // Add reward to user's earnings balance
-      await this.addBalance(userId, rewardAmount);
-
+      // Add the reward through the canonical AXN earning pipeline.
+      // addEarning is the only balance credit so this task is not double-paid.
       // Add earning record
       await this.addEarning({
         userId,

@@ -1,6 +1,6 @@
 // Must be the first dependency so .env is available to db/auth modules.
 import './env';
-
+import dns from 'node:dns';
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import { registerRoutes, settleExpiredAdContest } from "./routes";
@@ -8,6 +8,10 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { ensureDatabaseSchema } from "./migrate";
 import { countryBlockingMiddleware } from "./countryBlocking";
+
+// Some VPS networks have a broken IPv6 route while IPv4 works. Prefer IPv4
+// lookups for outbound calls (notably Telegram Bot API) to avoid slow fallbacks.
+dns.setDefaultResultOrder('ipv4first');
 
 // ─── PROXY SETUP (for Telegram API access on restricted networks) ───────────
 const TELEGRAM_PROXY = process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || '';

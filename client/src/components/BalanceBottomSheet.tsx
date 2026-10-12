@@ -13,6 +13,7 @@ interface User {
   id?: string;
   telegramId?: string;
   balance?: string;
+  axnBalance?: string | number;
   usdBalance?: string;
   firstName?: string;
   referralCode?: string;
@@ -54,7 +55,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
         if (!old) return old;
         return {
           ...old,
-          ...(data.newAxnBalance !== undefined && { balance: String(Math.round(data.newAxnBalance)) }),
+          ...(data.newAxnBalance !== undefined && { axnBalance: String(Math.round(data.newAxnBalance)) }),
           ...(data.newPowBalance !== undefined && { balance: String(Math.round(data.newPowBalance)) }),
           ...(data.newUsdBalance !== undefined && { usdBalance: data.newUsdBalance }),
           ...(data.newTonBalance !== undefined && { tonBalance: data.newTonBalance }),
@@ -238,7 +239,7 @@ export default function BalanceBottomSheet({ open, onClose }: BalanceBottomSheet
                       }}>
                         {formatBalance(balanceGold)}
                       </span>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1, letterSpacing: '0.04em' }}><img src="/assets/axionet-mining.webp" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1, letterSpacing: '0.04em' }}><img src="/assets/axionet-icon.webp" style={{ width: 18, height: 18, display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} /></span>
                     </div>
                   )}
                 </div>

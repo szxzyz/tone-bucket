@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { showNotification } from '@/components/AppNotification';
 import Layout from '@/components/Layout';
 import MenuPopup from '@/components/GameMenuPopup';
-import { User, Receipt, Shield, FileCheck2 } from 'lucide-react';
+import { User, Receipt, Shield, FileCheck2, ShoppingCart, ArrowUpFromLine, Clock3, CheckCircle2 } from 'lucide-react';
 import { RiBarChartFill } from 'react-icons/ri';
 import { BsQuestionCircleFill } from 'react-icons/bs';
 import { MdOutlineSupportAgent } from 'react-icons/md';
@@ -13,7 +13,6 @@ import { useLocation } from 'wouter';
 import GameWithdrawPopup from '@/components/GameWithdrawPopup';
 import PromoCodeInput from '@/components/PromoCodeInput';
 import { useLanguage } from '@/hooks/useLanguage';
-import { toAxnBalance } from '@shared/axnBalance';
 
 type AccountMenuView = 'transactions' | 'stats' | 'faq' | 'legal';
 const ACCOUNT_CARD_BACKGROUND = 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)';
@@ -28,14 +27,17 @@ export default function Account() {
 
   const { data: user } = useQuery<any>({ queryKey: ['/api/auth/user'], retry: false });
   const { data: appConfig } = useQuery<any>({ queryKey: ['/api/config/app'], retry: false, staleTime: 300000 });
+  const queryClient = useQueryClient();
+  const { data: migration } = useQuery<any>({ queryKey: ['/api/gems-axn-migration'], queryFn: async () => { const r = await fetch('/api/gems-axn-migration'); if (!r.ok) throw new Error('Migration unavailable'); return r.json(); }, retry: false, staleTime: 15000 });
+  const migrateMutation = useMutation({ mutationFn: async () => { const r = await fetch('/api/gems-axn-migration/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' } }); const data = await r.json(); if (!r.ok) throw new Error(data.message || 'Migration failed'); return data; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/gems-axn-migration'] }); queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] }); showNotification('Gems successfully migrated to AXN', 'success'); }, onError: (e: any) => showNotification(e.message || 'Migration failed', 'error') });
   const telegramUser = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user : null;
   const profilePhoto = telegramUser?.photo_url || user?.profileImageUrl || null;
   const displayName = user?.firstName || telegramUser?.first_name || 'User';
   const username = user?.telegramUsername || telegramUser?.username || null;
   const telegramId = user?.telegramId || telegramUser?.id?.toString() || null;
-  const balanceLoaded = user?.balance !== undefined && user?.balance !== null;
-  const axnBalance = toAxnBalance(user?.balance);
-  const usdBalance = axnBalance / 100_000;
+  const balanceLoaded = user?.axnBalance !== undefined && user?.axnBalance !== null;
+  const axnBalance = Math.max(0, Math.floor(Number(user?.axnBalance ?? 0)));
+  const displayedAxnBalance = Math.max(0, Number(user?.axnBalance ?? 0));
   // Match the Telegram bot's PAYOUTS inline button (TELEGRAM_PAYOUT_CHANNEL_LINK).
   // Keep the legacy proof URL as a fallback for deployments that still use it.
   const proofOfPaymentLink = String(appConfig?.payoutChannelUrl || appConfig?.proofOfPaymentLink || '').trim();
@@ -80,7 +82,7 @@ export default function Account() {
       <main className="max-w-md mx-auto px-3 pt-3 bg-black pb-[88px]">
         <div className="px-1 mb-3">
           <h1 className="m-0 text-xl font-black text-white">{t('profile')}</h1>
-          <p className="m-0 mt-1 text-xs text-white/45">Manage your account and TON wallet payouts</p>
+          <p className="m-0 mt-1 text-xs text-white/45">Manage your account and AXN payouts</p>
         </div>
         <section className="rounded-2xl p-4 mb-3" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">{t('account_info')}</p>
@@ -103,18 +105,30 @@ export default function Account() {
         </section>
 
         <section className="rounded-2xl px-3 py-3 mb-3 flex items-center gap-3" aria-label="AXN balance" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
-          <img src="/assets/axionet-mining.webp" alt="AXN" className="w-9 h-9 object-contain shrink-0" />
+          <img src="/assets/axionet-icon.webp" alt="AXN" className="w-9 h-9 object-contain shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">{t('balance')}</p>
+            <p className="text-white/55 text-[11px] font-bold uppercase tracking-wider leading-4">AXN Balance</p>
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? axnBalance.toLocaleString() : '—'}</span>
+              <span className="text-white text-lg font-black tabular-nums truncate">{balanceLoaded ? displayedAxnBalance.toLocaleString('en-US', { maximumFractionDigits: 6 }) : '—'}</span>
               <span className="text-white/55 text-[11px] font-extrabold">AXN</span>
             </div>
-            <p className="text-white/40 text-[10px] font-semibold tabular-nums">~${balanceLoaded ? usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—'} USD</p>
           </div>
           <button type="button" onClick={() => setWithdrawOpen(true)} disabled={!balanceLoaded} className="h-9 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>{t('withdraw')}</button>
         </section>
 
+        {migration?.open && (
+          <section className="rounded-2xl p-4 mb-3 border border-purple-400/20" aria-label="Gems to AXN migration" style={{ background: 'linear-gradient(145deg, #211633 0%, #121317 100%)', boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
+            <div className="flex items-start justify-between gap-3"><div><p className="text-white text-[13px] font-black uppercase tracking-widest">Migrate Gems to AXN</p><p className="text-white/55 text-[11px] mt-1">39 Gems = 1 AXN • one-time migration</p></div><Clock3 className="w-5 h-5 text-purple-300 shrink-0" /></div>
+            <div className="grid grid-cols-2 gap-2 mt-3"><div className="rounded-xl bg-black/25 p-2"><p className="text-white/45 text-[10px]">Gems balance</p><p className="text-white font-black text-sm">{Number(migration.gemsBalance || 0).toLocaleString()}</p></div><div className="rounded-xl bg-black/25 p-2"><p className="text-white/45 text-[10px]">Estimated AXN</p><p className="text-purple-200 font-black text-sm">{Number(migration.estimatedAxn || 0).toLocaleString()}</p></div></div>
+            <div className="mt-3 space-y-1 text-[11px] text-white/60"><p className={migration.tasksCompleted >= migration.requiredTasks ? 'text-green-300' : ''}>{migration.tasksCompleted >= migration.requiredTasks ? '✓' : '•'} Tasks: {migration.tasksCompleted}/{migration.requiredTasks}</p><p className={migration.friendsInvited >= migration.requiredFriends ? 'text-green-300' : ''}>{migration.friendsInvited >= migration.requiredFriends ? '✓' : '•'} Friend: {migration.friendsInvited}/{migration.requiredFriends}</p><p className={migration.adsWatched >= migration.requiredAds ? 'text-green-300' : ''}>{migration.adsWatched >= migration.requiredAds ? '✓' : '•'} Ads: {migration.adsWatched}/{migration.requiredAds}</p></div>
+            {migration.claimed ? <p className="mt-3 text-green-300 text-xs font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Migration already completed</p> : <button type="button" disabled={!migration.eligible || migrateMutation.isPending} onClick={() => migrateMutation.mutate()} className="w-full mt-3 h-10 rounded-xl text-white text-xs font-black uppercase tracking-wide disabled:opacity-40 active:scale-95 transition-transform" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>{migrateMutation.isPending ? 'Migrating…' : migration.eligible ? 'Migrate Gems into AXN' : 'Complete requirements to migrate'}</button>}
+            <p className="text-white/35 text-[10px] text-center mt-2">Available until {new Date(migration.endsAt).toLocaleString()}</p>
+          </section>
+        )}
+        <section className="grid grid-cols-2 gap-2 mb-3" aria-label="AXN market actions">
+          <button type="button" onClick={() => setLocation('/axn-market?side=buy')} className="h-11 rounded-xl flex items-center justify-center gap-2 text-white text-xs font-black active:scale-95 transition-transform" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 5px 14px rgba(0,0,0,.22)' }}><ShoppingCart className="w-4 h-4 text-green-300" />Buy AXN</button>
+          <button type="button" onClick={() => setLocation('/axn-market?side=sell')} className="h-11 rounded-xl flex items-center justify-center gap-2 text-white text-xs font-black active:scale-95 transition-transform" style={{ background: 'linear-gradient(145deg, #1a1c20 0%, #121317 100%)', boxShadow: '0 5px 14px rgba(0,0,0,.22)' }}><ArrowUpFromLine className="w-4 h-4 text-red-300" />Sell AXN</button>
+        </section>
         <section className="rounded-2xl p-3 mb-3" aria-label="Promo code" style={{ background: ACCOUNT_CARD_BACKGROUND, boxShadow: '0 8px 22px rgba(0,0,0,0.25)' }}>
           <p className="text-white text-[13px] font-black uppercase tracking-widest mb-3">Promo Code</p>
           <PromoCodeInput />

@@ -17,6 +17,7 @@ import { LanguageProvider } from "@/hooks/useLanguage";
 // Eagerly import frequently-visited pages — no Suspense flash on navigation
 import Mission from "@/pages/Mission";
 import Mining from "@/pages/Mining";
+import Miners from "@/pages/Miners";
 import Leaderboard from "@/pages/Leaderboard";
 import Affiliates from "@/pages/Affiliates";
 import Account from "@/pages/Account";
@@ -76,12 +77,18 @@ function LoadingFallback() {
   );
 }
 
+function DisabledAxnMarketRoute() {
+  return null;
+}
+
 function Router() {
   return (
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Mining} />
         <Route path="/mining" component={Mining} />
+        <Route path="/miners" component={Miners} />
+        <Route path="/axn-market" component={DisabledAxnMarketRoute} />
         <Route path="/mission" component={Mission} />
         <Route path="/game" component={Mission} />
         <Route path="/admin" component={Admin} />

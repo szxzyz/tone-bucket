@@ -7,6 +7,7 @@ import { useAdSession } from "@/hooks/useAdSession";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAdFlow } from "@/hooks/useAdFlow";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
+import { showAdsgramRewardAd } from "@/lib/adsgram";
 
 interface AdWatchingSectionProps {
   user: any;
@@ -66,7 +67,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       queryClient.setQueryData(["/api/auth/user"], (old: any) => {
         if (!old) return old;
         const updates: any = {
-          balance: data?.newBalance !== undefined ? String(data.newBalance) : old.balance,
+          axnBalance: data?.newAxnBalance !== undefined ? String(data.newAxnBalance) : old.axnBalance,
         };
         if      (adType === "adsgram") updates.adsWatchedToday        = data?.adType === "adsgram" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.adsWatchedToday || 0) + 1;
         else if (adType === "monetag") updates.monetagAdsWatchedToday = data?.adType === "monetag" && data?.adTypeWatchedToday !== undefined ? data.adTypeWatchedToday : (old.monetagAdsWatchedToday || 0) + 1;
@@ -91,40 +92,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       showNotification(message, "error");
     },
   });
-
-  const showAdsgramAd = (): Promise<{ success: boolean; unavailable: boolean }> =>
-    new Promise((resolve) => {
-      const blockId = appConfig?.adsgramRewardBlockId || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '';
-      if (!blockId) {
-        resolve({ success: false, unavailable: true });
-        return;
-      }
-
-      // AdsGram loads asynchronously in index.html. Wait briefly for the SDK
-      // instead of treating a slow script load as an empty ad inventory.
-      const startedAt = Date.now();
-      const tryShow = () => {
-        if (window.Adsgram) {
-          window.Adsgram.init({ blockId })
-            .show()
-            .then((result: any) => resolve({
-              // A resolved AdsGram rewarded promise means the ad was completed.
-              // Keep an explicit guard for SDK versions that resolve with an
-              // unfinished or error payload instead of rejecting.
-              success: result?.done !== false && result?.error !== true,
-              unavailable: false,
-            }))
-            .catch(() => resolve({ success: false, unavailable: false }));
-          return;
-        }
-        if (Date.now() - startedAt >= 10_000) {
-          resolve({ success: false, unavailable: true });
-          return;
-        }
-        window.setTimeout(tryShow, 200);
-      };
-      tryShow();
-    });
 
   const visibleCards = appSettings === undefined || appConfig === undefined
     ? []
@@ -188,7 +155,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       let result: { success: boolean; unavailable: boolean };
 
       if (card.adType === "adsgram") {
-        result = await showAdsgramAd();
+        result = await showAdsgramRewardAd(appConfig?.adsgramRewardBlockId || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '');
       } else if (card.adType === "monetag") {
         const r = await showMonetagAd(sessionId, "ads_watch");
         result  = { success: r.success, unavailable: r.unavailable };
@@ -344,7 +311,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
+                        <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
                         <span style={{ fontSize: 15, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>{reward}</span>
                       </span>
                       <span aria-label={`${watched} of ${limit} ads watched`} style={{ padding: "3px 7px", borderRadius: 8, background: "rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: limitReached ? "rgba(239,68,68,0.9)" : "rgba(255,255,255,0.55)" }}>

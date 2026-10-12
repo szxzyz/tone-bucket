@@ -37,12 +37,14 @@ import {
   taskStatuses,
   dailyTaskCompletions,
   taskCompletions,
+  minerConfigurations,
   insertPromotionSchema,
   type TaskStatus,
 } from "../shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and, gte, inArray, lt } from "drizzle-orm";
 import crypto from "crypto";
+import { getLiveTonPriceUSD } from "./tonPriceService";
 import { sendTelegramMessage, sendUserTelegramNotification, sendWelcomeMessage, handleTelegramMessage, setupTelegramWebhook, verifyChannelMembership, checkBotCanPostToChannel, sendSharePhotoToChat, withdrawalAdminMessages, sendWithdrawalRequestToAdmins } from "./telegram";
 import { authenticateTelegram, requireAuth } from "./auth";
 import { validateDeviceAndDetectDuplicate } from "./deviceTracking";
@@ -62,7 +64,7 @@ import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
 import { CONTEST_PRIZE_AMOUNTS } from "../shared/constants";
-import { axnAmountToStoredBalance, toAxnBalance } from "../shared/axnBalance";
+import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress, normalizeAxnAmount, type MinerTier } from "../shared/minerLogic";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -131,9 +133,6 @@ export async function settleExpiredAdContest(): Promise<void> {
   }
 }
 
-const MINING_DURATION_SECONDS = 60 * 60;
-const MINING_BASE_RATE_PER_HOUR = 23.9574;
-const MINING_BOOSTS = [1, 2, 4, 8, 10, 15, 20, 25] as const;
 
 // Store WebSocket connections for real-time updates
 // Map: sessionId -> { socket: WebSocket, userId: string }
@@ -569,11 +568,12 @@ const ALL_PERMISSIONS = [
   'manage_promos',
   'manage_admins',
   'manage_bans',
+  'manage_market',
 ];
 
 const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   super_admin: ALL_PERMISSIONS,
-  finance: ['view_stats', 'manage_withdrawals'],
+  finance: ['view_stats', 'manage_withdrawals', 'manage_market'],
   moderator: ['view_stats', 'manage_users', 'manage_bans'],
   content: ['view_stats', 'manage_tasks'],
 };
@@ -641,6 +641,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create HTTP server first
   const httpServer = createServer(app);
+
+  const MARKET_DEFAULT_GRAM_USD = '0.000001';
+  async function readAxnMarketSettings(conn: any = db) {
+    const result = await conn.execute(sql`SELECT setting_key, setting_value, text_value FROM axn_market_settings`);
+    const map = new Map<string, any>((result.rows as any[]).map((row) => [String(row.setting_key), row]));
+    const number = (key: string, fallback: string) => String(map.get(key)?.setting_value ?? fallback);
+    const text = (key: string, fallback: string) => String(map.get(key)?.text_value ?? fallback);
+    return {
+      buyFeeBps: number('buy_fee_bps', '30'), sellFeeBps: number('sell_fee_bps', '30'),
+      minSwapTon: number('min_swap_ton', '0.1'), maxSwapTon: number('max_swap_ton', '10'),
+      minSwapAxn: number('min_swap_axn', '1000'), maxSwapAxn: number('max_swap_axn', '1000000'),
+      maxPriceImpactBps: number('max_price_impact_bps', '500'), slippageBps: number('slippage_bps', '100'),
+      gramUsdPrice: number('gram_usd_price', MARKET_DEFAULT_GRAM_USD),
+      marketPaused: text('market_paused', 'false') === 'true',
+      publicTradingEnabled: text('public_trading_enabled', 'false') === 'true',
+    };
+  }
+
+  const CANDLE_INTERVAL_MS = 15 * 60 * 1000;
+  function aggregateMarketCandles(rows: any[]) {
+    const buckets = new Map<number, any>();
+    for (const row of rows) {
+      const ts = new Date(row.recorded_at).getTime();
+      const price = Number(row.price_usd);
+      if (!Number.isFinite(ts) || !Number.isFinite(price) || price <= 0) continue;
+      const bucket = Math.floor(ts / CANDLE_INTERVAL_MS) * CANDLE_INTERVAL_MS;
+      const current = buckets.get(bucket);
+      if (!current) buckets.set(bucket, { time: new Date(bucket).toISOString(), open: price, high: price, low: price, close: price, volume: Number(row.volume_axn || 0) });
+      else { current.high = Math.max(current.high, price); current.low = Math.min(current.low, price); current.close = price; current.volume += Number(row.volume_axn || 0); }
+    }
+    return Array.from(buckets.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }
+  app.get('/api/axn-market', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const timeframe = '15M';
+      const historyHours = Math.min(24 * 30, Math.max(1, Number(req.query.hours || 24 * 30)));
+      const settings = await readAxnMarketSettings();
+      const poolResult = await db.execute(sql`SELECT ton_reserve, axn_reserve, gram_reserve, updated_at FROM axn_market_pool WHERE id = 1`);
+      const pool = poolResult.rows[0] as any;
+      if (!pool) return res.status(503).json({ message: 'Market pool is not initialized' });
+      const tonUsd = await getLiveTonPriceUSD().catch(() => null);
+      const beforeDate = req.query.before ? new Date(String(req.query.before)) : null;
+      const priceResult = beforeDate && Number.isFinite(beforeDate.getTime())
+        ? await db.execute(sql`SELECT recorded_at, price_usd, volume_axn FROM axn_market_price_snapshots WHERE recorded_at >= ${beforeDate} - ${historyHours} * INTERVAL '1 hour' AND recorded_at < ${beforeDate} ORDER BY recorded_at DESC LIMIT 5000`)
+        : await db.execute(sql`SELECT recorded_at, price_usd, volume_axn FROM axn_market_price_snapshots WHERE recorded_at >= NOW() - ${historyHours} * INTERVAL '1 hour' ORDER BY recorded_at ASC LIMIT 5000`);
+      const swaps = await db.execute(sql`SELECT side, input_asset, output_asset, input_amount, net_output, fee_amount, price_impact, created_at FROM axn_market_swaps WHERE status = 'completed' ORDER BY created_at DESC LIMIT 20`);
+      const priceTon = `(CAST(${pool.ton_reserve} AS NUMERIC) / NULLIF(CAST(${pool.axn_reserve} AS NUMERIC), 0))`;
+      const priceGram = `(CAST(${pool.gram_reserve} AS NUMERIC) / NULLIF(CAST(${pool.axn_reserve} AS NUMERIC), 0))`;
+      const calculated = await db.execute(sql`SELECT ${pool.ton_reserve}::numeric / NULLIF(${pool.axn_reserve}::numeric, 0) AS price_ton, ${pool.gram_reserve}::numeric / NULLIF(${pool.axn_reserve}::numeric, 0) AS price_gram`);
+      const current = calculated.rows[0] as any;
+      const currentTon = String(current?.price_ton || '0');
+      const currentGram = String(current?.price_gram || '0');
+      const currentUsd = tonUsd ? (Number(currentTon) * tonUsd.price).toFixed(12) : null;
+      const candles = aggregateMarketCandles(priceResult.rows);
+      const last = candles[candles.length - 1]; const previous = candles[candles.length - 2];
+      res.json({ virtualMarket: true, marketPaused: settings.marketPaused, adminOnly: !settings.publicTradingEnabled, timeframe, candleIntervalMinutes: 15,
+        price: { usd: currentUsd, ton: currentTon, gram: currentGram, tonUsd: tonUsd?.price?.toString() || null, tonUsdSource: tonUsd?.source || null },
+        pool: { ton: String(pool.ton_reserve), axn: String(pool.axn_reserve), gram: String(pool.gram_reserve) },
+        settings: { buyFeeBps: settings.buyFeeBps, sellFeeBps: settings.sellFeeBps, slippageBps: settings.slippageBps, maxPriceImpactBps: settings.maxPriceImpactBps },
+        candles, changePercent: last && previous ? ((last.close - previous.close) / previous.close * 100).toFixed(4) : '0',
+        recentSwaps: swaps.rows, swapCount: swaps.rows.length,
+        disclaimer: 'Internal market accounting only; no blockchain transfer is performed.' });
+    } catch (error) { console.error('AXN market read error:', error); res.status(500).json({ message: 'Market data unavailable' }); }
+  });
 
   // Set up WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
@@ -839,7 +903,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = await Promise.allSettled([
         db.select({ count: sql<number>`count(*)` }).from(users),
         db.select({ total: sql<string>`COALESCE(SUM(${users.totalEarned}), '0')` }).from(users),
-        db.select({ total: sql<string>`COALESCE(SUM(${withdrawals.amount}), '0')` }).from(withdrawals).where(sql`${withdrawals.status} IN ('completed', 'success', 'paid', 'Approved')`),
+        db.select({ total: sql<string>`COALESCE(SUM(COALESCE(${withdrawals.details}->>'axnAmount', ${withdrawals.goldAmount}::text, ${withdrawals.amount}::text)::numeric), 0)::text` }).from(withdrawals).where(and(
+          sql`${withdrawals.status} IN ('completed', 'success', 'paid', 'Approved')`,
+          sql`(COALESCE(${withdrawals.payoutCurrency}, '') = 'AXN' OR ${withdrawals.details}->>'manualAxnWithdrawal' = 'true' OR ${withdrawals.details}->>'axnAmount' IS NOT NULL OR ${withdrawals.details}->>'manualTonWithdrawal' = 'true')`,
+          sql`COALESCE(${withdrawals.details}->>'manualGramWithdrawal', 'false') != 'true' AND COALESCE(${withdrawals.details}->>'manualUsdWithdrawal', 'false') != 'true' AND COALESCE(${withdrawals.payoutCurrency}, '') NOT IN ('GRAM', 'USD')`,
+        )),
         db.select({ count: sql<number>`count(distinct ${earnings.userId})` }).from(earnings).where(sql`${earnings.createdAt} >= ${adminPeriodStart}::timestamptz`),
         db.select({ count: sql<number>`count(*)` }).from(advertiserTasks),
         db.select({ count: sql<number>`count(*)` }).from(transactions).where(eq(transactions.source, 'task_creation')),
@@ -898,7 +966,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/telegram/join-status', authenticateTelegramOrSession, async (req: any, res) => {
     res.set('Cache-Control', 'no-store');
-    const required = process.env.REQUIRE_CHANNEL_JOIN !== 'false';
+    let required = process.env.REQUIRE_CHANNEL_JOIN !== 'false';
+    try {
+      const [storedSetting] = await db.select({ settingValue: adminSettings.settingValue })
+        .from(adminSettings)
+        .where(eq(adminSettings.settingKey, 'require_channel_join'))
+        .limit(1);
+      if (storedSetting) required = storedSetting.settingValue === 'true';
+    } catch (error) {
+      console.warn('Could not load admin channel-join setting; using REQUIRE_CHANNEL_JOIN env default:', error);
+    }
     const configuredResources = [
       { key: 'channel' as const, title: config.telegram.channelName || 'Official Channel', link: config.telegram.channelUrl, id: config.telegram.channelId },
       { key: 'group' as const, title: config.telegram.groupName || 'Community group', link: config.telegram.groupUrl, id: config.telegram.groupId },
@@ -916,6 +993,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return { ...resource, id };
     }).filter((resource) => Boolean(resource.id || resource.link?.trim()));
 
+    const telegramId = Number(
+      req.user?.telegramUser?.id ||
+      req.user?.user?.telegram_id ||
+      req.session?.user?.telegramUser?.id ||
+      req.session?.user?.user?.telegram_id,
+    );
+    if (required && Number.isFinite(telegramId) && (isAdmin(String(telegramId)) || await isAdminAsync(String(telegramId)))) {
+      return res.json({
+        required: false,
+        verified: true,
+        resources: configuredResources.map(({ key, title, link }) => ({ key, title, link, joined: true })),
+      });
+    }
+
     // A missing optional resource must not be reported as "not joined" forever.
     // Only resources with a Telegram chat ID can be checked by getChatMember.
     if (!required || configuredResources.length === 0) {
@@ -931,12 +1022,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // the database user, depending on whether the request used initData or a
       // previously-created session. Support both shapes so launch-time checks do
       // not depend on one authentication path.
-      const telegramId = Number(
-        req.user?.telegramUser?.id ||
-        req.user?.user?.telegram_id ||
-        req.session?.user?.telegramUser?.id ||
-        req.session?.user?.user?.telegram_id,
-      );
       const botToken = config.bot.token || process.env.TELEGRAM_BOT_TOKEN;
       if (!Number.isFinite(telegramId) || !botToken) {
         return res.json({
@@ -1447,6 +1532,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─── Legacy Gems → AXN migration (one-time, server-enforced 24h window) ───
+  async function getGemsAxnMigrationConfig() {
+    const rows = await db.select().from(adminSettings);
+    const get = (key: string, fallback: string) => rows.find((r) => r.settingKey === key)?.settingValue || fallback;
+    const startedAt = new Date(get('gems_axn_migration_started_at', new Date().toISOString()));
+    const durationHours = Math.max(1, Number(get('gems_axn_migration_duration_hours', '24')) || 24);
+    const rate = Math.max(1, Math.floor(Number(get('gems_axn_migration_rate', '39')) || 39));
+    const endsAt = new Date(startedAt.getTime() + durationHours * 60 * 60 * 1000);
+    return { rate, startedAt, endsAt, open: Date.now() < endsAt.getTime() };
+  }
+
+  app.get('/api/gems-axn-migration', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const userId = req.user.user.id;
+      const config = await getGemsAxnMigrationConfig();
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      const claimedResult = await db.execute(sql`SELECT claimed_at FROM gems_axn_migrations WHERE user_id = ${userId} LIMIT 1`);
+      const claimed = claimedResult.rows[0] as any;
+      const [taskRow] = await db.select({ count: sql<number>`count(*)` }).from(taskClicks).where(eq(taskClicks.publisherId, userId));
+      const tasksCompleted = Number(taskRow?.count || 0);
+      const friendsInvited = await storage.getValidReferralCount(userId);
+      const adsWatched = Number(user.adsWatched || 0);
+      const gems = Number(user.gemsBalance !== null && user.gemsBalance !== undefined ? user.gemsBalance : user.balance || 0);
+      const axn = Number(user.axnBalance || 0);
+      const eligible = config.open && !claimed && tasksCompleted >= 10 && friendsInvited >= 1 && adsWatched >= 100 && gems >= config.rate;
+      return res.json({ open: config.open, startedAt: config.startedAt.toISOString(), endsAt: config.endsAt.toISOString(), rate: config.rate, gemsBalance: Math.max(0, Math.floor(gems)), axnBalance: Math.max(0, Math.floor(axn)), estimatedAxn: Math.floor(Math.max(0, gems) / config.rate), tasksCompleted, requiredTasks: 10, friendsInvited, requiredFriends: 1, adsWatched, requiredAds: 100, claimed: Boolean(claimed), claimedAt: claimed?.claimed_at || null, eligible });
+    } catch (error) { console.error('Gems/AXN migration status error:', error); res.status(500).json({ message: 'Migration status unavailable' }); }
+  });
+
+  app.post('/api/gems-axn-migration/claim', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const userId = req.user.user.id;
+      const config = await getGemsAxnMigrationConfig();
+      if (!config.open) return res.status(410).json({ message: 'The Gems to AXN migration window has ended' });
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
+        if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 });
+        const existing = await tx.execute(sql`SELECT id FROM gems_axn_migrations WHERE user_id = ${userId} LIMIT 1`);
+        if (existing.rows[0]) throw Object.assign(new Error('Gems migration already claimed'), { statusCode: 409 });
+        const [taskRow] = await tx.select({ count: sql<number>`count(*)` }).from(taskClicks).where(eq(taskClicks.publisherId, userId));
+        const tasksCompleted = Number(taskRow?.count || 0);
+        const friendsInvited = await storage.getValidReferralCount(userId);
+        const adsWatched = Number(user.adsWatched || 0);
+        if (tasksCompleted < 10 || friendsInvited < 1 || adsWatched < 100) throw Object.assign(new Error('Complete 10 tasks, invite 1 friend, and watch 100 ads first'), { statusCode: 400 });
+        const gemsBalance = Math.max(0, Math.floor(Number(user.gemsBalance !== null && user.gemsBalance !== undefined ? user.gemsBalance : user.balance || 0)));
+        const axnAmount = Math.floor(gemsBalance / config.rate);
+        const gemsAmount = axnAmount * config.rate;
+        if (axnAmount <= 0) throw Object.assign(new Error(`You need at least ${config.rate} Gems to migrate`), { statusCode: 400 });
+        await tx.update(users).set({ gemsBalance: sql`${users.gemsBalance} - ${gemsAmount}`, axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${axnAmount}`, updatedAt: new Date() }).where(eq(users.id, userId));
+        await tx.execute(sql`INSERT INTO gems_axn_migrations (user_id, gems_amount, axn_amount, conversion_rate, tasks_completed, friends_invited, ads_watched) VALUES (${userId}, ${gemsAmount}, ${axnAmount}, ${config.rate}, ${tasksCompleted}, ${friendsInvited}, ${adsWatched})`);
+        await tx.insert(transactions).values({ userId, amount: String(axnAmount), type: 'addition', source: 'gems_to_axn_migration', description: `Migrated ${gemsAmount} Gems to ${axnAmount} AXN`, metadata: { gemsAmount, axnAmount, conversionRate: config.rate, tasksCompleted, friendsInvited, adsWatched } });
+        return { gemsAmount, axnAmount, remainingGems: gemsBalance - gemsAmount };
+      });
+      res.json({ success: true, ...result, rate: config.rate, message: `Successfully migrated ${result.gemsAmount.toLocaleString()} Gems into ${result.axnAmount.toLocaleString()} AXN` });
+    } catch (error: any) { const status = error?.statusCode || 500; console.error('Gems/AXN migration claim error:', error); res.status(status).json({ message: status === 500 ? 'Migration failed. Please try again.' : error.message }); }
+  });
+
   // Balance refresh endpoint - used after conversion to sync frontend
   app.get('/api/user/balance/refresh', authenticateTelegram, async (req: any, res) => {
     try {
@@ -1604,8 +1747,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minimumWithdrawal,
         minimumWithdrawalUSD,
         minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
+        minimumCashoutGram: parseFloat(getSetting('minimum_cashout_gram', getSetting('minimum_cashout_gold', '1000'))),
+        minimumCashoutUsd: parseFloat(getSetting('minimum_cashout_usd', '1')),
+        maximumCashoutUsd: parseFloat(getSetting('maximum_cashout_usd', '1000000')),
         minimumWithdrawalTON,
         withdrawalFeeTON,
+        withdrawalFeeGRAM: parseFloat(getSetting('withdrawal_fee_gram', getSetting('withdrawal_fee_ton', '9'))),
         withdrawalFeeUSD,
         channelTaskCostUSD,
         botTaskCostUSD,
@@ -1716,11 +1863,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid session ID", errorType: 'invalid_session' });
       }
 
-      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code'];
+      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost', 'mining_claim'];
       const normalizedContext = allowedContexts.includes(context ?? '') ? (context as string) : 'ads_watch';
       const allowedAdTypes =
         normalizedContext === 'mission_ad' ? ['monetag', 'gigapub']
         : normalizedContext === 'promo_code' ? ['adsgram']
+        : normalizedContext === 'farming_boost' ? ['adsgram']
+        : normalizedContext === 'mining_claim' ? ['adsgram']
         : (normalizedContext === 'daily_checkin' || normalizedContext === 'mystery_box') ? ['adsgram']
         : ['adsgram', 'monetag', 'gigapub', 'uslads'];
       const normalizedAdType = allowedAdTypes.includes(adType ?? '') ? (adType as string) : null;
@@ -1728,7 +1877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
       }
       const adsgramUsesSdkCompletion = normalizedAdType === 'adsgram'
-        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(normalizedContext);
+        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost', 'mining_claim'].includes(normalizedContext);
       if (!hasTrustedRewardCallback(normalizedAdType) && !adsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
@@ -1872,7 +2021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, errorType: 'invalid_session' });
       }
       const allowedContexts = provider === 'adsgram'
-        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box']
+        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost', 'mining_claim']
         : ['ads_watch'];
       if (session.adType !== provider || !allowedContexts.includes(session.context)) {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
@@ -1974,7 +2123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [recentSession] = await db.select().from(adSessions)
         .where(and(
           eq(adSessions.userId, user.id),
-          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box', 'promo_code']),
+          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost', 'mining_claim']),
           eq(adSessions.adType, 'adsgram'),
           gte(adSessions.registeredAt, recentCutoff),
         ))
@@ -2563,7 +2712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         sendRealtimeUpdate(userId, {
           type: 'balance_update',
-          balance: updatedUser?.balance,
+          axnBalance: updatedUser?.axnBalance,
           usdBalance: updatedUser?.usdBalance,
           amount: adRewardGems.toString(),
           message: 'Ad reward earned!',
@@ -2580,7 +2729,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         rewardGems: adRewardGems,
         rewardPercent: normalizedAdType === 'adsgram' ? adsgramRewardPercent : 100,
-        newBalance: finalUpdatedUser.balance,
+        newBalance: finalUpdatedUser.axnBalance,
+        newAxnBalance: finalUpdatedUser.axnBalance,
         adsWatchedToday: finalUpdatedUser.adsWatchedToday,
         adType: normalizedAdType,
         adTypeWatchedToday: updatedTypeWatched,
@@ -2954,7 +3104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // to plausibly contain an ad view. AdsGram additionally requires one
   // background/minimize event; no minimum background duration is required.
   const consumeRewardAdSession = async (
-    tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box' | 'promo_code',
+    tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box' | 'promo_code' | 'mining_claim',
   ): Promise<boolean | 'pending'> => {
     const sessionId = body?.sessionId;
     if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 10) return false;
@@ -2974,7 +3124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     if (!session) return false;
     const adsgramUsesSdkCompletion = session.adType === 'adsgram'
-      && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(context);
+      && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'mining_claim'].includes(context);
     if (!hasTrustedRewardCallback(session.adType) && !adsgramUsesSdkCompletion) return false;
     // AdsGram SDK completion is checked against a persisted callback below.
     // Background lifecycle events are unreliable in embedded Telegram clients.
@@ -5356,9 +5506,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         walletChangeFee: parseInt(getSetting('wallet_change_fee', '100')), // Return as Gems, default 100
         minimumWithdrawalUSD: parseFloat(getSetting('minimum_withdrawal_usd', '1.00')), // NEW: Min USD withdrawal
         minimumCashoutGold: parseInt(getSetting('minimum_cashout_gold', '1000')),
+        minimumCashoutGram: parseFloat(getSetting('minimum_cashout_gram', getSetting('minimum_cashout_gold', '1000'))),
+        minimumCashoutUsd: parseFloat(getSetting('minimum_cashout_usd', '1')),
+        maximumCashoutUsd: parseFloat(getSetting('maximum_cashout_usd', '1000000')),
         minimumWithdrawalTON: parseFloat(getSetting('minimum_withdrawal_ton', '0.5')), // NEW: Min TON withdrawal
-        withdrawalFeeTON: parseFloat(getSetting('withdrawal_fee_ton', '9')), // TON GEM withdrawal fee %
-        withdrawalFeeUSD: parseFloat(getSetting('withdrawal_fee_usd', '3')), // NEW: USD withdrawal fee %
+        withdrawalFeeTON: parseFloat(getSetting('withdrawal_fee_ton', '9')), // legacy deposit/compatibility setting
+        withdrawalFeeGRAM: parseFloat(getSetting('withdrawal_fee_gram', getSetting('withdrawal_fee_ton', '9'))), // GRAM withdrawal fee %
+        withdrawalFeeUSD: parseFloat(getSetting('withdrawal_fee_usd', '0')), // USD accounting withdrawal fee %
         channelTaskCost: parseFloat(getSetting('channel_task_cost_usd', '0.003')), // NEW: Channel cost in USD (admin only)
         botTaskCost: parseFloat(getSetting('bot_task_cost_usd', '0.003')), // NEW: Bot cost in USD (admin only)
         channelTaskCostTON: parseFloat(getSetting('channel_task_cost_ton', '0.0003')), // TON cost for regular users
@@ -5417,6 +5571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adsgramAdLimit: parseInt(getSetting('adsgram_ad_limit', '40')),
         adsgramRewardPerAd: parseInt(getSetting('adsgram_reward_per_ad', '50')),
         adsgramEnabled: getSetting('adsgram_enabled', 'true') === 'true',
+        requireChannelJoin: getSetting('require_channel_join', process.env.REQUIRE_CHANNEL_JOIN === 'false' ? 'false' : 'true') === 'true',
         monetagAdLimit: parseInt(getSetting('monetag_ad_limit', '30')),
         monetagRewardPerAd: parseInt(getSetting('monetag_reward_per_ad', '30')),
         monetagEnabled: getSetting('monetag_enabled', 'true') === 'true',
@@ -7217,7 +7372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currency = String(req.body?.currency || '').toUpperCase();
       const address = String(req.body?.address || '').trim();
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
-      if (currency !== 'TON') return res.status(400).json({ success: false, message: 'Only TON withdrawals are supported' });
+      if (currency !== 'AXN') return res.status(400).json({ success: false, message: 'Only AXN payout addresses are supported' });
       if (address.length < 8 || address.length > 180) return res.status(400).json({ success: false, message: 'Enter a valid wallet address' });
       await db.update(users).set({ payoutCurrency: currency, payoutWalletAddress: address, walletUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
       res.json({ success: true, currency, address });
@@ -7226,215 +7381,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/payouts', authenticateTelegram, requireVerifiedSession, withdrawRateLimit, async (req: any, res) => {
     try {
-      if (req.user?.secondaryAccountBlocked) {
-        return res.status(403).json({
-          success: false,
-          code: 'SECONDARY_ACCOUNT_BLOCKED',
-          message: `This is not your active account. Your original account is ${req.user.primaryAccountName || 'the first account created on this device'}. Withdrawals are disabled here.`,
-          primaryAccountName: req.user.primaryAccountName || null,
-        });
-      }
+      if (req.user?.secondaryAccountBlocked) return res.status(403).json({ success: false, code: 'SECONDARY_ACCOUNT_BLOCKED', message: 'Withdrawals are disabled on this secondary account.' });
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
-      const requestedAxn = req.body?.axnAmount ?? req.body?.goldAmount;
-      const parsedAxn = requestedAxn === undefined || requestedAxn === '' ? NaN : Number(requestedAxn);
-      const axnAmount = Math.trunc(parsedAxn);
-      if (!Number.isFinite(parsedAxn) || !Number.isInteger(parsedAxn) || axnAmount <= 0) {
-        return res.status(400).json({ success: false, message: 'Enter a whole AXN amount to withdraw' });
-      }
-
+      const axn = Number(req.body?.axnAmount ?? req.body?.goldAmount);
+      if (!Number.isSafeInteger(axn) || axn <= 0) return res.status(400).json({ success: false, message: 'Enter a whole-number AXN amount to withdraw' });
       const settingsRows = await db.select().from(adminSettings);
-      const setting = (key: string, alias: string, fallback: string) =>
-        settingsRows.find((row) => row.settingKey === key)?.settingValue
-        || settingsRows.find((row) => row.settingKey === alias)?.settingValue
-        || fallback;
-      const safeInt = (key: string, alias: string, fallback: number) => {
-        const value = Number.parseInt(setting(key, alias, String(fallback)), 10);
-        return Number.isFinite(value) && value >= 0 ? value : fallback;
-      };
-      const enabled = (key: string) => setting(key, key, 'true') === 'true';
-      const maxWithdrawalsPerDay = Math.max(1, safeInt('max_withdrawals_per_day', 'maxWithdrawalsPerDay', 1));
-      const minimumCashoutAxn = Math.max(1, safeInt('minimum_cashout_gold', 'minimumCashoutGold', 1000));
-      const minimumAds = safeInt('minimum_ads_for_withdrawal', 'minimumAdsForWithdrawal', 100);
-      const minimumTasks = safeInt('minimum_tasks_for_withdrawal', 'minimumTasksForWithdrawal', 10);
-      const minimumInvites = safeInt('minimum_invites_for_withdrawal', 'minimumInvitesForWithdrawal', 3);
-      const adRequirementEnabled = enabled('withdrawal_ad_requirement_enabled');
-      const taskRequirementEnabled = enabled('withdrawal_task_requirement_enabled');
-      const inviteRequirementEnabled = enabled('withdrawal_invite_requirement_enabled');
-      const parsedFeePercent = Number.parseFloat(setting('withdrawal_fee_ton', 'withdrawalFeeTON', '9'));
-      const feePercent = Number.isFinite(parsedFeePercent) ? Math.max(0, Math.min(100, parsedFeePercent)) : 9;
-
-      const { getLiveTonPriceUSD } = await import('./tonPriceService');
-      const { price: withdrawalTonPrice, source: withdrawalPriceSource } = await getLiveTonPriceUSD();
-      if (withdrawalPriceSource.includes('(stale)') || !Number.isFinite(withdrawalTonPrice) || withdrawalTonPrice <= 0) {
-        throw new Error('Live TON price is temporarily unavailable. Please try again in a few seconds.');
-      }
-
+      const setting = (key: string, fallback: string) => settingsRows.find((row) => row.settingKey === key)?.settingValue || fallback;
+      const minimumAxn = Math.max(1, Number.parseInt(setting('minimum_cashout_gold', '1000'), 10) || 1000);
+      const configuredFee = Number(setting('withdrawal_fee_ton', '9'));
+      const feePercent = Number.isFinite(configuredFee) ? Math.min(100, Math.max(0, configuredFee)) : 9;
+      const maxWithdrawalsPerDay = Math.max(1, Number.parseInt(setting('max_withdrawals_per_day', setting('maxWithdrawalsPerDay', '1')), 10) || 1);
+      const adRequirementEnabled = setting('withdrawal_ad_requirement_enabled', 'true') === 'true';
+      const taskRequirementEnabled = setting('withdrawal_task_requirement_enabled', 'true') === 'true';
+      const inviteRequirementEnabled = setting('withdrawal_invite_requirement_enabled', 'true') === 'true';
+      const minimumAds = Math.max(0, Number.parseInt(setting('minimum_ads_for_withdrawal', '100'), 10) || 0);
+      const minimumTasks = Math.max(0, Number.parseInt(setting('minimum_tasks_for_withdrawal', '10'), 10) || 0);
+      const minimumInvites = Math.max(0, Number.parseInt(setting('minimum_invites_for_withdrawal', '3'), 10) || 0);
+      if (axn < minimumAxn) return res.status(400).json({ success: false, message: `Minimum withdrawal is ${minimumAxn.toLocaleString()} AXN` });
+      if (!await checkActionTurnstile(req, res, 'withdrawal')) return;
+      const address = String(req.body?.address || req.body?.walletAddress || req.body?.paymentDetails || '').trim();
       const outcome = await db.transaction(async (tx) => {
-        // Lock the user's row so concurrent submissions cannot pass the daily
-        // limit or spend the same AXN balance twice.
         const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
         if (!user) throw new Error('User not found');
         if (user.banned) throw new Error('Account is banned and cannot withdraw');
-        if (!user.payoutWalletAddress) throw new Error('Save your TON address first');
-
-        const todayStart = new Date();
-        todayStart.setUTCHours(0, 0, 0, 0);
-        const [todayCountRow] = await tx.select({ count: sql<number>`count(*)` })
-          .from(withdrawals)
-          .where(and(
-            eq(withdrawals.userId, userId),
-            gte(withdrawals.createdAt, todayStart),
-            sql`COALESCE(LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))), '') != 'rejected'`,
-          ));
-        const todayCount = Number(todayCountRow?.count || 0);
-        if (todayCount >= maxWithdrawalsPerDay) {
-          throw new Error(`Daily withdrawal limit reached. You can withdraw ${maxWithdrawalsPerDay} time${maxWithdrawalsPerDay === 1 ? '' : 's'} per day.`);
-        }
-
-        const [pending] = await tx.select({ id: withdrawals.id }).from(withdrawals).where(and(
-          eq(withdrawals.userId, userId),
-          sql`COALESCE(LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))), '') IN ('pending', 'processing', 'under_review')`,
-        )).limit(1);
+        const existingAxnAddress = user.payoutCurrency === 'AXN' ? user.payoutWalletAddress : '';
+        const walletAddress = address || existingAxnAddress || '';
+        if (walletAddress.length < 8 || walletAddress.length > 180) throw new Error('Save a valid AXN payout address first');
+        if (walletAddress !== user.payoutWalletAddress || user.payoutCurrency !== 'AXN') await tx.update(users).set({ payoutWalletAddress: walletAddress, payoutCurrency: 'AXN', walletUpdatedAt: new Date() }).where(eq(users.id, userId));
+        const [pending] = await tx.select({ id: withdrawals.id }).from(withdrawals).where(and(eq(withdrawals.userId, userId), sql`COALESCE(LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))), '') IN ('pending','processing','under_review')`)).limit(1);
         if (pending) throw new Error('A payout is already awaiting admin approval or processing');
-
-        const currentAxnBalance = toAxnBalance(user.balance);
-        if (axnAmount < minimumCashoutAxn) {
-          throw new Error(`Minimum withdrawal is ${minimumCashoutAxn.toLocaleString()} AXN`);
-        }
-        if (axnAmount > currentAxnBalance) throw new Error('Insufficient AXN balance');
-
-        // Ads reset after each submitted (non-rejected) withdrawal request.
-        const [lastWithdrawal] = await tx.select({ createdAt: withdrawals.createdAt }).from(withdrawals)
-          .where(and(
-            eq(withdrawals.userId, userId),
-            sql`COALESCE(LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))), '') != 'rejected'`,
-          ))
-          .orderBy(desc(withdrawals.createdAt)).limit(1);
-        if (adRequirementEnabled) {
-          const adConditions = [eq(earnings.userId, userId), eq(earnings.source, 'ad_watch')];
-          if (lastWithdrawal?.createdAt) adConditions.push(gte(earnings.createdAt, lastWithdrawal.createdAt) as any);
-          const [adsRow] = await tx.select({ count: sql<number>`count(*)` }).from(earnings).where(and(...adConditions));
-          const adsWatched = Number(adsRow?.count || 0);
-          if (adsWatched < minimumAds) throw new Error(`Watch ${minimumAds - adsWatched} more ad${minimumAds - adsWatched === 1 ? '' : 's'} to unlock withdrawals.`);
-        }
-
-        if (taskRequirementEnabled) {
-          const [tasksRow] = await tx.select({ count: sql<number>`count(*)` }).from(taskClicks).where(eq(taskClicks.publisherId, userId));
-          const tasksCompleted = Number(tasksRow?.count || 0);
-          if (tasksCompleted < minimumTasks) throw new Error(`Complete ${minimumTasks - tasksCompleted} more task${minimumTasks - tasksCompleted === 1 ? '' : 's'} before withdrawing.`);
-        }
-
-        if (inviteRequirementEnabled) {
-          const [inviteRow] = await tx.select({ count: sql<number>`count(DISTINCT ${referrals.refereeId})` })
-            .from(referrals)
-            .innerJoin(users, eq(users.id, referrals.refereeId))
-            .where(and(
-              eq(referrals.referrerId, userId),
-              inArray(referrals.status, ['completed', 'active']),
-              sql`${users.banned} IS NOT TRUE`,
-            ));
-          const friendsInvited = Number(inviteRow?.count || 0);
-          if (friendsInvited < minimumInvites) {
-            const remaining = minimumInvites - friendsInvited;
-            throw new Error(`Invite ${remaining} more friend${remaining === 1 ? '' : 's'} to unlock withdrawals.`);
-          }
-        }
-
-        const usdValue = axnAmount / 100_000;
-        const fee = usdValue * (feePercent / 100);
-        const netAmount = usdValue - fee;
-        const tonAmount = netAmount / withdrawalTonPrice;
-        const balanceStorageDebit = axnAmountToStoredBalance(user.balance, axnAmount);
+        const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
+        const [todayRow] = await tx.select({ count: sql<number>`count(*)` }).from(withdrawals).where(and(eq(withdrawals.userId, userId), gte(withdrawals.createdAt, dayStart), sql`COALESCE(LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))), '') != 'rejected'`));
+        if (Number(todayRow?.count || 0) >= maxWithdrawalsPerDay) throw new Error('Daily withdrawal limit reached');
+        const [last] = await tx.select({ createdAt: withdrawals.createdAt }).from(withdrawals).where(and(eq(withdrawals.userId, userId), sql`COALESCE(LOWER(TRIM(CAST(${withdrawals.status} AS TEXT))), '') != 'rejected'`)).orderBy(desc(withdrawals.createdAt)).limit(1);
+        const adConditions: any[] = [eq(earnings.userId, userId), eq(earnings.source, 'ad_watch')]; if (last?.createdAt) adConditions.push(gte(earnings.createdAt, last.createdAt));
+        const [adsRow] = await tx.select({ count: sql<number>`count(*)` }).from(earnings).where(and(...adConditions));
+        if (adRequirementEnabled && Number(adsRow?.count || 0) < minimumAds) throw new Error(`Watch ${minimumAds - Number(adsRow?.count || 0)} more ads to unlock withdrawals.`);
+        const [tasksRow] = await tx.select({ count: sql<number>`count(*)` }).from(taskClicks).where(eq(taskClicks.publisherId, userId));
+        if (taskRequirementEnabled && Number(tasksRow?.count || 0) < minimumTasks) throw new Error(`Complete ${minimumTasks - Number(tasksRow?.count || 0)} more tasks before withdrawing.`);
+        const friendsInvited = await storage.getValidReferralCount(userId);
+        if (inviteRequirementEnabled && friendsInvited < minimumInvites) throw new Error(`Invite ${minimumInvites - friendsInvited} more friends to unlock withdrawals.`);
+        const availableAxn = Math.max(0, Math.floor(Number(user.axnBalance || 0)));
+        if (axn > availableAxn) throw new Error('Insufficient AXN balance');
+        const feeAxn = Number((axn * feePercent / 100).toFixed(8));
+        const netAxn = Number((axn - feeAxn).toFixed(8));
         const [debited] = await tx.update(users)
-          .set({ balance: sql`${users.balance} - ${balanceStorageDebit}::numeric`, updatedAt: new Date() })
-          .where(and(eq(users.id, userId), sql`COALESCE(${users.balance}, 0)::numeric >= ${balanceStorageDebit}::numeric`))
+          .set({ axnBalance: sql`COALESCE(${users.axnBalance}, 0) - ${axn}`, updatedAt: new Date() })
+          .where(and(eq(users.id, userId), sql`COALESCE(${users.axnBalance}, 0)::numeric >= ${axn}`))
           .returning({ id: users.id });
         if (!debited) throw new Error('Balance changed; please try again');
-
-        const withdrawalDetails = {
-          walletAddress: user.payoutWalletAddress,
-          currency: 'AXN',
-          goldAmount: axnAmount,
-          axnAmount,
-          balanceStorageDebit,
-          usdValue,
-          fee,
-          feePercent,
-          netAmount,
-          tonAmount,
-          marketRateUsd: withdrawalTonPrice,
-          totalDeducted: axnAmount,
-          manualTonWithdrawal: true,
-        };
-        const [withdrawal] = await tx.insert(withdrawals).values({
-          userId,
-          amount: netAmount.toFixed(10),
-          method: 'TON',
-          status: 'pending',
-          details: withdrawalDetails,
-          goldAmount: String(axnAmount),
-          usdValue: netAmount.toFixed(10),
-          payoutCurrency: 'TON',
-          cryptoAmount: tonAmount.toFixed(18),
-          marketRateUsd: withdrawalTonPrice.toFixed(18),
-          walletAddress: user.payoutWalletAddress,
-          deducted: true,
-          refunded: false,
-        }).returning();
-
-        return {
-          withdrawal,
-          user,
-          usdValue,
-          fee,
-          netAmount,
-          feePercent,
-          tonAmount,
-          tonPrice: withdrawalTonPrice,
-          axnAmount,
-        };
+        const details = { walletAddress, axnAmount: axn, goldAmount: axn, feeAxn, feePercent, netAxn, totalDeducted: axn, manualAxnWithdrawal: true };
+        const [withdrawal] = await tx.insert(withdrawals).values({ userId, amount: netAxn.toFixed(8), method: 'AXN', status: 'pending', details, goldAmount: String(axn), payoutCurrency: 'AXN', walletAddress, deducted: true, refunded: false }).returning();
+        return { withdrawal, user, wallet: walletAddress, axn, feeAxn, netAxn, feePercent };
       });
-
-      const user = outcome.user;
-      const notificationSent = await sendWithdrawalRequestToAdmins({
-        withdrawalId: outcome.withdrawal.id,
-        userTelegramId: String(user.telegram_id || user.id),
-        userName: user.firstName || user.username || user.id,
-        userTelegramUsername: user.username ? `@${String(user.username).replace(/^@+/, '')}` : 'N/A',
-        walletAddress: String(user.payoutWalletAddress),
-        amount: outcome.netAmount,
-        usdAmount: outcome.netAmount,
-        fee: outcome.fee,
-        feePercent: outcome.feePercent,
-        axnAmount: outcome.axnAmount,
-        tonAmount: outcome.tonAmount,
-        tonPrice: outcome.tonPrice,
-      });
-      if (!notificationSent) console.error(`❌ Withdrawal ${outcome.withdrawal.id} created but private admin delivery failed`);
-      res.json({
-        success: true,
-        status: 'pending',
-        withdrawalId: outcome.withdrawal.id,
-        axnAmount: outcome.axnAmount,
-        goldAmount: outcome.axnAmount,
-        usdValue: outcome.netAmount,
-        fee: outcome.fee,
-        feePercent: outcome.feePercent,
-        currency: 'TON',
-      });
+      const notificationSent = await sendWithdrawalRequestToAdmins({ withdrawalId: outcome.withdrawal.id, userTelegramId: String(outcome.user.telegram_id || outcome.user.id), userName: outcome.user.firstName || outcome.user.username || outcome.user.id, userTelegramUsername: outcome.user.username ? `@${String(outcome.user.username).replace(/^@+/, '')}` : 'N/A', walletAddress: String(outcome.wallet), amount: outcome.netAxn, axnAmount: outcome.axn, fee: outcome.feeAxn, feePercent: outcome.feePercent });
+      if (!notificationSent) console.error(`Withdrawal ${outcome.withdrawal.id} created but admin notification failed`);
+      return res.json({ success: true, status: 'pending', withdrawalId: outcome.withdrawal.id, axnAmount: outcome.axn, netAxn: outcome.netAxn, feeAxn: outcome.feeAxn, feePercent: outcome.feePercent, currency: 'AXN' });
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not create withdrawal request';
+      const expected = /^(User not found|Account is banned|Save a valid AXN|A payout|Balance changed|Insufficient AXN balance|Enter a whole-number AXN|Minimum withdrawal|Daily withdrawal|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?)/.test(message);
       console.error('AXN withdrawal request failed:', error);
-      const message = error instanceof Error ? error.message : 'Could not create withdrawal request. Please try again.';
-      const isExpectedValidation = /^(User not found|Account is banned|Save your TON address first|Daily withdrawal limit reached|A payout is already|Minimum withdrawal is|Insufficient AXN balance|Watch \d+ more ads?|Complete \d+ more tasks?|Invite \d+ more friends?|Balance changed;|Enter a whole AXN amount)/.test(message);
-      const isPriceUnavailable = message.startsWith('Live TON price is temporarily unavailable');
-      res.status(isExpectedValidation ? 400 : isPriceUnavailable ? 503 : 500).json({
-        success: false,
-        message: isExpectedValidation || isPriceUnavailable ? message : 'Could not create withdrawal request. Please try again.',
-      });
+      return res.status(expected ? 400 : 500).json({ success: false, message: expected ? message : 'Could not create AXN withdrawal request. Please try again.' });
     }
   });
-
   // Save Cwallet ID endpoint
   app.post('/api/wallet/cwallet', authenticateTelegram, walletMutationRateLimit, async (req: any, res) => {
     try {
@@ -8917,10 +8927,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = ${taskId}
       `);
 
-      console.log(`✅ Task reward claimed: ${taskId} by ${userId} - Reward: ${rewardGems} Gems`);
+      console.log(`✅ Task reward claimed: ${taskId} by ${userId} - Reward: ${rewardGems} AXN`);
       res.json({
         success: true,
-        message: `Reward claimed! +${rewardGems} Gems`,
+        message: `Reward claimed! +${rewardGems} AXN`,
         reward: rewardGems,
       });
     } catch (error) {
@@ -9690,131 +9700,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // One-hour Farming cycle. Cycle state lives on the user record so progress
-  // survives reloads and server restarts.
+  const mapMinerTier = (row: any): MinerTier => ({
+    level: Number(row.level),
+    requiredHolding: Number(row.requiredHolding),
+    miningPowerTHs: Number(row.miningPowerTHs),
+    dailyYieldAXN: Number(row.dailyYieldAXN),
+    displayValueUSD: Number(row.displayValueUSD),
+  });
+
+  app.get('/api/miners', authenticateTelegram, async (req: any, res: any) => {
+    try {
+      const userId = req.session?.user?.user?.id || req.user?.user?.id;
+      if (!userId) return res.status(401).json({ message: 'Authentication required' });
+      const [user] = await db.select({ axnBalance: users.axnBalance }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      const rows = await db.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+      const tiers = rows.map(mapMinerTier);
+      if (!tiers.length) return res.status(503).json({ message: 'Miner configuration is not installed' });
+      const holding = getEligibleHolding(user.axnBalance);
+      const current = getMinerLevel(holding, tiers);
+      const progress = getMinerProgress(holding, current, tiers);
+      return res.json({
+        eligibleHolding: holding,
+        currentLevel: current.level,
+        nextLevel: progress.next?.level ?? null,
+        remainingAXN: progress.remaining,
+        progressPercent: progress.progressPercent,
+        miners: rows,
+      });
+    } catch (error) {
+      console.error('Miner catalog error:', error);
+      return res.status(500).json({ message: 'Could not load miner levels' });
+    }
+  });
+
+  // Continuous miner accrual is server-owned and persisted on every state read.
+  // A row lock serializes requests with balance changes and claim operations.
   app.get('/api/farming/state', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({
-        miningStartedAt: users.miningStartedAt,
-        miningBoostMultiplier: users.miningBoostMultiplier,
-        miningBoostStep: users.miningBoostStep,
-        miningAccruedGold: users.miningAccruedGold,
-        miningLastAccrualAt: users.miningLastAccrualAt,
-      }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-
-      const now = Date.now();
-      const startedAt = user.miningStartedAt ? new Date(user.miningStartedAt).getTime() : 0;
-      const elapsedSeconds = startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
-      const remainingSeconds = startedAt ? Math.max(0, MINING_DURATION_SECONDS - elapsedSeconds) : 0;
-      const multiplier = Math.min(MINING_BOOSTS[MINING_BOOSTS.length - 1], Math.max(1, Number(user.miningBoostMultiplier || 1)));
-      const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = startedAt
-        ? Math.max(0, Math.min(now, startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000
-        : 0;
-      const minedGold = startedAt
-        ? Math.min(MINING_BASE_RATE_PER_HOUR * multiplier, Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * multiplier)
-        : 0;
-
-      return res.json({
-        isActive: Boolean(startedAt),
-        isComplete: Boolean(startedAt && remainingSeconds === 0),
-        startedAt: startedAt ? new Date(startedAt).toISOString() : null,
-        remainingSeconds,
-        minedGold: Number(minedGold.toFixed(4)),
-        minedAxn: Number(minedGold.toFixed(4)),
-        baseRatePerHour: MINING_BASE_RATE_PER_HOUR,
-        effectiveRate: MINING_BASE_RATE_PER_HOUR * multiplier,
-        multiplier,
-        boostStep: Number(user.miningBoostStep || 0),
+      const state = await db.transaction(async (tx) => {
+        const [user] = await tx.select({
+          axnBalance: users.axnBalance,
+          miningStartedAt: users.miningStartedAt,
+          miningAccrualLevel: users.miningAccrualLevel,
+          miningAccruedGold: users.miningAccruedGold,
+          miningLastAccrualAt: users.miningLastAccrualAt,
+        }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+        if (!user) return { httpStatus: 404, message: 'User not found' };
+        const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+        const tiers = rows.map(mapMinerTier);
+        if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
+        const holding = getEligibleHolding(user.axnBalance);
+        const current = getMinerLevel(holding, tiers);
+        const startedAtDate = user.miningStartedAt ? new Date(user.miningStartedAt) : new Date();
+        if (!user.miningStartedAt) {
+          await tx.update(users).set({
+            miningStartedAt: startedAtDate,
+            miningBoostMultiplier: '1',
+            miningBoostStep: 0,
+            miningAccruedGold: normalizeAxnAmount(Number(user.miningAccruedGold || 0)),
+            miningLastAccrualAt: startedAtDate,
+            miningAccrualLevel: current.level,
+            updatedAt: startedAtDate,
+          }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
+        }
+        const startedAt = startedAtDate.getTime();
+        const now = Date.now();
+        const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
+        const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
+        const minedAxn = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now, Number.POSITIVE_INFINITY);
+        const updatedAt = new Date(now);
+        await tx.update(users).set({
+          miningAccruedGold: normalizeAxnAmount(minedAxn),
+          miningLastAccrualAt: updatedAt,
+          miningAccrualLevel: current.level,
+          updatedAt,
+        }).where(eq(users.id, userId));
+        const progress = getMinerProgress(holding, current, tiers);
+        return {
+          isActive: true,
+          isComplete: false,
+          continuous: true,
+          startedAt: startedAtDate.toISOString(),
+          remainingSeconds: null,
+          minedGold: minedAxn,
+          minedAxn,
+          eligibleHolding: holding,
+          currentLevel: current.level,
+          miningPowerTHs: current.miningPowerTHs,
+          dailyYieldAXN: current.dailyYieldAXN,
+          ratePerHour: current.dailyYieldAXN / 24,
+          nextLevel: progress.next?.level ?? null,
+          remainingAXN: progress.remaining,
+        };
       });
+      if ('httpStatus' in state) return res.status(state.httpStatus).json({ message: state.message });
+      return res.json(state);
     } catch (error) {
-      console.error('Farming state error:', error);
-      return res.status(500).json({ message: 'Could not load Farming state' });
+      console.error('Continuous miner state error:', error);
+      return res.status(500).json({ message: 'Could not load miner state' });
     }
   });
 
+  // Compatibility endpoint: continuous mining is initialized by state reads.
   app.post('/api/farming/start', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({ miningStartedAt: users.miningStartedAt }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      if (user.miningStartedAt) {
-        const elapsedSeconds = Math.floor((Date.now() - new Date(user.miningStartedAt).getTime()) / 1000);
-        return res.status(409).json({ message: elapsedSeconds < MINING_DURATION_SECONDS ? 'Farming is already active' : 'Claim the completed Farming cycle before starting another one' });
-      }
-
-      const startedAt = new Date();
-      const started = await db.update(users).set({
-        miningStartedAt: startedAt,
-        miningBoostMultiplier: '1',
-        miningBoostStep: 0,
-        miningAccruedGold: '0',
-        miningLastAccrualAt: startedAt,
-        updatedAt: startedAt,
-      }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`)).returning({ id: users.id });
-      if (!started.length) return res.status(409).json({ message: 'Farming is already active; refresh and try again' });
-
-      return res.json({ success: true, startedAt: startedAt.toISOString(), durationSeconds: MINING_DURATION_SECONDS, multiplier: 1 });
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select({
+          axnBalance: users.axnBalance,
+          miningStartedAt: users.miningStartedAt,
+          miningAccruedGold: users.miningAccruedGold,
+        }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+        if (!user) return { httpStatus: 404, message: 'User not found' };
+        if (user.miningStartedAt) return { success: true, continuous: true };
+        const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+        const tiers = rows.map(mapMinerTier);
+        if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
+        const startedAt = new Date();
+        const level = getMinerLevel(getEligibleHolding(user.axnBalance), tiers).level;
+        await tx.update(users).set({
+          miningStartedAt: startedAt,
+          miningBoostMultiplier: '1',
+          miningBoostStep: 0,
+          miningAccruedGold: normalizeAxnAmount(Number(user.miningAccruedGold || 0)),
+          miningLastAccrualAt: startedAt,
+          miningAccrualLevel: level,
+          updatedAt: startedAt,
+        }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
+        return { success: true, continuous: true, currentLevel: level };
+      });
+      if ('httpStatus' in result) return res.status(result.httpStatus).json({ message: result.message });
+      return res.json(result);
     } catch (error) {
-      console.error('Farming start error:', error);
-      return res.status(500).json({ message: 'Could not start Farming' });
+      console.error('Continuous miner start error:', error);
+      return res.status(500).json({ message: 'Could not initialize miner' });
     }
   });
 
+  // Claim accrued rewards at any time. SELECT FOR UPDATE + timestamp reset make
+  // simultaneous claims serial and prevent paying the same interval twice.
   app.post('/api/farming/claim', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Authentication required' });
-      const [user] = await db.select({
-        miningStartedAt: users.miningStartedAt,
-        miningBoostMultiplier: users.miningBoostMultiplier,
-        miningAccruedGold: users.miningAccruedGold,
-        miningLastAccrualAt: users.miningLastAccrualAt,
-      }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!user?.miningStartedAt) return res.status(400).json({ message: 'No completed Farming cycle to claim' });
-
-      const startedAt = new Date(user.miningStartedAt).getTime();
-      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
-      if (elapsedSeconds < MINING_DURATION_SECONDS) {
-        return res.status(400).json({ message: `Farming is still running. Claim available in ${Math.ceil((MINING_DURATION_SECONDS - elapsedSeconds) / 60)} minutes.` });
-      }
-
-      const multiplier = Math.min(MINING_BOOSTS[MINING_BOOSTS.length - 1], Math.max(1, Number(user.miningBoostMultiplier || 1)));
-      const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
-      const segmentSeconds = Math.max(0, Math.min(Date.now(), startedAt + MINING_DURATION_SECONDS * 1000) - lastAccrualAt) / 1000;
-      const reward = Number((Number(user.miningAccruedGold || 0) + (segmentSeconds / 3600) * MINING_BASE_RATE_PER_HOUR * multiplier).toFixed(4));
-
-      // Conditional reset makes the one-time reward claim safe against two
-      // simultaneous requests for the same completed cycle.
-      const claimed = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select({
+          axnBalance: users.axnBalance,
+          miningStartedAt: users.miningStartedAt,
+          miningAccrualLevel: users.miningAccrualLevel,
+          miningAccruedGold: users.miningAccruedGold,
+          miningLastAccrualAt: users.miningLastAccrualAt,
+        }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+        if (!user) return { httpStatus: 404, message: 'User not found' };
+        const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
+        const tiers = rows.map(mapMinerTier);
+        if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
+        const holding = getEligibleHolding(user.axnBalance);
+        const current = getMinerLevel(holding, tiers);
+        const now = new Date();
+        const startedAtDate = user.miningStartedAt ? new Date(user.miningStartedAt) : now;
+        const startedAt = startedAtDate.getTime();
+        const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
+        const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
+        const reward = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now.getTime(), Number.POSITIVE_INFINITY);
+        if (reward <= 0) return { httpStatus: 400, message: 'No AXN reward is ready to claim' };
+        const adVerified = await consumeRewardAdSession(tx, userId, req.body, 'mining_claim');
+        if (adVerified === 'pending') return { httpStatus: 202, message: 'Waiting for AdsGram completion verification' };
+        if (!adVerified) return { httpStatus: 400, message: 'Complete an AdsGram ad before claiming mining rewards' };
+        const amount = normalizeAxnAmount(reward);
+        const claimedAt = new Date(Math.max(now.getTime(), lastAccrualAt + 1));
+        const startedUpdate = user.miningStartedAt ?? startedAtDate;
+        const levelAfterCredit = getMinerLevel(holding + reward, tiers).level;
         const updated = await tx.update(users).set({
-          balance: sql`${users.balance} + ${reward}`,
-          miningStartedAt: null,
+          axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${amount}::numeric`,
+          miningStartedAt: startedUpdate,
           miningBoostMultiplier: '1',
           miningBoostStep: 0,
           miningAccruedGold: '0',
-          miningLastAccrualAt: null,
-          updatedAt: new Date(),
-        }).where(and(eq(users.id, userId), eq(users.miningStartedAt, user.miningStartedAt!))).returning({ id: users.id });
-        if (!updated.length) return false;
-        await tx.insert(earnings).values({
-          userId,
-          amount: String(reward),
-          source: 'farming',
-          description: `One-hour Farming cycle at ${multiplier}x boost`,
-          currency: 'GOLD',
-        });
-        return true;
+          miningLastAccrualAt: claimedAt,
+          miningAccrualLevel: levelAfterCredit,
+          updatedAt: now,
+        }).where(and(eq(users.id, userId), user.miningStartedAt ? eq(users.miningStartedAt, user.miningStartedAt) : sql`${users.miningStartedAt} IS NULL`)).returning({ id: users.id });
+        if (!updated.length) throw new Error('MINING_CLAIM_CONFLICT');
+        if (reward > 0) {
+          await tx.insert(earnings).values({
+            userId,
+            amount,
+            source: 'farming',
+            description: `Miner Level ${accrualTier.level} mining claim`,
+            currency: 'AXN',
+          });
+        }
+        return { success: true, amount: reward, continuous: true, currentLevel: levelAfterCredit };
       });
-      if (!claimed) return res.status(409).json({ message: 'This Farming reward was already claimed. Refresh your balance.' });
-      return res.json({ success: true, amount: reward, multiplier });
+      if ('httpStatus' in result) {
+        if (result.httpStatus === 202) {
+          return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending', message: result.message });
+        }
+        return res.status(result.httpStatus).json({ message: result.message });
+      }
+      return res.json(result);
     } catch (error) {
-      console.error('Farming claim error:', error);
-      return res.status(500).json({ message: 'Could not claim Farming reward' });
+      if ((error as any)?.message === 'MINING_CLAIM_CONFLICT') {
+        return res.status(409).json({ message: 'Mining claim changed concurrently; refresh and try again' });
+      }
+      console.error('Continuous miner claim error:', error);
+      return res.status(500).json({ message: 'Could not claim mining reward' });
     }
   });
 
@@ -9913,682 +10008,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new withdrawal request
-  app.post('/api/withdrawals', authenticateTelegram, requireVerifiedSession, withdrawRateLimit, async (req: any, res) => {
-    try {
-      if (req.user?.secondaryAccountBlocked) {
-        return res.status(403).json({
-          success: false,
-          code: 'SECONDARY_ACCOUNT_BLOCKED',
-          message: `This is not your active account. Your original account is ${req.user.primaryAccountName || 'the first account created on this device'}. Withdrawals are disabled here.`,
-          primaryAccountName: req.user.primaryAccountName || null,
-        });
-      }
-      // Get userId from session or req.user (lenient check)
-      const userId = req.session?.user?.user?.id || req.user?.user?.id;
-
-      if (!userId) {
-        console.log("⚠️ Withdrawal requested without session - skipping");
-        return res.json({ success: true, skipAuth: true });
-      }
-
-      // ── Require fresh per-action Turnstile token ────────────────────────────
-      if (!await checkActionTurnstile(req, res, 'withdrawal')) return;
-      // ───────────────────────────────────────────────────────────────────────
-
-      const { method, starPackage, withdrawalPackage, tonWalletAddress } = req.body;
-      // axnAmount: new Gems-direct withdrawal (100,000 Gems = $1 USD)
-      const axnAmountInput: number | null = req.body.axnAmount != null ? parseFloat(req.body.axnAmount) : null;
-      // Legacy USD custom amount — kept for backward compat but axnAmount takes precedence
-      const customAmount: number | null = (axnAmountInput === null && req.body.amount != null) ? parseFloat(req.body.amount) : null;
-
-      const Gems_PER_USD = 100_000; // 100,000 Gems = $1 USD
-
-      console.log('📝 Withdrawal request received:', { userId, method, starPackage, withdrawalPackage, axnAmountInput });
-
-      // Validate withdrawal method
-      const validMethods = ['TON', 'USDT', 'STARS'];
-      if (!method || !validMethods.includes(method)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid withdrawal method'
-        });
-      }
-
-      // Check for pending withdrawals
-      const pendingWithdrawals = await db
-        .select({ id: withdrawals.id })
-        .from(withdrawals)
-        .where(and(
-          eq(withdrawals.userId, userId),
-          eq(withdrawals.status, 'pending')
-        ))
-        .limit(1);
-
-      if (pendingWithdrawals.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot create new request until current one is processed'
-        });
-      }
-
-      // Check daily withdrawal limit
-      const [dailyLimitSetting] = await db
-        .select({ settingValue: adminSettings.settingValue })
-        .from(adminSettings)
-        .where(eq(adminSettings.settingKey, 'maxWithdrawalsPerDay'))
-        .limit(1);
-      const maxWithdrawalsPerDay = parseInt(dailyLimitSetting?.settingValue || '1');
-
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayWithdrawals = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(withdrawals)
-        .where(and(
-          eq(withdrawals.userId, userId),
-          gte(withdrawals.createdAt, todayStart),
-          sql`LOWER(CAST(${withdrawals.status} AS TEXT)) != 'rejected'`
-        ));
-      const todayCount = Number(todayWithdrawals[0]?.count ?? 0);
-      if (todayCount >= maxWithdrawalsPerDay) {
-        return res.status(400).json({
-          success: false,
-          message: `Daily withdrawal limit reached. You can only withdraw ${maxWithdrawalsPerDay} time${maxWithdrawalsPerDay !== 1 ? 's' : ''} per day.`
-        });
-      }
-
-      // Use transaction to ensure atomicity and prevent race conditions
-      const newWithdrawal = await db.transaction(async (tx) => {
-        // Lock user row and get balances, wallet addresses, and device info
-        const [user] = await tx
-          .select({
-            balance: users.balance,
-            usdBalance: users.usdBalance,
-            cwalletId: users.cwalletId,
-            usdtWalletAddress: users.usdtWalletAddress,
-            telegramStarsUsername: users.telegramStarsUsername,
-            friendsInvited: users.friendsInvited,
-            telegram_id: users.telegram_id,
-            username: users.username,
-            firstName: users.firstName,
-            banned: users.banned,
-            bannedReason: users.bannedReason,
-            deviceId: users.deviceId,
-            adsWatched: users.adsWatched
-          })
-          .from(users)
-          .where(eq(users.id, userId))
-          .for('update');
-
-        if (!user) {
-          throw new Error('User not found');
-        }
-
-        // FIX: the "does this user already have a pending withdrawal" check
-        // above happens BEFORE this transaction/lock is acquired, so two
-        // near-simultaneous requests could both pass it before either one had
-        // inserted a row — letting a user end up with two pending withdrawal
-        // requests at once, even though balance is only deducted at admin
-        // approval time (not at request time). Re-checking here, after the
-        // row lock, closes that window: concurrent requests are serialized
-        // by the lock, so the second one will now correctly see the first
-        // one's row and be rejected.
-        const pendingWithdrawalsRecheck = await tx
-          .select({ id: withdrawals.id })
-          .from(withdrawals)
-          .where(and(
-            eq(withdrawals.userId, userId),
-            eq(withdrawals.status, 'pending')
-          ))
-          .limit(1);
-        if (pendingWithdrawalsRecheck.length > 0) {
-          throw new Error('Cannot create new request until current one is processed');
-        }
-
-        // CRITICAL: Check if user is banned - prevent banned accounts from withdrawing
-        if (user.banned) {
-          throw new Error(`Account is banned: ${user.bannedReason || 'Multi-account violation'}`);
-        }
-
-        // CRITICAL: Check for duplicate accounts on same device trying to withdraw
-        if (user.deviceId) {
-          const duplicateAccounts = await tx
-            .select({ id: users.id, banned: users.banned, isPrimaryAccount: users.isPrimaryAccount })
-            .from(users)
-            .where(and(
-              eq(users.deviceId, user.deviceId),
-              sql`${users.id} != ${userId}`
-            ));
-
-          if (duplicateAccounts.length > 0) {
-            // Determine if current user is the primary account
-            const [currentUserFull] = await tx
-              .select({ isPrimaryAccount: users.isPrimaryAccount })
-              .from(users)
-              .where(eq(users.id, userId));
-
-            const isPrimary = currentUserFull?.isPrimaryAccount === true;
-
-            if (!isPrimary) {
-              // Ban this duplicate account only
-              const { banUserForMultipleAccounts, sendWarningToMainAccount } = await import('./deviceTracking');
-              await banUserForMultipleAccounts(
-                userId,
-                'Duplicate account attempted withdrawal - only one account per device is allowed'
-              );
-
-              // Send warning to primary account
-              const primaryAccount = duplicateAccounts.find(u => u.isPrimaryAccount === true) || duplicateAccounts[0];
-              if (primaryAccount) {
-                await sendWarningToMainAccount(primaryAccount.id);
-              }
-
-              throw new Error('Withdrawal blocked - multiple accounts detected on this device. This account has been banned.');
-            }
-          }
-        }
-
-        // ✅ Require active referrals that satisfy the configured AdsGram threshold before withdrawing.
-        const [inviteRequirementEnabledSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'withdrawal_invite_requirement_enabled'))
-          .limit(1);
-        const withdrawalInviteRequirementEnabled = (inviteRequirementEnabledSetting?.settingValue || 'true') === 'true';
-
-        let activeReferralCount = 0;
-        if (withdrawalInviteRequirementEnabled) {
-          const [referralAdsSetting] = await tx
-            .select({ settingValue: adminSettings.settingValue })
-            .from(adminSettings)
-            .where(eq(adminSettings.settingKey, 'referral_ads_required'))
-            .limit(1);
-          const configuredRequiredAds = Number.parseInt(referralAdsSetting?.settingValue || '15', 10);
-          const requiredAds = Number.isFinite(configuredRequiredAds) && configuredRequiredAds >= 0 ? configuredRequiredAds : 15;
-          const [activeReferralRow] = await tx
-            .select({ count: sql<number>`count(DISTINCT ${referrals.refereeId})` })
-            .from(referrals)
-            .innerJoin(users, eq(users.id, referrals.refereeId))
-            .where(and(
-              eq(referrals.referrerId, userId),
-              inArray(referrals.status, ['completed', 'active']),
-              sql`${users.banned} IS NOT TRUE`,
-            ));
-          activeReferralCount = Number(activeReferralRow?.count ?? 0);
-          if (activeReferralCount < 1) {
-            throw new Error(`You need at least 1 active referral to withdraw. New referrals become active after ${requiredAds} AdsGram ads.`);
-          }
-        }
-
-        // ✅ Check if user has invited enough friends (based on admin settings)
-        // (Settings already fetched above)
-
-        const [minimumInvitesSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'minimum_invites_for_withdrawal'))
-          .limit(1);
-        const minimumInvitesForWithdrawal = parseInt(minimumInvitesSetting?.settingValue || '3');
-
-        // Only check invite requirement if it's enabled in admin settings
-        if (withdrawalInviteRequirementEnabled) {
-          const friendsInvited = activeReferralCount;
-          if (friendsInvited < minimumInvitesForWithdrawal) {
-            const remaining = minimumInvitesForWithdrawal - friendsInvited;
-            throw new Error(`Invite ${remaining} more friend${remaining !== 1 ? 's' : ''} to unlock withdrawals.`);
-          }
-        }
-
-        // ✅ Check if user has watched enough ads (based on admin settings)
-        const [adRequirementEnabledSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'withdrawal_ad_requirement_enabled'))
-          .limit(1);
-        const withdrawalAdRequirementEnabled = (adRequirementEnabledSetting?.settingValue || 'true') === 'true';
-
-        const [minimumAdsSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'minimum_ads_for_withdrawal'))
-          .limit(1);
-        const minimumAdsForWithdrawal = parseInt(minimumAdsSetting?.settingValue || '100');
-
-        // Only check ad requirement if it's enabled in admin settings
-        if (withdrawalAdRequirementEnabled) {
-          // Get ads watched since last withdrawal
-          const lastApprovedWithdrawal = await tx
-            .select({ createdAt: withdrawals.createdAt })
-            .from(withdrawals)
-            .where(and(
-              eq(withdrawals.userId, String(userId)),
-              sql`LOWER(CAST(${withdrawals.status} AS TEXT)) IN ('completed', 'approved')`
-            ))
-            .orderBy(desc(withdrawals.createdAt))
-            .limit(1);
-
-          let adsWatchedSinceLastWithdrawal = user.adsWatched || 0;
-
-          if (lastApprovedWithdrawal.length > 0) {
-            const lastWithdrawalDate = lastApprovedWithdrawal[0].createdAt || new Date(0);
-            const adsCountResult = await tx
-              .select({ count: sql<number>`count(*)` })
-              .from(earnings)
-              .where(and(
-                eq(earnings.userId, String(userId)),
-                eq(earnings.source, 'ad_watch'),
-                gte(earnings.createdAt, lastWithdrawalDate)
-              ));
-            adsWatchedSinceLastWithdrawal = adsCountResult[0]?.count || 0;
-          }
-
-          if (adsWatchedSinceLastWithdrawal < minimumAdsForWithdrawal) {
-            const remaining = minimumAdsForWithdrawal - adsWatchedSinceLastWithdrawal;
-            throw new Error(`Watch ${remaining} more ad${remaining !== 1 ? 's' : ''} to unlock withdrawals.`);
-          }
-        }
-
-        // ✅ Check if user has completed enough tasks (based on admin settings)
-        const [taskRequirementEnabledSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'withdrawal_task_requirement_enabled'))
-          .limit(1);
-        const withdrawalTaskRequirementEnabled = (taskRequirementEnabledSetting?.settingValue || 'true') === 'true';
-
-        const [minimumTasksSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'minimum_tasks_for_withdrawal'))
-          .limit(1);
-        const minimumTasksForWithdrawal = parseInt(minimumTasksSetting?.settingValue || '10');
-
-        // Only check task requirement if it's enabled in admin settings
-        if (withdrawalTaskRequirementEnabled) {
-          const tasksCompletedResult = await tx
-            .select({ count: sql<number>`count(*)` })
-            .from(taskClicks)
-            .where(eq(taskClicks.publisherId, userId));
-          const tasksCompleted = tasksCompletedResult[0]?.count || 0;
-
-          if (tasksCompleted < minimumTasksForWithdrawal) {
-            throw new Error(`You must complete at least ${minimumTasksForWithdrawal} tasks before making a withdrawal.`);
-          }
-        }
-
-        // ✅ Get withdrawal packages from admin settings
-        const [withdrawalPackagesSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'withdrawal_packages'))
-          .limit(1);
-        const withdrawalPackagesConfig = JSON.parse(withdrawalPackagesSetting?.settingValue || '[{"usd":0.2,"bug":2000},{"usd":0.4,"bug":4000},{"usd":0.8,"bug":8000}]');
-
-        let packageUsdAmount: number | null = null;
-        // Gems metadata is populated before the shared payout calculation below.
-        // Keep this object alive so the Gems branch never touches a TDZ variable.
-        let withdrawalDetails: any = {};
-
-        if (axnAmountInput !== null && !isNaN(axnAmountInput) && axnAmountInput > 0) {
-          // ── Gems-direct withdrawal (new flow) ──────────────────────────────────
-          const [minAmtSetting] = await tx
-            .select({ settingValue: adminSettings.settingValue })
-            .from(adminSettings)
-            .where(eq(adminSettings.settingKey, 'minimumWithdrawAmount'))
-            .limit(1);
-          const minAmtUSD = parseFloat(minAmtSetting?.settingValue || '0.20');
-          const minAmtGems = Math.round(minAmtUSD * Gems_PER_USD);
-
-          const [maxAmtSetting] = await tx
-            .select({ settingValue: adminSettings.settingValue })
-            .from(adminSettings)
-            .where(eq(adminSettings.settingKey, 'maximumWithdrawAmount'))
-            .limit(1);
-          const maxAmtUSD = parseFloat(maxAmtSetting?.settingValue || '0.50');
-          const maxAmtGems = Math.round(maxAmtUSD * Gems_PER_USD);
-
-          if (axnAmountInput < minAmtGems) {
-            throw new Error(`Minimum withdrawal is ${minAmtGems.toLocaleString()} Gems ($${minAmtUSD.toFixed(2)})`);
-          }
-          if (axnAmountInput > maxAmtGems) {
-            throw new Error(`Maximum withdrawal is ${maxAmtGems.toLocaleString()} Gems ($${maxAmtUSD.toFixed(2)})`);
-          }
-
-          // Validate against the user's GEM balance (user.balance)
-          const rawAxnBalance = parseFloat(user.balance || '0');
-          const currentAxnBalance = rawAxnBalance < 1 ? Math.round(rawAxnBalance * 10_000_000) : Math.round(rawAxnBalance);
-          if (currentAxnBalance < axnAmountInput) {
-            throw new Error(`Insufficient GEM balance. You have ${currentAxnBalance.toLocaleString()} GEM.`);
-          }
-
-          // Convert to USD for the withdrawal record (100,000 GEM = $1)
-          const usdEquivalent = axnAmountInput / Gems_PER_USD;
-          packageUsdAmount = usdEquivalent;
-
-          // Store GEM withdrawal metadata for history display and approval deduction.
-          withdrawalDetails.axnAmount = axnAmountInput;
-          withdrawalDetails.axnPerUsd = Gems_PER_USD;
-          console.log(`GEM withdrawal: ${axnAmountInput.toLocaleString()} GEM → $${usdEquivalent.toFixed(4)} USD`);
-        } else if (customAmount !== null && !isNaN(customAmount) && customAmount > 0) {
-          // Legacy USD custom amount — validate against admin min/max settings
-          const [minAmtSetting] = await tx
-            .select({ settingValue: adminSettings.settingValue })
-            .from(adminSettings)
-            .where(eq(adminSettings.settingKey, 'minimumWithdrawAmount'))
-            .limit(1);
-          const minAmt = parseFloat(minAmtSetting?.settingValue || '0.20');
-
-          const [maxAmtSetting] = await tx
-            .select({ settingValue: adminSettings.settingValue })
-            .from(adminSettings)
-            .where(eq(adminSettings.settingKey, 'maximumWithdrawAmount'))
-            .limit(1);
-          const maxAmt = parseFloat(maxAmtSetting?.settingValue || '0.50');
-
-          if (customAmount < minAmt) {
-            throw new Error(`Minimum withdrawal is $${minAmt.toFixed(2)}`);
-          }
-          if (customAmount > maxAmt) {
-            throw new Error(`Maximum withdrawal is $${maxAmt.toFixed(2)}`);
-          }
-          const currentBalanceForCustom = parseFloat(user.usdBalance || '0');
-          if (currentBalanceForCustom < customAmount) {
-            throw new Error(`Insufficient balance. You need $${customAmount.toFixed(2)}.`);
-          }
-          packageUsdAmount = customAmount;
-        } else if (withdrawalPackage && withdrawalPackage !== 'FULL') {
-          const selectedPkg = withdrawalPackagesConfig.find((p: any) => p.usd === withdrawalPackage);
-          if (!selectedPkg) {
-            throw new Error('Invalid withdrawal package selected');
-          }
-          packageUsdAmount = selectedPkg.usd;
-          const currentUsdBalanceForPkg = parseFloat(user.usdBalance || '0');
-          if (packageUsdAmount !== null && currentUsdBalanceForPkg < packageUsdAmount) {
-            throw new Error(`Insufficient balance. You need $${packageUsdAmount.toFixed(2)} for this package.`);
-          }
-        }
-
-        // Check if user has appropriate wallet address based on method
-        let walletAddress: string;
-        if (method === 'TON') {
-          if (!tonWalletAddress) {
-            throw new Error('Please connect your TON wallet before withdrawing.');
-          }
-          walletAddress = tonWalletAddress;
-        } else if (method === 'USD' || method === 'USDT') {
-          if (!user.usdtWalletAddress) {
-            throw new Error('USD address not set');
-          }
-          walletAddress = user.usdtWalletAddress;
-        } else if (method === 'STARS') {
-          if (!user.telegramStarsUsername) {
-            throw new Error('Telegram username not set');
-          }
-          walletAddress = user.telegramStarsUsername;
-        } else {
-          throw new Error('Invalid withdrawal method');
-        }
-
-        const currentUsdBalance = parseFloat(user.usdBalance || '0');
-
-        // Get minimum withdrawal and fee settings from admin settings
-        const [minWithdrawalSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'minimum_withdrawal_usd'))
-          .limit(1);
-        const minimumWithdrawalUSD = parseFloat(minWithdrawalSetting?.settingValue || '1.00');
-
-        const [minWithdrawalTONSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'minimum_withdrawal_ton'))
-          .limit(1);
-        const minimumWithdrawalTON = parseFloat(minWithdrawalTONSetting?.settingValue || '0.5');
-
-        const [feePercentTONSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'withdrawal_fee_ton'))
-          .limit(1);
-        const feePercentTON = parseFloat(feePercentTONSetting?.settingValue || '5') / 100;
-
-        const [feePercentUSDSetting] = await tx
-          .select({ settingValue: adminSettings.settingValue })
-          .from(adminSettings)
-          .where(eq(adminSettings.settingKey, 'withdrawal_fee_usd'))
-          .limit(1);
-        const feePercentUSD = parseFloat(feePercentUSDSetting?.settingValue || '3') / 100;
-
-        // Calculate withdrawal amount and fee (ALL IN USD ONLY)
-        let withdrawalAmount: number; // Always in USD
-        let fee: number;
-        let usdToDeduct: number;
-        withdrawalDetails = {
-          paymentDetails: walletAddress,
-          walletAddress: walletAddress,
-          method: method
-        };
-        if (axnAmountInput !== null && !isNaN(axnAmountInput) && axnAmountInput > 0) {
-          withdrawalDetails.axnAmount = axnAmountInput;
-          withdrawalDetails.axnPerUsd = Gems_PER_USD;
-        }
-
-        if (method === 'STARS') {
-          if (!starPackage) {
-            throw new Error('Star package selection is required for Telegram Stars withdrawal');
-          }
-
-          const starPackages = [
-            { stars: 15, usdCost: 0.30 },
-            { stars: 25, usdCost: 0.50 },
-            { stars: 50, usdCost: 1.00 },
-            { stars: 100, usdCost: 2.00 }
-          ];
-
-          const selectedPkg = starPackages.find(p => p.stars === starPackage);
-          if (!selectedPkg) {
-            throw new Error('Invalid star package selected');
-          }
-
-          const totalCost = selectedPkg.usdCost * 1.05;
-          if (currentUsdBalance < totalCost) {
-            throw new Error(`Insufficient balance. You need $${totalCost.toFixed(2)} (including 5% fee)`);
-          }
-
-          withdrawalAmount = selectedPkg.usdCost; // USD amount
-          fee = selectedPkg.usdCost * 0.05;
-          usdToDeduct = totalCost;
-          withdrawalDetails.starPackage = starPackage;
-          withdrawalDetails.stars = starPackage;
-          withdrawalDetails.telegramUsername = walletAddress;
-        } else {
-          // TON or USD withdrawal - package-based or FULL balance
-          const isAxnWithdrawal = axnAmountInput !== null && !isNaN(axnAmountInput) && axnAmountInput > 0;
-          if (!isAxnWithdrawal && currentUsdBalance <= 0) {
-            throw new Error('Insufficient balance for withdrawal');
-          }
-
-          // Determine the USD amount to withdraw based on package selection
-          let baseAmount: number;
-          if (isAxnWithdrawal) {
-            // Gems is the source balance; packageUsdAmount is its USD equivalent.
-            // Do not require or read legacy usdBalance for this path.
-            baseAmount = packageUsdAmount!;
-          } else if (packageUsdAmount !== null) {
-            // Package-based withdrawal: use exact package amount
-            baseAmount = packageUsdAmount;
-          } else {
-            // FULL withdrawal: use full balance
-            baseAmount = currentUsdBalance;
-
-            // Check minimum withdrawal requirement only for FULL withdrawals
-            const requiredMinimum = method === 'TON' ? minimumWithdrawalTON : minimumWithdrawalUSD;
-            if (baseAmount < requiredMinimum) {
-              throw new Error(`Minimum ${requiredMinimum.toFixed(2)}`);
-            }
-          }
-
-          // Use admin-configured fees: TON and USD have different fees
-          const feePercent = method === 'TON' ? feePercentTON : feePercentUSD;
-          fee = baseAmount * feePercent;
-          withdrawalAmount = baseAmount - fee; // USD amount after fee
-          usdToDeduct = baseAmount;
-
-          // Store package info if applicable
-          if (packageUsdAmount !== null) {
-            withdrawalDetails.withdrawalPackage = packageUsdAmount;
-          }
-          withdrawalDetails.starDeducted = 0;
-
-          // Store wallet address based on method
-          if (method === 'TON') {
-            withdrawalDetails.tonWalletAddress = walletAddress;
-          } else if (method === 'USD' || method === 'USDT') {
-            withdrawalDetails.usdtWalletAddress = walletAddress;
-          }
-        }
-
-        console.log(`📝 Creating withdrawal request for $${withdrawalAmount.toFixed(2)} USD via ${method} (balance will be deducted on approval)`);
-
-        // Store the fee percentage from admin settings for consistent display
-        const feePercentForDetails = method === 'TON' ? feePercentTON : (method === 'STARS' ? 0.05 : feePercentUSD);
-        withdrawalDetails.totalDeducted = usdToDeduct.toFixed(10);
-        withdrawalDetails.fee = fee.toFixed(10);
-        withdrawalDetails.feePercent = (feePercentForDetails * 100).toString(); // Store exact percentage (e.g., "5" or "2.5")
-        withdrawalDetails.requestedAmount = usdToDeduct.toFixed(10); // Total amount before fee
-        withdrawalDetails.netAmount = withdrawalAmount.toFixed(10); // Amount after fee
-
-        const withdrawalData: any = {
-          userId,
-          amount: withdrawalAmount.toFixed(10),
-          method: method,
-          status: 'pending',
-          deducted: false,
-          refunded: false,
-          details: withdrawalDetails
-        };
-
-        const [withdrawal] = await tx.insert(withdrawals).values(withdrawalData).returning();
-
-        // NOTE: Balance is NOT deducted here - it will be deducted ONLY when admin approves the withdrawal
-        // This prevents "insufficient balance" errors during approval when balance was already deducted at request time
-        console.log(`📋 Withdrawal request created for $${usdToDeduct.toFixed(2)} USD (balance will be deducted on admin approval)`);
-
-        return {
-          withdrawal,
-          withdrawnAmount: withdrawalAmount, // USD amount
-          fee: fee,
-          feePercent: (feePercentForDetails * 100).toString(), // Fee percentage as string (exact value)
-          method: method,
-          starPackage: method === 'STARS' ? starPackage : undefined,
-          userTelegramId: user.telegram_id,
-          username: user.username,
-          firstName: user.firstName || user.username || 'Unknown',
-          walletAddress: walletAddress
-        };
-      });
-
-      console.log(`✅ Withdrawal request created: ${newWithdrawal.withdrawal.id} for user ${userId}, amount: $${newWithdrawal.withdrawnAmount.toFixed(2)} via ${newWithdrawal.method}`);
-
-      // Send withdrawal_requested notification via WebSocket
-      sendRealtimeUpdate(userId, {
-        type: 'withdrawal_requested',
-        amount: newWithdrawal.withdrawnAmount.toFixed(2),
-        method: newWithdrawal.method,
-        message: 'You have sent a withdrawal request.'
-      });
-
-      // Send the request only to the configured admin withdrawal group.
-      const userName = newWithdrawal.firstName;
-      const userTelegramId = newWithdrawal.userTelegramId || '';
-      const userTelegramUsername = newWithdrawal.username ? `@${newWithdrawal.username}` : 'N/A';
-      const walletAddress = newWithdrawal.walletAddress || 'N/A';
-      const feeAmount = newWithdrawal.fee;
-      const feePercent = newWithdrawal.feePercent;
-      const { sendWithdrawalRequestToAdmins } = await import('./telegram');
-      const { getLiveTonPriceUSD } = await import('./tonPriceService');
-      const { price: currentTonPrice, source: currentTonPriceSource } = await getLiveTonPriceUSD();
-      if (currentTonPriceSource.includes('(stale)')) {
-        console.warn(`⚠️ Withdrawal ${newWithdrawal.withdrawal.id} notification uses stale TON price source: ${currentTonPriceSource}`);
-      }
-
-      const axnAmtForGroup = (newWithdrawal.withdrawal.details as any)?.axnAmount
-        ? parseFloat((newWithdrawal.withdrawal.details as any).axnAmount)
-        : undefined;
-      await sendWithdrawalRequestToAdmins({
-        withdrawalId: newWithdrawal.withdrawal.id,
-        userTelegramId,
-        userName,
-        userTelegramUsername,
-        walletAddress,
-        amount: newWithdrawal.withdrawnAmount,
-        fee: feeAmount,
-        feePercent,
-        axnAmount: axnAmtForGroup,
-        tonPrice: currentTonPrice,
-        tonAmount: Number((newWithdrawal.withdrawal as any).cryptoAmount || (newWithdrawal.withdrawal.details as any)?.tonAmount || (newWithdrawal.withdrawnAmount / currentTonPrice)),
-        usdAmount: newWithdrawal.withdrawnAmount,
-      }).catch(err => console.error('❌ Private admin withdrawal request delivery failed:', err));
-
-
-      res.json({
-        success: true,
-        message: 'You have sent a withdrawal request',
-        withdrawal: {
-          id: newWithdrawal.withdrawal.id,
-          amount: newWithdrawal.withdrawal.amount,
-          status: newWithdrawal.withdrawal.status,
-          method: newWithdrawal.withdrawal.method,
-          createdAt: newWithdrawal.withdrawal.createdAt
-        }
-      });
-
-    } catch (error) {
-      console.error('❌ Error creating withdrawal request:', error);
-      console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
-      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create withdrawal request';
-
-      // Return 400 for validation errors (user-facing errors), 500 for system errors
-      // Use substring matching to catch all variations of user-facing errors
-      const isValidationError =
-        errorMessage.includes('Insufficient') ||
-        errorMessage.includes('balance') ||
-        errorMessage.includes('Minimum withdrawal') ||
-        errorMessage.includes('User not found') ||
-        errorMessage.includes('wallet address') ||
-        errorMessage.includes('invite') ||
-        errorMessage.includes('friends') ||
-        errorMessage.includes('already in use') ||
-        errorMessage.includes('Cannot create new request') ||
-        errorMessage.includes('Star package') ||
-        errorMessage.includes('Invalid') ||
-        errorMessage.includes('banned') ||
-        errorMessage.includes('complete at least') ||
-        errorMessage.includes('more ad');
-
-      if (isValidationError) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: errorMessage
-      });
-    }
+  // Legacy multi-currency creation is disabled. New requests go through /api/payouts and use AXN only.
+  app.post('/api/withdrawals', authenticateTelegram, requireVerifiedSession, withdrawRateLimit, async (_req: any, res) => {
+    return res.status(410).json({ success: false, message: 'This withdrawal endpoint is retired. Submit an AXN withdrawal request instead.' });
   });
-
-  // Alternative withdrawal endpoint for compatibility - /api/withdraw
   // TON balance is ONLY for task creation (advertising). Withdrawal is blocked.
   app.post('/api/withdraw', async (req: any, res) => {
     return res.status(403).json({
       success: false,
-      message: 'TON balance can only be used to create advertising tasks. Withdrawal is not available.'
+      message: 'This legacy withdrawal endpoint is retired. Submit an AXN withdrawal request instead.'
     });
 
   });
@@ -10899,10 +10327,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fakeWithdrawal = {
         id: 'test-000',
         userId: req.user.user.id,
-        amount: '0.50',
-        method: 'TON',
+        amount: '0.455',
+        method: 'AXN',
+        goldAmount: '0.5',
+        payoutCurrency: 'AXN',
         details: {
-          netAmount: '0.50',
+          axnAmount: 0.5,
+          netAxn: 0.455,
+          feeAxn: 0.045,
           paymentDetails: 'TEST_WALLET_ADDRESS',
           walletAddress: 'TEST_WALLET_ADDRESS'
         }

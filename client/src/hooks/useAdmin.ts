@@ -9,7 +9,8 @@ export type AdminPermission =
   | 'manage_settings'
   | 'manage_promos'
   | 'manage_admins'
-  | 'manage_bans';
+  | 'manage_bans'
+  | 'manage_market';
 
 export type AdminRole = 'super_admin' | 'finance' | 'moderator' | 'content';
 

@@ -6,6 +6,7 @@ import DepositPopup from "@/components/DepositPopup";
 import { TonIcon } from "@/components/TonIcon";
 import { useLocation } from "wouter";
 import { getTONPrice } from "@/lib/tonPriceService";
+import { apiRequest } from "@/lib/queryClient";
 
 interface HeaderProps {
   onInviteOpen?: () => void;
@@ -59,11 +60,8 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
     }
   }, [withdrawalsData]);
 
-  const hasConfirmedGoldBalance = user?.balance !== undefined && user?.balance !== null;
-  const rawGoldBalance = hasConfirmedGoldBalance ? parseFloat(String(user.balance)) : null;
-  const goldBalance = rawGoldBalance === null ? null : rawGoldBalance < 1
-    ? Math.round(rawGoldBalance * 10_000_000)
-    : Math.round(rawGoldBalance);
+  const hasConfirmedAxnBalance = user?.axnBalance !== undefined && user?.axnBalance !== null;
+  const axnBalance = hasConfirmedAxnBalance ? Number(user.axnBalance) : null;
 
     const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null
       ? null
@@ -114,6 +112,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
         }}
       >
         {location === '/mission' && <ResetCountdownBanner />}
+        {location === '/' || location === '/mining' ? <AxnTokenPriceBanner /> : null}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -125,9 +124,9 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
           {/* AXN balance and TON balance */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ minWidth: 100, height: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 11 }}>
-              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
+              <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
               <span style={{ color: '#fff', fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {goldBalance === null || !Number.isFinite(goldBalance) ? '—' : goldBalance.toLocaleString()}
+                {axnBalance === null || !Number.isFinite(axnBalance) ? '—' : Math.floor(axnBalance).toLocaleString()}
               </span>
             </div>
             <button
@@ -159,7 +158,7 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
                   <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.1)', margin: '12px auto 20px' }} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff', fontSize: 18, fontWeight: 800 }}>Transactions</div>
                   <div style={{ background: 'rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
-                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 5).map((item: any) => { const color = statusColor(String(item.status || '').toLowerCase()); const details = item.details || {}; const gold = Number(item.goldAmount ?? details.goldAmount ?? item.amount ?? 0); const ton = Number(details.tonAmount ?? item.cryptoAmount ?? details.cryptoAmount ?? (tonPrice ? Number(item.usdValue ?? details.usdValue ?? item.amount ?? 0) / tonPrice : NaN)); const date = new Date(item.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={item.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 22, height: 22, objectFit: 'contain' }} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{gold.toLocaleString()} AXN</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{Number.isFinite(ton) && ton > 0 ? ton.toFixed(6) : '—'} TON</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, color: 'rgba(255,255,255,.35)', fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: 'uppercase', letterSpacing: '.04em' }}>{item.status || 'pending'}</span></div></div>; })}
+                    {withdrawals.length === 0 ? <div style={{ padding: 26, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>No transactions yet</div> : withdrawals.slice(0, 5).map((item: any) => { const color = statusColor(String(item.status || '').toLowerCase()); const details = item.details || {}; const gold = Number(item.goldAmount ?? details.goldAmount ?? item.amount ?? 0); const ton = Number(details.tonAmount ?? item.cryptoAmount ?? details.cryptoAmount ?? (tonPrice ? Number(item.usdValue ?? details.usdValue ?? item.amount ?? 0) / tonPrice : NaN)); const date = new Date(item.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); return <div key={item.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.05)' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: 22, height: 22, objectFit: 'contain' }} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{gold.toLocaleString()} AXN</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}><TonIcon size={20} /><span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{Number.isFinite(ton) && ton > 0 ? ton.toFixed(6) : '—'} TON</span></div></div><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, color: 'rgba(255,255,255,.35)', fontSize: 10 }}><span>{date}</span><span style={{ fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: `${color}18`, border: `1px solid ${color}40`, color, textTransform: 'uppercase', letterSpacing: '.04em' }}>{item.status || 'pending'}</span></div></div>; })}
                   </div>
                 </section>
               </div>
@@ -173,6 +172,26 @@ const Header = forwardRef<HTMLDivElement, HeaderProps>(
   }
 );
 
+const AxnTokenPriceBanner = () => {
+  const { data } = useQuery<any>({
+    queryKey: ["/api/axn-market", "24H", "header"],
+    queryFn: async () => (await apiRequest("GET", "/api/axn-market?hours=720")).json(),
+    staleTime: 15_000,
+    refetchInterval: 20_000,
+    retry: false,
+  });
+  const liveUsd = Number(data?.price?.usd);
+  const price = Number.isFinite(liveUsd) && liveUsd > 0 ? `$${liveUsd.toFixed(12)}` : "—";
+  return (
+    <div style={{ background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "5px 16px", color: "#e9d5ff" }}>
+      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(216,180,254,.7)" }}>Live</span>
+      <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
+      <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".04em" }}>AXN token</span>
+      <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
+      <span style={{ fontSize: 13, fontWeight: 800, fontFamily: "Roboto Mono", color: "#e9d5ff" }}>{price}</span>
+    </div>
+  );
+};
 const ResetCountdownBanner = () => {
   const [resetCountdown, setResetCountdown] = useState("");
   const [nextResetLabel, setNextResetLabel] = useState("");
@@ -218,7 +237,7 @@ const ResetCountdownBanner = () => {
   return (
     <div
       style={{
-        background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
+        background: "#0f0f0f",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

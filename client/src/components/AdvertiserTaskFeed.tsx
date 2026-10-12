@@ -103,7 +103,7 @@ function TaskCard({
           </p>
           <div style={{ display: "flex", alignItems: "center", marginTop: 5 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: "50%" }} />
+              <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: "50%" }} />
               <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{reward.toLocaleString()}</span>
             </span>
           </div>

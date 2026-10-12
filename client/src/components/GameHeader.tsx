@@ -4,13 +4,15 @@ import { Clock, LogOut, Plus } from "lucide-react";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { TonIcon } from "@/components/TonIcon";
 import DepositPopup from "@/components/DepositPopup";
-import { toAxnBalance } from "@shared/axnBalance";
+import { useLocation } from "wouter";
+import { formatCompactAxn } from "@/lib/formatAxn";
 
 interface GameHeaderProps {}
 const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
   const [overlayTop, setOverlayTop] = useState(0);
   const innerRef = useRef<HTMLDivElement>(null);
   const [depositOpen, setDepositOpen] = useState(false);
+  const [location] = useLocation();
   const [tonConnectUI] = useTonConnectUI();
   const connectedAddress = useTonAddress();
   useImperativeHandle(ref, () => innerRef.current!);
@@ -20,7 +22,8 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
     retry: false,
     staleTime: 0,
   });
-  const axnBalance = toAxnBalance(user?.balance);
+  const axnBalance = Math.max(0, Number(user?.axnBalance ?? 0));
+  const profileImage = user?.profileImageUrl || user?.profile_image_url || "/assets/axionet-icon.webp";
   const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
   useEffect(() => {
@@ -55,11 +58,14 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
       <div ref={innerRef} className="fixed top-0 left-0 right-0 z-40" style={{ background: "#0f0f0f", paddingTop: `${overlayTop + 6}px` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", padding: "8px 12px 10px", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,.08)" }}>
+            <img src={profileImage} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", flex: "0 1 auto", minWidth: 82, maxWidth: "calc(100% - 88px)", height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{axnBalance.toLocaleString()}</span>
+            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatCompactAxn(axnBalance)}</span>
           </div>
           <button
             type="button"
@@ -75,11 +81,28 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
         </div>
           <button type="button" onClick={() => tonConnectUI.openModal()} aria-label={connectedAddress ? `Connected wallet ${connectedAddress}. Open wallet options` : "Connect TON wallet"} title={connectedAddress || "Connect Wallet"} className="active:scale-95 transition-transform" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 10px", minWidth: 112, maxWidth: 160, height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", border: "none", borderRadius: 10, cursor: "pointer", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><LogOut size={15} />{connectedAddress ? `${connectedAddress.slice(0, 6)}…${connectedAddress.slice(-4)}` : "Connect Wallet"}</button>
       </div>
-      {window.location.pathname === "/mission" && <ResetCountdownBanner />}
+      {location === "/mission" && <ResetCountdownBanner />}
+      {(location === "/" || location === "/mining") && <AxnTokenPriceBanner />}
       <DepositPopup open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );
 });
+
+function AxnTokenPriceBanner() {
+  return (
+    <div style={{
+      background: "#0f0f0f",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+      padding: "5px 16px", color: "#e9d5ff",
+    }}>
+      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(216,180,254,.7)" }}>Live</span>
+      <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".04em" }}>AXN token</span>
+      <div style={{ width: 1, height: 11, background: "rgba(216,180,254,.25)" }} />
+      <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "Roboto Mono", color: "#e9d5ff" }}>$0.000010</span>
+    </div>
+  );
+}
 
 function ResetCountdownBanner() {
   const [resetCountdown, setResetCountdown] = useState("");
@@ -124,7 +147,7 @@ function ResetCountdownBanner() {
     <div
       aria-label={`Ad limit resets at ${nextResetLabel}, in ${resetCountdown}`}
       style={{
-        background: "linear-gradient(90deg, #0d0d1a 0%, #1a0d3d 35%, #3d1580 65%, #6b21a8 100%)",
+        background: "#0f0f0f",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         padding: "5px 16px",
       }}
