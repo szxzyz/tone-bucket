@@ -5,6 +5,7 @@ import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { TonIcon } from "@/components/TonIcon";
 import DepositPopup from "@/components/DepositPopup";
 import { useLocation } from "wouter";
+import { formatCompactAxn } from "@/lib/formatAxn";
 
 interface GameHeaderProps {}
 const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
@@ -64,7 +65,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
               <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{axnBalance.toLocaleString("en-US", { maximumFractionDigits: 6 })}</span>
+            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatCompactAxn(axnBalance)}</span>
           </div>
           <button
             type="button"

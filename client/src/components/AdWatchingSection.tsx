@@ -7,6 +7,7 @@ import { useAdSession } from "@/hooks/useAdSession";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAdFlow } from "@/hooks/useAdFlow";
 import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerification } from "@/lib/adRewardClaim";
+import { showAdsgramRewardAd } from "@/lib/adsgram";
 
 interface AdWatchingSectionProps {
   user: any;
@@ -92,40 +93,6 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
     },
   });
 
-  const showAdsgramAd = (): Promise<{ success: boolean; unavailable: boolean }> =>
-    new Promise((resolve) => {
-      const blockId = appConfig?.adsgramRewardBlockId || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '';
-      if (!blockId) {
-        resolve({ success: false, unavailable: true });
-        return;
-      }
-
-      // AdsGram loads asynchronously in index.html. Wait briefly for the SDK
-      // instead of treating a slow script load as an empty ad inventory.
-      const startedAt = Date.now();
-      const tryShow = () => {
-        if (window.Adsgram) {
-          window.Adsgram.init({ blockId })
-            .show()
-            .then((result: any) => resolve({
-              // A resolved AdsGram rewarded promise means the ad was completed.
-              // Keep an explicit guard for SDK versions that resolve with an
-              // unfinished or error payload instead of rejecting.
-              success: result?.done !== false && result?.error !== true,
-              unavailable: false,
-            }))
-            .catch(() => resolve({ success: false, unavailable: false }));
-          return;
-        }
-        if (Date.now() - startedAt >= 10_000) {
-          resolve({ success: false, unavailable: true });
-          return;
-        }
-        window.setTimeout(tryShow, 200);
-      };
-      tryShow();
-    });
-
   const visibleCards = appSettings === undefined || appConfig === undefined
     ? []
     : AD_CARDS.filter((card) => {
@@ -188,7 +155,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
       let result: { success: boolean; unavailable: boolean };
 
       if (card.adType === "adsgram") {
-        result = await showAdsgramAd();
+        result = await showAdsgramRewardAd(appConfig?.adsgramRewardBlockId || import.meta.env.VITE_ADSGRAM_BLOCK_ID || '');
       } else if (card.adType === "monetag") {
         const r = await showMonetagAd(sessionId, "ads_watch");
         result  = { success: r.success, unavailable: r.unavailable };

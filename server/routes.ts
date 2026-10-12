@@ -1863,12 +1863,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid session ID", errorType: 'invalid_session' });
       }
 
-      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost'];
+      const allowedContexts = ['ads_watch', 'mission_ad', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost', 'mining_claim'];
       const normalizedContext = allowedContexts.includes(context ?? '') ? (context as string) : 'ads_watch';
       const allowedAdTypes =
         normalizedContext === 'mission_ad' ? ['monetag', 'gigapub']
         : normalizedContext === 'promo_code' ? ['adsgram']
         : normalizedContext === 'farming_boost' ? ['adsgram']
+        : normalizedContext === 'mining_claim' ? ['adsgram']
         : (normalizedContext === 'daily_checkin' || normalizedContext === 'mystery_box') ? ['adsgram']
         : ['adsgram', 'monetag', 'gigapub', 'uslads'];
       const normalizedAdType = allowedAdTypes.includes(adType ?? '') ? (adType as string) : null;
@@ -1876,7 +1877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ad type", errorType: 'invalid_ad_type' });
       }
       const adsgramUsesSdkCompletion = normalizedAdType === 'adsgram'
-        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost'].includes(normalizedContext);
+        && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost', 'mining_claim'].includes(normalizedContext);
       if (!hasTrustedRewardCallback(normalizedAdType) && !adsgramUsesSdkCompletion) {
         return res.status(503).json({
           message: `${normalizedAdType} rewards are paused until trusted server-side ad verification is configured.`,
@@ -2020,7 +2021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, errorType: 'invalid_session' });
       }
       const allowedContexts = provider === 'adsgram'
-        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost']
+        ? ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'farming_boost', 'mining_claim']
         : ['ads_watch'];
       if (session.adType !== provider || !allowedContexts.includes(session.context)) {
         return res.status(400).json({ success: false, errorType: 'invalid_provider' });
@@ -2122,7 +2123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [recentSession] = await db.select().from(adSessions)
         .where(and(
           eq(adSessions.userId, user.id),
-          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost']),
+          inArray(adSessions.context, ['ads_watch', 'daily_checkin', 'mystery_box', 'promo_code', 'farming_boost', 'mining_claim']),
           eq(adSessions.adType, 'adsgram'),
           gte(adSessions.registeredAt, recentCutoff),
         ))
@@ -3103,7 +3104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // to plausibly contain an ad view. AdsGram additionally requires one
   // background/minimize event; no minimum background duration is required.
   const consumeRewardAdSession = async (
-    tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box' | 'promo_code',
+    tx: any, userId: string, body: any, context: 'daily_checkin' | 'mystery_box' | 'promo_code' | 'mining_claim',
   ): Promise<boolean | 'pending'> => {
     const sessionId = body?.sessionId;
     if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 10) return false;
@@ -3123,7 +3124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     if (!session) return false;
     const adsgramUsesSdkCompletion = session.adType === 'adsgram'
-      && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box'].includes(context);
+      && ['ads_watch', 'promo_code', 'daily_checkin', 'mystery_box', 'mining_claim'].includes(context);
     if (!hasTrustedRewardCallback(session.adType) && !adsgramUsesSdkCompletion) return false;
     // AdsGram SDK completion is checked against a persisted callback below.
     // Background lifecycle events are unreliable in embedded Telegram clients.
@@ -9866,6 +9867,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
         const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
         const reward = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now.getTime(), Number.POSITIVE_INFINITY);
+        if (reward <= 0) return { httpStatus: 400, message: 'No AXN reward is ready to claim' };
+        const adVerified = await consumeRewardAdSession(tx, userId, req.body, 'mining_claim');
+        if (adVerified === 'pending') return { httpStatus: 202, message: 'Waiting for AdsGram completion verification' };
+        if (!adVerified) return { httpStatus: 400, message: 'Complete an AdsGram ad before claiming mining rewards' };
         const amount = normalizeAxnAmount(reward);
         const claimedAt = new Date(Math.max(now.getTime(), lastAccrualAt + 1));
         const startedUpdate = user.miningStartedAt ?? startedAtDate;
@@ -9880,7 +9885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           miningAccrualLevel: levelAfterCredit,
           updatedAt: now,
         }).where(and(eq(users.id, userId), user.miningStartedAt ? eq(users.miningStartedAt, user.miningStartedAt) : sql`${users.miningStartedAt} IS NULL`)).returning({ id: users.id });
-        if (!updated.length) return { httpStatus: 409, message: 'Mining claim changed concurrently; refresh and try again' };
+        if (!updated.length) throw new Error('MINING_CLAIM_CONFLICT');
         if (reward > 0) {
           await tx.insert(earnings).values({
             userId,
@@ -9892,9 +9897,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         return { success: true, amount: reward, continuous: true, currentLevel: levelAfterCredit };
       });
-      if ('httpStatus' in result) return res.status(result.httpStatus).json({ message: result.message });
+      if ('httpStatus' in result) {
+        if (result.httpStatus === 202) {
+          return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending', message: result.message });
+        }
+        return res.status(result.httpStatus).json({ message: result.message });
+      }
       return res.json(result);
     } catch (error) {
+      if ((error as any)?.message === 'MINING_CLAIM_CONFLICT') {
+        return res.status(409).json({ message: 'Mining claim changed concurrently; refresh and try again' });
+      }
       console.error('Continuous miner claim error:', error);
       return res.status(500).json({ message: 'Could not claim mining reward' });
     }

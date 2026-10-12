@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress } from '../shared/minerLogic';
+import { formatCompactAxn } from '../client/src/lib/formatAxn';
 
 const tiers = [
   { level: 1, requiredHolding: 0, miningPowerTHs: 0.20, dailyYieldAXN: 5, displayValueUSD: 0.0002422 },
@@ -23,6 +24,9 @@ assert.equal(getMinerLevel(101, tiers).level, 3);
 assert.equal(getMinerLevel(102, tiers).level, 4);
 assert.equal(getMinerLevel(130, tiers).level, 10);
 assert.equal(getMinerLevel(99.99, tiers).level, 1);
+for (const [value, expected] of [[1, '1'], [1_000, '1K'], [1_100, '1.1K'], [10_000, '10K'], [100_000, '100K'], [1_000_000, '1M'], [1_000_000_000, '1B']] as const) {
+  assert.equal(formatCompactAxn(value), expected);
+}
 
 const oneHour = calculateAccruedAxn(0, 5, 0, 0, 3_600_000, 3_600);
 assert.equal(oneHour, Number((5 / 24).toFixed(10)));
@@ -36,4 +40,4 @@ assert.equal(calculateAccruedAxn(beforeUpgrade, 6, 86_400_000, 86_400_000, 172_8
 const beforeDowngrade = calculateAccruedAxn(0, 6, 0, 0, 86_400_000, Number.POSITIVE_INFINITY);
 assert.equal(calculateAccruedAxn(beforeDowngrade, 5, 86_400_000, 86_400_000, 172_800_000, Number.POSITIVE_INFINITY), 11);
 
-console.log('miner logic tests passed: thresholds, progress, fractional/daily accrual, tier changes, cycle cap, and negative time');
+console.log('miner logic and AXN display tests passed: thresholds, progress, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
