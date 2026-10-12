@@ -344,7 +344,7 @@ function AdWatchingSection({ user, hideTitle }: AdWatchingSectionProps) {
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
+                        <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: 18, height: 18, objectFit: "contain" }} />
                         <span style={{ fontSize: 15, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>{reward}</span>
                       </span>
                       <span aria-label={`${watched} of ${limit} ads watched`} style={{ padding: "3px 7px", borderRadius: 8, background: "rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: limitReached ? "rgba(239,68,68,0.9)" : "rgba(255,255,255,0.55)" }}>

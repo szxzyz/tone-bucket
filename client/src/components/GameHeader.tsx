@@ -22,7 +22,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
     staleTime: 0,
   });
   const axnBalance = Math.max(0, Math.floor(Number(user?.axnBalance ?? 0)));
-  const profileImage = user?.profileImageUrl || user?.profile_image_url || "/assets/axionet-mining.webp";
+  const profileImage = user?.profileImageUrl || user?.profile_image_url || "/assets/axionet-icon.webp";
   const tonBalance = user?.tonBalance === undefined || user?.tonBalance === null ? null : parseFloat(String(user.tonBalance));
 
   useEffect(() => {
@@ -62,7 +62,7 @@ const Header = forwardRef<HTMLDivElement, GameHeaderProps>((_props, ref) => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", flex: "0 1 auto", minWidth: 82, maxWidth: "calc(100% - 88px)", height: 38, boxSizing: "border-box", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
             <div style={{ width: 20, height: 20, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-              <img src="/assets/axionet-mining.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              <img src="/assets/axionet-icon.webp" alt="AXN" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             </div>
             <span style={{ color: "#fff", fontSize: 16, fontWeight: 900, fontVariantNumeric: "tabular-nums", lineHeight: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{axnBalance.toLocaleString()}</span>
           </div>
