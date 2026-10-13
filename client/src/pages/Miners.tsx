@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Gauge, Hexagon, Lock, Pickaxe, Sh
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import Layout from '@/components/Layout';
+import { formatMinerUsd } from '@/lib/formatMinerUsd';
 
 interface MinerTier {
   level: number;
@@ -19,7 +20,7 @@ interface MinersData {
   progressPercent: number;
   miners: MinerTier[];
 }
-const pageSize = 10;
+const pageSize = 8;
 const card: React.CSSProperties = {
   background: 'linear-gradient(145deg,#1a1c20 0%,#121317 100%)',
   border: '1px solid rgba(255,255,255,.07)',
@@ -29,7 +30,6 @@ const card: React.CSSProperties = {
 };
 const compact = (value: number) => new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 const pretty = (value: number, max = 2) => value.toLocaleString('en', { maximumFractionDigits: max });
-const centerUsd = (value: number) => value <= 0 ? '0' : value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
 const smallUsd = (value: number) => value <= 0 ? '$0.00' : `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
 
 export default function Miners() {
@@ -54,6 +54,9 @@ export default function Miners() {
     () => visibleTiers.slice(safePage * pageSize, (safePage + 1) * pageSize),
     [visibleTiers, safePage],
   );
+  const rangeLabel = visible.length
+    ? `${Number(visible[0].level)}–${Number(visible[visible.length - 1].level)} / ${miners.length}`
+    : `0–0 / ${miners.length}`;
   // The seeded tier USD estimates encode a consistent approximate AXN/USD rate.
   const axnUsdPrice = useMemo(() => {
     const prices = miners
@@ -99,7 +102,7 @@ export default function Miners() {
           </div>
 
           <div style={{ marginTop: 6, minHeight: 62, boxSizing: 'border-box', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, background: 'linear-gradient(145deg,#0e0f12,#08090b)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5px 3px' }}>
-            <div style={{ color: '#93c5fd', fontSize: 18, lineHeight: 1.1, fontWeight: 950, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{centerUsd(valueUsd)} <span style={{ fontSize: 16 }}>$</span></div>
+            <div style={{ color: '#93c5fd', fontSize: 18, lineHeight: 1.1, fontWeight: 950, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatMinerUsd(valueUsd)}</div>
             <div style={{ color: 'rgba(255,255,255,.55)', fontSize: 10, letterSpacing: '.04em', marginTop: 2 }}>{pretty(required, 4)} AXN</div>
           </div>
 
@@ -128,7 +131,7 @@ export default function Miners() {
 
     {pages > 1 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
       <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0} aria-label="Previous page" style={{ ...card, padding: '9px 12px', color: '#fff', opacity: safePage === 0 ? .4 : 1, display: 'inline-flex', gap: 6, alignItems: 'center' }}><ChevronLeft size={16}/> Previous</button>
-      <span style={{ color: '#9ca3af', fontSize: 11 }}>Page {safePage + 1} of {pages}</span>
+      <span style={{ color: '#9ca3af', fontSize: 11 }}>{rangeLabel}</span>
       <button type="button" onClick={() => setPage(Math.min(pages - 1, safePage + 1))} disabled={safePage >= pages - 1} aria-label="Next page" style={{ ...card, padding: '9px 12px', color: '#fff', opacity: safePage >= pages - 1 ? .4 : 1, display: 'inline-flex', gap: 6, alignItems: 'center' }}>Next <ChevronRight size={16}/></button>
     </div>}
     <p style={{ color: '#626670', fontSize: 10, textAlign: 'center', marginTop: 12 }}>*USD values are temporary estimates, not live prices.</p>
