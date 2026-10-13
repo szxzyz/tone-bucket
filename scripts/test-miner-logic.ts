@@ -108,7 +108,20 @@ const tiers249to394 = Array.from(
 );
 assert.equal(tiers249to394.length, 146);
 assert.deepEqual(tiers249to394.map((tier) => tier.level), Array.from({ length: 146 }, (_, index) => index + 249));
-const allTiers = [...tiers, ...addedTiers, ...nextAddedTiers, ...finalAddedTiers, ...latestAddedTiers, ...newestAddedTiers, ...newestTierRows, ...tiers249to394];
+const migration395to424 = readFileSync(new URL('../migrations/0024_miner_tiers_395_424.sql', import.meta.url), 'utf8');
+const tiers395to424 = Array.from(
+  migration395to424.matchAll(/\(\s*(\d+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/g),
+  (match) => ({
+    level: Number(match[1]),
+    requiredHolding: Number(match[2]),
+    miningPowerTHs: Number(match[3]),
+    dailyYieldAXN: Number(match[4]),
+    displayValueUSD: Number(match[5]),
+  }),
+);
+assert.equal(tiers395to424.length, 30);
+assert.deepEqual(tiers395to424.map((tier) => tier.level), Array.from({ length: 30 }, (_, index) => index + 395));
+const allTiers = [...tiers, ...addedTiers, ...nextAddedTiers, ...finalAddedTiers, ...latestAddedTiers, ...newestAddedTiers, ...newestTierRows, ...tiers249to394, ...tiers395to424];
 
 assert.equal(getEligibleHolding('0'), 0);
 assert.equal(getMinerLevel(0, tiers).level, 1);
@@ -168,6 +181,13 @@ assert.equal(getMinerLevel(122499.99, allTiers).level, 376);
 assert.equal(getMinerLevel(122500, allTiers).level, 377);
 assert.equal(getMinerLevel(151299.99, allTiers).level, 393);
 assert.equal(getMinerLevel(151300, allTiers).level, 394);
+assert.equal(getMinerLevel(153199.99, allTiers).level, 394);
+assert.equal(getMinerLevel(153200, allTiers).level, 395);
+assert.equal(getMinerProgress(151300, getMinerLevel(151300, allTiers), allTiers).remaining, 1900);
+assert.equal(getMinerLevel(166699.99, allTiers).level, 400);
+assert.equal(getMinerLevel(166700, allTiers).level, 401);
+assert.equal(getMinerLevel(278599.99, allTiers).level, 423);
+assert.equal(getMinerLevel(278600, allTiers).level, 424);
 assert.equal(formatMinerUsd(0.00064185), '$0.00064');
 assert.equal(formatMinerUsd(0.006), '$0.00600');
 assert.equal(formatMinerUsd(0), '$0.00000');
@@ -187,4 +207,4 @@ assert.equal(calculateAccruedAxn(beforeUpgrade, 6, 86_400_000, 86_400_000, 172_8
 const beforeDowngrade = calculateAccruedAxn(0, 6, 0, 0, 86_400_000, Number.POSITIVE_INFINITY);
 assert.equal(calculateAccruedAxn(beforeDowngrade, 5, 86_400_000, 86_400_000, 172_800_000, Number.POSITIVE_INFINITY), 11);
 
-console.log('miner logic and AXN display tests passed: levels 1–394, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
+console.log('miner logic and AXN display tests passed: levels 1–424, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
