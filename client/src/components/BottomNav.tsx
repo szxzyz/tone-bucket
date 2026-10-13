@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
+import { Hexagon, Pickaxe, Sparkles } from "lucide-react";
 
 const ACTIVE = "#ffffff";
 const DIM = "rgba(255,255,255,0.38)";
@@ -9,6 +10,14 @@ const MiningIcon = ({ active, c }: { active: boolean; c: string }) => (
     <path d="M3.5 20.5 12 12" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
     <path d="m7.1 7.7 2.1-2.1a6 6 0 0 1 8.5 0l2.7 2.7a1.5 1.5 0 0 1 0 2.1l-2.1 2.1a1.5 1.5 0 0 1-2.1 0l-6.9-6.9a1.5 1.5 0 0 0-2.1 0Z" fill={active ? c : "none"} opacity={active ? 0.14 : 1} stroke={c} strokeWidth="1.7" strokeLinejoin="round" />
   </svg>
+);
+
+const MinersIcon = ({ active, c }: { active: boolean; c: string }) => (
+  <span style={{ position: "relative", width: 30, height: 30, display: "grid", placeItems: "center", color: c }} aria-hidden="true">
+    <Hexagon size={24} strokeWidth={1.8} fill={active ? "rgba(255,255,255,0.1)" : "rgba(96,165,250,0.08)"} />
+    <Pickaxe size={14} strokeWidth={2.2} style={{ position: "absolute" }} />
+    <Sparkles size={9} strokeWidth={2.4} style={{ position: "absolute", top: 0, right: 0 }} />
+  </span>
 );
 
 const TasksIcon = ({ active, c }: { active: boolean; c: string }) => (
@@ -37,6 +46,7 @@ const AccountIcon = ({ active, c }: { active: boolean; c: string }) => (
 
 const TABS = [
   { id: "mining", key: "nav_mining", path: "/" },
+  { id: "miners", key: "nav_miners", path: "/miners" },
   { id: "mission", key: "nav_mission", path: "/mission" },
   { id: "friends", key: "nav_friends", path: "/affiliates" },
   { id: "account", key: "nav_account", path: "/account" },
@@ -65,12 +75,13 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {labels.map((tab) => {
+        const featured = tab.id === "miners";
         const active = tab.id === "mining"
           ? ["/", "/mining"].includes(currentPath)
           : tab.id === "mission"
             ? ["/mission", "/game", "/machine"].includes(currentPath)
           : currentPath === tab.path;
-        const color = active ? ACTIVE : DIM;
+        const color = featured ? (active ? "#ffffff" : "#bfdbfe") : active ? ACTIVE : DIM;
 
         return (
           <button
@@ -81,9 +92,21 @@ export default function BottomNav() {
             style={{
               flex: "1 1 0",
               minWidth: 0,
-              height: "100%",
-              border: "none",
-              background: "transparent",
+              height: featured ? "auto" : "100%",
+              boxSizing: "border-box",
+              border: featured ? `1px solid ${active ? "rgba(96,165,250,0.78)" : "rgba(96,165,250,0.34)"}` : "none",
+              borderRadius: featured ? 15 : 0,
+              margin: featured ? "6px 3px 5px" : 0,
+              background: featured
+                ? active
+                  ? "linear-gradient(145deg, rgba(37,99,235,0.52), rgba(109,40,217,0.35))"
+                  : "linear-gradient(145deg, rgba(37,99,235,0.24), rgba(109,40,217,0.16))"
+                : "transparent",
+              boxShadow: featured
+                ? active
+                  ? "0 0 18px rgba(59,130,246,0.28), inset 0 1px 0 rgba(255,255,255,0.12)"
+                  : "0 0 12px rgba(59,130,246,0.12), inset 0 1px 0 rgba(255,255,255,0.08)"
+                : "none",
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
@@ -91,10 +114,10 @@ export default function BottomNav() {
               justifyContent: "center",
               gap: 4,
               position: "relative",
-              padding: "6px 0 4px",
+              padding: featured ? "5px 0 4px" : "6px 0 4px",
             }}
           >
-            {active && (
+            {active && !featured && (
               <div
                 style={{
                   position: "absolute",
@@ -109,6 +132,7 @@ export default function BottomNav() {
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34 }}>
               {tab.id === "mining" ? <MiningIcon active={active} c={color} />
+                : tab.id === "miners" ? <MinersIcon active={active} c={color} />
                 : tab.id === "mission" ? <TasksIcon active={active} c={color} />
                 : tab.id === "friends" ? <FriendsIcon active={active} c={color} />
                 : <AccountIcon active={active} c={color} />}

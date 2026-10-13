@@ -16,6 +16,7 @@ interface LanguageContextType {
 const baseTranslations: Record<string, string> = {
   nav_home: 'Home',
   nav_mining: 'Mining',
+  nav_miners: 'Miners',
   nav_mission: 'Mission',
   nav_ads: 'Ads',
   nav_rank: 'Rank',
@@ -593,6 +594,7 @@ const translations: Record<string, Record<string, string>> = {
     with_verification: 'С проверкой',
     without_verification: 'Без проверки',
     nav_mining: 'Майнинг',
+    nav_miners: 'Майнеры',
     nav_mission: 'Задания',
     nav_ads: 'Реклама',
     nav_rank: 'Рейтинг',
