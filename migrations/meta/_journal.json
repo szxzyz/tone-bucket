@@ -64,6 +64,13 @@
       "when": 1791884257001,
       "tag": "0019_miner_tiers_111_128",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791884257002,
+      "tag": "0020_miner_tiers_129_144",
+      "breakpoints": true
     }
   ]
 }
