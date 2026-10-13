@@ -21,9 +21,9 @@ interface MinersData {
 }
 const pageSize = 10;
 const card: React.CSSProperties = {
-  background: 'linear-gradient(155deg,#0e192d 0%,#0a1221 100%)',
-  border: '1px solid rgba(127,154,190,.18)',
-  borderRadius: 18,
+  background: 'linear-gradient(145deg,#1a1c20 0%,#121317 100%)',
+  border: '1px solid rgba(255,255,255,.07)',
+  borderRadius: 14,
   padding: 10,
   boxShadow: '0 5px 14px rgba(0,0,0,.22)',
 };
@@ -81,45 +81,45 @@ export default function Miners() {
         const missing = Math.max(0, required - holding);
         const requiredUsd = required * axnUsdPrice;
         const missingUsd = missing * axnUsdPrice;
-        const cardBorder = active ? '2px solid #12d4e8' : next ? '1px solid rgba(34,199,235,.36)' : '1px solid rgba(127,154,190,.18)';
+        const cardBorder = active ? '1px solid rgba(96,165,250,.8)' : next ? '1px solid rgba(96,165,250,.38)' : '1px solid rgba(255,255,255,.07)';
         const buttonStyle: React.CSSProperties = {
-          width: '100%', minHeight: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '0 7px', border: active || next ? 0 : '1px solid rgba(22,201,231,.17)', borderRadius: 12,
-          background: active ? 'linear-gradient(105deg,#08c9df,#11d9ed)' : next ? 'linear-gradient(105deg,#06d4e8,#2588ff)' : '#171b23',
-          color: active || next ? '#061321' : '#087f9a', fontSize: 11, fontWeight: 900, letterSpacing: '.025em', opacity: 1,
+          width: '100%', height: 38, minHeight: 38, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          padding: '0 13px', border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, letterSpacing: '.02em', whiteSpace: 'nowrap',
+          background: active ? '#22c55e' : next ? 'linear-gradient(135deg,#2563eb,#3b82f6)' : 'rgba(255,255,255,.06)',
+          color: active || next ? '#fff' : 'rgba(255,255,255,.3)', cursor: 'default', opacity: 1, flexShrink: 0,
         };
 
         return <article key={level} style={{ ...card, minWidth: 0, padding: 8, border: cardBorder, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-            <div style={{ color: '#69d9ec', fontSize: 13, fontWeight: 800, letterSpacing: '.02em' }}>Level {level}</div>
-            <div aria-hidden="true" style={{ position: 'relative', width: 21, height: 21, display: 'grid', placeItems: 'center', color: '#20d1ef', flexShrink: 0 }}>
+            <div style={{ color: '#60a5fa', fontSize: 13, fontWeight: 800, letterSpacing: '.02em' }}>Level {level}</div>
+            <div aria-hidden="true" style={{ position: 'relative', width: 21, height: 21, display: 'grid', placeItems: 'center', color: '#60a5fa', flexShrink: 0 }}>
               <Hexagon size={21} strokeWidth={1.9} />
               <Pickaxe size={10} strokeWidth={2} style={{ position: 'absolute' }} />
             </div>
           </div>
 
-          <div style={{ marginTop: 6, minHeight: 62, boxSizing: 'border-box', border: '1px solid rgba(26,188,225,.34)', borderRadius: 14, background: 'linear-gradient(145deg,rgba(4,26,42,.92),rgba(7,24,38,.84))', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5px 3px' }}>
-            <div style={{ color: '#5be4f5', fontSize: 18, lineHeight: 1.1, fontWeight: 950, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{centerUsd(valueUsd)} <span style={{ fontSize: 16 }}>$</span></div>
-            <div style={{ color: '#a0adbc', fontSize: 10, letterSpacing: '.04em', marginTop: 2 }}>{pretty(required, 4)} AXN</div>
+          <div style={{ marginTop: 6, minHeight: 62, boxSizing: 'border-box', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, background: 'linear-gradient(145deg,#0e0f12,#08090b)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5px 3px' }}>
+            <div style={{ color: '#93c5fd', fontSize: 18, lineHeight: 1.1, fontWeight: 950, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{centerUsd(valueUsd)} <span style={{ fontSize: 16 }}>$</span></div>
+            <div style={{ color: 'rgba(255,255,255,.55)', fontSize: 10, letterSpacing: '.04em', marginTop: 2 }}>{pretty(required, 4)} AXN</div>
           </div>
 
           <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span style={{ color: '#96a1b3', fontSize: 11 }}>Speed</span>
-              <span style={{ color: '#f5f7fb', fontSize: 11, fontWeight: 900, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Gauge size={12} color="#65dff3" />{pretty(power)} TH/s</span>
+              <span style={{ color: 'rgba(255,255,255,.62)', fontSize: 11 }}>Speed</span>
+              <span style={{ color: '#fff', fontSize: 11, fontWeight: 900, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Gauge size={12} color="#fbbf24" />{pretty(power)} TH/s</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span style={{ color: '#55c9dc', fontSize: 11 }}>Base Rate</span>
-              <span style={{ color: '#26d9b1', fontSize: 11, fontWeight: 900, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}><TrendingUp size={12} color="#26d9b1" />+{pretty(yieldPerDay / 24)} /hr</span>
+              <span style={{ color: '#86efac', fontSize: 11 }}>Base Rate</span>
+              <span style={{ color: '#86efac', fontSize: 11, fontWeight: 900, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}><TrendingUp size={12} color="#86efac" />+{pretty(yieldPerDay / 24)} /hr</span>
             </div>
-            {!active && <div style={{ color: '#9ea7b4', fontSize: 9, textAlign: 'center', marginTop: 0 }}>Req: {smallUsd(requiredUsd)} USD</div>}
+            {!active && <div style={{ color: 'rgba(255,255,255,.55)', fontSize: 9, textAlign: 'center', marginTop: 0 }}>Req: {smallUsd(requiredUsd)} USD</div>}
           </div>
 
           <div style={{ marginTop: 'auto', paddingTop: 6 }}>
             <button type="button" disabled aria-label={active ? `Level ${level} active` : next ? `Need ${pretty(missing, 4)} AXN to unlock level ${level}` : `Level ${level} locked`} style={buttonStyle}>
               {active ? <><ShieldCheck size={17} />ACTIVE</> : next ? <><Zap size={18} fill="currentColor" />NEED {pretty(missing, 4)} AXN</> : <Lock size={17} />}
             </button>
-            {next && missing > 0 && <div style={{ color: '#62e2f3', fontSize: 10, fontWeight: 700, textAlign: 'center', marginTop: 4 }}>{smallUsd(missingUsd)} left to unlock</div>}
+            {next && missing > 0 && <div style={{ color: '#93c5fd', fontSize: 10, fontWeight: 700, textAlign: 'center', marginTop: 4 }}>{smallUsd(missingUsd)} left to unlock</div>}
           </div>
         </article>;
       })}
