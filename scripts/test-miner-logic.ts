@@ -254,7 +254,27 @@ assert.equal(tiers833to912.find((tier) => tier.level === 881)?.requiredHolding, 
 assert.equal(tiers833to912.find((tier) => tier.level === 912)?.requiredHolding, 697_500_000);
 assert.equal(tiers833to912.find((tier) => tier.level === 833)?.miningPowerTHs, 3_074.15);
 assert.equal(tiers833to912.find((tier) => tier.level === 912)?.dailyYieldAXN, 98_048.75);
-const allTiers = [...tiers, ...addedTiers, ...nextAddedTiers, ...finalAddedTiers, ...latestAddedTiers, ...newestAddedTiers, ...newestTierRows, ...tiers249to394, ...tiers395to424, ...tiers425to472, ...tiers473to520, ...tiers521to568, ...tiers569to616, ...tiers617to672, ...tiers673to752, ...tiers753to832, ...tiers833to912];
+const migration913to1000 = readFileSync(new URL('../migrations/0033_miner_tiers_913_1000.sql', import.meta.url), 'utf8');
+const tiers913to1000 = Array.from(
+  migration913to1000.matchAll(/\(\s*(\d+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/g),
+  (match) => ({
+    level: Number(match[1]),
+    requiredHolding: Number(match[2]),
+    miningPowerTHs: Number(match[3]),
+    dailyYieldAXN: Number(match[4]),
+    displayValueUSD: Number(match[5]),
+  }),
+);
+assert.equal(tiers913to1000.length, 88);
+assert.deepEqual(tiers913to1000.map((tier) => tier.level), Array.from({ length: 88 }, (_, index) => index + 913));
+assert.equal(tiers913to1000.find((tier) => tier.level === 913)?.requiredHolding, 711_300_000);
+assert.equal(tiers913to1000.find((tier) => tier.level === 931)?.requiredHolding, 1_010_000_000);
+assert.equal(tiers913to1000.find((tier) => tier.level === 933)?.requiredHolding, 1_051_000_000);
+assert.equal(tiers913to1000.find((tier) => tier.level === 947)?.requiredHolding, 1_380_000_000);
+assert.equal(tiers913to1000.find((tier) => tier.level === 1000)?.requiredHolding, 3_880_000_000);
+assert.equal(tiers913to1000.find((tier) => tier.level === 913)?.miningPowerTHs, 3_934.2);
+assert.equal(tiers913to1000.find((tier) => tier.level === 1000)?.dailyYieldAXN, 125_000);
+const allTiers = [...tiers, ...addedTiers, ...nextAddedTiers, ...finalAddedTiers, ...latestAddedTiers, ...newestAddedTiers, ...newestTierRows, ...tiers249to394, ...tiers395to424, ...tiers425to472, ...tiers473to520, ...tiers521to568, ...tiers569to616, ...tiers617to672, ...tiers673to752, ...tiers753to832, ...tiers833to912, ...tiers913to1000];
 
 assert.equal(getEligibleHolding('0'), 0);
 assert.equal(getMinerLevel(0, tiers).level, 1);
@@ -369,6 +389,15 @@ assert.equal(getMinerLevel(447999999.99, allTiers).level, 880);
 assert.equal(getMinerLevel(448000000, allTiers).level, 881);
 assert.equal(getMinerLevel(697499999.99, allTiers).level, 911);
 assert.equal(getMinerLevel(697500000, allTiers).level, 912);
+assert.equal(getMinerProgress(697500000, getMinerLevel(697500000, allTiers), allTiers).remaining, 13800000);
+assert.equal(getMinerLevel(711299999.99, allTiers).level, 912);
+assert.equal(getMinerLevel(711300000, allTiers).level, 913);
+assert.equal(getMinerLevel(1009999999.99, allTiers).level, 930);
+assert.equal(getMinerLevel(1010000000, allTiers).level, 931);
+assert.equal(getMinerLevel(1050999999.99, allTiers).level, 932);
+assert.equal(getMinerLevel(1051000000, allTiers).level, 933);
+assert.equal(getMinerLevel(3879999999.99, allTiers).level, 999);
+assert.equal(getMinerLevel(3880000000, allTiers).level, 1000);
 assert.equal(formatMinerUsd(0.00064185), '$0.00064');
 assert.equal(formatMinerUsd(0.006), '$0.00600');
 assert.equal(formatMinerUsd(0), '$0.00000');
@@ -388,4 +417,4 @@ assert.equal(calculateAccruedAxn(beforeUpgrade, 6, 86_400_000, 86_400_000, 172_8
 const beforeDowngrade = calculateAccruedAxn(0, 6, 0, 0, 86_400_000, Number.POSITIVE_INFINITY);
 assert.equal(calculateAccruedAxn(beforeDowngrade, 5, 86_400_000, 86_400_000, 172_800_000, Number.POSITIVE_INFINITY), 11);
 
-console.log('miner logic and AXN display tests passed: levels 1–912, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
+console.log('miner logic and AXN display tests passed: levels 1–1000, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
