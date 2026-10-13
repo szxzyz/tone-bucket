@@ -235,7 +235,26 @@ assert.equal(tiers753to832.find((tier) => tier.level === 753)?.requiredHolding, 
 assert.equal(tiers753to832.find((tier) => tier.level === 832)?.requiredHolding, 261_499_566.86);
 assert.equal(tiers753to832.find((tier) => tier.level === 753)?.miningPowerTHs, 2_320.27);
 assert.equal(tiers753to832.find((tier) => tier.level === 832)?.dailyYieldAXN, 76_592.25);
-const allTiers = [...tiers, ...addedTiers, ...nextAddedTiers, ...finalAddedTiers, ...latestAddedTiers, ...newestAddedTiers, ...newestTierRows, ...tiers249to394, ...tiers395to424, ...tiers425to472, ...tiers473to520, ...tiers521to568, ...tiers569to616, ...tiers617to672, ...tiers673to752, ...tiers753to832];
+const migration833to912 = readFileSync(new URL('../migrations/0032_miner_tiers_833_912.sql', import.meta.url), 'utf8');
+const tiers833to912 = Array.from(
+  migration833to912.matchAll(/\(\s*(\d+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/g),
+  (match) => ({
+    level: Number(match[1]),
+    requiredHolding: Number(match[2]),
+    miningPowerTHs: Number(match[3]),
+    dailyYieldAXN: Number(match[4]),
+    displayValueUSD: Number(match[5]),
+  }),
+);
+assert.equal(tiers833to912.length, 80);
+assert.deepEqual(tiers833to912.map((tier) => tier.level), Array.from({ length: 80 }, (_, index) => index + 833));
+assert.equal(tiers833to912.find((tier) => tier.level === 833)?.requiredHolding, 264_399_566.86);
+assert.equal(tiers833to912.find((tier) => tier.level === 880)?.requiredHolding, 443_099_566.86);
+assert.equal(tiers833to912.find((tier) => tier.level === 881)?.requiredHolding, 448_000_000);
+assert.equal(tiers833to912.find((tier) => tier.level === 912)?.requiredHolding, 697_500_000);
+assert.equal(tiers833to912.find((tier) => tier.level === 833)?.miningPowerTHs, 3_074.15);
+assert.equal(tiers833to912.find((tier) => tier.level === 912)?.dailyYieldAXN, 98_048.75);
+const allTiers = [...tiers, ...addedTiers, ...nextAddedTiers, ...finalAddedTiers, ...latestAddedTiers, ...newestAddedTiers, ...newestTierRows, ...tiers249to394, ...tiers395to424, ...tiers425to472, ...tiers473to520, ...tiers521to568, ...tiers569to616, ...tiers617to672, ...tiers673to752, ...tiers753to832, ...tiers833to912];
 
 assert.equal(getEligibleHolding('0'), 0);
 assert.equal(getMinerLevel(0, tiers).level, 1);
@@ -341,6 +360,15 @@ assert.equal(getMinerLevel(86799566.86, allTiers).level, 753);
 assert.equal(getMinerProgress(85419566.86, getMinerLevel(85419566.86, allTiers), allTiers).remaining, 1380000);
 assert.equal(getMinerLevel(261499566.85, allTiers).level, 831);
 assert.equal(getMinerLevel(261499566.86, allTiers).level, 832);
+assert.equal(getMinerProgress(261499566.86, getMinerLevel(261499566.86, allTiers), allTiers).remaining, 2900000);
+assert.equal(getMinerLevel(264399566.85, allTiers).level, 832);
+assert.equal(getMinerLevel(264399566.86, allTiers).level, 833);
+assert.equal(getMinerLevel(443099566.85, allTiers).level, 879);
+assert.equal(getMinerLevel(443099566.86, allTiers).level, 880);
+assert.equal(getMinerLevel(447999999.99, allTiers).level, 880);
+assert.equal(getMinerLevel(448000000, allTiers).level, 881);
+assert.equal(getMinerLevel(697499999.99, allTiers).level, 911);
+assert.equal(getMinerLevel(697500000, allTiers).level, 912);
 assert.equal(formatMinerUsd(0.00064185), '$0.00064');
 assert.equal(formatMinerUsd(0.006), '$0.00600');
 assert.equal(formatMinerUsd(0), '$0.00000');
@@ -360,4 +388,4 @@ assert.equal(calculateAccruedAxn(beforeUpgrade, 6, 86_400_000, 86_400_000, 172_8
 const beforeDowngrade = calculateAccruedAxn(0, 6, 0, 0, 86_400_000, Number.POSITIVE_INFINITY);
 assert.equal(calculateAccruedAxn(beforeDowngrade, 5, 86_400_000, 86_400_000, 172_800_000, Number.POSITIVE_INFINITY), 11);
 
-console.log('miner logic and AXN display tests passed: levels 1–832, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
+console.log('miner logic and AXN display tests passed: levels 1–912, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
