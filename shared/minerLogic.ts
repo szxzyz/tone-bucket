@@ -6,6 +6,18 @@ export interface MinerTier {
   displayValueUSD: number;
 }
 
+export const MINING_CYCLE_DURATION_SECONDS = 3 * 60 * 60;
+
+export function getMiningCycleState(startedAtMs: number, nowMs: number) {
+  const cycleEndsAtMs = startedAtMs + MINING_CYCLE_DURATION_SECONDS * 1000;
+  const remainingMs = Math.max(0, cycleEndsAtMs - nowMs);
+  return {
+    cycleEndsAtMs,
+    remainingSeconds: Math.ceil(remainingMs / 1000),
+    isComplete: remainingMs === 0,
+  };
+}
+
 export function getEligibleHolding(rawBalance: unknown): number {
   const value = Number(rawBalance ?? 0);
   return Number.isFinite(value) ? Math.max(0, value) : 0;

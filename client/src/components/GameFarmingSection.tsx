@@ -8,6 +8,7 @@ import {
   Loader2,
   ArrowUpFromLine,
   ShoppingCart,
+  Timer,
   TrendingUp,
   Waves,
 } from "lucide-react";
@@ -21,6 +22,13 @@ import { cancelRegisteredAdSession, confirmProviderCompletion, postWithAdVerific
 
 const formatAxn = (value: number) => (Number.isFinite(value) ? value : 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 const formatAxnSix = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(6);
+const formatCountdown = (seconds: number) => {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600).toString().padStart(2, "0");
+  const minutes = Math.floor((total % 3600) / 60).toString().padStart(2, "0");
+  const remainingSeconds = (total % 60).toString().padStart(2, "0");
+  return `${hours}:${minutes}:${remainingSeconds}`;
+};
 
 const actionPill: React.CSSProperties = {
   minWidth: 0, height: 42, boxSizing: "border-box", padding: "0 10px", borderRadius: 12,
@@ -33,34 +41,52 @@ export default function GameFarmingSection() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { startSession, endSession, cancelSession, waitForForeground } = useAdSession();
-  const { data: farm, isLoading } = useQuery<any>({ queryKey: ["/api/farming/state"], retry: false, staleTime: 10_000, refetchInterval: 30_000 });
+  const { data: farm, isLoading, dataUpdatedAt } = useQuery<any>({ queryKey: ["/api/farming/state"], retry: false, staleTime: 10_000, refetchInterval: 30_000 });
   const { data: appConfig } = useQuery<any>({ queryKey: ["/api/config/app"], retry: false, staleTime: 5 * 60_000 });
-  const [amount, setAmount] = useState(0);
   const [isShowingClaimAd, setIsShowingClaimAd] = useState(false);
   const [tokenTapped, setTokenTapped] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
-  useEffect(() => setAmount(Number(farm?.minedGold ?? farm?.minedAxn ?? 0)), [farm]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const currentLevel = Math.max(1, Number(farm?.currentLevel ?? 1));
   const dailyYield = Math.max(0, Number(farm?.dailyYieldAXN ?? 5));
   const miningPower = Math.max(0, Number(farm?.miningPowerTHs ?? 0.2));
   const eligibleHolding = Math.max(0, Number(farm?.eligibleHolding ?? 0));
-  const ratePerHour = dailyYield / 24;
-  const isActive = Boolean(farm?.isActive);
+  const serverRemainingSeconds = Math.max(0, Number(farm?.remainingSeconds ?? 0));
+  const stateAgeSeconds = farm?.serverNow && dataUpdatedAt > 0 ? Math.max(0, (clockNow - dataUpdatedAt) / 1000) : 0;
+  const remainingSeconds = Math.max(0, Math.ceil(serverRemainingSeconds - stateAgeSeconds));
+  const cycleElapsedSeconds = Math.min(serverRemainingSeconds, stateAgeSeconds);
+  const storedAmount = Math.max(0, Number(farm?.minedGold ?? farm?.minedAxn ?? 0));
+  const amount = storedAmount + (farm?.isActive ? dailyYield * cycleElapsedSeconds / 86400 : 0);
   const claimBusy = isShowingClaimAd;
   const adsgramBlockId = appConfig?.adsgramRewardBlockId || import.meta.env.VITE_ADSGRAM_BLOCK_ID || "";
-
-  useEffect(() => {
-    if (!isActive) return;
-    const timer = window.setInterval(() => setAmount((current) => current + ratePerHour / 3600), 1000);
-    return () => window.clearInterval(timer);
-  }, [isActive, ratePerHour]);
 
   const claimMutation = useMutation({
     mutationFn: async (proof: any) => postWithAdVerification("/api/farming/claim", proof),
     onSuccess: (data: any) => {
       showNotification(`${formatAxn(Number(data.amount || 0))} AXN claimed`, "success");
+      const cachedFarm = queryClient.getQueryData<any>(["/api/farming/state"]);
+      if (cachedFarm && data.startedAt) {
+        queryClient.setQueryData(["/api/farming/state"], {
+          ...cachedFarm,
+          isActive: true,
+          isComplete: false,
+          continuous: false,
+          startedAt: data.startedAt,
+          cycleEndsAt: data.cycleEndsAt,
+          cycleDurationSeconds: data.cycleDurationSeconds,
+          remainingSeconds: data.remainingSeconds,
+          serverNow: data.serverNow,
+          minedGold: 0,
+          minedAxn: 0,
+          currentLevel: data.currentLevel ?? cachedFarm.currentLevel,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/farming/state"] });
     },
@@ -68,7 +94,7 @@ export default function GameFarmingSection() {
   });
 
   const handleClaim = async () => {
-    if (claimBusy || claimMutation.isPending || isLoading || amount <= 0) return;
+    if (claimBusy || claimMutation.isPending || isLoading || remainingSeconds > 0 || amount <= 0) return;
     setIsShowingClaimAd(true);
     let sessionId: string | null = null;
     let providerCompleted = false;
@@ -128,7 +154,7 @@ export default function GameFarmingSection() {
   ];
 
   const claimPending = claimMutation.isPending;
-  const claimDisabled = claimBusy || claimPending || isLoading || amount <= 0;
+  const claimDisabled = claimBusy || claimPending || isLoading || remainingSeconds > 0 || amount <= 0;
 
   return (
     <>
@@ -174,9 +200,15 @@ export default function GameFarmingSection() {
         <button type="button" onClick={handleClaim} disabled={claimDisabled} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "calc(100% - 28px)", margin: "0 auto", height: 46, border: "none", borderRadius: 12, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#fff", fontWeight: 950, fontSize: 13, textTransform: "uppercase", letterSpacing: ".04em", cursor: claimDisabled ? "default" : "pointer", boxShadow: "0 8px 20px rgba(37,99,235,.28)", opacity: claimDisabled ? .62 : 1 }}>
           {claimBusy || claimPending
             ? <><Loader2 size={15} className="animate-spin" />{claimBusy ? "Opening AdsGram…" : "Claiming AXN…"}</>
-            : <><HandCoins size={17} />Watch Ad &amp; Claim {Number(amount).toFixed(2)} AXN</>}
+            : isLoading
+              ? <><Loader2 size={15} className="animate-spin" />Loading mining cycle…</>
+              : remainingSeconds > 0
+                ? <><Timer size={16} />Mining · {formatCountdown(remainingSeconds)}</>
+                : <><HandCoins size={17} />Watch Ad &amp; Claim {Number(amount).toFixed(2)} AXN</>}
         </button>
-        <div style={{ color: "rgba(255,255,255,.45)", textAlign: "center", fontSize: 10, fontWeight: 700, marginTop: 7 }}>Complete one AdsGram rewarded ad for each mining claim.</div>
+        <div style={{ color: "rgba(255,255,255,.45)", textAlign: "center", fontSize: 10, fontWeight: 700, marginTop: 7 }}>
+          {isLoading ? "Loading your mining cycle…" : remainingSeconds > 0 ? "Claim unlocks when the 3-hour mining cycle ends." : "Complete one AdsGram rewarded ad for each mining claim."}
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
           <button type="button" onClick={() => setLocation("/miners")} style={{ ...actionPill, gridColumn: "1 / -1", height: 42, cursor: "pointer" }}><Compass size={17} color="#60a5fa" /> Explore Miners</button>

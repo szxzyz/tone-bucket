@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress } from '../shared/minerLogic';
+import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress, getMiningCycleState, MINING_CYCLE_DURATION_SECONDS } from '../shared/minerLogic';
 import { formatCompactAxn } from '../client/src/lib/formatAxn';
 import { formatMinerUsd } from '../client/src/lib/formatMinerUsd';
 
@@ -417,4 +417,23 @@ assert.equal(calculateAccruedAxn(beforeUpgrade, 6, 86_400_000, 86_400_000, 172_8
 const beforeDowngrade = calculateAccruedAxn(0, 6, 0, 0, 86_400_000, Number.POSITIVE_INFINITY);
 assert.equal(calculateAccruedAxn(beforeDowngrade, 5, 86_400_000, 86_400_000, 172_800_000, Number.POSITIVE_INFINITY), 11);
 
-console.log('miner logic and AXN display tests passed: levels 1–1000, thresholds, progress, five-decimal USD, fractional/daily accrual, tier changes, cycle cap, negative time, and compact K/M/B formatting');
+const cycleStartMs = 1_700_000_000_000;
+const cycleDurationMs = MINING_CYCLE_DURATION_SECONDS * 1000;
+assert.equal(MINING_CYCLE_DURATION_SECONDS, 10_800);
+assert.deepEqual(getMiningCycleState(cycleStartMs, cycleStartMs), {
+  cycleEndsAtMs: cycleStartMs + cycleDurationMs,
+  remainingSeconds: 10_800,
+  isComplete: false,
+});
+assert.equal(getMiningCycleState(cycleStartMs, cycleStartMs + cycleDurationMs - 1).remainingSeconds, 1);
+assert.deepEqual(getMiningCycleState(cycleStartMs, cycleStartMs + cycleDurationMs), {
+  cycleEndsAtMs: cycleStartMs + cycleDurationMs,
+  remainingSeconds: 0,
+  isComplete: true,
+});
+assert.equal(getMiningCycleState(cycleStartMs, cycleStartMs + cycleDurationMs + 60_000).isComplete, true);
+assert.equal(calculateAccruedAxn(0, 72, cycleStartMs, cycleStartMs, cycleStartMs + cycleDurationMs, MINING_CYCLE_DURATION_SECONDS), 9);
+assert.equal(calculateAccruedAxn(0, 72, cycleStartMs, cycleStartMs, cycleStartMs + 4 * 60 * 60 * 1000, MINING_CYCLE_DURATION_SECONDS), 9);
+assert.equal(calculateAccruedAxn(2, 72, cycleStartMs, cycleStartMs + 60 * 60 * 1000, cycleStartMs + 4 * 60 * 60 * 1000, MINING_CYCLE_DURATION_SECONDS), 8);
+
+console.log('miner logic and AXN display tests passed: levels 1–1000, thresholds, progress, five-decimal USD, fractional/daily accrual, 3-hour cycle boundaries and accrual cap, tier changes, negative time, and compact K/M/B formatting');

@@ -64,7 +64,7 @@ import { config, getChannelConfig, getAppConfig } from "./config";
 import { createBackup, listBackups, deleteBackup, restoreBackup, getBackupPath } from "./backup";
 import { getResetPeriodKey, getPeriodStart, getNextResetTime } from "./resetPeriod";
 import { CONTEST_PRIZE_AMOUNTS } from "../shared/constants";
-import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress, normalizeAxnAmount, type MinerTier } from "../shared/minerLogic";
+import { calculateAccruedAxn, getEligibleHolding, getMinerLevel, getMinerProgress, getMiningCycleState, MINING_CYCLE_DURATION_SECONDS, normalizeAxnAmount, type MinerTier } from "../shared/minerLogic";
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -9734,7 +9734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Continuous miner accrual is server-owned and persisted on every state read.
+  // Three-hour miner accrual is server-owned and persisted on every state read.
   // A row lock serializes requests with balance changes and claim operations.
   app.get('/api/farming/state', authenticateTelegram, async (req: any, res: any) => {
     try {
@@ -9768,9 +9768,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         const startedAt = startedAtDate.getTime();
         const now = Date.now();
+        const cycle = getMiningCycleState(startedAt, now);
         const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
         const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
-        const minedAxn = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now, Number.POSITIVE_INFINITY);
+        const minedAxn = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now, MINING_CYCLE_DURATION_SECONDS);
         const updatedAt = new Date(now);
         await tx.update(users).set({
           miningAccruedGold: normalizeAxnAmount(minedAxn),
@@ -9780,11 +9781,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }).where(eq(users.id, userId));
         const progress = getMinerProgress(holding, current, tiers);
         return {
-          isActive: true,
-          isComplete: false,
-          continuous: true,
+          isActive: !cycle.isComplete,
+          isComplete: cycle.isComplete,
+          continuous: false,
+          cycleDurationSeconds: MINING_CYCLE_DURATION_SECONDS,
+          cycleEndsAt: new Date(cycle.cycleEndsAtMs).toISOString(),
+          serverNow: updatedAt.toISOString(),
           startedAt: startedAtDate.toISOString(),
-          remainingSeconds: null,
+          remainingSeconds: cycle.remainingSeconds,
           minedGold: minedAxn,
           minedAxn,
           eligibleHolding: holding,
@@ -9804,7 +9808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Compatibility endpoint: continuous mining is initialized by state reads.
+  // Compatibility endpoint: mining is initialized by state reads.
   app.post('/api/farming/start', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
@@ -9816,7 +9820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           miningAccruedGold: users.miningAccruedGold,
         }).from(users).where(eq(users.id, userId)).for('update').limit(1);
         if (!user) return { httpStatus: 404, message: 'User not found' };
-        if (user.miningStartedAt) return { success: true, continuous: true };
+        if (user.miningStartedAt) return { success: true, cycleDurationSeconds: MINING_CYCLE_DURATION_SECONDS };
         const rows = await tx.select().from(minerConfigurations).orderBy(minerConfigurations.level);
         const tiers = rows.map(mapMinerTier);
         if (!tiers.length) return { httpStatus: 503, message: 'Miner configuration is not installed' };
@@ -9831,7 +9835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           miningAccrualLevel: level,
           updatedAt: startedAt,
         }).where(and(eq(users.id, userId), sql`${users.miningStartedAt} IS NULL`));
-        return { success: true, continuous: true, currentLevel: level };
+        return { success: true, cycleDurationSeconds: MINING_CYCLE_DURATION_SECONDS, currentLevel: level };
       });
       if ('httpStatus' in result) return res.status(result.httpStatus).json({ message: result.message });
       return res.json(result);
@@ -9841,8 +9845,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Claim accrued rewards at any time. SELECT FOR UPDATE + timestamp reset make
-  // simultaneous claims serial and prevent paying the same interval twice.
+  // Claims are only available once the three-hour cycle ends. SELECT FOR UPDATE
+  // + cycle reset make simultaneous claims serial and prevent duplicate payout.
   app.post('/api/farming/claim', authenticateTelegram, async (req: any, res: any) => {
     try {
       const userId = req.session?.user?.user?.id || req.user?.user?.id;
@@ -9864,20 +9868,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const now = new Date();
         const startedAtDate = user.miningStartedAt ? new Date(user.miningStartedAt) : now;
         const startedAt = startedAtDate.getTime();
+        const cycle = getMiningCycleState(startedAt, now.getTime());
+        if (!cycle.isComplete) {
+          return {
+            httpStatus: 409,
+            message: 'Mining is still running. Claim becomes available after the 3-hour cycle ends.',
+            remainingSeconds: cycle.remainingSeconds,
+          };
+        }
         const lastAccrualAt = user.miningLastAccrualAt ? new Date(user.miningLastAccrualAt).getTime() : startedAt;
         const accrualTier = tiers.find((tier) => tier.level === Number(user.miningAccrualLevel)) ?? current;
-        const reward = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now.getTime(), Number.POSITIVE_INFINITY);
+        const reward = calculateAccruedAxn(Number(user.miningAccruedGold || 0), accrualTier.dailyYieldAXN, startedAt, lastAccrualAt, now.getTime(), MINING_CYCLE_DURATION_SECONDS);
         if (reward <= 0) return { httpStatus: 400, message: 'No AXN reward is ready to claim' };
         const adVerified = await consumeRewardAdSession(tx, userId, req.body, 'mining_claim');
         if (adVerified === 'pending') return { httpStatus: 202, message: 'Waiting for AdsGram completion verification' };
         if (!adVerified) return { httpStatus: 400, message: 'Complete an AdsGram ad before claiming mining rewards' };
         const amount = normalizeAxnAmount(reward);
         const claimedAt = new Date(Math.max(now.getTime(), lastAccrualAt + 1));
-        const startedUpdate = user.miningStartedAt ?? startedAtDate;
         const levelAfterCredit = getMinerLevel(holding + reward, tiers).level;
         const updated = await tx.update(users).set({
           axnBalance: sql`COALESCE(${users.axnBalance}, 0) + ${amount}::numeric`,
-          miningStartedAt: startedUpdate,
+          miningStartedAt: claimedAt,
           miningBoostMultiplier: '1',
           miningBoostStep: 0,
           miningAccruedGold: '0',
@@ -9895,13 +9906,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             currency: 'AXN',
           });
         }
-        return { success: true, amount: reward, continuous: true, currentLevel: levelAfterCredit };
+        const cycleEndsAt = new Date(claimedAt.getTime() + MINING_CYCLE_DURATION_SECONDS * 1000);
+        return {
+          success: true,
+          amount: reward,
+          continuous: false,
+          currentLevel: levelAfterCredit,
+          startedAt: claimedAt.toISOString(),
+          cycleEndsAt: cycleEndsAt.toISOString(),
+          cycleDurationSeconds: MINING_CYCLE_DURATION_SECONDS,
+          remainingSeconds: MINING_CYCLE_DURATION_SECONDS,
+          serverNow: now.toISOString(),
+        };
       });
       if ('httpStatus' in result) {
         if (result.httpStatus === 202) {
           return res.status(202).json({ success: false, pending: true, errorType: 'provider_verification_pending', message: result.message });
         }
-        return res.status(result.httpStatus).json({ message: result.message });
+        return res.status(result.httpStatus).json({ message: result.message, remainingSeconds: result.remainingSeconds });
       }
       return res.json(result);
     } catch (error) {
